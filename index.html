@@ -33,14 +33,14 @@
     <section class="panel workspace">
       <div id="emptyState" class="empty-state">
         <h2>Выберите или добавьте клиента</h2>
-        <p>После выбора здесь появятся карточка, сессии и диагностики.</p>
+        <p>После выбора здесь появятся клиент, сессии и запросы.</p>
       </div>
 
       <div id="workspaceContent" class="hidden">
         <nav class="tabs">
-          <button class="tab active" data-tab="profile">Карточка клиента</button>
+          <button class="tab active" data-tab="profile">Клиент</button>
           <button class="tab" data-tab="sessions">Сессии</button>
-          <button class="tab" data-tab="diagnosis">Диагностики</button>
+          <button class="tab" data-tab="requests">Запросы</button>
         </nav>
 
         <section id="profileTab" class="tab-page active">
@@ -73,25 +73,25 @@
           <div class="section-toolbar">
             <div>
               <h2>Сессии клиента</h2>
-              <p class="muted">Сессия хранится отдельно от диагностического запроса.</p>
+              <p class="muted">Сессия — отдельная встреча. Её можно связать с одним из запросов клиента.</p>
             </div>
             <button id="addSessionBtn" class="button primary">+ Сессия</button>
           </div>
           <div id="sessions" class="sessions"></div>
         </section>
 
-        <section id="diagnosisTab" class="tab-page">
+        <section id="requestsTab" class="tab-page">
           <div class="diagnosis-manager">
-            <label class="grow">Диагностический запрос
-              <select id="diagnosisSelect" class="input"></select>
+            <label class="grow">Запрос клиента
+              <select id="requestSelect" class="input"></select>
             </label>
-            <button id="addDiagnosisBtn" class="button primary">+ Новый запрос</button>
-            <button id="deleteDiagnosisBtn" class="button danger">Удалить запрос</button>
+            <button id="addRequestBtn" class="button primary">+ Новый запрос</button>
+            <button id="deleteRequestBtn" class="button danger">Удалить запрос</button>
           </div>
-          <div id="diagnosisEmpty" class="empty-inline hidden">Создай первый диагностический запрос.</div>
-          <div id="diagnosisEditor">
+          <div id="requestEmpty" class="empty-inline hidden">Создай первый запрос клиента.</div>
+          <div id="requestEditor">
             <div class="diagnosis-toolbar">
-              <label class="grow">Название / общий запрос<input id="diagnosisRequest" class="input" placeholder="Например: страх проявляться" /></label>
+              <label class="grow">Название / общий запрос<input id="requestTitle" class="input" placeholder="Например: страх проявляться" /></label>
               <button id="addSituationBtn" class="button primary">+ Ситуация</button>
             </div>
             <div id="situations" class="situations"></div>
@@ -119,12 +119,14 @@
     <article class="session-card">
       <div class="session-head">
         <label>Дата<input class="input session-date" type="date" /></label>
-        <label>Запрос<input class="input session-request" placeholder="Запрос на эту сессию" /></label>
+        <label>Связанный запрос<select class="input session-request-link"></select></label>
         <button class="icon-button danger-text delete-session" title="Удалить">×</button>
       </div>
       <div class="session-grid">
+        <label>Запрос на эту сессию<textarea class="textarea session-request-text"></textarea></label>
         <label>Диагностика / наблюдения<textarea class="textarea session-diagnosis"></textarea></label>
         <label>Что делали<textarea class="textarea session-work"></textarea></label>
+        <label>Результат / изменения<textarea class="textarea session-result"></textarea></label>
         <label class="wide">Заметки<textarea class="textarea session-notes"></textarea></label>
       </div>
     </article>
