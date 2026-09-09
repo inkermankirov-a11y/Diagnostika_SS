@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#eef1f4" />
+  <title>Психологическая диагностика</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Психологическая диагностика</h1>
+      <p class="muted">Локальная веб-версия. Данные хранятся в этом браузере.</p>
+    </div>
+    <div class="header-actions">
+      <button id="exportDbBtn" class="button secondary">Экспорт базы</button>
+      <label class="button secondary file-button">Импорт базы<input id="importDbInput" type="file" accept="application/json,.json" /></label>
+      <button id="exportTxtBtn" class="button primary">Сохранить TXT</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel clients-panel">
+      <div class="panel-title-row">
+        <h2>Клиенты</h2>
+        <button id="addClientBtn" class="icon-button" title="Добавить клиента">+</button>
+      </div>
+      <input id="clientSearch" class="input" placeholder="Поиск клиента" />
+      <div id="clientList" class="client-list"></div>
+    </aside>
+
+    <section class="panel workspace">
+      <div id="emptyState" class="empty-state">
+        <h2>Выберите или добавьте клиента</h2>
+        <p>После выбора здесь появятся карточка клиента и диагностика.</p>
+      </div>
+
+      <div id="workspaceContent" class="hidden">
+        <nav class="tabs">
+          <button class="tab active" data-tab="profile">Карточка клиента</button>
+          <button class="tab" data-tab="diagnosis">Диагностика</button>
+        </nav>
+
+        <section id="profileTab" class="tab-page active">
+          <div class="form-grid">
+            <label>ФИО<input id="clientName" class="input" /></label>
+            <label>Телефон<input id="clientPhone" class="input" /></label>
+            <label>Email<input id="clientEmail" class="input" /></label>
+            <label>Пол<select id="clientGender" class="input"><option value="">—</option><option>Женский</option><option>Мужской</option></select></label>
+            <label>Дата рождения<input id="clientBirth" type="date" class="input" /></label>
+            <label>Город<input id="clientCity" class="input" /></label>
+            <label>Страна<input id="clientCountry" class="input" /></label>
+            <label>VK<input id="clientVk" class="input" /></label>
+            <label>Telegram<input id="clientTelegram" class="input" /></label>
+            <label>MAX<input id="clientMax" class="input" /></label>
+            <label class="wide">С чем пришёл<textarea id="clientCameWith" class="textarea"></textarea></label>
+            <label class="wide">Главный запрос<textarea id="clientMainRequest" class="textarea"></textarea></label>
+            <label class="wide">Что уже пробовал<textarea id="clientTried" class="textarea"></textarea></label>
+            <label class="wide">Что не помогло<textarea id="clientDidntHelp" class="textarea"></textarea></label>
+            <label class="wide">Желаемый результат<textarea id="clientDesired" class="textarea"></textarea></label>
+            <label class="wide">Откуда пришёл<input id="clientSource" class="input" /></label>
+            <label class="wide">Заметки<textarea id="clientNotes" class="textarea tall"></textarea></label>
+          </div>
+          <div class="footer-actions">
+            <button id="deleteClientBtn" class="button danger">Удалить клиента</button>
+            <span id="saveStatus" class="muted">Сохраняется автоматически</span>
+          </div>
+        </section>
+
+        <section id="diagnosisTab" class="tab-page">
+          <div class="diagnosis-toolbar">
+            <label class="grow">Общий запрос<input id="diagnosisRequest" class="input" placeholder="Например: страх проявляться" /></label>
+            <button id="addSituationBtn" class="button primary">+ Ситуация</button>
+          </div>
+          <div id="situations" class="situations"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <template id="situationTemplate">
+    <article class="situation-card">
+      <div class="situation-head">
+        <input class="input situation-name" placeholder="Ситуация" />
+        <label class="level-label">Уровень <input class="level-input situation-level" type="number" min="1" max="10" value="5" /></label>
+        <button class="icon-button danger-text delete-situation" title="Удалить">×</button>
+      </div>
+      <textarea class="textarea situation-comment" placeholder="Комментарий к ситуации"></textarea>
+      <div class="beliefs"></div>
+      <button class="button ghost add-belief">+ Убеждение</button>
+      <label class="result-label">Желаемый результат<textarea class="textarea situation-result" placeholder="Как должно быть вместо этого"></textarea></label>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
