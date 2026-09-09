@@ -26,39 +26,33 @@
     .feeling-builder-sub{font-size:12px;color:#718096;margin-top:5px;line-height:1.4}
     .feeling-builder-close{width:34px;height:34px;border:0;border-radius:8px;background:#e8edf3;cursor:pointer;font-size:20px;color:#475569}
     .feeling-list-frame{min-height:0;flex:1;border:1px solid #d3dce7;background:#fff;border-radius:10px;padding:8px;overflow:auto;box-shadow:inset 0 1px 2px rgba(15,23,42,.04)}
-    .feeling-list-head{position:sticky;top:-8px;z-index:2;display:grid;grid-template-columns:42px minmax(180px,1fr) 84px minmax(260px,2fr) 38px;gap:8px;align-items:center;background:#eaf0f7;border-bottom:1px solid #cfd9e5;padding:9px 10px;margin:-8px -8px 8px;color:#526174;font-size:11px;font-weight:800;text-transform:uppercase}
+    .feeling-list-head{position:sticky;top:-8px;z-index:2;display:grid;grid-template-columns:42px minmax(210px,1fr) 84px minmax(260px,2fr) 38px;gap:8px;align-items:center;background:#eaf0f7;border-bottom:1px solid #cfd9e5;padding:9px 10px;margin:-8px -8px 8px;color:#526174;font-size:11px;font-weight:800;text-transform:uppercase}
     .feeling-list-head>div:nth-child(1),.feeling-list-head>div:nth-child(3){text-align:center}
-    .feeling-select-row{display:grid;grid-template-columns:42px minmax(180px,1fr) 84px minmax(260px,2fr) 38px;gap:8px;align-items:center;min-height:54px;padding:7px 10px;margin-bottom:6px;border:1px solid #dce4ed;border-left:4px solid #d5dde8;border-radius:9px;background:#fbfcfe;transition:background .13s ease,border-color .13s ease,box-shadow .13s ease,transform .13s ease}
+    .feeling-select-row{display:grid;grid-template-columns:42px minmax(210px,1fr) 84px minmax(260px,2fr) 38px;gap:8px;align-items:center;min-height:54px;padding:7px 10px;margin-bottom:6px;border:1px solid #dce4ed;border-left:4px solid #d5dde8;border-radius:9px;background:#fbfcfe;transition:background .13s ease,border-color .13s ease,box-shadow .13s ease,transform .13s ease}
     .feeling-select-row:hover{background:#f4f8fe;border-color:#b9cce4;box-shadow:0 3px 10px rgba(43,75,115,.09);transform:translateY(-1px)}
     .feeling-select-row.is-selected{background:#eef6ff;border-color:#9bbce3;border-left-color:#4f82c4;box-shadow:0 2px 8px rgba(58,105,165,.10)}
     .feeling-check-wrap{display:grid;place-items:center}
     .feeling-check{width:18px;height:18px;accent-color:#4169e1;cursor:pointer}
     .feeling-name-wrap{min-width:0;display:flex;align-items:center;gap:7px}
-    .feeling-name{font-weight:700;color:#26364a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
+    .feeling-name{font-weight:700;color:#26364a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .feeling-custom-name{width:100%;height:34px;border:1px solid #b9c7d7;border-radius:7px;padding:0 8px;background:#fff}
-    .feeling-question-edit{width:27px;height:27px;border:1px solid #c7d2df!important;border-radius:50%!important;background:#fff!important;color:#56708f!important;padding:0!important;box-shadow:none!important;font-size:12px;display:grid;place-items:center;flex:0 0 27px}
-    .feeling-question-edit:hover{background:#eef5fd!important;transform:none!important;box-shadow:none!important}
+    .feeling-question-help{position:relative;width:27px;height:27px;border:1px solid #b9c9dc!important;border-radius:50%!important;background:#fff!important;color:#52739a!important;padding:0!important;box-shadow:none!important;font-size:13px;font-weight:800;display:grid;place-items:center;flex:0 0 27px;cursor:help!important}
+    .feeling-question-help:hover{background:#eef5fd!important;transform:none!important;box-shadow:none!important}
+    .feeling-question-help::after{content:attr(data-question);position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%) translateY(3px);width:max-content;max-width:320px;white-space:normal;background:#26364a;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.35;font-weight:500;box-shadow:0 8px 20px rgba(15,23,42,.22);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease,transform .12s ease;z-index:20}
+    .feeling-question-help::before{content:'';position:absolute;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);border:6px solid transparent;border-top-color:#26364a;opacity:0;visibility:hidden;transition:opacity .12s ease;z-index:21}
+    .feeling-question-help:hover::after,.feeling-question-help:focus::after,.feeling-question-help:hover::before,.feeling-question-help:focus::before{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
     .feeling-level{width:72px;height:34px;border:1px solid #b9c7d7;border-radius:7px;padding:0 6px;background:#fff;text-align:center}
     .feeling-answer{width:100%;height:34px;border:1px solid #b9c7d7;border-radius:7px;padding:0 9px;background:#fff;color:#26364a}
     .feeling-answer::placeholder{color:#a1acb9}
     .feeling-delete-custom{width:30px;height:30px;border:1px solid #efb2b2!important;border-radius:7px!important;background:#fff4f4!important;color:#b52828!important;padding:0!important;box-shadow:none!important;font-weight:800}
     .feeling-delete-custom:hover{background:#ffe4e4!important;transform:none!important;box-shadow:none!important}
-    .feeling-question-row{grid-column:2/5;display:none;grid-template-columns:130px 1fr;gap:8px;align-items:center;padding:2px 0 3px;font-size:11px;color:#6b7788}
-    .feeling-select-row.question-open .feeling-question-row{display:grid}
-    .feeling-question-input{height:32px;border:1px solid #b9c7d7;border-radius:7px;padding:0 8px;background:#fff;color:#334155;width:100%}
     .feeling-builder-footer{display:flex;align-items:center;gap:9px;margin-top:14px;padding-top:13px;border-top:1px solid #d8e0e8}
     .feeling-add-custom{border:1px solid #7fa4d6;background:linear-gradient(#6495df,#4777c5);color:#fff;border-radius:8px;padding:9px 13px;cursor:pointer;font-weight:700}
     .feeling-builder-cancel{margin-left:auto;border:1px solid #cbd5e1;background:#edf1f5;color:#334155;border-radius:8px;padding:9px 14px;cursor:pointer}
     .feeling-builder-save{border:1px solid #197149;background:linear-gradient(#35a56d,#238b57);color:#fff;border-radius:8px;padding:9px 16px;cursor:pointer;font-weight:700;box-shadow:0 3px 7px rgba(26,110,70,.2)}
     .feeling-editor-inline{display:flex;align-items:center;gap:8px;margin:-2px 0 8px;color:#64748b;font-size:12px}
     .feeling-editor-inline button{border:1px solid #d9aa3c;background:linear-gradient(#fff9e8,#f3e0aa);color:#79540c;border-radius:7px;padding:5px 9px;cursor:pointer;font-weight:700}
-    @media(max-width:760px){
-      .feeling-list-head{display:none}
-      .feeling-select-row{grid-template-columns:38px 1fr 74px;grid-template-rows:auto auto;gap:6px}
-      .feeling-answer{grid-column:2/4}
-      .feeling-question-edit{display:none}
-      .feeling-question-row{grid-column:2/4;display:grid;grid-template-columns:1fr}
-    }
+    @media(max-width:760px){.feeling-list-head{display:none}.feeling-select-row{grid-template-columns:38px 1fr 74px;grid-template-rows:auto auto;gap:6px}.feeling-answer{grid-column:2/4}.feeling-question-help{grid-column:auto}}
   `;
   document.head.appendChild(style);
 
@@ -75,7 +69,7 @@
       <div class="feeling-builder-head">
         <div>
           <div class="feeling-builder-title">Вторичные чувства</div>
-          <div class="feeling-builder-sub">Отметь подходящие чувства. Для каждого можно указать уровень и ответ клиента. Наведи на название — увидишь диагностический вопрос; кнопка ✎ позволяет его изменить.</div>
+          <div class="feeling-builder-sub">Отметь подходящие чувства. Для каждого укажи уровень и ответ клиента. Наведи на знак ? рядом с чувством — появится диагностический вопрос.</div>
         </div>
         <button class="feeling-builder-close" type="button" title="Закрыть">×</button>
       </div>
@@ -122,7 +116,7 @@
       if(known){name=known.name;if(raw.startsWith(known.name+':'))answer=raw.slice(known.name.length+1).trim();}
       else {name=raw||'Своё чувство';answer='';}
     }
-    return {source:f,id:f.id||uid(),name,checked:true,question:f.feelingQuestion!=null?f.feelingQuestion:presetQuestion(name),answer,level:Number(f.level)||5,comment:f.comment||'',deep:Array.isArray(f.deep)?f.deep:[],custom:!PRESETS.some(x=>x.name===name),questionOpen:false};
+    return {source:f,id:f.id||uid(),name,checked:true,question:f.feelingQuestion!=null?f.feelingQuestion:presetQuestion(name),answer,level:Number(f.level)||5,comment:f.comment||'',deep:Array.isArray(f.deep)?f.deep:[],custom:!PRESETS.some(x=>x.name===name)};
   }
 
   function buildRows(belief){
@@ -130,7 +124,7 @@
     const result=[];
     PRESETS.forEach(p=>{
       const old=existing.find(x=>!x.custom&&x.name===p.name);
-      result.push(old||{source:null,id:uid(),name:p.name,checked:false,question:p.question,answer:'',level:5,comment:'',deep:[],custom:false,questionOpen:false});
+      result.push(old||{source:null,id:uid(),name:p.name,checked:false,question:p.question,answer:'',level:5,comment:'',deep:[],custom:false});
     });
     existing.filter(x=>x.custom).forEach(x=>result.push(x));
     return result;
@@ -140,26 +134,23 @@
     list.innerHTML='';
     rows.forEach((item,index)=>{
       const row=document.createElement('div');
-      row.className='feeling-select-row'+(item.checked?' is-selected':'')+(item.questionOpen?' question-open':'');
+      row.className='feeling-select-row'+(item.checked?' is-selected':'');
       row.innerHTML=`
         <div class="feeling-check-wrap"><input class="feeling-check" type="checkbox"></div>
         <div class="feeling-name-wrap"></div>
         <input class="feeling-level" type="number" min="1" max="10">
         <input class="feeling-answer" type="text" placeholder="Введите ответ / уточнение клиента">
-        <div class="feeling-row-action"></div>
-        <div class="feeling-question-row"><span>Диагностический вопрос</span><input class="feeling-question-input" type="text"></div>`;
+        <div class="feeling-row-action"></div>`;
 
       const check=row.querySelector('.feeling-check');
       const nameWrap=row.querySelector('.feeling-name-wrap');
       const level=row.querySelector('.feeling-level');
       const answer=row.querySelector('.feeling-answer');
       const action=row.querySelector('.feeling-row-action');
-      const qInput=row.querySelector('.feeling-question-input');
 
       check.checked=item.checked;
       level.value=item.level||5;
       answer.value=item.answer||'';
-      qInput.value=item.question||'';
 
       if(item.custom){
         const name=document.createElement('input');
@@ -168,6 +159,11 @@
         name.placeholder='Название чувства';
         name.oninput=()=>item.name=name.value;
         nameWrap.appendChild(name);
+        if(item.question){
+          const help=document.createElement('button');
+          help.type='button';help.className='feeling-question-help';help.textContent='?';help.dataset.question=item.question;help.setAttribute('aria-label',item.question);
+          nameWrap.appendChild(help);
+        }
         const del=document.createElement('button');
         del.type='button';del.className='feeling-delete-custom';del.textContent='×';del.title='Удалить своё чувство';
         del.onclick=()=>{rows.splice(index,1);renderRows();};
@@ -176,24 +172,22 @@
         const name=document.createElement('span');
         name.className='feeling-name';
         name.textContent=item.name;
-        name.title=item.question||'Диагностический вопрос не задан';
-        const edit=document.createElement('button');
-        edit.type='button';edit.className='feeling-question-edit';edit.textContent='✎';edit.title='Изменить диагностический вопрос';
-        edit.onclick=()=>{item.questionOpen=!item.questionOpen;renderRows();setTimeout(()=>{if(item.questionOpen){const inputs=list.querySelectorAll('.feeling-question-input');inputs[index]?.focus();}},0);};
-        nameWrap.append(name,edit);
+        const help=document.createElement('button');
+        help.type='button';help.className='feeling-question-help';help.textContent='?';
+        help.dataset.question=item.question||'Диагностический вопрос не задан';
+        help.setAttribute('aria-label',item.question||'Диагностический вопрос не задан');
+        nameWrap.append(name,help);
       }
 
       check.onchange=()=>{item.checked=check.checked;row.classList.toggle('is-selected',item.checked);};
       level.oninput=()=>item.level=Math.max(1,Math.min(10,Number(level.value)||1));
       answer.oninput=()=>item.answer=answer.value;
-      qInput.oninput=()=>{item.question=qInput.value;const title=row.querySelector('.feeling-name');if(title)title.title=item.question||'Диагностический вопрос не задан';};
-
       list.appendChild(row);
     });
   }
 
   function openBuilder(belief){
-    if(!belief) return alert('Сначала выбери «Убеждение 1», к которому относятся чувства.');
+    if(!belief)return alert('Сначала выберите «Убеждение 1».');
     editingBelief=belief;
     rows=buildRows(belief);
     renderRows();
@@ -202,18 +196,17 @@
 
   function saveBuilder(){
     if(!editingBelief)return;
-    const selectedRows=rows.filter(x=>x.checked && String(x.name||'').trim());
-    editingBelief.feelings=selectedRows.map(item=>{
-      const f=item.source||{id:item.id,deep:item.deep||[]};
+    editingBelief.feelings=rows.filter(x=>x.checked).map(item=>{
+      const f=item.source||{id:item.id||uid(),deep:item.deep||[]};
       f.id=f.id||item.id||uid();
-      f.feelingType=String(item.name||'').trim();
-      f.feelingQuestion=item.question||'';
+      f.feelingType=item.name;
+      f.feelingQuestion=item.question||presetQuestion(item.name)||'';
       f.feelingAnswer=item.answer||'';
       f.level=Math.max(1,Math.min(10,Number(item.level)||1));
       f.comment=item.comment||f.comment||'';
       if(!Array.isArray(f.deep))f.deep=item.deep||[];
       const detail=(item.answer||'').trim();
-      f.text=f.feelingType+(detail?': '+detail:'');
+      f.text=item.name+(detail?': '+detail:'');
       return f;
     });
     if(typeof save==='function')save();
@@ -230,9 +223,9 @@
   }
 
   dialog.querySelector('.feeling-add-custom').onclick=()=>{
-    rows.push({source:null,id:uid(),name:'',checked:true,question:'',answer:'',level:5,comment:'',deep:[],custom:true,questionOpen:true});
+    rows.push({source:null,id:uid(),name:'',checked:true,question:'',answer:'',level:5,comment:'',deep:[],custom:true});
     renderRows();
-    setTimeout(()=>{const frame=dialog.querySelector('.feeling-list-frame');frame.scrollTo({top:frame.scrollHeight,behavior:'smooth'});const names=list.querySelectorAll('.feeling-custom-name');names[names.length-1]?.focus();},0);
+    setTimeout(()=>list.scrollTo({top:list.scrollHeight,behavior:'smooth'}),0);
   };
   dialog.querySelector('.feeling-builder-save').onclick=saveBuilder;
   dialog.querySelector('.feeling-builder-cancel').onclick=()=>dialog.close();
@@ -247,7 +240,8 @@
     if(!show){if(box)box.remove();return;}
     if(!box){
       box=document.createElement('div');
-      box.id='feelingEditorInline';box.className='feeling-editor-inline';
+      box.id='feelingEditorInline';
+      box.className='feeling-editor-inline';
       box.innerHTML='<span>Вторичные чувства этого убеждения</span><button type="button">Редактировать список</button>';
       box.querySelector('button').onclick=()=>openBuilder(findBeliefForObject(selected?.obj));
       editorType.insertAdjacentElement('afterend',box);
