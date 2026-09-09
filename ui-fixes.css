@@ -19,17 +19,22 @@
 .dialog-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .dialog-actions .tk-btn{min-width:110px}
 
-.sessions-list{display:grid;gap:8px}
+.sessions-list{display:grid;gap:9px}
 .sessions-empty{color:#9ca3af;padding:8px 0}
-.session-card{border:1px solid #d8dde3;background:#fff;border-radius:4px;overflow:hidden}
-.session-card-head{display:grid;grid-template-columns:110px minmax(0,1fr) 34px;gap:10px;align-items:center;padding:8px 10px;background:#f5f7f9;border-bottom:1px solid #e3e7eb}
+.session-card{border:1px solid #d8dde3;background:#fff;border-radius:5px;overflow:hidden;cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,background-color .16s ease}
+.session-card:hover{transform:translateY(-1px);border-color:#b9c8e8;box-shadow:0 3px 10px rgba(45,70,120,.10)}
+.session-card:focus-visible{outline:2px solid #8aa6ef;outline-offset:2px}
+.session-card.selected{border-color:#6f91e8;box-shadow:0 0 0 2px rgba(65,105,225,.12),0 3px 10px rgba(45,70,120,.08)}
+.session-card.selected .session-card-head{background:#edf3ff}
+.session-card.selected .session-card-notes{background:#fbfdff}
+.session-card-head{display:grid;grid-template-columns:110px minmax(0,1fr) 34px;gap:10px;align-items:center;padding:8px 10px;background:#f5f7f9;border-bottom:1px solid #e3e7eb;transition:background-color .16s ease}
 .session-card-title{font-weight:700;white-space:nowrap;color:#202124}
 .session-card-meta{display:flex;align-items:center;gap:12px;min-width:0;color:#5f6772}
 .session-card-date{white-space:nowrap;font-variant-numeric:tabular-nums}
 .session-card-request{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155}
-.session-card-edit{width:30px;height:30px;border:1px solid #d2d7dd;background:#fff;cursor:pointer;display:grid;place-items:center;font-size:16px;line-height:1;border-radius:3px}
-.session-card-edit:hover{background:#eaf0ff;border-color:#b9c7ef;color:#3156c8}
-.session-card-notes{padding:9px 10px 10px;white-space:pre-wrap;line-height:1.4;color:#202124;background:#fff}
+.session-card-edit{width:30px;height:30px;border:1px solid #d2d7dd;background:#fff;cursor:pointer;display:grid;place-items:center;font-size:16px;line-height:1;border-radius:3px;transition:background-color .14s ease,border-color .14s ease,color .14s ease,transform .14s ease}
+.session-card-edit:hover{background:#eaf0ff;border-color:#b9c7ef;color:#3156c8;transform:scale(1.05)}
+.session-card-notes{padding:9px 10px 10px;white-space:pre-wrap;line-height:1.4;color:#202124;background:#fff;transition:background-color .16s ease}
 .session-card-notes.empty{color:#9aa1aa;font-style:italic}
 
 .session-edit-dialog{border:1px solid #7f7f7f;padding:0;width:min(620px,92vw);background:#eef1f4}
