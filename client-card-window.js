@@ -28,6 +28,7 @@
           <label>Что уже делал<textarea id="ccTried"></textarea></label>
           <label>Что не помогло<textarea id="ccDidntHelp"></textarea></label>
           <label>Какой результат хочет получить<textarea id="ccDesiredOutcome"></textarea></label>
+          <label>Заметки о клиенте<textarea id="ccClientNotes"></textarea></label>
         </div>
       </div>
       <div class="client-card-footer">
@@ -69,6 +70,7 @@
     q('ccTried').value = c.tried || '';
     q('ccDidntHelp').value = c.didntHelp || '';
     q('ccDesiredOutcome').value = c.desiredOutcome || '';
+    q('ccClientNotes').value = c.clientNotes || c.notes || '';
   }
 
   function saveCard(){
@@ -90,6 +92,7 @@
     c.tried = q('ccTried').value;
     c.didntHelp = q('ccDidntHelp').value;
     c.desiredOutcome = q('ccDesiredOutcome').value;
+    c.clientNotes = q('ccClientNotes').value;
     save();
     renderClient();
     dlg.close();
