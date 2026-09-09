@@ -38,10 +38,18 @@
     btn.onclick=()=>{
       const c=currentClient();
       if(!c) return alert('Сначала выбери клиента.');
+
+      // Уже находимся внутри диагностики — повторное нажатие ничего не делает.
+      if(mode==='diagnosis'){
+        if(requestId) rememberRequest(requestId);
+        return;
+      }
+
       const candidate=(requestId && c.requests?.some(r=>r.id===requestId))
         ? requestId
         : c.lastDiagnosisRequestId;
       if(candidate && openDiagnosis(candidate)) return;
+
       const launch=document.querySelector('#diagnosisLaunchDialog');
       if(launch&&!launch.open) launch.showModal();
     };
