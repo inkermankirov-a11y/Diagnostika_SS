@@ -1,0 +1,84 @@
+'use strict';
+
+function deleteCurrentClient() {
+  const c = client();
+  if (!c) return;
+
+  const name = c.name || 'Без имени';
+  const ok = confirm(`Удалить клиента «${name}»?\n\nБудут удалены все его сессии, запросы и диагностики из локальной базы этого браузера.`);
+  if (!ok) return;
+
+  const index = state.clients.findIndex(x => x.id === c.id);
+  if (index < 0) return;
+
+  state.clients.splice(index, 1);
+
+  if (!state.clients.length) {
+    const replacement = newClient();
+    state.clients.push(replacement);
+    clientId = replacement.id;
+  } else {
+    const nextIndex = Math.min(index, state.clients.length - 1);
+    clientId = state.clients[nextIndex].id;
+  }
+
+  requestId = null;
+  situationId = null;
+  selected = null;
+  mode = 'card';
+  save();
+  renderClient();
+}
+
+const deleteClientBtn = document.querySelector('#deleteClientBtn');
+if (deleteClientBtn) deleteClientBtn.onclick = deleteCurrentClient;
+
+// Добавляем удаление и в окно «База клиентов».
+const originalOpenDatabase = openDatabase;
+openDatabase = function() {
+  const dlg = document.querySelector('#clientDialog');
+  const root = document.querySelector('#clientDatabaseList');
+  root.innerHTML = '';
+
+  state.clients.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'db-row';
+
+    const name = document.createElement('div');
+    name.textContent = c.name || 'Без имени';
+
+    const city = document.createElement('div');
+    city.textContent = c.city || '';
+
+    const openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.className = 'tk-btn';
+    openBtn.textContent = 'Открыть';
+    openBtn.onclick = () => {
+      clientId = c.id;
+      requestId = null;
+      situationId = null;
+      selected = null;
+      dlg.close();
+      renderClient();
+    };
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'tk-btn';
+    delBtn.textContent = 'Удалить';
+    delBtn.onclick = () => {
+      clientId = c.id;
+      deleteCurrentClient();
+      if (dlg.open) openDatabase();
+    };
+
+    row.append(name, city, openBtn, delBtn);
+    root.appendChild(row);
+  });
+
+  dlg.showModal();
+};
+
+const clientBaseBtn = document.querySelector('#clientBaseBtn');
+if (clientBaseBtn) clientBaseBtn.onclick = openDatabase;
