@@ -1,0 +1,13 @@
+.session-edit-grid-with-format{grid-template-columns:150px minmax(0,1fr)}
+.session-format-field{grid-column:1/3;display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;align-items:start;margin-top:2px}
+.session-format-label{font-size:11px;font-weight:700;color:#526273;align-self:center}
+.session-format-select,.session-format-other{height:34px;border:1px solid #cbd5df;background:#fff;padding:4px 8px;border-radius:6px;color:#26384b}
+.session-format-other{grid-column:2;margin-top:0}
+.session-format-other.hidden{display:none}
+.session-format-chip{display:inline-flex;align-items:center;min-height:26px;border:1px solid #d8e2ec;background:#f4f8fb;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:700;line-height:1.2;color:#50677e;white-space:nowrap}
+.session-format-chip::before{content:'●';font-size:7px;margin-right:6px;color:#7b94ab}
+.session-format-chip.in-person{background:#eef7f1;border-color:#cfe3d5;color:#4f705a}
+.session-format-chip.in-person::before{color:#6d9b78}
+.session-format-chip.zoom,.session-format-chip.google-meet,.session-format-chip.yandex-telemost{background:#eef4fb;border-color:#cbd9ea;color:#4d6684}
+.session-format-chip.telegram,.session-format-chip.whatsapp,.session-format-chip.max{background:#f2f5fb;border-color:#d4dbea;color:#586981}
+@media(max-width:700px){.session-format-field{grid-template-columns:1fr}.session-format-other{grid-column:1}.session-edit-grid-with-format{grid-template-columns:1fr}.session-format-field{grid-column:1}}
