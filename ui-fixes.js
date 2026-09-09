@@ -38,23 +38,18 @@ function renderClientDatabaseTable(){
 
   state.clients.forEach((c,index)=>{
     const tr=document.createElement('tr');
-
     const num=document.createElement('td');
     num.className='db-col-num';
     num.textContent=String(index+1);
-
     const name=document.createElement('td');
     name.textContent=c.name||'Без имени';
-
     const city=document.createElement('td');
     city.className='db-col-city';
     city.textContent=c.city||'—';
-
     const actions=document.createElement('td');
     actions.className='db-col-actions';
     const group=document.createElement('div');
     group.className='db-action-group';
-
     const openBtn=document.createElement('button');
     openBtn.type='button';
     openBtn.className='db-open-btn';
@@ -67,7 +62,6 @@ function renderClientDatabaseTable(){
       dlg.close();
       renderClient();
     };
-
     const delBtn=document.createElement('button');
     delBtn.type='button';
     delBtn.className='db-delete-btn';
@@ -77,13 +71,11 @@ function renderClientDatabaseTable(){
       deleteCurrentClient();
       if(dlg.open) renderClientDatabaseTable();
     };
-
     group.append(openBtn,delBtn);
     actions.appendChild(group);
     tr.append(num,name,city,actions);
     tbody.appendChild(tr);
   });
-
   table.appendChild(tbody);
   root.appendChild(table);
 }
@@ -126,6 +118,89 @@ if(backBtn){
   };
 }
 
+function sessionTimeValue(s,index){
+  const raw=s.createdAt||s.savedAt||s.date||'';
+  const t=raw?new Date(raw).getTime():NaN;
+  return Number.isFinite(t)?t:index;
+}
+
+renderSessions=function(){
+  const c=client();
+  const root=document.querySelector('#sessionsList');
+  if(!root)return;
+  root.innerHTML='';
+  if(!c)return;
+  if(!Array.isArray(c.sessions))c.sessions=[];
+  if(!c.sessions.length){
+    root.innerHTML='<div style="color:#9CA3AF;padding:8px 0">Сессий пока нет.</div>';
+    return;
+  }
+
+  const chronological=c.sessions.map((s,index)=>({s,index,time:sessionTimeValue(s,index)}))
+    .sort((a,b)=>a.time-b.time||a.index-b.index);
+  const numbers=new Map();
+  chronological.forEach((item,i)=>numbers.set(item.s.id,i+1));
+  const display=[...chronological].reverse();
+
+  display.forEach(item=>{
+    const s=item.s;
+    const originalIndex=c.sessions.indexOf(s);
+    const row=document.createElement('div');
+    row.className='session-row';
+
+    const title=document.createElement('div');
+    title.className='session-number';
+    title.textContent=`Сессия №${numbers.get(s.id)}`;
+
+    const date=document.createElement('input');
+    date.type='date';
+    date.value=s.date||today();
+
+    const link=document.createElement('select');
+    link.innerHTML='<option value="">— Без связи —</option>';
+    c.requests.forEach(r=>{
+      const o=document.createElement('option');
+      o.value=r.id;
+      o.textContent=r.title||'Без названия';
+      link.appendChild(o);
+    });
+    link.value=s.requestId||'';
+
+    const del=document.createElement('button');
+    del.className='tk-btn';
+    del.textContent='Удалить';
+
+    const notes=document.createElement('textarea');
+    notes.placeholder='Что делали, результат, заметки';
+    notes.value=s.notes||'';
+
+    date.oninput=e=>{s.date=e.target.value;save();renderSessions()};
+    link.onchange=e=>{s.requestId=e.target.value;save()};
+    notes.oninput=e=>{s.notes=e.target.value;save()};
+    del.onclick=()=>{
+      if(confirm(`Удалить сессию №${numbers.get(s.id)}?`)){
+        c.sessions.splice(originalIndex,1);
+        save();
+        renderSessions();
+      }
+    };
+
+    row.append(title,date,link,del,notes);
+    root.appendChild(row);
+  });
+};
+
+const addSessionBtnUi=document.querySelector('#addSessionBtn');
+if(addSessionBtnUi){
+  addSessionBtnUi.onclick=()=>{
+    const c=client();
+    if(!c)return;
+    c.sessions.push({id:uid(),date:today(),requestId:'',notes:'',createdAt:new Date().toISOString()});
+    save();
+    renderSessions();
+  };
+}
+
 const saveHistoryBtn=document.querySelector('#saveHistoryBtn');
 if(saveHistoryBtn){
   saveHistoryBtn.onclick=()=>{
@@ -134,7 +209,6 @@ if(saveHistoryBtn){
     const r=request();
     const s=situation();
     if(!Array.isArray(c.sessions))c.sessions=[];
-
     const notes=[];
     if(r)notes.push(`Запрос: ${r.title||'Без названия'}`);
     if(s){
@@ -142,8 +216,7 @@ if(saveHistoryBtn){
       if(s.result)notes.push(`Желаемый результат: ${s.result}`);
     }
     if(!notes.length)notes.push('Сохранено из карточки клиента.');
-
-    c.sessions.unshift({
+    c.sessions.push({
       id:uid(),
       date:today(),
       requestId:r?.id||'',
@@ -153,7 +226,6 @@ if(saveHistoryBtn){
     });
     save();
     renderSessions();
-
     const old=saveHistoryBtn.textContent;
     saveHistoryBtn.textContent='Сохранено';
     setTimeout(()=>{saveHistoryBtn.textContent=old;},1200);
