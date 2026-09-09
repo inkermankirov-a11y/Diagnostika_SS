@@ -124,6 +124,39 @@ function sessionTimeValue(s,index){
   return Number.isFinite(t)?t:index;
 }
 
+let editingSession=null;
+const sessionEditDialog=document.createElement('dialog');
+sessionEditDialog.id='sessionEditDialog';
+sessionEditDialog.className='session-edit-dialog';
+sessionEditDialog.innerHTML=`
+  <div class="session-edit-card">
+    <div class="session-edit-title">Редактирование сессии</div>
+    <textarea id="sessionEditText" class="session-edit-text" placeholder="Что делали, результат, заметки"></textarea>
+    <div class="session-edit-actions">
+      <button id="sessionEditCancel" type="button">Отмена</button>
+      <button id="sessionEditSave" type="button" class="primary">Сохранить</button>
+    </div>
+  </div>`;
+document.body.appendChild(sessionEditDialog);
+
+document.querySelector('#sessionEditCancel').onclick=()=>sessionEditDialog.close();
+document.querySelector('#sessionEditSave').onclick=()=>{
+  if(!editingSession)return sessionEditDialog.close();
+  editingSession.notes=document.querySelector('#sessionEditText').value;
+  save();
+  sessionEditDialog.close();
+  editingSession=null;
+  renderSessions();
+};
+sessionEditDialog.addEventListener('click',e=>{if(e.target===sessionEditDialog)sessionEditDialog.close();});
+
+function openSessionEditor(s){
+  editingSession=s;
+  document.querySelector('#sessionEditText').value=s.notes||'';
+  sessionEditDialog.showModal();
+  setTimeout(()=>document.querySelector('#sessionEditText').focus(),0);
+}
+
 renderSessions=function(){
   const c=client();
   const root=document.querySelector('#sessionsList');
@@ -146,7 +179,10 @@ renderSessions=function(){
     const s=item.s;
     const originalIndex=c.sessions.indexOf(s);
     const row=document.createElement('div');
-    row.className='session-row';
+    row.className='session-row session-row-compact';
+
+    const head=document.createElement('div');
+    head.className='session-compact-head';
 
     const title=document.createElement('div');
     title.className='session-number';
@@ -154,9 +190,11 @@ renderSessions=function(){
 
     const date=document.createElement('input');
     date.type='date';
+    date.className='session-date';
     date.value=s.date||today();
 
     const link=document.createElement('select');
+    link.className='session-request';
     link.innerHTML='<option value="">— Без связи —</option>';
     c.requests.forEach(r=>{
       const o=document.createElement('option');
@@ -166,17 +204,27 @@ renderSessions=function(){
     });
     link.value=s.requestId||'';
 
-    const del=document.createElement('button');
-    del.className='tk-btn';
-    del.textContent='Удалить';
+    const edit=document.createElement('button');
+    edit.type='button';
+    edit.className='session-icon-btn session-edit-btn';
+    edit.title='Редактировать заметку';
+    edit.setAttribute('aria-label','Редактировать заметку');
+    edit.textContent='✎';
 
-    const notes=document.createElement('textarea');
-    notes.placeholder='Что делали, результат, заметки';
-    notes.value=s.notes||'';
+    const del=document.createElement('button');
+    del.type='button';
+    del.className='session-icon-btn session-delete-btn';
+    del.title='Удалить сессию';
+    del.setAttribute('aria-label','Удалить сессию');
+    del.textContent='×';
+
+    const note=document.createElement('div');
+    note.className='session-note-readonly'+(!String(s.notes||'').trim()?' empty':'');
+    note.textContent=String(s.notes||'').trim()||'Заметка к сессии не заполнена';
 
     date.oninput=e=>{s.date=e.target.value;save();renderSessions()};
     link.onchange=e=>{s.requestId=e.target.value;save()};
-    notes.oninput=e=>{s.notes=e.target.value;save()};
+    edit.onclick=()=>openSessionEditor(s);
     del.onclick=()=>{
       if(confirm(`Удалить сессию №${numbers.get(s.id)}?`)){
         c.sessions.splice(originalIndex,1);
@@ -185,7 +233,8 @@ renderSessions=function(){
       }
     };
 
-    row.append(title,date,link,del,notes);
+    head.append(title,date,link,edit,del);
+    row.append(head,note);
     root.appendChild(row);
   });
 };
