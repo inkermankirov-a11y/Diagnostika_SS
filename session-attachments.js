@@ -81,6 +81,18 @@ function attachmentSize(bytes){
   return `${(n/1024/1024/1024).toFixed(1)} ГБ`;
 }
 
+function normalizeYoutubeUrl(value){
+  let v=String(value||'').trim();
+  if(!v) return '';
+  if(!/^https?:\/\//i.test(v)) v='https://'+v;
+  try{
+    const u=new URL(v);
+    const host=u.hostname.replace(/^www\./,'').toLowerCase();
+    if(host==='youtube.com'||host.endsWith('.youtube.com')||host==='youtu.be') return u.href;
+  }catch(e){}
+  return null;
+}
+
 async function openAttachmentRecord(id){
   try{
     const rec=await mediaDbGet(id);
@@ -179,6 +191,12 @@ function openSessionEditor(c,s,number){
 
   const ta=document.createElement('textarea');ta.className='session-edit-text';ta.value=s.notes||'';ta.placeholder='Что делали, результат, заметки';
 
+  const youtubeBlock=document.createElement('div');youtubeBlock.className='session-youtube-editor';
+  const youtubeLabel=document.createElement('label');youtubeLabel.textContent='Ссылка на YouTube';
+  const youtubeInput=document.createElement('input');youtubeInput.type='url';youtubeInput.placeholder='https://youtu.be/... или https://youtube.com/watch?v=...';youtubeInput.value=s.youtubeUrl||'';
+  const youtubeHint=document.createElement('div');youtubeHint.className='session-youtube-hint';youtubeHint.textContent='Можно прикрепить запись сессии, которая хранится на YouTube.';
+  youtubeBlock.append(youtubeLabel,youtubeInput,youtubeHint);
+
   const mediaBlock=document.createElement('section');mediaBlock.className='session-media-editor';
   const mediaHead=document.createElement('div');mediaHead.className='session-media-head';
   const mediaTitle=document.createElement('div');mediaTitle.innerHTML='<strong>Материалы сессии</strong><span>Аудио, видео, изображения, транскрипты и документы</span>';
@@ -216,9 +234,19 @@ function openSessionEditor(c,s,number){
   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Отмена';
   const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='primary';saveBtn.textContent='Сохранить';
   cancel.onclick=()=>dlg.close();
-  saveBtn.onclick=()=>{s.date=dateInput.value||today();s.requestId=link.value;s.notes=ta.value;save();dlg.close();renderSessions();};
+  saveBtn.onclick=()=>{
+    const youtube=normalizeYoutubeUrl(youtubeInput.value);
+    if(youtube===null) return alert('Проверь ссылку: сейчас принимаются ссылки YouTube и youtu.be.');
+    s.date=dateInput.value||today();
+    s.requestId=link.value;
+    s.notes=ta.value;
+    s.youtubeUrl=youtube;
+    save();
+    dlg.close();
+    renderSessions();
+  };
   actions.append(cancel,saveBtn);
-  wrap.append(h,grid,ta,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
+  wrap.append(h,grid,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
   dlg.addEventListener('close',()=>{dlg.remove();renderSessions();},{once:true});dlg.showModal();
 }
 
@@ -255,8 +283,19 @@ renderSessions=function(){
     head.append(title,meta,edit);
 
     const notes=document.createElement('div');notes.className='session-card-notes'+(s.notes?'':' empty');notes.textContent=s.notes||'Заметок по сессии нет';
+    row.append(head,notes);
+
+    const youtube=normalizeYoutubeUrl(s.youtubeUrl);
+    if(youtube){
+      const youtubeWrap=document.createElement('div');youtubeWrap.className='session-youtube-preview';
+      const youtubeBtn=document.createElement('button');youtubeBtn.type='button';youtubeBtn.className='session-youtube-btn';youtubeBtn.innerHTML='<span class="session-youtube-icon">▶</span><span>Смотреть запись на YouTube</span><span class="session-youtube-open">↗</span>';
+      youtubeBtn.onclick=e=>{e.stopPropagation();window.open(youtube,'_blank','noopener,noreferrer');};
+      youtubeWrap.appendChild(youtubeBtn);
+      row.appendChild(youtubeWrap);
+    }
+
     const attachments=document.createElement('div');attachments.className='session-attachments-preview';
-    row.append(head,notes,attachments);
+    row.appendChild(attachments);
     fillSessionAttachmentPreview(attachments,s.id);
 
     const selectCard=()=>{selectedSessionId=selectedSessionId===s.id?null:s.id;renderSessions();};
