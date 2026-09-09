@@ -8,6 +8,7 @@
 body { margin: 0; min-height: 100vh; background: #eef1f4; }
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .45; }
 .app-header {
   min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
   padding: 14px 22px; background: #eef1f4; border-bottom: 1px solid #d9dee5; position: sticky; top: 0; z-index: 10;
@@ -15,7 +16,8 @@ button { cursor: pointer; }
 h1 { margin: 0 0 3px; font-size: 24px; }
 h2 { margin: 0; font-size: 18px; }
 .muted { color: #6b7280; font-size: 13px; margin: 0; }
-.header-actions, .footer-actions, .diagnosis-toolbar { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; }
+.header-actions, .footer-actions, .diagnosis-toolbar, .diagnosis-manager, .section-toolbar { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; }
+.section-toolbar { justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .layout { display: grid; grid-template-columns: 310px minmax(0,1fr); gap: 14px; padding: 14px; min-height: calc(100vh - 86px); }
 .panel { background: white; border: 1px solid #dfe4ea; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
 .clients-panel { padding: 14px; }
@@ -42,6 +44,7 @@ h2 { margin: 0; font-size: 18px; }
 .client-name { font-weight: 700; display: block; }
 .client-sub { display: block; color: #6b7280; font-size: 12px; margin-top: 3px; }
 .empty-state { min-height: 60vh; display: grid; place-content: center; text-align: center; color: #737b86; gap: 8px; }
+.empty-inline { padding: 20px; text-align: center; border: 1px dashed #cfd6df; border-radius: 10px; color: #737b86; background: #fafbfc; }
 .hidden { display: none !important; }
 .tabs { display: flex; border-bottom: 1px solid #dfe4ea; background: #f8fafb; }
 .tab { padding: 14px 18px; border: 0; background: transparent; font-weight: 700; color: #646b75; }
@@ -49,11 +52,16 @@ h2 { margin: 0; font-size: 18px; }
 .tab-page { display: none; padding: 18px; }
 .tab-page.active { display: block; }
 .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
-.form-grid label, .diagnosis-toolbar label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
-.form-grid .wide { grid-column: 1 / -1; }
+.form-grid label, .diagnosis-toolbar label, .diagnosis-manager label, .session-head label, .session-grid label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
+.form-grid .wide, .session-grid .wide { grid-column: 1 / -1; }
 .footer-actions { justify-content: space-between; margin-top: 18px; }
+.diagnosis-manager { margin-bottom: 14px; align-items: end; }
 .diagnosis-toolbar { margin-bottom: 14px; }
 .grow { flex: 1 1 450px; }
+.sessions { display: grid; gap: 12px; }
+.session-card { border: 1px solid #d9dee5; border-radius: 10px; padding: 14px; background: #fbfcfd; }
+.session-head { display: grid; grid-template-columns: 180px minmax(220px,1fr) auto; gap: 10px; align-items: end; margin-bottom: 12px; }
+.session-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .situations { display: grid; gap: 14px; }
 .situation-card { border: 1px solid #d9dee5; border-left: 5px solid #5b4ba3; border-radius: 10px; padding: 14px; background: #fff; }
 .situation-card:nth-child(8n+2) { border-left-color: #2f6f9f; }
@@ -79,6 +87,8 @@ h2 { margin: 0; font-size: 18px; }
   .app-header { position: static; align-items: flex-start; flex-direction: column; }
   .layout { grid-template-columns: 1fr; }
   .client-list { max-height: 260px; }
-  .form-grid { grid-template-columns: 1fr; }
-  .form-grid .wide { grid-column: auto; }
+  .form-grid, .session-grid { grid-template-columns: 1fr; }
+  .form-grid .wide, .session-grid .wide { grid-column: auto; }
+  .session-head { grid-template-columns: 1fr; }
+  .tabs { overflow-x: auto; }
 }
