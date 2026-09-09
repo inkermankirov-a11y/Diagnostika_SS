@@ -11,7 +11,7 @@
   <header class="app-header">
     <div>
       <h1>Психологическая диагностика</h1>
-      <p class="muted">Локальная веб-версия. Данные хранятся в этом браузере.</p>
+      <p class="muted">Тестовая веб-версия. Данные хранятся локально в этом браузере.</p>
     </div>
     <div class="header-actions">
       <button id="exportDbBtn" class="button secondary">Экспорт базы</button>
@@ -33,13 +33,14 @@
     <section class="panel workspace">
       <div id="emptyState" class="empty-state">
         <h2>Выберите или добавьте клиента</h2>
-        <p>После выбора здесь появятся карточка клиента и диагностика.</p>
+        <p>После выбора здесь появятся карточка, сессии и диагностики.</p>
       </div>
 
       <div id="workspaceContent" class="hidden">
         <nav class="tabs">
           <button class="tab active" data-tab="profile">Карточка клиента</button>
-          <button class="tab" data-tab="diagnosis">Диагностика</button>
+          <button class="tab" data-tab="sessions">Сессии</button>
+          <button class="tab" data-tab="diagnosis">Диагностики</button>
         </nav>
 
         <section id="profileTab" class="tab-page active">
@@ -68,12 +69,33 @@
           </div>
         </section>
 
-        <section id="diagnosisTab" class="tab-page">
-          <div class="diagnosis-toolbar">
-            <label class="grow">Общий запрос<input id="diagnosisRequest" class="input" placeholder="Например: страх проявляться" /></label>
-            <button id="addSituationBtn" class="button primary">+ Ситуация</button>
+        <section id="sessionsTab" class="tab-page">
+          <div class="section-toolbar">
+            <div>
+              <h2>Сессии клиента</h2>
+              <p class="muted">Сессия хранится отдельно от диагностического запроса.</p>
+            </div>
+            <button id="addSessionBtn" class="button primary">+ Сессия</button>
           </div>
-          <div id="situations" class="situations"></div>
+          <div id="sessions" class="sessions"></div>
+        </section>
+
+        <section id="diagnosisTab" class="tab-page">
+          <div class="diagnosis-manager">
+            <label class="grow">Диагностический запрос
+              <select id="diagnosisSelect" class="input"></select>
+            </label>
+            <button id="addDiagnosisBtn" class="button primary">+ Новый запрос</button>
+            <button id="deleteDiagnosisBtn" class="button danger">Удалить запрос</button>
+          </div>
+          <div id="diagnosisEmpty" class="empty-inline hidden">Создай первый диагностический запрос.</div>
+          <div id="diagnosisEditor">
+            <div class="diagnosis-toolbar">
+              <label class="grow">Название / общий запрос<input id="diagnosisRequest" class="input" placeholder="Например: страх проявляться" /></label>
+              <button id="addSituationBtn" class="button primary">+ Ситуация</button>
+            </div>
+            <div id="situations" class="situations"></div>
+          </div>
         </section>
       </div>
     </section>
@@ -90,6 +112,21 @@
       <div class="beliefs"></div>
       <button class="button ghost add-belief">+ Убеждение</button>
       <label class="result-label">Желаемый результат<textarea class="textarea situation-result" placeholder="Как должно быть вместо этого"></textarea></label>
+    </article>
+  </template>
+
+  <template id="sessionTemplate">
+    <article class="session-card">
+      <div class="session-head">
+        <label>Дата<input class="input session-date" type="date" /></label>
+        <label>Запрос<input class="input session-request" placeholder="Запрос на эту сессию" /></label>
+        <button class="icon-button danger-text delete-session" title="Удалить">×</button>
+      </div>
+      <div class="session-grid">
+        <label>Диагностика / наблюдения<textarea class="textarea session-diagnosis"></textarea></label>
+        <label>Что делали<textarea class="textarea session-work"></textarea></label>
+        <label class="wide">Заметки<textarea class="textarea session-notes"></textarea></label>
+      </div>
     </article>
   </template>
 
