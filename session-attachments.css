@@ -30,4 +30,16 @@
 .session-media-empty{font-size:12px;color:#9aa4ae;padding:3px 1px}
 .session-media-local-hint{margin-top:8px;font-size:10px;color:#8b97a4}
 .session-edit-dialog{width:min(700px,94vw)}
-@media(max-width:1100px){.session-attachment-chip{min-width:150px;max-width:240px}.session-media-head{flex-direction:column}.session-media-add{align-self:flex-start}}
+
+.session-youtube-editor{margin-top:12px;padding:12px 13px;border:1px solid #ead6d6;background:#fffafa;border-radius:10px}
+.session-youtube-editor label{display:block;font-size:12px;font-weight:800;color:#6b3434;margin-bottom:6px}
+.session-youtube-editor input{width:100%;height:36px;border:1px solid #ddc8c8;background:#fff;border-radius:7px;padding:6px 9px;font:inherit;color:#384454}
+.session-youtube-editor input:focus{outline:2px solid rgba(204,61,61,.10);border-color:#ce8888}
+.session-youtube-hint{margin-top:5px;font-size:10px;color:#9a7b7b}
+.session-youtube-preview{padding:0 14px 10px 16px;background:#fffdf9}
+.session-youtube-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid #e3caca;background:#fff6f6;color:#8f3030;border-radius:9px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background-color .14s ease,box-shadow .14s ease}
+.session-youtube-btn:hover{transform:translateY(-1px);background:#fff0f0;border-color:#d9aaaa;box-shadow:0 4px 10px rgba(115,45,45,.08)}
+.session-youtube-icon{width:22px;height:18px;border-radius:5px;background:#d94242;color:#fff;display:grid;place-items:center;font-size:9px;padding-left:1px}
+.session-youtube-open{color:#b47777;font-size:13px}
+
+@media(max-width:1100px){.session-attachment-chip{min-width:150px;max-width:240px}.session-media-head{flex-direction:column}.session-media-add{align-self:flex-start}.session-youtube-btn{max-width:100%}}
