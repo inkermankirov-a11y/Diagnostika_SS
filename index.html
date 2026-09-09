@@ -1,137 +1,130 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#eef1f4" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Психологическая диагностика</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="app-header">
-    <div>
-      <h1>Психологическая диагностика</h1>
-      <p class="muted">Тестовая веб-версия. Данные хранятся локально в этом браузере.</p>
-    </div>
-    <div class="header-actions">
-      <button id="exportDbBtn" class="button secondary">Экспорт базы</button>
-      <label class="button secondary file-button">Импорт базы<input id="importDbInput" type="file" accept="application/json,.json" /></label>
-      <button id="exportTxtBtn" class="button primary">Сохранить TXT</button>
+<div class="app-shell">
+  <header class="topbar">
+    <h1>Психологическая диагностика</h1>
+    <div class="top-actions">
+      <button id="saveHistoryBtn" class="btn btn-green">Сохранить в историю</button>
+      <button id="exportTxtBtn" class="btn btn-blue">Сохранить TXT</button>
     </div>
   </header>
 
-  <main class="layout">
-    <aside class="panel clients-panel">
-      <div class="panel-title-row">
-        <h2>Клиенты</h2>
-        <button id="addClientBtn" class="icon-button" title="Добавить клиента">+</button>
+  <main class="main-grid">
+    <aside class="client-box">
+      <div class="box-title">КЛИЕНТ</div>
+      <div class="client-select-row">
+        <select id="clientSelect"></select>
+        <button id="addClientBtn" class="tiny-btn" title="Добавить клиента">+</button>
       </div>
-      <input id="clientSearch" class="input" placeholder="Поиск клиента" />
-      <div id="clientList" class="client-list"></div>
+
+      <div class="client-card-row">
+        <div class="photo-wrap">
+          <img id="clientPhoto" alt="Фото клиента">
+          <div id="photoPlaceholder">Фото</div>
+          <input id="photoInput" type="file" accept="image/*" hidden>
+        </div>
+        <div class="client-mini-form">
+          <label>ФИО<input id="clientName"></label>
+          <div class="two-cols">
+            <label>Город<input id="clientCity"></label>
+            <label>Возраст<input id="clientAge" type="number" min="0" max="120"></label>
+          </div>
+          <button id="saveClientBtn" class="soft-btn">Сохранить данные</button>
+          <button id="clientBaseBtn" class="soft-btn">База клиентов</button>
+        </div>
+      </div>
+
+      <div class="social-row">
+        <button id="vkBtn" class="social vk">B</button>
+        <button id="tgBtn" class="social tg">➤</button>
+        <button id="maxBtn" class="social max">◉</button>
+      </div>
+
+      <div class="work-title">РАБОТА С КЛИЕНТОМ</div>
+      <div class="work-tabs">
+        <button class="work-tab active" data-view="card">Карточка клиента</button>
+        <button class="work-tab" data-view="diagnosis">Диагностика</button>
+      </div>
+
+      <div id="requestSidebar" class="request-sidebar hidden">
+        <hr>
+        <div class="box-title">ЗАПРОСЫ КЛИЕНТА</div>
+        <div class="request-row">
+          <select id="requestSelect"></select>
+          <button id="addRequestBtn" class="soft-btn">+ Добавить запрос</button>
+          <button id="deleteRequestBtn" class="soft-btn">Удалить запрос</button>
+        </div>
+        <div class="sub-title">ОБЩИЙ ЗАПРОС</div>
+        <textarea id="requestTitle" rows="2"></textarea>
+        <div class="sub-title">СИТУАЦИИ</div>
+        <div id="situationList" class="situation-list"></div>
+        <div class="situation-actions">
+          <button id="addSituationBtn" class="soft-btn">+ Добавить</button>
+          <button id="editSituationBtn" class="soft-btn">Изменить</button>
+          <button id="deleteSituationBtn" class="soft-btn">Удалить</button>
+        </div>
+        <button id="hintBtn" class="soft-btn hint-btn">Подсказки — убеждения 1</button>
+      </div>
     </aside>
 
-    <section class="panel workspace">
-      <div id="emptyState" class="empty-state">
-        <h2>Выберите или добавьте клиента</h2>
-        <p>После выбора здесь появятся клиент, сессии и запросы.</p>
+    <section id="cardView" class="content-card">
+      <h2>КАРТА КЛИЕНТА</h2>
+      <div id="cardClientName" class="client-heading"></div>
+      <p class="muted-line">Здесь история работы и прогресс клиента.</p>
+      <div class="history-toolbar">
+        <h3>СЕССИИ</h3>
+        <button id="addSessionBtn" class="soft-btn">+ Добавить сессию</button>
+      </div>
+      <div id="sessions" class="sessions"></div>
+    </section>
+
+    <section id="diagnosisView" class="diagnosis-grid hidden">
+      <div class="tree-panel">
+        <div id="situationTitle" class="situation-title">Выберите ситуацию</div>
+        <div id="situationLevel" class="situation-level-label">Дискомфорт: —</div>
+        <div id="tree" class="tree"></div>
+        <div class="tree-actions">
+          <button id="addBeliefBtn" class="soft-btn">+ Убеждение 1</button>
+          <button id="addFeelingBtn" class="soft-btn">+ Вторичные чувства</button>
+          <button id="addDeepBtn" class="soft-btn">+ Убеждение 2</button>
+          <button id="addInstinctBtn" class="soft-btn">+ Инстинкт</button>
+          <button id="deleteElementBtn" class="soft-btn">Удалить</button>
+        </div>
       </div>
 
-      <div id="workspaceContent" class="hidden">
-        <nav class="tabs">
-          <button class="tab active" data-tab="profile">Клиент</button>
-          <button class="tab" data-tab="sessions">Сессии</button>
-          <button class="tab" data-tab="requests">Запросы</button>
-        </nav>
-
-        <section id="profileTab" class="tab-page active">
-          <div class="form-grid">
-            <label>ФИО<input id="clientName" class="input" /></label>
-            <label>Телефон<input id="clientPhone" class="input" /></label>
-            <label>Email<input id="clientEmail" class="input" /></label>
-            <label>Пол<select id="clientGender" class="input"><option value="">—</option><option>Женский</option><option>Мужской</option></select></label>
-            <label>Дата рождения<input id="clientBirth" type="date" class="input" /></label>
-            <label>Город<input id="clientCity" class="input" /></label>
-            <label>Страна<input id="clientCountry" class="input" /></label>
-            <label>VK<input id="clientVk" class="input" /></label>
-            <label>Telegram<input id="clientTelegram" class="input" /></label>
-            <label>MAX<input id="clientMax" class="input" /></label>
-            <label class="wide">С чем пришёл<textarea id="clientCameWith" class="textarea"></textarea></label>
-            <label class="wide">Главный запрос<textarea id="clientMainRequest" class="textarea"></textarea></label>
-            <label class="wide">Что уже пробовал<textarea id="clientTried" class="textarea"></textarea></label>
-            <label class="wide">Что не помогло<textarea id="clientDidntHelp" class="textarea"></textarea></label>
-            <label class="wide">Желаемый результат<textarea id="clientDesired" class="textarea"></textarea></label>
-            <label class="wide">Откуда пришёл<input id="clientSource" class="input" /></label>
-            <label class="wide">Заметки<textarea id="clientNotes" class="textarea tall"></textarea></label>
-          </div>
-          <div class="footer-actions">
-            <button id="deleteClientBtn" class="button danger">Удалить клиента</button>
-            <span id="saveStatus" class="muted">Сохраняется автоматически</span>
-          </div>
-        </section>
-
-        <section id="sessionsTab" class="tab-page">
-          <div class="section-toolbar">
-            <div>
-              <h2>Сессии клиента</h2>
-              <p class="muted">Сессия — отдельная встреча. Её можно связать с одним из запросов клиента.</p>
-            </div>
-            <button id="addSessionBtn" class="button primary">+ Сессия</button>
-          </div>
-          <div id="sessions" class="sessions"></div>
-        </section>
-
-        <section id="requestsTab" class="tab-page">
-          <div class="diagnosis-manager">
-            <label class="grow">Запрос клиента
-              <select id="requestSelect" class="input"></select>
-            </label>
-            <button id="addRequestBtn" class="button primary">+ Новый запрос</button>
-            <button id="deleteRequestBtn" class="button danger">Удалить запрос</button>
-          </div>
-          <div id="requestEmpty" class="empty-inline hidden">Создай первый запрос клиента.</div>
-          <div id="requestEditor">
-            <div class="diagnosis-toolbar">
-              <label class="grow">Название / общий запрос<input id="requestTitle" class="input" placeholder="Например: страх проявляться" /></label>
-              <button id="addSituationBtn" class="button primary">+ Ситуация</button>
-            </div>
-            <div id="situations" class="situations"></div>
-          </div>
-        </section>
-      </div>
+      <aside class="editor-panel">
+        <div class="box-title">РЕДАКТОР</div>
+        <div id="editorType" class="editor-type">Элемент не выбран</div>
+        <textarea id="editorText" rows="3"></textarea>
+        <label class="editor-label">Уровень 1–10<input id="editorLevel" type="number" min="1" max="10" value="5"></label>
+        <label class="editor-label">Комментарий / уточнение<textarea id="editorComment" rows="3"></textarea></label>
+        <button id="saveElementBtn" class="btn btn-blue small-blue">Сохранить элемент</button>
+        <div class="result-title">★ ЖЕЛАЕМЫЙ РЕЗУЛЬТАТ СИТУАЦИИ</div>
+        <textarea id="situationResult" rows="4"></textarea>
+        <button id="saveResultBtn" class="soft-btn">Сохранить результат</button>
+      </aside>
     </section>
   </main>
+</div>
 
-  <template id="situationTemplate">
-    <article class="situation-card">
-      <div class="situation-head">
-        <input class="input situation-name" placeholder="Ситуация" />
-        <label class="level-label">Уровень <input class="level-input situation-level" type="number" min="1" max="10" value="5" /></label>
-        <button class="icon-button danger-text delete-situation" title="Удалить">×</button>
-      </div>
-      <textarea class="textarea situation-comment" placeholder="Комментарий к ситуации"></textarea>
-      <div class="beliefs"></div>
-      <button class="button ghost add-belief">+ Убеждение</button>
-      <label class="result-label">Желаемый результат<textarea class="textarea situation-result" placeholder="Как должно быть вместо этого"></textarea></label>
-    </article>
-  </template>
+<template id="sessionTemplate">
+  <article class="session-card">
+    <div class="session-top">
+      <input class="session-date" type="date">
+      <select class="session-request-link"></select>
+      <button class="delete-session soft-btn">Удалить</button>
+    </div>
+    <textarea class="session-notes" rows="3" placeholder="Что делали, результат, заметки"></textarea>
+  </article>
+</template>
 
-  <template id="sessionTemplate">
-    <article class="session-card">
-      <div class="session-head">
-        <label>Дата<input class="input session-date" type="date" /></label>
-        <label>Связанный запрос<select class="input session-request-link"></select></label>
-        <button class="icon-button danger-text delete-session" title="Удалить">×</button>
-      </div>
-      <div class="session-grid">
-        <label>Запрос на эту сессию<textarea class="textarea session-request-text"></textarea></label>
-        <label>Диагностика / наблюдения<textarea class="textarea session-diagnosis"></textarea></label>
-        <label>Что делали<textarea class="textarea session-work"></textarea></label>
-        <label>Результат / изменения<textarea class="textarea session-result"></textarea></label>
-        <label class="wide">Заметки<textarea class="textarea session-notes"></textarea></label>
-      </div>
-    </article>
-  </template>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
