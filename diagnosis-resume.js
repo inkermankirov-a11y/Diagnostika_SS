@@ -39,15 +39,18 @@
       const c=currentClient();
       if(!c) return alert('Сначала выбери клиента.');
 
-      // Уже находимся внутри диагностики — повторное нажатие ничего не делает.
+      // Если уже внутри диагностики — открываем окно выбора диагностики.
       if(mode==='diagnosis'){
         if(requestId) rememberRequest(requestId);
+        const launch=document.querySelector('#diagnosisLaunchDialog');
+        if(launch&&!launch.open) launch.showModal();
         return;
       }
 
-      const candidate=(requestId && c.requests?.some(r=>r.id===requestId))
-        ? requestId
-        : c.lastDiagnosisRequestId;
+      // Из карты клиента возвращаемся в последнюю открытую диагностику.
+      const candidate=(c.lastDiagnosisRequestId && c.requests?.some(r=>r.id===c.lastDiagnosisRequestId))
+        ? c.lastDiagnosisRequestId
+        : ((requestId && c.requests?.some(r=>r.id===requestId)) ? requestId : null);
       if(candidate && openDiagnosis(candidate)) return;
 
       const launch=document.querySelector('#diagnosisLaunchDialog');
