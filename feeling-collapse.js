@@ -1,7 +1,10 @@
 'use strict';
 
 (() => {
+  // Состояние раскрытия хранится только в памяти страницы.
+  // После обновления/повторной загрузки всё снова свернуто.
   const expandedBeliefs = new Set();
+  const expandedFeelings = new Set();
 
   const style = document.createElement('style');
   style.textContent = `
@@ -39,6 +42,36 @@
       text-align:center;
       font-size:11px;
     }
+
+    .tree-row.feeling{position:relative}
+    .feeling-child-toggle{
+      width:20px;
+      height:20px;
+      flex:0 0 20px;
+      display:grid;
+      place-items:center;
+      margin-left:-20px;
+      margin-right:3px;
+      border:0!important;
+      border-radius:5px!important;
+      padding:0!important;
+      background:transparent!important;
+      color:inherit!important;
+      box-shadow:none!important;
+      font-size:11px!important;
+      font-weight:800!important;
+      line-height:1!important;
+      cursor:pointer!important;
+      transition:background .12s ease,transform .12s ease!important;
+    }
+    .feeling-child-toggle:hover{
+      background:rgba(122,91,0,.12)!important;
+      transform:none!important;
+      box-shadow:none!important;
+    }
+    .feeling-child-toggle:active{transform:scale(.92)!important}
+    .feeling-child-toggle.no-children{visibility:hidden;pointer-events:none}
+
     .context-add-deep-wrap{
       margin:2px 0 8px;
       display:flex;
@@ -67,23 +100,31 @@
   `;
   document.head.appendChild(style);
 
+  function feelingKey(belief, beliefIndex, feeling, feelingIndex){
+    const beliefId=belief?.id||`belief-${beliefIndex}`;
+    const feelingId=feeling?.id||`feeling-${feelingIndex}`;
+    return `${beliefId}::${feelingId}`;
+  }
+
   function applyFeelingCollapse(){
     const root=document.querySelector('#tree');
     const s=typeof situation==='function'?situation():null;
     if(!root||!s) return;
 
     root.querySelectorAll('.feeling-group-toggle').forEach(el=>el.remove());
+    root.querySelectorAll('.feeling-child-toggle').forEach(el=>el.remove());
 
     const rows=[...root.querySelectorAll('.tree-row')];
+    rows.forEach(row=>{row.style.display='';});
     const primaryRows=rows.filter(row=>row.classList.contains('primary'));
 
-    primaryRows.forEach((primaryRow,index)=>{
-      const belief=(s.beliefs||[])[index];
+    primaryRows.forEach((primaryRow,beliefIndex)=>{
+      const belief=(s.beliefs||[])[beliefIndex];
       if(!belief) return;
 
-      const beliefId=belief.id||String(index);
+      const beliefId=belief.id||String(beliefIndex);
       const feelings=Array.isArray(belief.feelings)?belief.feelings:[];
-      const isExpanded=expandedBeliefs.has(beliefId);
+      const groupExpanded=expandedBeliefs.has(beliefId);
 
       let node=primaryRow.nextElementSibling;
       const childRows=[];
@@ -92,20 +133,58 @@
         node=node.nextElementSibling;
       }
 
-      childRows.forEach(row=>{row.style.display=isExpanded?'':'none';});
-
       if(!feelings.length) return;
 
       const toggle=document.createElement('div');
       toggle.className='feeling-group-toggle';
-      toggle.innerHTML=`<span class="feeling-group-arrow">${isExpanded?'▼':'▶'}</span><span>Вторичные чувства</span><span class="feeling-group-count">${feelings.length}</span>`;
-      toggle.title=isExpanded?'Свернуть вторичные чувства':'Развернуть вторичные чувства';
+      toggle.innerHTML=`<span class="feeling-group-arrow">${groupExpanded?'▼':'▶'}</span><span>Вторичные чувства</span><span class="feeling-group-count">${feelings.length}</span>`;
+      toggle.title=groupExpanded?'Свернуть вторичные чувства':'Развернуть вторичные чувства';
       toggle.onclick=()=>{
         if(expandedBeliefs.has(beliefId)) expandedBeliefs.delete(beliefId);
         else expandedBeliefs.add(beliefId);
         applyFeelingCollapse();
       };
       primaryRow.insertAdjacentElement('afterend',toggle);
+
+      if(!groupExpanded){
+        childRows.forEach(row=>{row.style.display='none';});
+        return;
+      }
+
+      const feelingRows=childRows.filter(row=>row.classList.contains('feeling'));
+      feelingRows.forEach((feelingRow,feelingIndex)=>{
+        const feeling=feelings[feelingIndex];
+        if(!feeling) return;
+
+        const key=feelingKey(belief,beliefIndex,feeling,feelingIndex);
+        const isExpanded=expandedFeelings.has(key);
+        const deepItems=Array.isArray(feeling.deep)?feeling.deep:[];
+
+        feelingRow.style.display='';
+
+        const arrow=document.createElement('button');
+        arrow.type='button';
+        arrow.className='feeling-child-toggle'+(deepItems.length?'':' no-children');
+        arrow.textContent=isExpanded?'▼':'▶';
+        arrow.title=isExpanded?'Свернуть убеждения 2':'Развернуть убеждения 2';
+        arrow.setAttribute('aria-label',arrow.title);
+        arrow.onclick=e=>{
+          e.preventDefault();
+          e.stopPropagation();
+          if(!deepItems.length) return;
+          if(expandedFeelings.has(key)) expandedFeelings.delete(key);
+          else expandedFeelings.add(key);
+          applyFeelingCollapse();
+        };
+        feelingRow.prepend(arrow);
+
+        const rowIndex=childRows.indexOf(feelingRow);
+        for(let i=rowIndex+1;i<childRows.length;i++){
+          const child=childRows[i];
+          if(child.classList.contains('feeling')) break;
+          child.style.display=isExpanded?'':'none';
+        }
+      });
     });
   }
 
@@ -137,6 +216,20 @@
           ? newDeep()
           : {id:(typeof uid==='function'?uid():String(Date.now())),text:'',level:5,comment:'',instincts:[]};
         arr.push(deep);
+
+        // При добавлении нового Убеждения 2 автоматически раскрываем
+        // именно текущее вторичное чувство, чтобы новый элемент был виден.
+        const s=typeof situation==='function'?situation():null;
+        if(s){
+          (s.beliefs||[]).forEach((belief,bi)=>{
+            const fi=(belief.feelings||[]).indexOf(feeling);
+            if(fi>=0){
+              expandedBeliefs.add(belief.id||String(bi));
+              expandedFeelings.add(feelingKey(belief,bi,feeling,fi));
+            }
+          });
+        }
+
         selected={type:'deep',obj:deep,parent:feeling,index:arr.length-1};
         if(typeof save==='function') save();
         if(typeof renderTree==='function') renderTree();
