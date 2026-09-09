@@ -20,10 +20,21 @@
     return Number.isFinite(t)?t:index;
   }
 
-  function latestSession(c){
-    if(!Array.isArray(c?.sessions)||!c.sessions.length) return null;
+  function sortedSessions(c){
+    if(!Array.isArray(c?.sessions)||!c.sessions.length) return [];
     return c.sessions.map((s,index)=>({s,index,time:parseSessionDate(s,index)}))
-      .sort((a,b)=>b.time-a.time||b.index-a.index)[0]?.s||null;
+      .sort((a,b)=>b.time-a.time||b.index-a.index);
+  }
+
+  function latestSession(c){
+    return sortedSessions(c)[0]?.s||null;
+  }
+
+  // «Сохранить в историю» создаёт служебную запись без sessionFormat.
+  // Для колонки «Связь» берём последний реально указанный формат,
+  // чтобы такая служебная запись не заменяла иконку на «—».
+  function latestSessionWithFormat(c){
+    return sortedSessions(c).find(item=>item.s?.sessionFormat)?.s||null;
   }
 
   function formatDate(raw){
@@ -64,6 +75,7 @@
     state.clients.forEach((c,index)=>{
       const tr=document.createElement('tr');
       const last=latestSession(c);
+      const lastWithFormat=latestSessionWithFormat(c);
 
       const num=document.createElement('td');
       num.className='db-col-num';
@@ -83,7 +95,7 @@
 
       const formatCell=document.createElement('td');
       formatCell.className='db-col-format';
-      const info=formatInfo(last);
+      const info=formatInfo(lastWithFormat);
       if(info){
         const badge=document.createElement('span');
         badge.className=`db-format-icon ${info.cls}`;
