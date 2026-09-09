@@ -124,39 +124,6 @@ function sessionTimeValue(s,index){
   return Number.isFinite(t)?t:index;
 }
 
-let editingSession=null;
-const sessionEditDialog=document.createElement('dialog');
-sessionEditDialog.id='sessionEditDialog';
-sessionEditDialog.className='session-edit-dialog';
-sessionEditDialog.innerHTML=`
-  <div class="session-edit-card">
-    <div class="session-edit-title">Редактирование сессии</div>
-    <textarea id="sessionEditText" class="session-edit-text" placeholder="Что делали, результат, заметки"></textarea>
-    <div class="session-edit-actions">
-      <button id="sessionEditCancel" type="button">Отмена</button>
-      <button id="sessionEditSave" type="button" class="primary">Сохранить</button>
-    </div>
-  </div>`;
-document.body.appendChild(sessionEditDialog);
-
-document.querySelector('#sessionEditCancel').onclick=()=>sessionEditDialog.close();
-document.querySelector('#sessionEditSave').onclick=()=>{
-  if(!editingSession)return sessionEditDialog.close();
-  editingSession.notes=document.querySelector('#sessionEditText').value;
-  save();
-  sessionEditDialog.close();
-  editingSession=null;
-  renderSessions();
-};
-sessionEditDialog.addEventListener('click',e=>{if(e.target===sessionEditDialog)sessionEditDialog.close();});
-
-function openSessionEditor(s){
-  editingSession=s;
-  document.querySelector('#sessionEditText').value=s.notes||'';
-  sessionEditDialog.showModal();
-  setTimeout(()=>document.querySelector('#sessionEditText').focus(),0);
-}
-
 renderSessions=function(){
   const c=client();
   const root=document.querySelector('#sessionsList');
@@ -177,64 +144,84 @@ renderSessions=function(){
 
   display.forEach(item=>{
     const s=item.s;
-    const originalIndex=c.sessions.indexOf(s);
     const row=document.createElement('div');
     row.className='session-row session-row-compact';
-
-    const head=document.createElement('div');
-    head.className='session-compact-head';
 
     const title=document.createElement('div');
     title.className='session-number';
     title.textContent=`Сессия №${numbers.get(s.id)}`;
 
-    const date=document.createElement('input');
-    date.type='date';
-    date.className='session-date';
-    date.value=s.date||today();
+    const date=document.createElement('div');
+    date.className='session-date-static';
+    date.textContent=s.date||today();
 
-    const link=document.createElement('select');
-    link.className='session-request';
-    link.innerHTML='<option value="">— Без связи —</option>';
-    c.requests.forEach(r=>{
-      const o=document.createElement('option');
-      o.value=r.id;
-      o.textContent=r.title||'Без названия';
-      link.appendChild(o);
-    });
-    link.value=s.requestId||'';
+    const req=client()?.requests?.find(r=>r.id===s.requestId);
+    const requestLabel=document.createElement('div');
+    requestLabel.className='session-request-static';
+    requestLabel.textContent=req?.title||'— Без связи —';
 
     const edit=document.createElement('button');
     edit.type='button';
-    edit.className='session-icon-btn session-edit-btn';
-    edit.title='Редактировать заметку';
-    edit.setAttribute('aria-label','Редактировать заметку');
+    edit.className='session-edit-icon';
+    edit.title='Редактировать сессию';
+    edit.setAttribute('aria-label','Редактировать сессию');
     edit.textContent='✎';
 
-    const del=document.createElement('button');
-    del.type='button';
-    del.className='session-icon-btn session-delete-btn';
-    del.title='Удалить сессию';
-    del.setAttribute('aria-label','Удалить сессию');
-    del.textContent='×';
+    const notes=document.createElement('div');
+    notes.className='session-notes-static';
+    notes.textContent=s.notes||'Нет заметок';
 
-    const note=document.createElement('div');
-    note.className='session-note-readonly'+(!String(s.notes||'').trim()?' empty':'');
-    note.textContent=String(s.notes||'').trim()||'Заметка к сессии не заполнена';
-
-    date.oninput=e=>{s.date=e.target.value;save();renderSessions()};
-    link.onchange=e=>{s.requestId=e.target.value;save()};
-    edit.onclick=()=>openSessionEditor(s);
-    del.onclick=()=>{
-      if(confirm(`Удалить сессию №${numbers.get(s.id)}?`)){
-        c.sessions.splice(originalIndex,1);
+    edit.onclick=()=>{
+      const dlg=document.createElement('dialog');
+      dlg.className='session-edit-dialog';
+      const wrap=document.createElement('div');
+      wrap.className='session-edit-card';
+      const h=document.createElement('div');
+      h.className='session-edit-title';
+      h.textContent=`Сессия №${numbers.get(s.id)}`;
+      const dateInput=document.createElement('input');
+      dateInput.type='date';
+      dateInput.value=s.date||today();
+      const link=document.createElement('select');
+      link.innerHTML='<option value="">— Без связи —</option>';
+      c.requests.forEach(r=>{
+        const o=document.createElement('option');
+        o.value=r.id;
+        o.textContent=r.title||'Без названия';
+        link.appendChild(o);
+      });
+      link.value=s.requestId||'';
+      const ta=document.createElement('textarea');
+      ta.value=s.notes||'';
+      ta.placeholder='Что делали, результат, заметки';
+      const actions=document.createElement('div');
+      actions.className='session-edit-actions';
+      const cancel=document.createElement('button');
+      cancel.type='button';
+      cancel.className='tk-btn';
+      cancel.textContent='Отмена';
+      const saveBtn=document.createElement('button');
+      saveBtn.type='button';
+      saveBtn.className='editor-save-btn';
+      saveBtn.textContent='Сохранить';
+      cancel.onclick=()=>dlg.close();
+      saveBtn.onclick=()=>{
+        s.date=dateInput.value||today();
+        s.requestId=link.value;
+        s.notes=ta.value;
         save();
+        dlg.close();
         renderSessions();
-      }
+      };
+      actions.append(cancel,saveBtn);
+      wrap.append(h,dateInput,link,ta,actions);
+      dlg.appendChild(wrap);
+      document.body.appendChild(dlg);
+      dlg.addEventListener('close',()=>dlg.remove(),{once:true});
+      dlg.showModal();
     };
 
-    head.append(title,date,link,edit,del);
-    row.append(head,note);
+    row.append(title,date,requestLabel,edit,notes);
     root.appendChild(row);
   });
 };
