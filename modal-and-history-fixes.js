@@ -2,10 +2,12 @@
 
 (() => {
   const btn=document.querySelector('#saveHistoryBtn');
-  if(!btn || typeof btn.onclick!=='function') return;
+  if(!btn) return;
 
-  const original=btn.onclick;
-  btn.onclick=function(e){
+  btn.onclick=function(){
+    const c=typeof client==='function'?client():null;
+    if(!c) return alert('Сначала выбери клиента.');
+
     const snapshot={
       clientId,
       requestId,
@@ -21,7 +23,22 @@
     const scrolls=[...document.querySelectorAll('.client-home,.diagnostics-left,.center-panel,.right-panel,.left-panel')]
       .map(el=>({el,top:el.scrollTop,left:el.scrollLeft}));
 
-    const result=original.call(this,e);
+    const r=typeof request==='function'?request():null;
+    const s=typeof situation==='function'?situation():null;
+
+    if(!Array.isArray(c.history)) c.history=[];
+    c.history.push({
+      id:typeof uid==='function'?uid():String(Date.now()),
+      createdAt:new Date().toISOString(),
+      requestId:r?.id||'',
+      requestTitle:r?.title||'',
+      situationId:s?.id||'',
+      situationTitle:s?.name||'',
+      situationLevel:s?.level??null,
+      situationResult:s?.result||''
+    });
+
+    if(typeof save==='function') save();
 
     clientId=snapshot.clientId;
     requestId=snapshot.requestId;
@@ -29,6 +46,10 @@
     selected=snapshot.selected;
     mode=snapshot.mode;
     if(typeof selectedSessionId!=='undefined') selectedSessionId=snapshot.selectedSessionId;
+
+    const old=btn.textContent;
+    btn.textContent='Сохранено';
+    setTimeout(()=>{btn.textContent=old;},1200);
 
     requestAnimationFrame(()=>{
       scrolls.forEach(x=>{x.el.scrollTop=x.top;x.el.scrollLeft=x.left;});
@@ -38,7 +59,5 @@
         if(active && typeof active.focus==='function') active.focus({preventScroll:true});
       }
     });
-
-    return result;
   };
 })();
