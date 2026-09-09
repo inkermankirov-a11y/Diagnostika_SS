@@ -1,0 +1,33 @@
+.session-attachments-preview{padding:0 14px 12px 16px;background:#fffdf9}
+.session-attachments-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#718197;margin:2px 0 7px}
+.session-attachments-list,.session-media-list-editor{display:flex;flex-wrap:wrap;gap:7px}
+.session-attachment-chip{display:grid;grid-template-columns:28px minmax(0,1fr) 26px;align-items:center;gap:7px;min-width:170px;max-width:290px;border:1px solid #d8e0e8;background:#fff;border-radius:9px;padding:6px 7px;cursor:pointer;box-shadow:0 1px 2px rgba(35,52,70,.04);transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease,background-color .14s ease}
+.session-attachment-chip:hover{transform:translateY(-1px);border-color:#b9c9da;box-shadow:0 4px 10px rgba(41,64,88,.08);background:#fbfdff}
+.session-attachment-icon{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:800;background:#eef3f7;color:#5e7288}
+.session-attachment-chip.audio .session-attachment-icon{background:#f2ecfb;color:#785ba8}
+.session-attachment-chip.video .session-attachment-icon{background:#eaf0fb;color:#4d69a4}
+.session-attachment-chip.image .session-attachment-icon{background:#e9f5ee;color:#4c7c61}
+.session-attachment-chip.text .session-attachment-icon{background:#fff3dc;color:#9a6f2a}
+.session-attachment-chip.pdf .session-attachment-icon{background:#fbeaea;color:#a44d4d;font-size:9px}
+.session-attachment-text{display:flex;flex-direction:column;min-width:0}
+.session-attachment-name{font-size:12px;font-weight:700;color:#304255;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.session-attachment-size{font-size:10px;color:#8b98a6;margin-top:2px}
+.session-attachment-open,.session-attachment-remove{width:24px;height:24px;border:0;border-radius:6px;display:grid;place-items:center;cursor:pointer;background:#eef2f6;color:#607287;padding:0}
+.session-attachment-open:hover{background:#e3ebf5;color:#365f8c}
+.session-attachment-chip:has(.session-attachment-remove){grid-template-columns:28px minmax(0,1fr) 26px 26px}
+.session-attachment-remove{background:#f7eded;color:#9b5d5d}
+.session-attachment-remove:hover{background:#f1dddd;color:#873f3f}
+.session-media-editor{margin-top:14px;padding:13px;border:1px solid #d8e0e7;background:#f8fafc;border-radius:10px}
+.session-media-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.session-media-head>div{display:flex;flex-direction:column;gap:2px;color:#314255}
+.session-media-head span{font-size:11px;color:#7c8998;font-weight:400}
+.session-media-add{display:inline-flex;align-items:center;justify-content:center;border:1px solid #b9c8d8;background:#fff;color:#466785;border-radius:7px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.session-media-add:hover{background:#edf4fb;border-color:#a6bdd4}
+.session-media-drop{border:1px dashed #b9c6d4;background:#fff;border-radius:8px;padding:14px;text-align:center;color:#7a8897;font-size:12px;cursor:pointer;transition:border-color .14s ease,background-color .14s ease,color .14s ease}
+.session-media-drop:hover,.session-media-drop.dragover{border-color:#7fa0c2;background:#f2f7fc;color:#506b87}
+.session-media-drop.busy{cursor:wait;opacity:.75}
+.session-media-list-editor{margin-top:10px}
+.session-media-empty{font-size:12px;color:#9aa4ae;padding:3px 1px}
+.session-media-local-hint{margin-top:8px;font-size:10px;color:#8b97a4}
+.session-edit-dialog{width:min(700px,94vw)}
+@media(max-width:1100px){.session-attachment-chip{min-width:150px;max-width:240px}.session-media-head{flex-direction:column}.session-media-add{align-self:flex-start}}
