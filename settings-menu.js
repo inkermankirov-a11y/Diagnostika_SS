@@ -142,14 +142,21 @@
 (() => {
   if(document.querySelector('script[data-header-utilities]')) return;
   const s=document.createElement('script');
-  s.src='header-utilities.js';
+  s.src='header-utilities.js?v=20260911-5';
   s.dataset.headerUtilities='1';
   s.onload=()=>{
-    if(document.querySelector('script[data-header-currency-display]')) return;
-    const f=document.createElement('script');
-    f.src='header-currency-display.js';
-    f.dataset.headerCurrencyDisplay='1';
-    document.body.appendChild(f);
+    if(!document.querySelector('script[data-header-currency-display]')){
+      const f=document.createElement('script');
+      f.src='header-currency-display.js?v=20260911-5';
+      f.dataset.headerCurrencyDisplay='1';
+      document.body.appendChild(f);
+    }
+    if(!document.querySelector('script[data-currency-tools-fix]')){
+      const c=document.createElement('script');
+      c.src='currency-tools-fix.js?v=20260911-5';
+      c.dataset.currencyToolsFix='1';
+      document.body.appendChild(c);
+    }
   };
   document.body.appendChild(s);
 })();
