@@ -40,7 +40,6 @@
           <select id="clientSelect"></select>
           <button id="addClientBtn" class="combo-drop" title="Добавить клиента">+</button>
         </div>
-
         <div class="profile-row">
           <div class="photo-column">
             <div id="photoFrame" class="photo-frame">
@@ -54,7 +53,6 @@
               <button id="maxBtn" class="social-icon max" title="MAX">◉</button>
             </div>
           </div>
-
           <div class="profile-fields">
             <label class="mini-label">ФИО<input id="clientName" class="entry"></label>
             <div class="field-pair">
@@ -62,125 +60,38 @@
               <label class="mini-label">Возраст<input id="clientAge" class="entry readonly" readonly></label>
             </div>
             <button id="saveClientBtn" class="tk-btn">Сохранить данные</button>
-            <div class="profile-actions">
-              <button id="backToProgressBtn" class="tk-btn back-btn hidden">← Назад к карте прогресса</button>
-            </div>
+            <div class="profile-actions"><button id="backToProgressBtn" class="tk-btn back-btn hidden">← Назад к карте прогресса</button></div>
           </div>
         </div>
-
         <div class="client-work">
           <div class="work-label">РАБОТА С КЛИЕНТОМ</div>
-          <div class="work-buttons">
-            <button id="clientCardModeBtn" class="mode-btn active">Карточка клиента</button>
-            <button id="diagnosisModeBtn" class="mode-btn">Диагностика</button>
-          </div>
+          <div class="work-buttons"><button id="clientCardModeBtn" class="mode-btn active">Карточка клиента</button><button id="diagnosisModeBtn" class="mode-btn">Диагностика</button></div>
         </div>
       </section>
-
       <section id="diagnosticsLeft" class="diagnostics-left hidden">
         <div class="separator"></div>
         <div class="queries-block">
           <div class="small-section-title">ЗАПРОСЫ КЛИЕНТА</div>
-          <div class="query-toolbar">
-            <select id="requestSelect"></select>
-            <button id="addRequestBtn" class="tk-btn">+ Добавить запрос</button>
-            <button id="deleteRequestBtn" class="tk-btn">Удалить запрос</button>
-          </div>
-          <div class="small-section-title spacer-top">ОБЩИЙ ЗАПРОС</div>
-          <textarea id="requestTitle" class="text-area compact"></textarea>
+          <div class="query-toolbar"><select id="requestSelect"></select><button id="addRequestBtn" class="tk-btn">+ Добавить запрос</button><button id="deleteRequestBtn" class="tk-btn">Удалить запрос</button></div>
+          <div class="small-section-title spacer-top">ОБЩИЙ ЗАПРОС</div><textarea id="requestTitle" class="text-area compact"></textarea>
         </div>
-
-        <div class="situations-block">
-          <div class="small-section-title">СИТУАЦИИ</div>
-          <div id="situationList" class="situation-list"></div>
-        </div>
-
-        <div class="left-footer-actions">
-          <div class="situation-buttons">
-            <button id="addSituationBtn" class="tk-btn">+ Добавить</button>
-            <button id="editSituationBtn" class="tk-btn">Изменить</button>
-            <button id="deleteSituationBtn" class="tk-btn">Удалить</button>
-          </div>
-          <button id="hintBtn" class="tk-btn hint-btn">Подсказки — убеждения 1</button>
-        </div>
+        <div class="situations-block"><div class="small-section-title">СИТУАЦИИ</div><div id="situationList" class="situation-list"></div></div>
+        <div class="left-footer-actions"><div class="situation-buttons"><button id="addSituationBtn" class="tk-btn">+ Добавить</button><button id="editSituationBtn" class="tk-btn">Изменить</button><button id="deleteSituationBtn" class="tk-btn">Удалить</button></div><button id="hintBtn" class="tk-btn hint-btn">Подсказки — убеждения 1</button></div>
       </section>
     </aside>
-
     <section id="clientHome" class="client-home panel-frame span-two">
-      <h2>КАРТА КЛИЕНТА</h2>
-      <div id="clientHomeName" class="client-home-name">Выберите клиента</div>
-      <div id="clientLastSession" class="client-last-session">Последняя сессия: —</div>
-      <p class="client-home-muted">Здесь будет история работы и прогресс клиента.</p>
-      <div class="sessions-divider"></div>
-      <div class="sessions-head">
-        <strong>СЕССИИ</strong>
-        <button id="addSessionBtn" class="tk-btn">+ Добавить сессию</button>
-      </div>
-      <div id="sessionsList" class="sessions-list"></div>
+      <h2>КАРТА КЛИЕНТА</h2><div id="clientHomeName" class="client-home-name">Выберите клиента</div><div id="clientLastSession" class="client-last-session">Последняя сессия: —</div><p class="client-home-muted">Здесь будет история работы и прогресс клиента.</p><div class="sessions-divider"></div><div class="sessions-head"><strong>СЕССИИ</strong><button id="addSessionBtn" class="tk-btn">+ Добавить сессию</button></div><div id="sessionsList" class="sessions-list"></div>
     </section>
-
-    <section id="centerPanel" class="center-panel panel-frame hidden">
-      <div id="situationTitle" class="situation-title">Выберите ситуацию</div>
-      <div id="situationInfo" class="situation-info"></div>
-      <div id="tree" class="tree-view"></div>
-      <div class="center-actions">
-        <button id="addBeliefBtn" class="tk-btn">+ Убеждение 1</button>
-        <button id="addFeelingBtn" class="tk-btn">+ Вторичные чувства</button>
-        <button id="addDeepBtn" class="tk-btn">+ Убеждение 2</button>
-        <button id="deleteElementBtn" class="tk-btn push-right">Удалить</button>
-      </div>
-    </section>
-
+    <section id="centerPanel" class="center-panel panel-frame hidden"><div id="situationTitle" class="situation-title">Выберите ситуацию</div><div id="situationInfo" class="situation-info"></div><div id="tree" class="tree-view"></div><div class="center-actions"><button id="addBeliefBtn" class="tk-btn">+ Убеждение 1</button><button id="addFeelingBtn" class="tk-btn">+ Вторичные чувства</button><button id="addDeepBtn" class="tk-btn">+ Убеждение 2</button><button id="deleteElementBtn" class="tk-btn push-right">Удалить</button></div></section>
     <aside id="rightPanel" class="right-panel panel-frame hidden">
       <div class="section-title right-title">РЕДАКТОР</div>
-      <div id="elementEditor">
-        <div id="editorType" class="editor-type">Элемент не выбран</div>
-        <textarea id="editorText" class="text-area editor-text"></textarea>
-        <label class="editor-label">Уровень 1–10
-          <input id="editorLevel" class="level-input" type="number" min="1" max="10" value="5">
-        </label>
-        <label class="editor-label">Комментарий / уточнение
-          <textarea id="editorComment" class="text-area editor-comment"></textarea>
-        </label>
-        <button id="saveElementBtn" class="editor-save-btn">Сохранить элемент</button>
-      </div>
-
-      <fieldset id="instinctFrame" class="instinct-frame hidden">
-        <legend>ИНСТИНКТЫ — только для убеждения 2</legend>
-        <div id="instinctSelectedLabel" class="editor-type">Инстинкт 1</div>
-        <select id="instinctCombo"></select>
-        <label class="editor-label">Уровень 1–10
-          <input id="instinctLevel" class="level-input" type="number" min="1" max="10" value="5">
-        </label>
-        <label class="editor-label">Комментарий / уточнение
-          <input id="instinctComment" class="entry">
-        </label>
-        <div class="instinct-actions">
-          <button id="saveInstinctBtn" class="editor-save-btn">Сохранить инстинкт</button>
-          <button id="addInstinctBtn" class="tk-btn">+ Добавить инстинкт</button>
-        </div>
-      </fieldset>
-
-      <div id="resultBlock" class="result-block hidden">
-        <div class="result-title">★ ЖЕЛАЕМЫЙ РЕЗУЛЬТАТ СИТУАЦИИ</div>
-        <textarea id="situationResult" class="text-area result-text"></textarea>
-        <button id="saveResultBtn" class="tk-btn">Сохранить результат</button>
-      </div>
+      <div id="elementEditor"><div id="editorType" class="editor-type">Элемент не выбран</div><textarea id="editorText" class="text-area editor-text"></textarea><label class="editor-label">Уровень 1–10<input id="editorLevel" class="level-input" type="number" min="1" max="10" value="5"></label><label class="editor-label">Комментарий / уточнение<textarea id="editorComment" class="text-area editor-comment"></textarea></label><button id="saveElementBtn" class="editor-save-btn">Сохранить элемент</button></div>
+      <fieldset id="instinctFrame" class="instinct-frame hidden"><legend>ИНСТИНКТЫ — только для убеждения 2</legend><div id="instinctSelectedLabel" class="editor-type">Инстинкт 1</div><select id="instinctCombo"></select><label class="editor-label">Уровень 1–10<input id="instinctLevel" class="level-input" type="number" min="1" max="10" value="5"></label><label class="editor-label">Комментарий / уточнение<input id="instinctComment" class="entry"></label><div class="instinct-actions"><button id="saveInstinctBtn" class="editor-save-btn">Сохранить инстинкт</button><button id="addInstinctBtn" class="tk-btn">+ Добавить инстинкт</button></div></fieldset>
+      <div id="resultBlock" class="result-block hidden"><div class="result-title">★ ЖЕЛАЕМЫЙ РЕЗУЛЬТАТ СИТУАЦИИ</div><textarea id="situationResult" class="text-area result-text"></textarea><button id="saveResultBtn" class="tk-btn">Сохранить результат</button></div>
     </aside>
   </main>
 </div>
-
-<dialog id="clientDialog" class="client-dialog">
-  <form method="dialog" class="dialog-card">
-    <div class="dialog-title">БАЗА КЛИЕНТОВ</div>
-    <div id="clientDatabaseList" class="client-database-list"></div>
-    <div class="dialog-actions">
-      <button id="dialogAddClientBtn" type="button" class="tk-btn">+ Новый клиент</button>
-      <button value="cancel" class="tk-btn">Закрыть</button>
-    </div>
-  </form>
-</dialog>
-
+<dialog id="clientDialog" class="client-dialog"><form method="dialog" class="dialog-card"><div class="dialog-title">БАЗА КЛИЕНТОВ</div><div id="clientDatabaseList" class="client-database-list"></div><div class="dialog-actions"><button id="dialogAddClientBtn" type="button" class="tk-btn">+ Новый клиент</button><button value="cancel" class="tk-btn">Закрыть</button></div></form></dialog>
 <script src="app.js"></script>
 <script src="delete-client.js"></script>
 <script src="test-data.js"></script>
@@ -225,5 +136,6 @@
 <script src="payment-enhancements.js"></script>
 <script src="payment-session-fix.js"></script>
 <script src="session-payment-editor.js"></script>
+<script src="payment-currency.js"></script>
 </body>
 </html>
