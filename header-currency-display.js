@@ -67,8 +67,20 @@
   `;
   document.head.appendChild(style);
 
+  function ensureCalculator(){
+    if(window.__diagnostikaCurrencyCalculatorLoaded) return;
+    if(document.querySelector('script[data-currency-calculator-history]')) return;
+    const s=document.createElement('script');
+    s.src='currency-calculator-history.js?v=20260911-1';
+    s.dataset.currencyCalculatorHistory='1';
+    s.onload=()=>{window.__diagnostikaCurrencyCalculatorLoaded=true;};
+    s.onerror=()=>{s.remove();setTimeout(ensureCalculator,1000);};
+    document.body.appendChild(s);
+  }
+
   let observer=null;
   function start(){
+    ensureCalculator();
     if(!apply()){setTimeout(start,100);return;}
     const btn=document.getElementById('headerCurrencyBtn');
     observer=new MutationObserver(()=>{
