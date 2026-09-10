@@ -67,3 +67,15 @@
   document.querySelector('#requestSelect')?.addEventListener('change', () => setTimeout(sync, 0));
   sync();
 })();
+
+(() => {
+  function loadOnce(src, marker){
+    if(document.querySelector(`script[${marker}]`)) return;
+    const s=document.createElement('script');
+    s.src=src;
+    s.setAttribute(marker,'1');
+    document.body.appendChild(s);
+  }
+  loadOnce('currency-calculator-history.js?v=2','data-currency-calculator-direct');
+  loadOnce('quick-notes.js?v=1','data-quick-notes-direct');
+})();
