@@ -16,14 +16,15 @@
   const tr=()=>LANG[lang()]||LANG.en;
   const weatherMode=()=>localStorage.getItem('diagnostika-weather-mode')||'geo';
   const savedCity=()=>{try{return JSON.parse(localStorage.getItem('diagnostika-weather-city')||'null')}catch(_){return null}};
+  const cityOnly=v=>String(v||'').split(',')[0].trim()||tr().weather;
 
   const style=document.createElement('style');
   style.textContent=`
     .header-utility-group{display:flex;align-items:center;gap:8px;margin-right:8px}
-    .header-util-btn{height:58px;width:112px;min-width:112px;max-width:112px;padding:7px 10px;border:1px solid #3d4f66;border-radius:11px;background:linear-gradient(#5d7188,#405268);color:#fff;display:grid;grid-template-columns:auto 1fr;grid-template-areas:'icon main' 'sub sub';column-gap:7px;row-gap:3px;align-content:center;justify-content:center;cursor:pointer;box-shadow:0 3px 9px rgba(30,41,59,.22);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+    .header-util-btn{height:42px;width:94px;min-width:94px;max-width:94px;padding:4px 8px;border:1px solid #3d4f66;border-radius:10px;background:linear-gradient(#5d7188,#405268);color:#fff;display:grid;grid-template-columns:auto 1fr;grid-template-areas:'icon main' 'sub sub';column-gap:5px;row-gap:1px;align-content:center;justify-content:center;cursor:pointer;box-shadow:0 3px 9px rgba(30,41,59,.22);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
     .header-util-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 14px rgba(30,41,59,.24)}
     .header-util-btn:active{transform:translateY(1px)}
-    .hu-icon{grid-area:icon;font-size:20px;line-height:1}.hu-main{grid-area:main;font-size:16px;line-height:1.05;font-weight:800;white-space:nowrap;min-width:0;text-align:left;letter-spacing:.1px}.hu-sub{grid-area:sub;font-size:13px;line-height:1.05;font-weight:700;opacity:1;text-align:center;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;margin:0 auto;color:#fff}
+    .hu-icon{grid-area:icon;font-size:17px;line-height:1}.hu-main{grid-area:main;font-size:14px;line-height:1;font-weight:800;white-space:nowrap;min-width:0;text-align:left;letter-spacing:.1px}.hu-sub{grid-area:sub;font-size:12px;line-height:1;font-weight:700;opacity:1;text-align:center;white-space:nowrap;max-width:82px;overflow:hidden;text-overflow:ellipsis;margin:0 auto;color:#fff}
     .utility-overlay{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.54);backdrop-filter:blur(6px)}
     .utility-overlay[hidden]{display:none!important}
     .utility-panel{width:min(620px,calc(100vw - 24px));max-height:86dvh;overflow:auto;background:#f8fafc;border:1px solid #cbd5e1;border-radius:16px;box-shadow:0 25px 70px rgba(15,23,42,.35);padding:16px;box-sizing:border-box;color:#243447}
@@ -32,7 +33,7 @@
     .weather-days{display:grid;gap:7px}.weather-day{display:grid;grid-template-columns:90px 35px 1fr auto;gap:9px;align-items:center;padding:10px;border:1px solid #dbe4ed;border-radius:10px;background:#fff;font-size:12px}.weather-day strong:last-child{white-space:nowrap}
     .weather-settings{margin-top:12px;padding:13px;border:1px solid #d8e3ec;border-radius:12px;background:#fff}.weather-settings-title{font-size:13px;font-weight:800;margin-bottom:9px}.weather-setting-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.weather-setting-row select,.weather-city-row input{height:40px;border:1px solid #b9c6d4;border-radius:9px;padding:0 10px;background:#fff;box-sizing:border-box;width:100%}.weather-city-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}.weather-city-results{display:grid;gap:5px;margin-top:8px}.weather-city-option{padding:8px 10px;border:1px solid #dbe4ed;border-radius:8px;background:#f8fafc;cursor:pointer;font-size:12px}.weather-city-option:hover{background:#eef6ff}
     .currency-card{padding:14px;border:1px solid #d8e3ec;border-radius:12px;background:#fff}.currency-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end}.currency-field{display:grid;gap:5px;font-size:11px;font-weight:800;color:#64748b}.currency-field select,.currency-field input{height:42px;border:1px solid #b9c6d4;border-radius:9px;padding:0 10px;background:#fff;font:inherit;box-sizing:border-box;width:100%}.currency-swap{height:42px!important;width:42px!important;padding:0!important;border-radius:9px!important}.currency-amount-wrap{margin-top:10px}.currency-result{margin-top:12px;padding:13px;border-radius:11px;background:#eef7f4;border:1px solid #c9e1d8}.currency-result-main{font-size:24px;font-weight:800}.currency-rate{margin-top:5px;font-size:12px;color:#64748b}.utility-source{margin-top:10px;text-align:center;color:#94a3b8;font-size:10px}
-    @media(max-width:760px){.header-utility-group{gap:5px;margin-right:5px}.header-util-btn{width:88px;min-width:88px;max-width:88px;height:52px;padding:5px 7px}.hu-icon{font-size:17px}.hu-main{font-size:14px}.hu-sub{font-size:11px;max-width:76px}.app-header h1{font-size:18px!important}.utility-overlay{place-items:end center;padding:0}.utility-panel{width:100%;max-height:88dvh;border-radius:18px 18px 0 0}.weather-day{grid-template-columns:72px 30px 1fr auto}.weather-day .desc{display:none}.weather-setting-row{grid-template-columns:1fr}}
+    @media(max-width:760px){.header-utility-group{gap:5px;margin-right:5px}.header-util-btn{width:78px;min-width:78px;max-width:78px;height:42px;padding:4px 6px}.hu-icon{font-size:15px}.hu-main{font-size:12px}.hu-sub{font-size:10px;max-width:68px}.app-header h1{font-size:18px!important}.utility-overlay{place-items:end center;padding:0}.utility-panel{width:100%;max-height:88dvh;border-radius:18px 18px 0 0}.weather-day{grid-template-columns:72px 30px 1fr auto}.weather-day .desc{display:none}.weather-setting-row{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
 
@@ -56,12 +57,12 @@
       const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=${encodeURIComponent(lang())}`,{cache:'no-store'});
       if(!r.ok)throw Error();
       const d=await r.json();
-      return d.city||d.locality||d.principalSubdivision||tr().local;
+      return cityOnly(d.city||d.locality||d.principalSubdivision||tr().local);
     }catch(_){return tr().local;}
   }
 
   async function fetchWeather(lat,lon,label){
-    weatherLabel=label;
+    weatherLabel=cityOnly(label);
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,apparent_temperature,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7`;
     const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('weather');weatherData=await r.json();
     weatherBtn.querySelector('.hu-icon').textContent=weatherIcon(Number(weatherData.current?.weather_code),Boolean(weatherData.current?.is_day));weatherBtn.querySelector('.hu-main').textContent=signed(weatherData.current?.temperature_2m);weatherBtn.querySelector('.hu-sub').textContent=weatherLabel;
@@ -78,7 +79,7 @@
 
   function initWeather(){
     const city=savedCity();
-    if(weatherMode()==='city'&&city?.latitude!=null&&city?.longitude!=null){fetchWeather(city.latitude,city.longitude,city.name).catch(loadGeoWeather);return;}
+    if(weatherMode()==='city'&&city?.latitude!=null&&city?.longitude!=null){fetchWeather(city.latitude,city.longitude,cityOnly(city.name)).catch(loadGeoWeather);return;}
     loadGeoWeather();
   }
 
@@ -93,12 +94,12 @@
     const c=weatherData.current||{},d=weatherData.daily||{};
     const rows=(d.time||[]).map((date,i)=>{const day=new Intl.DateTimeFormat(lang()==='ru'?'ru-RU':lang(),{weekday:'short',day:'numeric',month:'short'}).format(new Date(date+'T12:00:00'));return `<div class="weather-day"><strong>${day}</strong><span>${weatherIcon(Number(d.weather_code?.[i]))}</span><span class="desc">💧 ${Math.round(Number(d.precipitation_probability_max?.[i]||0))}%</span><strong>${signed(d.temperature_2m_max?.[i])} / ${signed(d.temperature_2m_min?.[i])}</strong></div>`;}).join('');
     const city=savedCity();
-    openPanel(`<div class="utility-head"><div><h2>${t.forecast}</h2><div class="utility-location-title">📍 ${weatherLabel}</div></div><button class="utility-close">×</button></div><div class="weather-current-card"><div class="weather-current-icon">${weatherIcon(Number(c.weather_code),Boolean(c.is_day))}</div><div class="weather-current-temp">${signed(c.temperature_2m)}</div><div class="weather-current-meta">${t.local}<br><strong>${signed(c.apparent_temperature)}</strong></div></div><div class="weather-days">${rows}</div><div class="weather-settings"><div class="weather-settings-title">⚙ ${t.weatherSettings}</div><div class="weather-setting-row"><label>${t.locationMode}<select id="weatherModeSelect"><option value="geo" ${weatherMode()==='geo'?'selected':''}>${t.myLocation}</option><option value="city" ${weatherMode()==='city'?'selected':''}>${t.chosenCity}</option></select></label><label>${t.city}<div class="weather-city-row"><input id="weatherCityInput" value="${city?.name||''}" placeholder="${t.city}"><button type="button" id="weatherCityFind" class="tk-btn">${t.findCity}</button></div></label></div><div id="weatherCityResults" class="weather-city-results"></div></div><div class="utility-source">${t.sourceWeather}</div>`);
+    openPanel(`<div class="utility-head"><div><h2>${t.forecast}</h2><div class="utility-location-title">📍 ${weatherLabel}</div></div><button class="utility-close">×</button></div><div class="weather-current-card"><div class="weather-current-icon">${weatherIcon(Number(c.weather_code),Boolean(c.is_day))}</div><div class="weather-current-temp">${signed(c.temperature_2m)}</div><div class="weather-current-meta">${t.local}<br><strong>${signed(c.apparent_temperature)}</strong></div></div><div class="weather-days">${rows}</div><div class="weather-settings"><div class="weather-settings-title">⚙ ${t.weatherSettings}</div><div class="weather-setting-row"><label>${t.locationMode}<select id="weatherModeSelect"><option value="geo" ${weatherMode()==='geo'?'selected':''}>${t.myLocation}</option><option value="city" ${weatherMode()==='city'?'selected':''}>${t.chosenCity}</option></select></label><label>${t.city}<div class="weather-city-row"><input id="weatherCityInput" value="${cityOnly(city?.name||'')}" placeholder="${t.city}"><button type="button" id="weatherCityFind" class="tk-btn">${t.findCity}</button></div></label></div><div id="weatherCityResults" class="weather-city-results"></div></div><div class="utility-source">${t.sourceWeather}</div>`);
     const modeSel=overlay.querySelector('#weatherModeSelect'),input=overlay.querySelector('#weatherCityInput'),findBtn=overlay.querySelector('#weatherCityFind'),results=overlay.querySelector('#weatherCityResults');
-    modeSel.onchange=()=>{localStorage.setItem('diagnostika-weather-mode',modeSel.value);if(modeSel.value==='geo'){loadGeoWeather();setTimeout(showWeather,700);}else if(savedCity()){const sc=savedCity();fetchWeather(sc.latitude,sc.longitude,sc.name).then(()=>showWeather());}};
+    modeSel.onchange=()=>{localStorage.setItem('diagnostika-weather-mode',modeSel.value);if(modeSel.value==='geo'){loadGeoWeather();setTimeout(showWeather,700);}else if(savedCity()){const sc=savedCity();fetchWeather(sc.latitude,sc.longitude,cityOnly(sc.name)).then(()=>showWeather());}};
     findBtn.onclick=async()=>{
       const q=input.value.trim();if(!q)return;results.textContent=t.loading;
-      try{const found=await searchCities(q);if(!found.length){results.textContent=t.cityNotFound;return;}results.innerHTML=found.map((x,i)=>`<div class="weather-city-option" data-i="${i}"><strong>${x.name}</strong>${x.admin1?', '+x.admin1:''}${x.country?', '+x.country:''}</div>`).join('');results.querySelectorAll('.weather-city-option').forEach(el=>el.onclick=()=>{const x=found[Number(el.dataset.i)];const cityObj={name:[x.name,x.admin1,x.country].filter(Boolean).join(', '),latitude:x.latitude,longitude:x.longitude};localStorage.setItem('diagnostika-weather-city',JSON.stringify(cityObj));localStorage.setItem('diagnostika-weather-mode','city');fetchWeather(cityObj.latitude,cityObj.longitude,cityObj.name).then(()=>showWeather());});}catch(_){results.textContent=t.cityNotFound;}
+      try{const found=await searchCities(q);if(!found.length){results.textContent=t.cityNotFound;return;}results.innerHTML=found.map((x,i)=>`<div class="weather-city-option" data-i="${i}"><strong>${x.name}</strong>${x.admin1?', '+x.admin1:''}${x.country?', '+x.country:''}</div>`).join('');results.querySelectorAll('.weather-city-option').forEach(el=>el.onclick=()=>{const x=found[Number(el.dataset.i)];const cityObj={name:x.name,latitude:x.latitude,longitude:x.longitude};localStorage.setItem('diagnostika-weather-city',JSON.stringify(cityObj));localStorage.setItem('diagnostika-weather-mode','city');fetchWeather(cityObj.latitude,cityObj.longitude,cityObj.name).then(()=>showWeather());});}catch(_){results.textContent=t.cityNotFound;}
     };
   }
   weatherBtn.onclick=showWeather;
