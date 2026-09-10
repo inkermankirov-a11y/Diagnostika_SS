@@ -116,3 +116,11 @@
 
   updateLabel();
 })();
+
+(() => {
+  if(document.querySelector('script[data-storage-simple-sync]')) return;
+  const s=document.createElement('script');
+  s.src='storage-simple-sync.js';
+  s.dataset.storageSimpleSync='1';
+  document.body.appendChild(s);
+})();
