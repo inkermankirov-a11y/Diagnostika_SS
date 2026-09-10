@@ -27,25 +27,28 @@
     const idx=chronological.findIndex(x=>x.s===target||x.s.id===target?.id);
     return idx>=0?idx+1:'—';
   };
+  const requestNumber=(c,r)=>{const i=(c?.requests||[]).findIndex(x=>x.id===r?.id);return i>=0?i+1:'—';};
 
   function activeRequest(c){
     return window.DiagnostikaRequests?.current?.(c)||(c?.requests||[]).find(r=>r.id===c?.currentRequestId)||null;
   }
   function requestById(c,id){return (c?.requests||[]).find(r=>r.id===id)||null;}
-  function priceRequest(c,s,preferredId){
-    const preferred=requestById(c,preferredId);
-    if(preferred&&effectivePrice(paymentOf(preferred))>0)return preferred;
-    const linked=requestById(c,s?.requestId);
-    if(linked&&effectivePrice(paymentOf(linked))>0)return linked;
+  function linkedRequest(c,s,preferredId){
+    return requestById(c,preferredId)||requestById(c,sessionPay(s).requestId)||requestById(c,s?.requestId)||null;
+  }
+  function fallbackPriceRequest(c){
     const active=activeRequest(c);
     if(active&&effectivePrice(paymentOf(active))>0)return active;
-    return (c?.requests||[]).find(r=>effectivePrice(paymentOf(r))>0)||preferred||linked||active||null;
+    return (c?.requests||[]).find(r=>effectivePrice(paymentOf(r))>0)||null;
   }
   function priceForSession(c,s,preferredId){
-    const saved=Number(sessionPay(s).amount)||0;
-    const r=priceRequest(c,s,preferredId);
-    const configured=effectivePrice(paymentOf(r));
-    return saved>0?saved:configured;
+    const sp=sessionPay(s);
+    const saved=Number(sp.amount)||0;
+    if(saved>0)return saved;
+    const own=linkedRequest(c,s,preferredId);
+    const ownPrice=effectivePrice(paymentOf(own));
+    if(ownPrice>0)return ownPrice;
+    return effectivePrice(paymentOf(fallbackPriceRequest(c)));
   }
 
   const style=document.createElement('style');
@@ -61,12 +64,13 @@
     @keyframes sessionPayPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.08)}50%{box-shadow:0 0 0 5px rgba(220,38,38,.16)}}
     .session-payment-ledger{margin-top:12px;border:1px solid #dbe4ed;border-radius:9px;background:#fff;overflow:hidden}
     .session-payment-ledger-title{padding:9px 11px;font-size:12px;font-weight:800;color:#334155;background:#f1f5f9;border-bottom:1px solid #dbe4ed}
-    .session-payment-ledger-row{display:grid;grid-template-columns:105px 1fr 130px;gap:10px;align-items:center;padding:8px 11px;border-top:1px solid #edf1f5;font-size:12px;color:#526174}
+    .session-payment-ledger-row{display:grid;grid-template-columns:95px 1fr 125px;gap:10px;align-items:center;padding:8px 11px;border-top:1px solid #edf1f5;font-size:12px;color:#526174}
     .session-payment-ledger-row:first-of-type{border-top:0}
     .session-payment-ledger-row .ok{color:#197344;font-weight:800}
+    .session-payment-ledger-row .request-note{display:block;margin-top:2px;color:#64748b;font-size:11px;font-weight:600}
     .session-payment-ledger-row strong{color:#26384b;text-align:right}
     .session-payment-ledger-empty{padding:10px 11px;color:#94a3b8;font-size:12px}
-    @media(max-width:640px){.session-payment-ledger-row{grid-template-columns:92px 1fr}.session-payment-ledger-row strong{grid-column:2;text-align:left}}
+    @media(max-width:640px){.session-payment-ledger-row{grid-template-columns:88px 1fr}.session-payment-ledger-row strong{grid-column:2;text-align:left}}
   `;
   document.head.appendChild(style);
 
@@ -85,14 +89,13 @@
 
   function persistSessionPayment(c,s,preferredId,paid,dateValue){
     const sp=sessionPay(s);
-    const source=priceRequest(c,s,preferredId);
+    const linked=linkedRequest(c,s,preferredId);
     const amount=priceForSession(c,s,preferredId);
     sp.paid=!!paid;
     sp.amount=amount;
     sp.receiptUrl='';
     sp.manualAmount=false;
-    if(preferredId)sp.requestId=preferredId;
-    else if(source?.id)sp.requestId=source.id;
+    if(linked?.id)sp.requestId=linked.id;
     if(paid){
       sp.paidAt=today();
       sp.sessionDate=dateValue||s.date||today();
@@ -132,7 +135,7 @@
     btn.dataset.sessionId=s.id;
 
     function render(){
-      const preferredId=requestSelect?.value||s.requestId||'';
+      const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';
       btn.dataset.requestId=preferredId;
       box.hidden=false;
       applyButtonState(btn,c,s,preferredId);
@@ -141,7 +144,6 @@
     render();
   }
 
-  // Оплата сессии доступна всегда. Запрос нужен только для определения цены и ведомости.
   document.addEventListener('click',e=>{
     const btn=e.target?.closest?.('.session-editor-payment-state');
     if(!btn)return;
@@ -152,7 +154,7 @@
     const s=(c.sessions||[]).find(x=>x.id===btn.dataset.sessionId)||getDialogSession(c,dlg);
     if(!s)return;
     const requestSelect=dlg.querySelector('.session-edit-grid select');
-    const preferredId=requestSelect?.value||s.requestId||'';
+    const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';
     if(preferredId)s.requestId=preferredId;
 
     const dateInput=dlg.querySelector('.session-edit-grid input[type="date"]');
@@ -168,22 +170,12 @@
     },0);
   },true);
 
-  function requestShownInPaymentDialog(c,dlg){
-    const sub=dlg.querySelector('#paymentRequestSub')?.textContent||'';
-    const m=sub.match(/Запрос\s+(\d+)/i);
-    if(m){const idx=Number(m[1])-1;if(c?.requests?.[idx])return c.requests[idx];}
-    return activeRequest(c);
-  }
-
   function renderPaymentLedger(){
     const dlg=document.querySelector('.payment-dialog');if(!dlg)return;
     const mode=dlg.querySelector('#paymentMode')?.value||'';
     let ledger=dlg.querySelector('#sessionPaymentLedger');
     if(mode!=='session'){if(ledger)ledger.hidden=true;return;}
-    const c=currentClient();
-    const r=requestShownInPaymentDialog(c,dlg);
-    if(!c||!r)return;
-    const configured=effectivePrice(paymentOf(r));
+    const c=currentClient();if(!c)return;
 
     if(!ledger){
       ledger=document.createElement('div');ledger.id='sessionPaymentLedger';ledger.className='session-payment-ledger';
@@ -191,24 +183,26 @@
       (hint||dlg.querySelector('#paymentSummary'))?.insertAdjacentElement('afterend',ledger);
     }
     ledger.hidden=false;
-    const sessions=(c.sessions||[]).filter(s=>s.requestId===r.id||sessionPay(s).requestId===r.id);
-    const paid=sessions.filter(s=>sessionPay(s).paid).sort((a,b)=>String(sessionPay(a).paidAt||a.date||'').localeCompare(String(sessionPay(b).paidAt||b.date||'')));
-    ledger.innerHTML='<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ</div>';
+
+    const paid=(c.sessions||[]).filter(s=>sessionPay(s).paid).sort((a,b)=>String(sessionPay(a).paidAt||a.date||'').localeCompare(String(sessionPay(b).paidAt||b.date||'')));
+    ledger.innerHTML='<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ — ВСЕ ЗАПРОСЫ</div>';
     if(!paid.length){ledger.insertAdjacentHTML('beforeend','<div class="session-payment-ledger-empty">Оплаченных сессий пока нет.</div>');return;}
 
     let repaired=false;
     paid.forEach(s=>{
       const sp=sessionPay(s);
+      const req=linkedRequest(c,s,sp.requestId||s.requestId);
       let amount=Number(sp.amount)||0;
       if(amount<=0){
-        amount=configured>0?configured:priceForSession(c,s,r.id);
+        amount=priceForSession(c,s,req?.id||'');
         if(amount>0){sp.amount=amount;repaired=true;}
       }
       const number=globalSessionNumber(c,s);
       const paymentDate=sp.paidAt||today();
       const sessionDate=sp.sessionDate||s.date||'—';
+      const reqLabel=req?`Запрос ${requestNumber(c,req)}: ${req.title||'Без названия'}`:'Запрос не указан';
       const row=document.createElement('div');row.className='session-payment-ledger-row';
-      row.innerHTML=`<span>${fmtDate(paymentDate)}</span><span class="ok">✓ Сессия №${number} от ${fmtDate(sessionDate)}</span><strong>${money(amount)} ₽</strong>`;
+      row.innerHTML=`<span>${fmtDate(paymentDate)}</span><span class="ok">✓ Сессия №${number} от ${fmtDate(sessionDate)}<span class="request-note">${reqLabel}</span></span><strong>${money(amount)} ₽</strong>`;
       ledger.appendChild(row);
     });
     if(repaired&&typeof save==='function')save();
