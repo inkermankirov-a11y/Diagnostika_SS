@@ -144,5 +144,12 @@
   const s=document.createElement('script');
   s.src='header-utilities.js';
   s.dataset.headerUtilities='1';
+  s.onload=()=>{
+    if(document.querySelector('script[data-header-currency-display]')) return;
+    const f=document.createElement('script');
+    f.src='header-currency-display.js';
+    f.dataset.headerCurrencyDisplay='1';
+    document.body.appendChild(f);
+  };
   document.body.appendChild(s);
 })();
