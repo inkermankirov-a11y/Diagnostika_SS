@@ -20,20 +20,22 @@
   const style=document.createElement('style');
   style.textContent=`
     #headerCurrencyBtn.currency-compact-display{
-      grid-template-columns:22px 1fr!important;
-      grid-template-rows:1fr 1fr!important;
+      grid-template-columns:28px 1fr!important;
+      grid-template-rows:16px 18px!important;
       grid-template-areas:'icon code' 'icon rate'!important;
-      column-gap:5px!important;
-      row-gap:0!important;
+      column-gap:7px!important;
+      row-gap:2px!important;
       align-items:center!important;
       padding:4px 8px!important;
     }
     #headerCurrencyBtn.currency-compact-display .hu-icon{
       grid-area:icon!important;
-      font-size:23px!important;
+      font-size:24px!important;
       font-weight:900!important;
       line-height:1!important;
       text-align:center!important;
+      padding-right:6px!important;
+      border-right:1px solid rgba(255,255,255,.28)!important;
     }
     #headerCurrencyBtn.currency-compact-display .hu-sub{
       grid-area:code!important;
@@ -41,21 +43,26 @@
       max-width:none!important;
       overflow:visible!important;
       text-overflow:clip!important;
-      text-align:center!important;
-      font-size:11px!important;
-      font-weight:900!important;
+      text-align:left!important;
+      justify-self:start!important;
+      font-size:10px!important;
+      font-weight:800!important;
+      letter-spacing:.7px!important;
       line-height:1!important;
       align-self:end!important;
+      color:#dbeafe!important;
     }
     #headerCurrencyBtn.currency-compact-display .hu-main{
       grid-area:rate!important;
-      text-align:center!important;
-      font-size:12px!important;
+      text-align:left!important;
+      justify-self:start!important;
+      font-size:13px!important;
       font-weight:900!important;
       line-height:1!important;
       align-self:start!important;
       overflow:visible!important;
       text-overflow:clip!important;
+      color:#fff!important;
     }
   `;
   document.head.appendChild(style);
