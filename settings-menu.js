@@ -30,6 +30,7 @@
     .settings-panel .language-switcher{width:100%!important;display:block!important}
     .settings-panel .language-btn{width:100%!important;min-width:0!important;height:42px!important;justify-content:center!important}
     .settings-panel .language-menu{position:static!important;width:100%!important;margin-top:6px!important;box-shadow:none!important;border-color:#d8e0e9!important}
+    .client-base-inline{width:100%!important;height:36px!important;margin:7px 0 0!important;background:linear-gradient(#71869e,#526a84)!important;color:#fff!important;border:1px solid #465b72!important;border-radius:7px!important;font-weight:700!important}
     @media(max-width:760px){
       .app-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
       .app-header h1{margin:0!important;min-width:0!important}
@@ -53,7 +54,17 @@
   const btn=wrap.querySelector('#settingsMenuBtn');
   const panel=wrap.querySelector('#settingsPanel');
 
-  const moveIds=['clientBaseBtn','storageBtn','testFillBtn','saveHistoryBtn','exportTxtBtn'];
+  const clientBase=document.getElementById('clientBaseBtn');
+  const clientSelectLine=document.querySelector('.client-select-line');
+  if(clientBase && clientSelectLine){
+    clientBase.classList.add('client-base-inline');
+    clientSelectLine.insertAdjacentElement('afterend',clientBase);
+  }
+
+  const saveHistory=document.getElementById('saveHistoryBtn');
+  if(saveHistory) saveHistory.remove();
+
+  const moveIds=['storageBtn','testFillBtn','exportTxtBtn'];
   moveIds.forEach(id=>{
     const el=document.getElementById(id);
     if(el) panel.appendChild(el);
