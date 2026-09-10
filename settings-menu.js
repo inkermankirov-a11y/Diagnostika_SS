@@ -137,3 +137,11 @@
   };
   document.body.appendChild(s);
 })();
+
+(() => {
+  if(document.querySelector('script[data-header-utilities]')) return;
+  const s=document.createElement('script');
+  s.src='header-utilities.js';
+  s.dataset.headerUtilities='1';
+  document.body.appendChild(s);
+})();
