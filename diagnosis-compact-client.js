@@ -2,6 +2,7 @@
 
 (() => {
   const card = document.querySelector('.client-card');
+  const diagnosticsLeft = document.querySelector('#diagnosticsLeft');
   if (!card) return;
 
   const compact = document.createElement('div');
@@ -22,6 +23,7 @@
     .client-card.diagnosis-compact-mode{padding:8px 10px!important}
     .client-card.diagnosis-compact-mode > :not(#diagnosisCompactClient){display:none!important}
     .client-card.diagnosis-compact-mode #diagnosisCompactClient{display:flex!important}
+    body.diagnosis-active #diagnosticsLeft{display:block!important}
     @media (max-width:700px){
       .diagnosis-compact-client{gap:8px}
       .diagnosis-compact-back{padding:7px 9px;font-size:12px}
@@ -33,6 +35,8 @@
   function sync(){
     const diag = typeof mode !== 'undefined' ? mode === 'diagnosis' : !document.querySelector('#centerPanel')?.classList.contains('hidden');
     card.classList.toggle('diagnosis-compact-mode', diag);
+    document.body.classList.toggle('diagnosis-active', diag);
+    if (diagnosticsLeft) diagnosticsLeft.classList.toggle('hidden', !diag);
     const c = typeof client === 'function' ? client() : null;
     const name = c?.name || document.querySelector('#clientHomeName')?.textContent || 'Клиент';
     const nameEl = compact.querySelector('.diagnosis-compact-name');
@@ -48,15 +52,6 @@
     }
     setTimeout(sync, 0);
   });
-
-  if (typeof renderMode === 'function') {
-    const originalRenderMode = renderMode;
-    window.renderMode = function(){
-      const result = originalRenderMode.apply(this, arguments);
-      sync();
-      return result;
-    };
-  }
 
   const observer = new MutationObserver(sync);
   const center = document.querySelector('#centerPanel');
