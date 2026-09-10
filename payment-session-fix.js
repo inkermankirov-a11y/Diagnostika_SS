@@ -23,6 +23,24 @@
   `;
   document.head.appendChild(style);
 
+  function persistSessionSettings(dlg){
+    const c=currentClient(),r=currentRequest(c);if(!r)return;
+    const p=paymentOf(r),mode=dlg.querySelector('#paymentMode')?.value||'';
+    p.mode=mode;
+    if(mode==='session'){
+      const base=dlg.querySelector('#sessionBasePrice')||dlg.querySelector('#sessionPrice');
+      const discount=dlg.querySelector('#sessionDiscount');
+      if(base)p.sessionAmount=Math.max(0,Number(base.value)||0);
+      if(discount)p.sessionDiscount=Math.min(100,Math.max(0,Number(discount.value)||0));
+      p.total=0;
+    }else{
+      p.total=Math.max(0,Number(dlg.querySelector('#paymentTotal')?.value)||0);
+    }
+    if(typeof save==='function')save();
+    try{window.DiagnostikaPayments?.refresh?.();}catch(e){}
+    try{window.DiagnostikaSessionPayments?.refresh?.();}catch(e){}
+  }
+
   function ensureSaveButton(dlg){
     let btn=dlg.querySelector('#paymentSaveSettings');
     if(btn)return btn;
@@ -32,22 +50,7 @@
     btn.type='button';btn.id='paymentSaveSettings';btn.className='tk-btn payment-save-settings';btn.textContent='Сохранить оплату';
     footer.insertBefore(btn,footer.firstChild);
     btn.addEventListener('click',()=>{
-      const c=currentClient(),r=currentRequest(c);if(!r)return;
-      const p=paymentOf(r),mode=dlg.querySelector('#paymentMode')?.value||'';
-      p.mode=mode;
-      if(mode==='session'){
-        const base=dlg.querySelector('#sessionBasePrice')||dlg.querySelector('#sessionPrice');
-        const discount=dlg.querySelector('#sessionDiscount');
-        p.sessionAmount=Math.max(0,Number(base?.value)||0);
-        p.sessionDiscount=Math.min(100,Math.max(0,Number(discount?.value)||0));
-        // В режиме по сессиям стоимость цикла не используется.
-        p.total=0;
-      }else{
-        p.total=Math.max(0,Number(dlg.querySelector('#paymentTotal')?.value)||0);
-      }
-      if(typeof save==='function')save();
-      window.DiagnostikaPayments?.refresh?.();
-      window.DiagnostikaSessionPayments?.refresh?.();
+      persistSessionSettings(dlg);
       apply();
       btn.textContent='✓ Сохранено';
       setTimeout(()=>{if(btn.isConnected)btn.textContent='Сохранить оплату';},1200);
@@ -77,6 +80,16 @@
       if(final&&p){const d=Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));const price=Math.max(0,(Number(p.sessionAmount)||0)*(1-d/100));final.innerHTML=`Итог за сессию: <strong>${money(price)} ₽</strong>${d?` <span style="color:#728092">(скидка ${d}%)</span>`:''}`;}
     }
   }
+
+  // Стоимость сессии и скидка сохраняются сразу при вводе. Это исключает ситуацию,
+  // когда в поле видно 10 000 ₽, а в данных запроса ещё остаётся 0.
+  document.addEventListener('input',e=>{
+    if(e.target?.id!=='sessionBasePrice'&&e.target?.id!=='sessionDiscount')return;
+    const dlg=e.target.closest('.payment-dialog');if(!dlg)return;
+    persistSessionSettings(dlg);
+    const c=currentClient(),r=currentRequest(c),p=paymentOf(r),final=dlg.querySelector('#sessionFinalPrice');
+    if(final&&p){const d=Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));const price=Math.max(0,(Number(p.sessionAmount)||0)*(1-d/100));final.innerHTML=`Итог за сессию: <strong>${money(price)} ₽</strong>${d?` <span style="color:#728092">(скидка ${d}%)</span>`:''}`;}
+  },true);
 
   document.addEventListener('change',e=>{if(e.target?.id==='paymentMode')setTimeout(apply,0);});
   const observer=new MutationObserver(()=>setTimeout(apply,0));observer.observe(document.body,{childList:true,subtree:true});
