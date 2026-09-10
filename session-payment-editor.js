@@ -16,12 +16,24 @@
     const discount=Math.min(100,Math.max(0,Number(p?.sessionDiscount)||0));
     return Math.max(0,Math.round(base*(1-discount/100)*100)/100);
   };
+  const liveEffectivePrice=(p,dlg)=>{
+    const baseInput=dlg?.querySelector?.('#sessionBasePrice');
+    const discountInput=dlg?.querySelector?.('#sessionDiscount');
+    const base=baseInput&&String(baseInput.value).trim()!==''?Math.max(0,Number(baseInput.value)||0):Math.max(0,Number(p?.sessionAmount)||0);
+    const discount=discountInput&&String(discountInput.value).trim()!==''?Math.min(100,Math.max(0,Number(discountInput.value)||0)):Math.min(100,Math.max(0,Number(p?.sessionDiscount)||0));
+    return Math.max(0,Math.round(base*(1-discount/100)*100)/100);
+  };
   const sessionPay=s=>{
     if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
     return s.payment;
   };
   const today=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
   const fmtDate=v=>{if(!v)return '—';const p=String(v).slice(0,10).split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:v;};
+  const globalSessionNumber=(c,target)=>{
+    const chronological=(c?.sessions||[]).map((s,index)=>({s,index,time:typeof sessionTimeValue==='function'?sessionTimeValue(s,index):(new Date(s.date||s.createdAt||0).getTime()||index)})).sort((a,b)=>a.time-b.time||a.index-b.index);
+    const idx=chronological.findIndex(x=>x.s===target||x.s.id===target?.id);
+    return idx>=0?idx+1:'—';
+  };
 
   const style=document.createElement('style');
   style.textContent=`
@@ -36,12 +48,12 @@
     @keyframes sessionPayPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.08)}50%{box-shadow:0 0 0 5px rgba(220,38,38,.16)}}
     .session-payment-ledger{margin-top:12px;border:1px solid #dbe4ed;border-radius:9px;background:#fff;overflow:hidden}
     .session-payment-ledger-title{padding:9px 11px;font-size:12px;font-weight:800;color:#334155;background:#f1f5f9;border-bottom:1px solid #dbe4ed}
-    .session-payment-ledger-row{display:grid;grid-template-columns:95px 1fr 130px;gap:10px;align-items:center;padding:8px 11px;border-top:1px solid #edf1f5;font-size:12px;color:#526174}
+    .session-payment-ledger-row{display:grid;grid-template-columns:105px 1fr 130px;gap:10px;align-items:center;padding:8px 11px;border-top:1px solid #edf1f5;font-size:12px;color:#526174}
     .session-payment-ledger-row:first-of-type{border-top:0}
     .session-payment-ledger-row .ok{color:#197344;font-weight:800}
     .session-payment-ledger-row strong{color:#26384b;text-align:right}
     .session-payment-ledger-empty{padding:10px 11px;color:#94a3b8;font-size:12px}
-    @media(max-width:640px){.session-payment-ledger-row{grid-template-columns:82px 1fr}.session-payment-ledger-row strong{grid-column:2;text-align:left}}
+    @media(max-width:640px){.session-payment-ledger-row{grid-template-columns:92px 1fr}.session-payment-ledger-row strong{grid-column:2;text-align:left}}
   `;
   document.head.appendChild(style);
 
@@ -65,7 +77,7 @@
     sp.receiptUrl='';
     sp.manualAmount=false;
     if(paid){
-      sp.paidAt=dateValue||s.date||today();
+      sp.paidAt=today();
       sp.sessionDate=dateValue||s.date||today();
     }else{
       delete sp.paidAt;
@@ -114,14 +126,10 @@
     render();
   }
 
-  // Делегированный обработчик в capture-фазе: работает даже если другие скрипты
-  // переоборачивают редактор сессии или заменяют обработчики кнопок.
   document.addEventListener('click',e=>{
     const btn=e.target?.closest?.('.session-editor-payment-state');
     if(!btn)return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
 
     const dlg=btn.closest('dialog.session-edit-dialog');
     const c=currentClient();if(!dlg||!c)return;
@@ -151,6 +159,14 @@
     const c=currentClient();
     const r=window.DiagnostikaRequests?.current?.(c)||(c?.requests||[]).find(x=>x.id===c?.currentRequestId)||null;
     if(!c||!r)return;
+    const p=paymentOf(r);
+    // Если цена прямо сейчас изменена в окне оплаты, используем её и сохраняем в запрос.
+    const baseInput=dlg.querySelector('#sessionBasePrice');
+    const discountInput=dlg.querySelector('#sessionDiscount');
+    if(baseInput&&String(baseInput.value).trim()!=='')p.sessionAmount=Math.max(0,Number(baseInput.value)||0);
+    if(discountInput&&String(discountInput.value).trim()!=='')p.sessionDiscount=Math.min(100,Math.max(0,Number(discountInput.value)||0));
+    const configured=liveEffectivePrice(p,dlg);
+
     if(!ledger){
       ledger=document.createElement('div');ledger.id='sessionPaymentLedger';ledger.className='session-payment-ledger';
       const hint=dlg.querySelector('#paymentSessionHint');
@@ -158,20 +174,24 @@
     }
     ledger.hidden=false;
     const sessions=(c.sessions||[]).filter(s=>s.requestId===r.id);
-    const chronological=sessions.map((s,index)=>({s,index,time:new Date(s.date||0).getTime()||index})).sort((a,b)=>a.time-b.time||a.index-b.index);
-    const paid=chronological.filter(x=>sessionPay(x.s).paid);
+    const paid=sessions.filter(s=>sessionPay(s).paid).sort((a,b)=>String(sessionPay(a).paidAt||a.date||'').localeCompare(String(sessionPay(b).paidAt||b.date||'')));
     ledger.innerHTML='<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ</div>';
     if(!paid.length){ledger.insertAdjacentHTML('beforeend','<div class="session-payment-ledger-empty">Оплаченных сессий пока нет.</div>');return;}
-    paid.forEach((item,i)=>{
-      const sp=sessionPay(item.s),num=chronological.indexOf(item)+1;
+    paid.forEach(s=>{
+      const sp=sessionPay(s);
+      const number=globalSessionNumber(c,s);
+      const amount=Number(sp.amount)>0?Number(sp.amount):configured;
+      const paymentDate=sp.paidAt||today();
+      const sessionDate=sp.sessionDate||s.date||'—';
       const row=document.createElement('div');row.className='session-payment-ledger-row';
-      row.innerHTML=`<span>${fmtDate(sp.paidAt||item.s.date)}</span><span class="ok">✓ Сессия №${num} оплачена</span><strong>${money(sp.amount||effectivePrice(paymentOf(r)))} ₽</strong>`;
+      row.innerHTML=`<span>${fmtDate(paymentDate)}</span><span class="ok">✓ Сессия №${number} от ${fmtDate(sessionDate)}</span><strong>${money(amount)} ₽</strong>`;
       ledger.appendChild(row);
     });
   }
 
   function refresh(){document.querySelectorAll('.session-edit-dialog').forEach(enhanceDialog);renderPaymentLedger();}
-  document.addEventListener('change',e=>{if(e.target?.id==='paymentMode')setTimeout(renderPaymentLedger,0);});
+  document.addEventListener('input',e=>{if(e.target?.id==='sessionBasePrice'||e.target?.id==='sessionDiscount')setTimeout(renderPaymentLedger,0);});
+  document.addEventListener('change',e=>{if(e.target?.id==='paymentMode'||e.target?.id==='sessionBasePrice'||e.target?.id==='sessionDiscount')setTimeout(renderPaymentLedger,0);});
   const observer=new MutationObserver(()=>setTimeout(refresh,0));observer.observe(document.body,{childList:true,subtree:true});
   setTimeout(refresh,0);
 })();
