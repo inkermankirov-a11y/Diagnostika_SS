@@ -16,13 +16,6 @@
     const discount=Math.min(100,Math.max(0,Number(p?.sessionDiscount)||0));
     return Math.max(0,Math.round(base*(1-discount/100)*100)/100);
   };
-  const liveEffectivePrice=(p,dlg)=>{
-    const baseInput=dlg?.querySelector?.('#sessionBasePrice');
-    const discountInput=dlg?.querySelector?.('#sessionDiscount');
-    const base=baseInput&&String(baseInput.value).trim()!==''?Math.max(0,Number(baseInput.value)||0):Math.max(0,Number(p?.sessionAmount)||0);
-    const discount=discountInput&&String(discountInput.value).trim()!==''?Math.min(100,Math.max(0,Number(discountInput.value)||0)):Math.min(100,Math.max(0,Number(p?.sessionDiscount)||0));
-    return Math.max(0,Math.round(base*(1-discount/100)*100)/100);
-  };
   const sessionPay=s=>{
     if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
     return s.payment;
@@ -76,6 +69,7 @@
     sp.amount=effectivePrice(p);
     sp.receiptUrl='';
     sp.manualAmount=false;
+    sp.requestId=r.id;
     if(paid){
       sp.paidAt=today();
       sp.sessionDate=dateValue||s.date||today();
@@ -114,9 +108,11 @@
     const btn=box.querySelector('.session-editor-payment-state');
     btn.dataset.sessionId=s.id;
 
+    function requestFromSessionSelection(){
+      return (c.requests||[]).find(x=>x.id===requestSelect.value)||null;
+    }
     function render(){
-      const r=(c.requests||[]).find(x=>x.id===requestSelect.value)||null;
-      const p=paymentOf(r),enabled=p?.mode==='session';
+      const r=requestFromSessionSelection(),p=paymentOf(r),enabled=p?.mode==='session';
       box.hidden=!enabled;
       if(!enabled)return;
       btn.dataset.requestId=r.id;
@@ -126,6 +122,7 @@
     render();
   }
 
+  // Оплата всегда проводится по запросу, выбранному В ЭТОЙ сессии, а не по активному запросу клиента.
   document.addEventListener('click',e=>{
     const btn=e.target?.closest?.('.session-editor-payment-state');
     if(!btn)return;
@@ -134,10 +131,13 @@
     const dlg=btn.closest('dialog.session-edit-dialog');
     const c=currentClient();if(!dlg||!c)return;
     const s=(c.sessions||[]).find(x=>x.id===btn.dataset.sessionId)||getDialogSession(c,dlg);
-    const r=(c.requests||[]).find(x=>x.id===btn.dataset.requestId)||null;
+    const requestSelect=dlg.querySelector('.session-edit-grid select');
+    const r=(c.requests||[]).find(x=>x.id===requestSelect?.value)||null;
     const p=paymentOf(r);
     if(!s||!r||p?.mode!=='session')return;
 
+    // Сразу фиксируем связь с тем запросом, по которому проводится оплата.
+    s.requestId=r.id;
     const dateInput=dlg.querySelector('.session-edit-grid input[type="date"]');
     const next=!sessionPay(s).paid;
     persistSessionPayment(s,r,next,dateInput?.value||s.date||today());
@@ -151,21 +151,23 @@
     },0);
   },true);
 
+  function requestShownInPaymentDialog(c,dlg){
+    const sub=dlg.querySelector('#paymentRequestSub')?.textContent||'';
+    const m=sub.match(/Запрос\s+(\d+)/i);
+    if(m){const idx=Number(m[1])-1;if(c?.requests?.[idx])return c.requests[idx];}
+    return window.DiagnostikaRequests?.current?.(c)||(c?.requests||[]).find(x=>x.id===c?.currentRequestId)||null;
+  }
+
   function renderPaymentLedger(){
     const dlg=document.querySelector('.payment-dialog');if(!dlg)return;
     const mode=dlg.querySelector('#paymentMode')?.value||'';
     let ledger=dlg.querySelector('#sessionPaymentLedger');
     if(mode!=='session'){if(ledger)ledger.hidden=true;return;}
     const c=currentClient();
-    const r=window.DiagnostikaRequests?.current?.(c)||(c?.requests||[]).find(x=>x.id===c?.currentRequestId)||null;
+    const r=requestShownInPaymentDialog(c,dlg);
     if(!c||!r)return;
     const p=paymentOf(r);
-    // Если цена прямо сейчас изменена в окне оплаты, используем её и сохраняем в запрос.
-    const baseInput=dlg.querySelector('#sessionBasePrice');
-    const discountInput=dlg.querySelector('#sessionDiscount');
-    if(baseInput&&String(baseInput.value).trim()!=='')p.sessionAmount=Math.max(0,Number(baseInput.value)||0);
-    if(discountInput&&String(discountInput.value).trim()!=='')p.sessionDiscount=Math.min(100,Math.max(0,Number(discountInput.value)||0));
-    const configured=liveEffectivePrice(p,dlg);
+    const configured=effectivePrice(p);
 
     if(!ledger){
       ledger=document.createElement('div');ledger.id='sessionPaymentLedger';ledger.className='session-payment-ledger';
@@ -177,8 +179,11 @@
     const paid=sessions.filter(s=>sessionPay(s).paid).sort((a,b)=>String(sessionPay(a).paidAt||a.date||'').localeCompare(String(sessionPay(b).paidAt||b.date||'')));
     ledger.innerHTML='<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ</div>';
     if(!paid.length){ledger.insertAdjacentHTML('beforeend','<div class="session-payment-ledger-empty">Оплаченных сессий пока нет.</div>');return;}
+
+    let repaired=false;
     paid.forEach(s=>{
       const sp=sessionPay(s);
+      if((!Number(sp.amount)||Number(sp.amount)<=0)&&configured>0){sp.amount=configured;repaired=true;}
       const number=globalSessionNumber(c,s);
       const amount=Number(sp.amount)>0?Number(sp.amount):configured;
       const paymentDate=sp.paidAt||today();
@@ -187,6 +192,7 @@
       row.innerHTML=`<span>${fmtDate(paymentDate)}</span><span class="ok">✓ Сессия №${number} от ${fmtDate(sessionDate)}</span><strong>${money(amount)} ₽</strong>`;
       ledger.appendChild(row);
     });
+    if(repaired&&typeof save==='function')save();
   }
 
   function refresh(){document.querySelectorAll('.session-edit-dialog').forEach(enhanceDialog);renderPaymentLedger();}
