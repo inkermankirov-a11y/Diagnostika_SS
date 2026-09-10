@@ -35,7 +35,8 @@
   }
 
   function mergeArrays(a,b,preferA=true){
-    const allHaveIds=[...a,...b].filter(x=>x&&typeof x==='object').every(x=>x.id);
+    const objects=[...a,...b].filter(x=>x&&typeof x==='object');
+    const allHaveIds=objects.length>0 && objects.every(x=>x.id);
     if(!allHaveIds){
       const seen=new Set();
       const out=[];
@@ -54,9 +55,9 @@
     return [...map.values()];
   }
 
-  function mergeStates(browserState,folderState,preferBrowser){
-    const base=mergeObjects(browserState||{clients:[]},folderState||{clients:[]},preferBrowser);
-    base.clients=mergeArrays(browserState?.clients||[],folderState?.clients||[],preferBrowser);
+  function mergeStates(a,b,preferA){
+    const base=mergeObjects(a||{clients:[]},b||{clients:[]},preferA);
+    base.clients=mergeArrays(a?.clients||[],b?.clients||[],preferA);
     return base;
   }
 
@@ -121,6 +122,41 @@
     }
   }
 
+  async function readClientsFromFolders(app){
+    let clientsDir;
+    try{
+      clientsDir=await app.getDirectoryHandle('clients',{create:false});
+    }catch(e){
+      if(e?.name==='NotFoundError') return {clients:[],folders:0,errors:0};
+      throw e;
+    }
+
+    const clients=[];
+    let folders=0;
+    let errors=0;
+    for await (const [name,handle] of clientsDir.entries()){
+      if(handle.kind!=='directory') continue;
+      folders++;
+      try{
+        const client=await readJson(handle,'client.json');
+        if(client && typeof client==='object'){
+          if(!client.id){
+            const suffix=String(name).split('_').pop();
+            client.id=suffix || `folder-${folders}`;
+          }
+          if(!client.name){
+            client.name=String(name).replace(/_[^_]+$/,'') || 'Клиент';
+          }
+          clients.push(client);
+        }
+      }catch(e){
+        errors++;
+        console.warn(`Не удалось прочитать клиента из папки ${name}`,e);
+      }
+    }
+    return {clients,folders,errors};
+  }
+
   async function writeJson(dir,name,data){
     const fh=await dir.getFileHandle(name,{create:true});
     const w=await fh.createWritable();
@@ -137,7 +173,7 @@
   async function writeStateTree(app,data){
     await writeJson(app,'database.json',data);
     await writeJson(app,'settings.json',{
-      format:'diagnostika-folder-v3',
+      format:'diagnostika-folder-v4',
       updatedAt:new Date().toISOString(),
       clientCount:Array.isArray(data.clients)?data.clients.length:0
     });
@@ -161,17 +197,30 @@
     try{app=await handle.getDirectoryHandle(APP_DIR,{create:false});}
     catch(e){if(e?.name==='NotFoundError') app=await handle.getDirectoryHandle(APP_DIR,{create:true}); else throw e;}
 
-    const folderState=await readJson(app,'database.json');
+    const databaseState=await readJson(app,'database.json');
+    const scanned=await readClientsFromFolders(app);
+    const clientsState={clients:scanned.clients};
+
+    // Папки clients являются полноценным источником данных. Сначала добавляем
+    // в database.json всех клиентов, найденных в отдельных client.json.
+    const folderState=mergeStates(clientsState,databaseState,true);
+
     const folderSettings=await readJson(app,'settings.json');
     const browserUpdated=Date.parse(localStorage.getItem(BROWSER_UPDATED_KEY)||'')||0;
     const folderUpdated=Date.parse(folderSettings?.updatedAt||'')||0;
-    const preferBrowser=!folderState || browserUpdated>folderUpdated;
+    const preferBrowser=!databaseState || browserUpdated>folderUpdated;
     const merged=mergeStates(state,folderState,preferBrowser);
 
     localStorage.setItem(STATE_KEY,JSON.stringify(merged));
     await writeStateTree(app,merged);
     localStorage.setItem(BROWSER_UPDATED_KEY,new Date().toISOString());
-    return {count:merged.clients?.length||0,folder:handle.name};
+    return {
+      count:merged.clients?.length||0,
+      folder:handle.name,
+      scannedFolders:scanned.folders,
+      scannedClients:scanned.clients.length,
+      errors:scanned.errors
+    };
   }
 
   function simplifyDialog(){
@@ -180,7 +229,7 @@
     dlg.dataset.simpleSync='1';
 
     const info=dlg.querySelector('.storage-info');
-    if(info) info.textContent='После подключения папки изменения сохраняются автоматически. Кнопка ниже нужна для первого подключения, перехода на другой браузер или ручной проверки синхронизации.';
+    if(info) info.textContent='Изменения сохраняются автоматически. «Синхронизировать» дополнительно проверяет все отдельные папки клиентов и возвращает в базу клиентов, которых нет в браузере.';
 
     const actions=dlg.querySelector('.storage-actions-main');
     if(!actions) return;
@@ -210,7 +259,11 @@
         sync.disabled=true;
         sync.textContent='Синхронизация…';
         const result=await synchronize();
-        await AppDialog.alert(`Синхронизировано. Клиентов: ${result.count}.\nПапка: ${result.folder} / ${APP_DIR}.`,'Готово');
+        const extra=result.errors?`\nНе удалось прочитать папок: ${result.errors}.`:'';
+        await AppDialog.alert(
+          `Проверено папок клиентов: ${result.scannedFolders}.\nНайдено client.json: ${result.scannedClients}.\nВ базе после синхронизации: ${result.count} клиент(ов).${extra}`,
+          'Синхронизация завершена'
+        );
         location.reload();
       }catch(e){
         if(e?.name!=='AbortError') await AppDialog.alert(e?.message||'Не удалось выполнить синхронизацию.','Ошибка');
