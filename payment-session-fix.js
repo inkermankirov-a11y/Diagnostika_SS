@@ -13,6 +13,17 @@
   };
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(v)||0);
 
+  function requestShownInDialog(c,dlg){
+    if(!c)return null;
+    const text=dlg?.querySelector('#paymentRequestSub')?.textContent||'';
+    const m=text.match(/Запрос\s+(\d+)/i);
+    if(m){
+      const idx=Number(m[1])-1;
+      if(c.requests?.[idx])return c.requests[idx];
+    }
+    return currentRequest(c);
+  }
+
   const style=document.createElement('style');
   style.textContent=`
     .payment-dialog.session-mode #paymentTotalField{display:none!important}
@@ -23,8 +34,16 @@
   `;
   document.head.appendChild(style);
 
+  function renderFinal(dlg,p){
+    const final=dlg.querySelector('#sessionFinalPrice');
+    if(!final||!p)return;
+    const d=Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));
+    const price=Math.max(0,(Number(p.sessionAmount)||0)*(1-d/100));
+    final.innerHTML=`Итог за сессию: <strong>${money(price)} ₽</strong>${d?` <span style="color:#728092">(скидка ${d}%)</span>`:''}`;
+  }
+
   function persistSessionSettings(dlg){
-    const c=currentClient(),r=currentRequest(c);if(!r)return;
+    const c=currentClient(),r=requestShownInDialog(c,dlg);if(!r)return;
     const p=paymentOf(r),mode=dlg.querySelector('#paymentMode')?.value||'';
     p.mode=mode;
     if(mode==='session'){
@@ -39,6 +58,7 @@
     if(typeof save==='function')save();
     try{window.DiagnostikaPayments?.refresh?.();}catch(e){}
     try{window.DiagnostikaSessionPayments?.refresh?.();}catch(e){}
+    renderFinal(dlg,p);
   }
 
   function ensureSaveButton(dlg){
@@ -73,25 +93,27 @@
     ensureSaveButton(dlg);
 
     if(isSession){
-      const c=currentClient(),r=currentRequest(c),p=paymentOf(r);
-      const base=dlg.querySelector('#sessionBasePrice');const discount=dlg.querySelector('#sessionDiscount');const final=dlg.querySelector('#sessionFinalPrice');
-      if(base&&document.activeElement!==base)base.value=p?.sessionAmount||'';
-      if(discount&&document.activeElement!==discount)discount.value=p?.sessionDiscount||'';
-      if(final&&p){const d=Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));const price=Math.max(0,(Number(p.sessionAmount)||0)*(1-d/100));final.innerHTML=`Итог за сессию: <strong>${money(price)} ₽</strong>${d?` <span style="color:#728092">(скидка ${d}%)</span>`:''}`;}
+      const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(r);
+      if(!p)return;
+      const base=dlg.querySelector('#sessionBasePrice');
+      const discount=dlg.querySelector('#sessionDiscount');
+      if(base&&document.activeElement!==base)base.value=p.sessionAmount||'';
+      if(discount&&document.activeElement!==discount)discount.value=p.sessionDiscount||'';
+      renderFinal(dlg,p);
     }
   }
 
-  // Стоимость сессии и скидка сохраняются сразу при вводе. Это исключает ситуацию,
-  // когда в поле видно 10 000 ₽, а в данных запроса ещё остаётся 0.
   document.addEventListener('input',e=>{
     if(e.target?.id!=='sessionBasePrice'&&e.target?.id!=='sessionDiscount')return;
     const dlg=e.target.closest('.payment-dialog');if(!dlg)return;
     persistSessionSettings(dlg);
-    const c=currentClient(),r=currentRequest(c),p=paymentOf(r),final=dlg.querySelector('#sessionFinalPrice');
-    if(final&&p){const d=Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));const price=Math.max(0,(Number(p.sessionAmount)||0)*(1-d/100));final.innerHTML=`Итог за сессию: <strong>${money(price)} ₽</strong>${d?` <span style="color:#728092">(скидка ${d}%)</span>`:''}`;}
   },true);
 
-  document.addEventListener('change',e=>{if(e.target?.id==='paymentMode')setTimeout(apply,0);});
-  const observer=new MutationObserver(()=>setTimeout(apply,0));observer.observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('change',e=>{
+    if(e.target?.id==='paymentMode')setTimeout(apply,0);
+  });
+
+  const observer=new MutationObserver(()=>setTimeout(apply,0));
+  observer.observe(document.body,{childList:true,subtree:true});
   setTimeout(apply,0);
 })();
