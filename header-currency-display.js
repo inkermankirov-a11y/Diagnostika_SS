@@ -83,11 +83,3 @@
   }
   start();
 })();
-
-(() => {
-  if(document.querySelector('script[data-currency-calculator-history]')) return;
-  const s=document.createElement('script');
-  s.src='currency-calculator-history.js';
-  s.dataset.currencyCalculatorHistory='1';
-  document.body.appendChild(s);
-})();
