@@ -175,12 +175,17 @@
     return p;
   }
 
-  const btn=document.createElement('button');
-  btn.id='storageBtn';
-  btn.className='header-btn storage-btn';
-  btn.textContent='Хранилище';
-  const anchor=document.querySelector('#clientBaseBtn');
-  if(anchor) anchor.insertAdjacentElement('afterend',btn);
+  let btn=document.querySelector('#storageBtn');
+  if(!btn){
+    btn=document.createElement('button');
+    btn.id='storageBtn';
+    btn.className='header-btn storage-btn';
+    btn.textContent='Хранилище';
+    const anchor=document.querySelector('#clientBaseBtn');
+    if(anchor) anchor.insertAdjacentElement('afterend',btn);
+  }else{
+    btn.classList.add('storage-btn');
+  }
 
   const dlg=document.createElement('dialog');
   dlg.className='storage-dialog';
