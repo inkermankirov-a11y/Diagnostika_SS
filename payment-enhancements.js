@@ -10,6 +10,7 @@
     if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[]};
     if(!Array.isArray(r.payment.payments))r.payment.payments=[];
     if(!Number.isFinite(Number(r.payment.sessionAmount)))r.payment.sessionAmount=0;
+    if(!Number.isFinite(Number(r.payment.sessionDiscount)))r.payment.sessionDiscount=0;
     return r.payment;
   };
   const sessionPay=s=>{
@@ -17,6 +18,11 @@
     return s.payment;
   };
   const priorPaid=p=>(p?.payments||[]).reduce((sum,x)=>sum+(Number(x.amount)||0),0);
+  const sessionPrice=p=>{
+    const base=Math.max(0,Number(p?.sessionAmount)||0);
+    const discount=Math.min(100,Math.max(0,Number(p?.sessionDiscount)||0));
+    return Math.max(0,base*(1-discount/100));
+  };
 
   const style=document.createElement('style');
   style.textContent=`
@@ -28,6 +34,11 @@
     .session-payment-field{grid-template-columns:auto 150px!important}
     .previous-payment-summary{margin:8px 0 0;padding:8px 10px;border-radius:8px;background:#eef4fb;border:1px solid #d6e2ef;color:#526174;font-size:12px}
     .previous-payment-summary strong{color:#26384b}
+    .session-payment-settings{display:grid;grid-template-columns:1fr 140px;gap:10px;margin-top:10px}
+    .session-payment-settings label{display:grid;gap:5px;font-size:12px;font-weight:700;color:#475569}
+    .session-payment-settings input{height:38px;border:1px solid #b9c6d4;border-radius:7px;padding:0 9px;background:#fff;box-sizing:border-box;width:100%}
+    .session-final-price{grid-column:1/-1;padding:8px 10px;border-radius:8px;background:#edf8f2;border:1px solid #cce8d8;color:#37604a;font-size:12px}
+    .session-final-price strong{color:#1f6f45;font-size:14px}
     .session-payment-edit-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}
     .session-payment-edit-dialog::backdrop{background:rgba(15,23,42,.44);backdrop-filter:blur(5px)}
     .session-payment-edit-card{width:min(420px,calc(100vw - 24px));background:#f8fafc;border:1px solid #d5dee8;border-radius:14px;box-shadow:0 24px 65px rgba(15,23,42,.28);padding:18px;box-sizing:border-box}
@@ -37,9 +48,45 @@
     .session-payment-paid-check{display:flex!important;grid-template-columns:none!important;align-items:center;gap:8px!important}
     .session-payment-edit-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
     .session-payment-edit-actions button{min-height:36px!important}
-    @media(max-width:640px){.session-payment-field{grid-template-columns:1fr!important}.payment-row{grid-template-columns:1fr 1fr!important}}
+    @media(max-width:640px){.session-payment-field{grid-template-columns:1fr!important}.payment-row{grid-template-columns:1fr 1fr!important}.session-payment-settings{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
+
+  function ensureSessionSettings(){
+    const dlg=document.querySelector('.payment-dialog');if(!dlg)return;
+    let wrap=dlg.querySelector('#sessionPaymentSettings');
+    if(!wrap){
+      wrap=document.createElement('div');wrap.id='sessionPaymentSettings';wrap.className='session-payment-settings';
+      wrap.innerHTML=`<label>Стоимость одной сессии<input id="sessionBasePrice" type="number" min="0" step="100" placeholder="10000"></label><label>Скидка, %<input id="sessionDiscount" type="number" min="0" max="100" step="1" placeholder="0"></label><div id="sessionFinalPrice" class="session-final-price"></div>`;
+      const grid=dlg.querySelector('.payment-grid');
+      if(grid)grid.insertAdjacentElement('afterend',wrap);
+      const base=wrap.querySelector('#sessionBasePrice'),discount=wrap.querySelector('#sessionDiscount');
+      const persist=()=>{
+        const c=currentClient(),r=currentRequest(c);if(!r)return;const p=paymentOf(r);
+        p.sessionAmount=Math.max(0,Number(base.value)||0);
+        p.sessionDiscount=Math.min(100,Math.max(0,Number(discount.value)||0));
+        if(typeof save==='function')save();
+        syncSessionSettings();
+        if(typeof renderSessions==='function')renderSessions();
+        setTimeout(refresh,0);
+      };
+      base.addEventListener('input',persist);discount.addEventListener('input',persist);
+    }
+  }
+
+  function syncSessionSettings(){
+    ensureSessionSettings();
+    const dlg=document.querySelector('.payment-dialog'),wrap=dlg?.querySelector('#sessionPaymentSettings');if(!wrap)return;
+    const c=currentClient(),r=currentRequest(c),p=paymentOf(r),isSession=p?.mode==='session';
+    wrap.hidden=!isSession;
+    const totalField=dlg.querySelector('#paymentTotalField');if(totalField&&isSession)totalField.hidden=true;
+    if(!isSession)return;
+    const base=wrap.querySelector('#sessionBasePrice'),discount=wrap.querySelector('#sessionDiscount'),final=wrap.querySelector('#sessionFinalPrice');
+    if(document.activeElement!==base)base.value=p.sessionAmount||'';
+    if(document.activeElement!==discount)discount.value=p.sessionDiscount||'';
+    const effective=sessionPrice(p);
+    final.innerHTML=p.sessionDiscount>0?`Цена после скидки: <strong>${money(effective)} ₽</strong> <span style="color:#728092">(базовая ${money(p.sessionAmount)} ₽, скидка ${p.sessionDiscount}%)</span>`:`Итог за сессию: <strong>${money(effective)} ₽</strong>`;
+  }
 
   function ensurePreviousSummary(){
     const dlg=document.querySelector('.payment-dialog');if(!dlg)return;
@@ -54,7 +101,8 @@
     if(!box.hidden)box.innerHTML=`<strong>Ранее внесено:</strong> ${money(paid)} ₽ <span style="color:#7b8794">до перехода на оплату по сессиям</span>`;
   }
 
-  function hideReceiptUi(){
+  function hideLegacySessionPriceAndReceipts(){
+    const legacy=document.querySelector('#sessionPriceField');if(legacy)legacy.style.display='none';
     document.querySelectorAll('.session-payment-field input[type="url"]').forEach(input=>{const label=input.closest('label');if(label)label.style.display='none';});
     const receipt=document.querySelector('#paymentReceipt');if(receipt)receipt.style.display='none';
   }
@@ -68,15 +116,16 @@
 
   function openSessionPaymentEditor(c,s){
     const r=requestForSession(c,s),p=paymentOf(r);if(!r||p?.mode!=='session')return;
-    const sp=sessionPay(s);if(!sp.amount&&p.sessionAmount)sp.amount=Number(p.sessionAmount)||0;
+    const sp=sessionPay(s),effective=sessionPrice(p);
+    if(!sp.paid&&!sp.manualAmount)sp.amount=effective;
     const dlg=document.createElement('dialog');dlg.className='session-payment-edit-dialog';
     dlg.innerHTML=`<div class="session-payment-edit-card"><h3>Оплата сессии</h3><div class="session-payment-edit-fields"><label class="session-payment-paid-check"><input id="spePaid" type="checkbox"> Оплачено</label><label>Сумма<input id="speAmount" type="number" min="0" step="100"></label></div><div class="session-payment-edit-actions"><button type="button" id="speCancel" class="tk-btn">Отмена</button><button type="button" id="speSave" class="tk-btn">Сохранить</button></div></div>`;
     document.body.appendChild(dlg);
-    const paid=dlg.querySelector('#spePaid'),amount=dlg.querySelector('#speAmount');paid.checked=!!sp.paid;amount.value=sp.amount||p.sessionAmount||'';
+    const paid=dlg.querySelector('#spePaid'),amount=dlg.querySelector('#speAmount');paid.checked=!!sp.paid;amount.value=sp.amount||effective||'';
     const close=()=>{try{dlg.close();}catch(e){}dlg.remove();};
     dlg.querySelector('#speCancel').onclick=close;
     dlg.querySelector('#speSave').onclick=()=>{
-      sp.paid=paid.checked;sp.amount=Number(amount.value)||0;sp.receiptUrl='';
+      sp.paid=paid.checked;sp.amount=Math.max(0,Number(amount.value)||0);sp.manualAmount=true;sp.receiptUrl='';
       if(typeof save==='function')save();close();if(typeof renderSessions==='function')renderSessions();setTimeout(refresh,0);
     };
     dlg.addEventListener('click',e=>{if(e.target===dlg)close();});
@@ -89,9 +138,10 @@
       const old=card.querySelector('.session-pay-status');if(!old||old.dataset.editablePayment==='1')return;
       const s=findSessionFromCard(c,card);if(!s)return;
       const r=requestForSession(c,s),p=paymentOf(r);if(!r||p?.mode!=='session')return;
-      const sp=sessionPay(s);if(!sp.amount&&p.sessionAmount)sp.amount=Number(p.sessionAmount)||0;
+      const sp=sessionPay(s),effective=sessionPrice(p);
+      if(!sp.paid&&!sp.manualAmount)sp.amount=effective;
       const btn=old.cloneNode(true);btn.dataset.editablePayment='1';
-      btn.textContent=sp.paid?`✓ Оплачено ${money(sp.amount||p.sessionAmount)} ₽`:'Не оплачено';
+      btn.textContent=sp.paid?`✓ Оплачено ${money(sp.amount||effective)} ₽`:'Не оплачено';
       btn.title='Редактировать оплату сессии';
       btn.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();openSessionPaymentEditor(c,s);});
       old.replaceWith(btn);
@@ -104,7 +154,7 @@
     const summary=box.querySelector('.client-payment-summary');if(summary&&!summary.textContent.includes('ранее внесено'))summary.textContent+=` · ранее внесено ${money(paidBefore)} ₽`;
   }
 
-  function refresh(){ensurePreviousSummary();hideReceiptUi();replacePaymentButtons();enhanceMainSummary();}
+  function refresh(){syncSessionSettings();ensurePreviousSummary();hideLegacySessionPriceAndReceipts();replacePaymentButtons();enhanceMainSummary();}
   const observer=new MutationObserver(()=>setTimeout(refresh,0));observer.observe(document.body,{childList:true,subtree:true});
   setTimeout(refresh,0);
 })();
