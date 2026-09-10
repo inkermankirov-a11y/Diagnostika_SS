@@ -122,5 +122,12 @@
   const s=document.createElement('script');
   s.src='storage-simple-sync.js';
   s.dataset.storageSimpleSync='1';
+  s.onload=()=>{
+    if(document.querySelector('script[data-storage-folder-controls]')) return;
+    const f=document.createElement('script');
+    f.src='storage-folder-controls.js';
+    f.dataset.storageFolderControls='1';
+    document.body.appendChild(f);
+  };
   document.body.appendChild(s);
 })();
