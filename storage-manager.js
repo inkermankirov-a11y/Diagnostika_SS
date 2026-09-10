@@ -209,12 +209,18 @@
     if(!folderState) throw new Error('В выбранной папке не найден корректный database.json.');
 
     const count=folderClientCount();
-    if(!confirm(`Восстановить базу из папки?\n\nБудет загружено клиентов: ${count}.\nТекущая база этого браузера будет заменена.`)) return false;
+    const ok=await AppDialog.confirm(
+      `Будет загружено клиентов: ${count}.\nТекущая база этого браузера будет заменена.`,
+      'Восстановить базу из папки?',
+      'Восстановить',
+      'Отмена'
+    );
+    if(!ok) return false;
 
     try{ localStorage.setItem(STATE_KEY,JSON.stringify(folderState)); }
     catch(e){ throw new Error('Не удалось сохранить восстановленную базу в браузере.'); }
 
-    alert(`База восстановлена. Клиентов: ${count}.\nСтраница сейчас перезагрузится.`);
+    await AppDialog.alert(`База восстановлена. Клиентов: ${count}.\nСтраница сейчас перезагрузится.`,'Готово');
     location.reload();
     return true;
   }
@@ -316,7 +322,10 @@
     if(!('showDirectoryPicker' in window)) return updateStatus();
     try{
       const h=await window.showDirectoryPicker({mode:'readwrite'});
-      if(await permission(h,true)!=='granted') return alert('Доступ к папке не разрешён.');
+      if(await permission(h,true)!=='granted'){
+        await AppDialog.alert('Доступ к папке не разрешён.','Нет доступа');
+        return;
+      }
 
       rootHandle=h;
       appHandle=null;
@@ -326,16 +335,19 @@
 
       if(folderState){
         await updateStatus();
-        alert(`В папке найдена база: ${folderClientCount()} клиент(ов).\nОна НЕ будет перезаписана автоматически.\nНажми «Восстановить базу из папки», чтобы открыть её в этом браузере.`);
+        await AppDialog.alert(
+          `В папке найдена база: ${folderClientCount()} клиент(ов).\nОна НЕ будет перезаписана автоматически.\nНажми «Восстановить базу из папки», чтобы открыть её в этом браузере.`,
+          'База найдена'
+        );
       }else{
         await fullExport();
         await updateStatus();
-        alert('Новая папка подключена. Текущая база и файлы сохранены в неё.');
+        await AppDialog.alert('Новая папка подключена. Текущая база и файлы сохранены в неё.','Папка подключена');
       }
     }catch(e){
       if(e?.name!=='AbortError'){
         console.error(e);
-        alert('Не удалось подключить папку.');
+        await AppDialog.alert('Не удалось подключить папку.','Ошибка');
       }
     }
   };
@@ -343,34 +355,46 @@
   restoreBtn.onclick=async()=>{
     try{
       if(!rootHandle) return;
-      if(await permission(rootHandle,true)!=='granted') return alert('Разреши доступ к папке.');
+      if(await permission(rootHandle,true)!=='granted'){
+        await AppDialog.alert('Разреши доступ к папке.','Нужен доступ');
+        return;
+      }
       await restoreFromFolder();
     }catch(e){
       console.error(e);
-      alert(e?.message||'Не удалось восстановить базу из папки.');
+      await AppDialog.alert(e?.message||'Не удалось восстановить базу из папки.','Ошибка восстановления');
     }
   };
 
   exportBtn.onclick=async()=>{
     if(!rootHandle) return;
     try{
-      if(await permission(rootHandle,true)!=='granted') return alert('Разреши доступ к папке.');
+      if(await permission(rootHandle,true)!=='granted'){
+        await AppDialog.alert('Разреши доступ к папке.','Нужен доступ');
+        return;
+      }
 
       folderState=await readFolderState();
       if(folderState){
         const fc=folderClientCount();
         const bc=browserClientCount();
-        if(!confirm(`Сохранить базу ЭТОГО браузера в папку?\n\nВ браузере: ${bc} клиент(ов).\nВ папке сейчас: ${fc} клиент(ов).\n\nФайл database.json в папке будет заменён.`)) return;
+        const ok=await AppDialog.confirm(
+          `В браузере: ${bc} клиент(ов).\nВ папке сейчас: ${fc} клиент(ов).\n\nФайл database.json в папке будет заменён.`,
+          'Сохранить базу этого браузера в папку?',
+          'Сохранить',
+          'Отмена'
+        );
+        if(!ok) return;
       }
 
       exportBtn.disabled=true;
       exportBtn.textContent='Сохраняю…';
       await fullExport();
       await updateStatus();
-      alert('База клиентов и файлы сохранены в папку.');
+      await AppDialog.alert('База клиентов и файлы сохранены в папку.','Готово');
     }catch(e){
       console.error(e);
-      alert('Не удалось сохранить данные в папку.');
+      await AppDialog.alert('Не удалось сохранить данные в папку.','Ошибка');
     }finally{
       exportBtn.textContent='Сохранить текущую базу и файлы в папку';
       exportBtn.disabled=false;
@@ -378,7 +402,13 @@
   };
 
   disconnectBtn.onclick=async()=>{
-    if(!confirm('Отключить папку? Данные в самой папке удалены не будут.')) return;
+    const ok=await AppDialog.confirm(
+      'Данные в самой папке удалены не будут.',
+      'Отключить папку?',
+      'Отключить',
+      'Отмена'
+    );
+    if(!ok) return;
     rootHandle=null;
     appHandle=null;
     folderState=null;
@@ -424,8 +454,6 @@
       if(rootHandle && await permission(rootHandle,false)==='granted'){
         appHandle=null;
         folderState=await readFolderState();
-        // ВАЖНО: при старте ничего не записываем автоматически в папку.
-        // Это защищает существующую базу от пустого/старого браузера.
       }
     }catch(e){
       console.warn('Не удалось восстановить выбранную папку',e);
