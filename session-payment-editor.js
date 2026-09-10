@@ -46,11 +46,15 @@
     if(fallbackPrice>=100)return fallbackPrice;
     return ownPrice>0?ownPrice:fallbackPrice;
   }
+  function isClearlyBrokenLegacyAmount(saved,configured){
+    return saved>0&&configured>0&&saved<configured/100;
+  }
   function priceForSession(c,s,preferredId){
     const sp=sessionPay(s);
     const configured=configuredPriceForSession(c,s,preferredId);
     const saved=Number(sp.amount)||0;
     if(sp.manualAmount&&saved>0)return saved;
+    if(sp.paid&&saved>0&&!isClearlyBrokenLegacyAmount(saved,configured))return saved;
     if(configured>0)return configured;
     return saved;
   }
@@ -86,10 +90,18 @@
     btn.title=paid?`Оплачено ${money(amount)} ₽. Нажми, чтобы снять оплату.`:`Стоимость сессии ${money(amount)} ₽. Нажми, чтобы отметить оплату.`;
   }
   function persistSessionPayment(c,s,preferredId,paid,dateValue){
-    const sp=sessionPay(s),linked=linkedRequest(c,s,preferredId),amount=configuredPriceForSession(c,s,preferredId)||priceForSession(c,s,preferredId);
+    const sp=sessionPay(s),linked=linkedRequest(c,s,preferredId),linkedPayment=paymentOf(linked),amount=configuredPriceForSession(c,s,preferredId)||priceForSession(c,s,preferredId);
     sp.paid=!!paid;sp.amount=amount;sp.receiptUrl='';sp.manualAmount=false;
     if(linked?.id)sp.requestId=linked.id;
-    if(paid){sp.paidAt=today();sp.sessionDate=dateValue||s.date||today();}else{delete sp.paidAt;delete sp.sessionDate;}
+    if(paid){
+      sp.paidAt=today();
+      sp.sessionDate=dateValue||s.date||today();
+      sp.priceSnapshot=true;
+      sp.baseAmount=Number(linkedPayment?.sessionAmount)||amount;
+      sp.discountSnapshot=Math.min(100,Math.max(0,Number(linkedPayment?.sessionDiscount)||0));
+    }else{
+      delete sp.paidAt;delete sp.sessionDate;delete sp.priceSnapshot;delete sp.baseAmount;delete sp.discountSnapshot;
+    }
     if(typeof save==='function')save();
   }
   function getDialogSession(c,dlg){
@@ -133,8 +145,12 @@
     let repaired=false;
     paid.forEach(s=>{
       const sp=sessionPay(s),req=linkedRequest(c,s,sp.requestId||s.requestId);
-      const amount=priceForSession(c,s,req?.id||'');
-      if(!sp.manualAmount&&Number(sp.amount)!==Number(amount)&&amount>0){sp.amount=amount;repaired=true;}
+      const configured=configuredPriceForSession(c,s,req?.id||'');
+      let amount=Number(sp.amount)||0;
+      if(amount<=0||isClearlyBrokenLegacyAmount(amount,configured)){
+        if(configured>0){sp.amount=configured;amount=configured;repaired=true;}
+      }
+      if(amount<=0)amount=priceForSession(c,s,req?.id||'');
       const number=globalSessionNumber(c,s),paymentDate=sp.paidAt||today(),sessionDate=sp.sessionDate||s.date||'—';
       const reqLabel=req?`Запрос ${requestNumber(c,req)}: ${req.title||'Без названия'}`:'Запрос не указан';
       const row=document.createElement('div');row.className='session-payment-ledger-row';row.innerHTML=`<span>${fmtDate(paymentDate)}</span><span class="ok">✓ Сессия №${number} от ${fmtDate(sessionDate)}<span class="request-note">${reqLabel}</span></span><strong>${money(amount)} ₽</strong>`;ledger.appendChild(row);
