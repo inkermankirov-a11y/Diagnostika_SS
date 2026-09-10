@@ -97,6 +97,8 @@
       const sym=symbolFor(c,r);
       replaceCurrencyText(dlg.querySelector('#paymentSummary'),sym);
       replaceCurrencyText(dlg.querySelector('#sessionFinalPrice'),sym);
+      // Обычная история платежей по текущему запросу раньше оставалась с жёстким символом ₽ из payment-system.js.
+      dlg.querySelectorAll('.payment-row strong').forEach(el=>replaceCurrencyText(el,sym));
       dlg.querySelectorAll('.session-payment-ledger-row').forEach(row=>{
         const note=row.querySelector('.request-note')?.textContent||'';
         const m=note.match(/Запрос\s+(\d+)/i);const rr=m?c.requests?.[Number(m[1])-1]:r;
