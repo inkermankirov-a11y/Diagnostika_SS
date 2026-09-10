@@ -21,6 +21,15 @@
     const i=arr.findIndex(x=>x.s===target||x.s.id===target?.id);return i>=0?i+1:'—';
   }
 
+  const style=document.createElement('style');
+  style.textContent=`
+    .all-client-payments-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;background:#eef7f4;border:1px solid #c9e1d8;border-radius:10px;margin:10px 0;color:#334155}
+    .all-client-payments-summary .label{font-size:12px;font-weight:700}
+    .all-client-payments-summary .value{font-size:18px;font-weight:900;color:#176c46;text-align:right}
+    @media(max-width:640px){.all-client-payments-summary{align-items:flex-start;flex-direction:column;gap:5px}.all-client-payments-summary .value{text-align:left}}
+  `;
+  document.head.appendChild(style);
+
   function renderCurrentSessionHistory(){
     const dlg=document.querySelector('.payment-dialog');if(!dlg?.open)return;
     const mode=dlg.querySelector('#paymentMode')?.value||'';
@@ -67,6 +76,12 @@
     rows.sort((a,b)=>String(b.sort).localeCompare(String(a.sort)));
     root.innerHTML='<div class="session-payment-ledger-title">ИСТОРИЯ ПЛАТЕЖЕЙ — ВСЕ ЗАПРОСЫ</div>';
     if(!rows.length){root.insertAdjacentHTML('beforeend','<div class="session-payment-ledger-empty">Платежей у клиента пока нет.</div>');return;}
+
+    const totals={};
+    rows.forEach(x=>{totals[x.sym]=(totals[x.sym]||0)+Number(x.amount||0);});
+    const totalText=Object.entries(totals).map(([sym,sum])=>`${money(sum)} ${sym}`).join(' · ');
+    root.insertAdjacentHTML('beforeend',`<div class="all-client-payments-summary"><span class="label">Всего платежей: ${rows.length}</span><span class="value">Общая сумма: ${totalText}</span></div>`);
+
     rows.forEach(x=>{const row=document.createElement('div');row.className='session-payment-ledger-row';row.innerHTML=`<span>${fmtDate(x.date)}</span><span class="ok">${x.desc}<span class="request-note">${x.sub}</span></span><strong>${money(x.amount)} ${x.sym}</strong>`;root.appendChild(row);});
   }
 
