@@ -19,6 +19,9 @@
     .about-program-section strong{color:#1f3348}
     .about-program-credits{display:grid;gap:8px}
     .about-program-person{padding:9px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0}
+    .about-program-main-thanks{padding:13px 14px;border-radius:10px;background:linear-gradient(135deg,#fff8df,#fffdf5);border:1px solid #e8d28c;box-shadow:0 4px 14px rgba(148,111,22,.08)}
+    .about-program-main-thanks .thanks-label{font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#9a6b12;margin-bottom:4px}
+    .about-program-main-thanks strong{font-size:16px;color:#5f4714}
     .about-program-license{font-size:12px;color:#475569}
     .about-program-license ol{margin:7px 0 0;padding-left:20px}
     .about-program-license li{margin:5px 0}
@@ -45,6 +48,11 @@
       <section class="about-program-section">
         <h3>Методическая помощь и благодарности</h3>
         <div class="about-program-credits">
+          <div class="about-program-main-thanks">
+            <div class="thanks-label">Особая благодарность</div>
+            <strong>Павел Дмитриев</strong><br>
+            Основатель и президент Американской Академии Гипноза. За знания, обучение, методики и подход к гипнотерапии, которые оказали ключевое влияние на профессиональное развитие автора программы и на формирование самой системы работы с клиентом.
+          </div>
           <div class="about-program-person"><strong>Дмитрий Коршевнюк</strong><br>Кандидат медицинских наук, врач‑психотерапевт, психофизиолог, гипнотерапевт. Методическая опора и идеи, повлиявшие на формирование логики исходной диагностической таблицы и подхода к работе с материалом клиента.</div>
           <div class="about-program-person"><strong>Аркадий Ильиных</strong><br>Маркетолог и бизнес‑архитектор. Идеи и практические подходы, повлиявшие на структуру, прикладное использование и развитие исходной системы.</div>
           <div class="about-program-person"><strong>Андрей Кулагин</strong><br>Гипнотерапевт, энерготерапевт. Практические идеи и подходы, повлиявшие на развитие диагностической системы и её применение в работе с клиентами.</div>
