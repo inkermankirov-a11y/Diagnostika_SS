@@ -30,6 +30,7 @@
     .settings-panel .language-switcher{width:100%!important;display:block!important}
     .settings-panel .language-btn{width:100%!important;min-width:0!important;height:42px!important;justify-content:center!important}
     .settings-panel .language-menu{position:static!important;width:100%!important;margin-top:6px!important;box-shadow:none!important;border-color:#d8e0e9!important}
+    #testFillBtn,#exportTxtBtn{display:none!important}
     .utility-overlay[hidden]{display:none!important}
     @media(max-width:760px){
       .app-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
