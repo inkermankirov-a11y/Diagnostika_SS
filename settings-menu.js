@@ -127,7 +127,7 @@
 (() => {
   if(document.querySelector('script[data-storage-simple-sync]')) return;
   const s=document.createElement('script');
-  s.src='storage-simple-sync.js';
+  s.src='storage-simple-sync.js?v=20260911-17';
   s.dataset.storageSimpleSync='1';
   s.onload=()=>{
     if(document.querySelector('script[data-storage-folder-controls]')) return;
