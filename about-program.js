@@ -38,7 +38,7 @@
         <h2>О программе</h2>
         <button type="button" class="tk-btn about-program-close">×</button>
       </div>
-      <div class="about-program-version">Психологическая диагностика · Diagnostika_SS</div>
+      <div class="about-program-version">Психологическая диагностика · Diagnostika_SS · Версия 2.5.0</div>
 
       <section class="about-program-section">
         <h3>Разработка</h3>
