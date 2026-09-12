@@ -19,6 +19,19 @@
   `;
   document.head.appendChild(style);
 
+  function activeRequest(c){
+    const requests=Array.isArray(c?.requests)?c.requests:[];
+    if(!requests.length)return null;
+    try{
+      const fromModule=window.DiagnostikaRequests?.current?.(c);
+      if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
+    }catch(_){}
+    return requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
+      ||requests.find(r=>String(r.id)===String(c?.activeRequestId||''))
+      ||requests[requests.length-1]
+      ||null;
+  }
+
   function fullRequestHasDebt(r){
     const p=r?.payment||{};
     if(p.mode!=='full')return false;
@@ -28,28 +41,21 @@
     return paid+0.000001<total;
   }
 
-  function clientHasDebt(c){
-    const requests=Array.isArray(c?.requests)?c.requests:[];
-    return requests.some(fullRequestHasDebt);
+  function sessionRequestHasDebt(c,r){
+    if(r?.payment?.mode!=='session')return false;
+    const rid=String(r.id||'');
+    if(!rid)return false;
+    const sessions=Array.isArray(c?.sessions)?c.sessions:[];
+    return sessions.some(s=>{
+      const sid=String(s?.requestId||s?.payment?.requestId||'');
+      return sid===rid&&s?.payment?.paid!==true;
+    });
   }
 
-  function activeRequest(c){
-    const requests=Array.isArray(c?.requests)?c.requests:[];
-    if(!requests.length)return null;
-    try{
-      const fromModule=window.DiagnostikaRequests?.current?.(c);
-      if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
-    }catch(_){}
-    try{
-      if(typeof requestId!=='undefined'&&requestId){
-        const byGlobal=requests.find(r=>String(r.id)===String(requestId));
-        if(byGlobal)return byGlobal;
-      }
-    }catch(_){}
-    return requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
-      ||requests.find(r=>String(r.id)===String(c?.activeRequestId||''))
-      ||requests[requests.length-1]
-      ||null;
+  function clientHasDebt(c){
+    const r=activeRequest(c);
+    if(!r)return false;
+    return fullRequestHasDebt(r)||sessionRequestHasDebt(c,r);
   }
 
   function syncFlags(){
@@ -68,8 +74,8 @@
       const flag=document.createElement('span');
       flag.className='hd-unpaid-flag';
       flag.textContent='⚑';
-      flag.setAttribute('aria-label','Не оплачена полная стоимость работы');
-      flag.title='Не оплачена полная стоимость работы';
+      flag.setAttribute('aria-label','Есть задолженность по текущему запросу');
+      flag.title='Есть задолженность по текущему запросу';
       tools.appendChild(flag);
     });
   }
@@ -84,16 +90,16 @@
   const mo=new MutationObserver(queue);
   mo.observe(document.body,{childList:true,subtree:true});
   document.addEventListener('click',e=>{
-    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete,.hd-client-row,#paymentSaveSettings'))setTimeout(syncFlags,0);
+    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete,.hd-client-row,#paymentSaveSettings,.session-payment-toggle-stable,.session-editor-payment-state'))setTimeout(syncFlags,0);
   },true);
   document.addEventListener('input',e=>{
     if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
   },true);
   document.addEventListener('change',e=>{
-    if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
+    if(e.target?.closest?.('.payment-dialog,dialog.session-edit-dialog'))setTimeout(syncFlags,0);
   },true);
   document.addEventListener('close',e=>{
-    if(e.target?.matches?.('dialog.payment-dialog'))setTimeout(syncFlags,0);
+    if(e.target?.matches?.('dialog.payment-dialog,dialog.session-edit-dialog'))setTimeout(syncFlags,0);
   },true);
 
   setTimeout(syncFlags,0);
