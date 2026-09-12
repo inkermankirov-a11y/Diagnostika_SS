@@ -32,12 +32,12 @@
         </div>
 
         <div class="cc-long-fields">
-          <label>С чем пришёл<textarea id="ccInitialProblem"></textarea></label>
-          <label>Основной запрос<textarea id="ccMainRequest"></textarea></label>
-          <label>Что уже делал<textarea id="ccTried"></textarea></label>
-          <label>Что не помогло<textarea id="ccDidntHelp"></textarea></label>
-          <label>Какой результат хочет получить<textarea id="ccDesiredOutcome"></textarea></label>
-          <label>Заметки о клиенте<textarea id="ccClientNotes"></textarea></label>
+          <label>Исходный запрос<textarea id="ccInitialProblem"></textarea></label>
+          <label>Ключевой запрос<textarea id="ccMainRequest"></textarea></label>
+          <label>Предыдущие попытки решения<textarea id="ccTried"></textarea></label>
+          <label>Что не сработало<textarea id="ccDidntHelp"></textarea></label>
+          <label>Желаемый результат<textarea id="ccDesiredOutcome"></textarea></label>
+          <label>Рабочие заметки<textarea id="ccClientNotes"></textarea></label>
         </div>
       </div>
       <div class="client-card-footer">
