@@ -78,6 +78,7 @@
   }
   loadOnce('currency-calculator-history.js?v=2','data-currency-calculator-direct');
   loadOnce('quick-notes.js?v=1','data-quick-notes-direct');
+  loadOnce('session-payment-data-repair.js?v=20260912-56','data-session-payment-data-repair');
 })();
 
 // Main home screen redesign. Loaded last so it can reuse the existing application logic safely.
