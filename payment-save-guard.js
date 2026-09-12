@@ -73,8 +73,6 @@
       btn.title=paid?`Оплачено ${amount||0} ₽`:`Не оплачено${amount?` · ${amount} ₽`:''}`;
     }
 
-    // В старом редакторе оплаты есть отдельный чекбокс. Он обязан всегда
-    // совпадать с верхней кнопкой, иначе старый обработчик перезаписывает статус.
     const checkbox=legacyPaidCheckbox(dlg);
     if(checkbox) checkbox.checked=paid;
     const amountInput=legacyAmountInput(dlg);
@@ -159,7 +157,6 @@
     return window.confirm(text);
   }
 
-  // Capture on WINDOW: this runs before legacy document/dialog handlers.
   window.addEventListener('click',async e=>{
     const target=e.target;
 
@@ -177,10 +174,7 @@
     const sessionSave=target?.closest?.('dialog.session-edit-dialog .session-edit-actions .primary');
     if(sessionSave){
       const dlg=sessionSave.closest('dialog.session-edit-dialog');
-      if(dlg){
-        paintSessionPayment(dlg);
-        commitSessionPayment(dlg);
-      }
+      if(dlg){paintSessionPayment(dlg);commitSessionPayment(dlg);}
       return;
     }
 
@@ -189,14 +183,12 @@
       e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
       const yes=await askSave('Сохранить изменения сессии?');
       if(yes){
-        paintSessionPayment(sdlg);
-        commitSessionPayment(sdlg);
+        paintSessionPayment(sdlg);commitSessionPayment(sdlg);
         const btn=sdlg.querySelector('.session-edit-actions .primary');
         if(btn){btn.click();return;}
         try{sdlg.close();}catch(_){}
       }else{
-        discardSessionDraft(sdlg);
-        try{sdlg.close();}catch(_){}
+        discardSessionDraft(sdlg);try{sdlg.close();}catch(_){}
       }
       return;
     }
@@ -228,7 +220,6 @@
     }
   },true);
 
-  // Capture input/change at WINDOW so the snapshot is taken before legacy auto-save code mutates state.
   window.addEventListener('input',e=>{
     const sdlg=e.target?.closest?.('dialog.session-edit-dialog');
     if(sdlg){markSessionDirty(sdlg);return;}
@@ -256,16 +247,97 @@
   },true);
 
   function refresh(){
-    document.querySelectorAll('dialog.session-edit-dialog').forEach(dlg=>{
-      ensureSessionSnapshot(dlg);
-      paintSessionPayment(dlg);
-    });
-    document.querySelectorAll('dialog.payment-dialog').forEach(dlg=>{
-      if(dlg.open)ensurePaymentSnapshot(dlg);
-    });
+    document.querySelectorAll('dialog.session-edit-dialog').forEach(dlg=>{ensureSessionSnapshot(dlg);paintSessionPayment(dlg);});
+    document.querySelectorAll('dialog.payment-dialog').forEach(dlg=>{if(dlg.open)ensurePaymentSnapshot(dlg);});
   }
 
   const observer=new MutationObserver(()=>setTimeout(refresh,0));
   observer.observe(document.body,{childList:true,subtree:true});
   setTimeout(refresh,0);
+})();
+
+// Reliable editor for an existing record from "Все платежи клиента".
+(() => {
+  const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
+  const currentClient=()=>typeof client==='function'?client():null;
+  const sessionPayment=s=>{if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0};return s.payment;};
+  const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||(c?.requests?.indexOf(r)+1||0);
+
+  function rowsFor(c){
+    const rows=[];
+    (c?.requests||[]).forEach(r=>{
+      const p=window.DiagnostikaPayments?.paymentOfRequest?.(c,r)||r.payment||{};
+      if(p.mode==='session'){
+        (c.sessions||[]).filter(s=>(s.requestId||s.payment?.requestId)===r.id).forEach(s=>{
+          const sp=sessionPayment(s);if(sp.paid)rows.push({kind:'session',request:r,session:s,date:sp.paidAt||s.date||'',amount:num(sp.amount)});
+        });
+      }else{
+        (p.payments||[]).forEach(pay=>rows.push({kind:'request',request:r,pay,date:pay.date||'',amount:num(pay.amount)}));
+      }
+    });
+    return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  }
+
+  function ensureEditor(){
+    let dlg=document.querySelector('#allPaymentRecordEditor');
+    if(dlg)return dlg;
+    dlg=document.createElement('dialog');dlg.id='allPaymentRecordEditor';dlg.className='payment-dialog';
+    dlg.innerHTML=`<div class="payment-window" style="width:min(500px,calc(100vw - 24px))"><div class="payment-head"><strong>РЕДАКТИРОВАТЬ ПЛАТЁЖ</strong><button type="button" class="payment-x">×</button></div><div class="payment-grid" style="grid-template-columns:1fr"><label class="payment-field">Дата<input id="aprDate" type="date"></label><label class="payment-field">Сумма<input id="aprAmount" type="number" min="0" step="1"></label><label class="payment-field">Комментарий<input id="aprNote" type="text"></label></div><div class="payment-footer"><button type="button" class="tk-btn apr-cancel">Отмена</button><button type="button" class="tk-btn apr-save">Сохранить</button></div></div>`;
+    document.body.appendChild(dlg);
+    dlg.querySelector('.payment-x').onclick=()=>dlg.close();
+    dlg.querySelector('.apr-cancel').onclick=()=>dlg.close();
+    dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
+    return dlg;
+  }
+
+  function reopenAllPayments(){
+    const allDlg=document.querySelector('.all-client-payments-dialog');
+    const btn=document.querySelector('#allClientPaymentsBtn');
+    try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
+    if(allDlg&&!allDlg.open){
+      btn?.click();
+    }
+  }
+
+  window.addEventListener('click',e=>{
+    const edit=e.target?.closest?.('.all-client-payments-dialog .ap-edit');
+    if(!edit)return;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+
+    const allDlg=edit.closest('.all-client-payments-dialog');
+    const rows=[...allDlg.querySelectorAll('.all-payment-row')];
+    const index=rows.indexOf(edit.closest('.all-payment-row'));
+    const c=currentClient();const item=rowsFor(c)[index];
+    if(!item)return;
+
+    if(item.kind==='session'){
+      try{allDlg.close();}catch(_){}
+      if(typeof openSessionEditor==='function'){
+        const chronological=(c.sessions||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+        openSessionEditor(c,item.session,chronological.indexOf(item.session)+1);
+      }
+      return;
+    }
+
+    const editor=ensureEditor();
+    const date=editor.querySelector('#aprDate');
+    const amount=editor.querySelector('#aprAmount');
+    const note=editor.querySelector('#aprNote');
+    date.value=item.pay.date||'';amount.value=num(item.pay.amount)||'';note.value=item.pay.note||'';
+    try{allDlg.close();}catch(_){}
+
+    editor.querySelector('.apr-save').onclick=()=>{
+      const value=num(amount.value);if(value<=0){amount.focus();return;}
+      item.pay.date=date.value||item.pay.date||'';
+      item.pay.amount=value;
+      item.pay.note=note.value.trim();
+      if(typeof save==='function')save();
+      try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
+      try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
+      editor.close();
+      setTimeout(reopenAllPayments,0);
+    };
+
+    editor.showModal();
+  },true);
 })();
