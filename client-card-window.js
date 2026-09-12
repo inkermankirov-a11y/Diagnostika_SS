@@ -8,6 +8,15 @@
     <div class="client-card-window">
       <div class="client-card-window-title">РАБОТА С КЛИЕНТОМ</div>
       <div class="client-card-sheet">
+        <div class="cc-photo-wrap">
+          <button id="ccPhotoFrame" class="cc-photo-frame" type="button" title="Добавить или изменить фото">
+            <img id="ccPhotoPreview" alt="Фото клиента">
+            <span id="ccPhotoPlaceholder">Добавить фото</span>
+          </button>
+          <input id="ccPhotoInput" type="file" accept="image/*" hidden>
+          <div class="cc-photo-help">Нажмите на фото, чтобы добавить или заменить его</div>
+        </div>
+
         <div class="client-card-top-grid">
           <label class="cc-field cc-span-2">ФИО<input id="ccName" type="text"></label>
           <label class="cc-field">Телефон<input id="ccPhone" type="text"></label>
@@ -39,6 +48,11 @@
   document.body.appendChild(dlg);
 
   const q = id => document.getElementById(id);
+  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDidntHelp','ccDesiredOutcome','ccClientNotes'];
+  let draftMode=false;
+  let draft=null;
+  let dirty=false;
+  let photoData='';
 
   function ageFromBirth(value){
     if(!value) return '';
@@ -51,10 +65,21 @@
     return a >= 0 ? String(a) : '';
   }
 
-  function fill(){
-    const c = client();
-    if(!c) return;
-    q('ccName').value = c.name || '';
+  function setPhoto(data){
+    photoData=data||'';
+    const img=q('ccPhotoPreview');
+    const ph=q('ccPhotoPlaceholder');
+    if(photoData){img.src=photoData;img.style.display='block';ph.style.display='none';}
+    else{img.removeAttribute('src');img.style.display='none';ph.style.display='grid';}
+  }
+
+  function sourceClient(){
+    return draftMode ? draft : (typeof client==='function' ? client() : null);
+  }
+
+  function fillFrom(c){
+    c=c||{};
+    q('ccName').value = c.name && c.name!=='Новый клиент' ? c.name : '';
     q('ccPhone').value = c.phone || '';
     q('ccEmail').value = c.email || '';
     q('ccGender').value = c.gender || '';
@@ -71,12 +96,12 @@
     q('ccDidntHelp').value = c.didntHelp || '';
     q('ccDesiredOutcome').value = c.desiredOutcome || '';
     q('ccClientNotes').value = c.clientNotes || c.notes || '';
+    setPhoto(c.photoData||'');
+    dirty=false;
   }
 
-  function saveCard(){
-    const c = client();
-    if(!c) return;
-    c.name = q('ccName').value.trim();
+  function collectInto(c){
+    c.name = q('ccName').value.trim() || 'Новый клиент';
     c.phone = q('ccPhone').value.trim();
     c.email = q('ccEmail').value.trim();
     c.gender = q('ccGender').value;
@@ -93,24 +118,87 @@
     c.didntHelp = q('ccDidntHelp').value;
     c.desiredOutcome = q('ccDesiredOutcome').value;
     c.clientNotes = q('ccClientNotes').value;
-    save();
-    renderClient();
+    c.photoData = photoData || '';
+    return c;
+  }
+
+  function hasAnyDraftData(){
+    if(photoData) return true;
+    return fieldIds.some(id=>String(q(id)?.value||'').trim()!=='');
+  }
+
+  function saveCard(){
+    if(draftMode){
+      if(!draft) return;
+      collectInto(draft);
+      state.clients.push(draft);
+      clientId=draft.id;
+      requestId=null;
+      situationId=null;
+      selected=null;
+      if(typeof save==='function') save();
+      if(typeof renderClient==='function') renderClient();
+      draftMode=false;draft=null;dirty=false;
+      dlg.close();
+      return;
+    }
+    const c = sourceClient();
+    if(!c) return;
+    collectInto(c);
+    if(typeof save==='function') save();
+    if(typeof renderClient==='function') renderClient();
+    dirty=false;
     dlg.close();
   }
 
-  q('ccBirth').addEventListener('input', e => { q('ccAge').value = ageFromBirth(e.target.value); });
-  q('ccCloseBtn').onclick = () => dlg.close();
-  q('ccSaveBtn').onclick = saveCard;
-
-  const btn = document.getElementById('clientCardModeBtn');
-  if(btn){
-    btn.onclick = () => {
-      const c = client();
-      if(!c) return alert('Сначала выбери клиента.');
-      fill();
-      dlg.showModal();
-    };
+  function closeDraftAware(){
+    if(draftMode){
+      if(!hasAnyDraftData()){
+        draftMode=false;draft=null;dirty=false;dlg.close();return;
+      }
+      if(window.confirm('Сохранить клиента?')){saveCard();return;}
+      draftMode=false;draft=null;dirty=false;dlg.close();return;
+    }
+    dlg.close();
   }
 
-  dlg.addEventListener('click', e => { if(e.target === dlg) dlg.close(); });
+  function openExisting(){
+    const c = typeof client==='function' ? client() : null;
+    if(!c) return alert('Сначала выбери клиента.');
+    draftMode=false;draft=null;
+    q('ccSaveBtn').textContent='Сохранить карточку';
+    fillFrom(c);
+    dlg.showModal();
+  }
+
+  function openNew(){
+    draftMode=true;
+    draft=typeof newClient==='function' ? newClient() : {id:(crypto.randomUUID?crypto.randomUUID():Date.now()+''),name:'Новый клиент',city:'',age:'',birth:'',photoData:'',vk:'',telegram:'',max:'',sessions:[],requests:[]};
+    q('ccSaveBtn').textContent='Сохранить клиента';
+    fillFrom(draft);
+    dlg.showModal();
+    setTimeout(()=>q('ccName')?.focus(),0);
+  }
+
+  q('ccBirth').addEventListener('input', e => { q('ccAge').value = ageFromBirth(e.target.value); dirty=true; });
+  fieldIds.forEach(id=>q(id)?.addEventListener('input',()=>{dirty=true;}));
+  q('ccGender')?.addEventListener('change',()=>{dirty=true;});
+  q('ccCloseBtn').onclick = closeDraftAware;
+  q('ccSaveBtn').onclick = saveCard;
+  q('ccPhotoFrame').onclick=()=>q('ccPhotoInput').click();
+  q('ccPhotoInput').onchange=e=>{
+    const f=e.target.files?.[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{setPhoto(r.result);dirty=true;};
+    r.readAsDataURL(f);
+    e.target.value='';
+  };
+
+  const btn = document.getElementById('clientCardModeBtn');
+  if(btn) btn.onclick = openExisting;
+
+  dlg.addEventListener('click', e => { if(e.target === dlg) closeDraftAware(); });
+  dlg.addEventListener('cancel',e=>{e.preventDefault();closeDraftAware();});
+
+  window.DiagnostikaClientCard={openExisting,openNew,isDraft:()=>draftMode};
 })();
