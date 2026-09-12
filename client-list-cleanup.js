@@ -48,4 +48,11 @@
     script.dataset.paymentFullModeUi='1';
     document.body.appendChild(script);
   }
+
+  if(!document.querySelector('script[data-payment-save-normalizer]')){
+    const script=document.createElement('script');
+    script.src='payment-save-normalizer.js?v=20260912-71';
+    script.dataset.paymentSaveNormalizer='1';
+    document.body.appendChild(script);
+  }
 })();
