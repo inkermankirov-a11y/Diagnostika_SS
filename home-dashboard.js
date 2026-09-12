@@ -18,7 +18,7 @@
 
     <main class="hd-main hd-card">
       <div class="hd-main-inner">
-        <div class="hd-hero-icon" aria-hidden="true"><div class="hd-hero-cloud"></div><div class="hd-folder"></div><div class="hd-person"></div></div>
+        <div class="hd-hero-icon" aria-hidden="true"></div>
         <h2 id="hdHeroTitle">Начните работу: выберите клиента слева или создайте нового</h2>
         <div id="hdHeroSub" class="hd-main-sub">Здесь будет отображаться карточка клиента, история работы, результаты диагностики и другие данные.</div>
         <div id="hdHeroActions" class="hd-client-actions"></div>
@@ -57,6 +57,7 @@
   const list=$('#hdClientList');
   const search=$('#hdClientSearch');
   const count=$('#hdClientCount');
+  const heroIcon=$('.hd-hero-icon');
   const heroTitle=$('#hdHeroTitle');
   const heroSub=$('#hdHeroSub');
   const heroActions=$('#hdHeroActions');
@@ -71,8 +72,23 @@
     if(!p.length)return 'К';
     return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase();
   };
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
   const currentClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
+
+  function renderHeroVisual(c){
+    heroIcon.innerHTML='';
+    heroIcon.classList.remove('has-photo');
+    if(c?.photoData){
+      const img=document.createElement('img');
+      img.className='hd-hero-photo';
+      img.src=c.photoData;
+      img.alt=c.name?`Фото ${c.name}`:'Фото клиента';
+      heroIcon.appendChild(img);
+      heroIcon.classList.add('has-photo');
+      return;
+    }
+    heroIcon.innerHTML='<div class="hd-hero-cloud"></div><div class="hd-folder"></div><div class="hd-person"></div>';
+  }
 
   function clientMeta(c){
     const parts=[];
@@ -90,17 +106,30 @@
     refresh();
   }
 
-  function addClient(){
-    const btn=document.getElementById('addClientBtn');
-    if(btn){btn.click();setTimeout(refresh,0);return;}
-    if(typeof newClient==='function'){
-      const c=newClient();state.clients.push(c);clientId=c.id;save();renderClient();refresh();
-    }
-  }
-
   function openCard(){
     const btn=document.getElementById('clientCardModeBtn');
     if(btn) btn.click();
+  }
+
+  function addClient(){
+    const btn=document.getElementById('addClientBtn');
+    if(btn){
+      btn.click();
+      setTimeout(()=>{
+        refresh();
+        openCard();
+      },0);
+      return;
+    }
+    if(typeof newClient==='function'){
+      const c=newClient();
+      state.clients.push(c);
+      clientId=c.id;
+      save();
+      renderClient();
+      refresh();
+      setTimeout(openCard,0);
+    }
   }
 
   function openDiagnosis(){
@@ -137,11 +166,23 @@
     heroActions.innerHTML='';
     summary.innerHTML='';
     summary.hidden=true;
+    renderHeroVisual(c);
+
+    if(!c){
+      heroTitle.textContent='Начните работу: выберите клиента слева или создайте нового';
+      heroSub.textContent='Чтобы создать клиента, используйте кнопку «Новый клиент» слева.';
+      return;
+    }
 
     if(!meaningful){
-      heroTitle.textContent='Начните работу: выберите клиента слева или создайте нового';
-      heroSub.textContent='Здесь будет отображаться карточка клиента, история работы, результаты диагностики и другие данные.';
-      const add=document.createElement('button');add.className='hd-primary';add.type='button';add.textContent=(state?.clients||[]).some(x=>!placeholderName(x.name))?'＋ Новый клиент':'＋ Создать первого клиента';add.onclick=addClient;heroActions.appendChild(add);
+      heroTitle.textContent='Новый клиент';
+      heroSub.textContent='Заполните карточку клиента. После сохранения здесь появятся его данные.';
+      const card=document.createElement('button');
+      card.className='hd-primary';
+      card.type='button';
+      card.textContent='Заполнить карточку клиента';
+      card.onclick=openCard;
+      heroActions.appendChild(card);
       return;
     }
 
@@ -175,7 +216,6 @@
   $('#hdOpenNotes').onclick=()=>document.getElementById('quickNotesBtn')?.click();
   $('#hdPlanBtn').onclick=()=>document.getElementById('quickNotesBtn')?.click();
 
-  // Keep the new dashboard in sync with existing application functions.
   if(typeof renderClient==='function'){
     const prev=renderClient;
     renderClient=function(){const out=prev.apply(this,arguments);setTimeout(refresh,0);return out;};
