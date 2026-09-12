@@ -85,13 +85,13 @@
   if(!document.querySelector('link[data-home-dashboard]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
-    l.href='home-dashboard.css?v=20260912-37';
+    l.href='home-dashboard.css?v=20260912-44';
     l.setAttribute('data-home-dashboard','1');
     document.head.appendChild(l);
   }
   if(!document.querySelector('script[data-home-dashboard]')){
     const s=document.createElement('script');
-    s.src='home-dashboard.js?v=20260912-39';
+    s.src='home-dashboard.js?v=20260912-44';
     s.setAttribute('data-home-dashboard','1');
     s.onload=()=>{
       if(!document.querySelector('script[data-home-dashboard-sessions]')){
