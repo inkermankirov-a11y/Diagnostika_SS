@@ -29,8 +29,18 @@
     return false;
   }
 
+  function activeRequest(c){
+    const requests=Array.isArray(c?.requests)?c.requests:[];
+    if(!requests.length)return null;
+    return requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
+      || requests.find(r=>String(r.id)===String(c?.activeRequestId||''))
+      || requests[requests.length-1]
+      || null;
+  }
+
   function clientHasDebt(c){
-    return (Array.isArray(c?.requests)?c.requests:[]).some(r=>requestHasDebt(c,r));
+    const r=activeRequest(c);
+    return r?requestHasDebt(c,r):false;
   }
 
   function syncFlags(){
@@ -50,8 +60,8 @@
         const more=tools.querySelector('.hd-client-more');
         if(more)tools.insertBefore(flag,more);else tools.appendChild(flag);
       }
-      flag.setAttribute('aria-label','Есть задолженность по оплате');
-      flag.title='Есть задолженность по оплате';
+      flag.setAttribute('aria-label','Есть задолженность по текущему запросу');
+      flag.title='Есть задолженность по текущему запросу';
     });
   }
 
@@ -65,7 +75,7 @@
   const mo=new MutationObserver(queue);
   mo.observe(document.body,{childList:true,subtree:true});
   document.addEventListener('click',e=>{
-    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,#paymentSaveSettings,.payment-remove,.all-payment-save,.all-payment-delete'))setTimeout(syncFlags,0);
+    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete'))setTimeout(syncFlags,0);
   },true);
   document.addEventListener('change',e=>{
     if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
@@ -74,7 +84,6 @@
     if(e.target?.matches?.('dialog.payment-dialog'))setTimeout(syncFlags,0);
   },true);
 
-  setInterval(syncFlags,800);
   setTimeout(syncFlags,0);
   window.DiagnostikaClientPaymentFlags={refresh:syncFlags,hasDebt:clientHasDebt};
 })();
