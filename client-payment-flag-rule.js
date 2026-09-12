@@ -53,7 +53,7 @@
   }
 
   function syncFlags(){
-    if(!window.state||!Array.isArray(state.clients))return;
+    if(typeof state==='undefined'||!Array.isArray(state?.clients))return;
     document.querySelectorAll('.hd-client-more').forEach(btn=>btn.remove());
 
     document.querySelectorAll('.hd-client-row[data-id]').forEach(row=>{
