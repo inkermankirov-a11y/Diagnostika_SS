@@ -65,7 +65,7 @@
   function injectCalculator(){
     const card=document.querySelector('.utility-overlay:not([hidden]) .currency-card');
     if(!card)return false;
-    if(card.querySelector('.currency-calculator-inline'))return true;
+    if(card.querySelector('.currency-calculator-inline,.currency-calculator-direct'))return true;
 
     const t=tr();
     const box=document.createElement('section');
@@ -179,4 +179,11 @@
     mo.observe(btn,{subtree:true,childList:true,characterData:true});
   }
   start();
+
+  if(!document.querySelector('script[data-currency-calculator-direct]')){
+    const s=document.createElement('script');
+    s.src='currency-calculator-direct.js?v=20260913-90';
+    s.setAttribute('data-currency-calculator-direct','1');
+    document.body.appendChild(s);
+  }
 })();
