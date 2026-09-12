@@ -89,6 +89,7 @@
     try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
     try{window.DiagnostikaAllPayments?.render?.();}catch(_){}
     try{window.DiagnostikaCompletePaymentHistory?.refresh?.();}catch(_){}
+    try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(_){}
   }
 
   function install(dlg){
@@ -101,7 +102,6 @@
       const old=dlg.querySelector('.session-editor-payment-state');
       if(!old)return;
 
-      // Убираем старый класс намеренно: старые делегированные обработчики больше не видят эту кнопку.
       btn=old.cloneNode(true);
       btn.classList.remove('session-editor-payment-state');
       btn.classList.add('session-payment-toggle-stable');
@@ -122,6 +122,9 @@
         const amount=amountFor(dlg,sessionNow,requestNow);
 
         sp.paid=next;
+        dlg.dataset.saveGuardPaymentDraft=next?'1':'0';
+        dlg.dataset.saveGuardSessionDirty='1';
+
         if(amount>0)sp.amount=amount;
         if(requestNow?.id){
           sessionNow.requestId=requestNow.id;
@@ -149,7 +152,6 @@
         paint(btn,sessionNow,dlg,requestNow);
         refreshOutside();
 
-        // Повторная окраска только из сохранённого объекта, без инверсии состояния.
         setTimeout(()=>paint(btn,sessionNow,dlg,requestNow),50);
         setTimeout(()=>paint(btn,sessionNow,dlg,requestNow),300);
       },true);
@@ -157,6 +159,9 @@
 
     const legacy=dlg.querySelector('.session-payment-field');
     if(legacy)legacy.style.display='none';
+
+    const paid=paymentOf(s).paid===true;
+    dlg.dataset.saveGuardPaymentDraft=paid?'1':'0';
     paint(btn,s,dlg,requestForSession(c,s,dlg));
   }
 
