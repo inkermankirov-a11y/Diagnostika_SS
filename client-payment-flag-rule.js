@@ -19,66 +19,41 @@
   `;
   document.head.appendChild(style);
 
-  function requestHasDebt(c,r){
+  function fullRequestHasDebt(r){
     const p=r?.payment||{};
-    const mode=p.mode||'';
-    if(!mode)return false;
+    if(p.mode!=='full')return false;
+    const total=Math.max(0,num(p.total));
+    if(total<=0)return false;
+    const paid=(Array.isArray(p.payments)?p.payments:[]).reduce((sum,x)=>sum+Math.max(0,num(x?.amount)),0);
+    return paid+0.000001<total;
+  }
 
-    if(mode==='session'){
-      const sessions=Array.isArray(c?.sessions)?c.sessions:[];
-      const requests=Array.isArray(c?.requests)?c.requests:[];
-      const sessionModeRequests=requests.filter(x=>x?.payment?.mode==='session');
-      return sessions.some(s=>{
-        const linkedId=s?.payment?.requestId||s?.requestId||'';
-        const belongs=String(linkedId)===String(r.id)||(!linkedId&&sessionModeRequests.length===1&&String(sessionModeRequests[0]?.id)===String(r.id));
-        return belongs&&s?.payment?.paid!==true;
-      });
-    }
-
-    if(mode==='full'||mode==='parts'){
-      const total=Math.max(0,num(p.total));
-      if(total<=0)return false;
-      const paid=(Array.isArray(p.payments)?p.payments:[]).reduce((sum,x)=>sum+Math.max(0,num(x?.amount)),0);
-      return paid+0.000001<total;
-    }
-
-    return false;
+  function clientHasDebt(c){
+    const requests=Array.isArray(c?.requests)?c.requests:[];
+    return requests.some(fullRequestHasDebt);
   }
 
   function activeRequest(c){
     const requests=Array.isArray(c?.requests)?c.requests:[];
     if(!requests.length)return null;
-
-    const selectedClient=(typeof clientId!=='undefined')&&String(c?.id)===String(clientId);
-    if(selectedClient){
-      try{
-        const fromModule=window.DiagnostikaRequests?.current?.(c);
-        if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
-      }catch(_){}
-      try{
-        if(typeof requestId!=='undefined'&&requestId){
-          const byGlobal=requests.find(r=>String(r.id)===String(requestId));
-          if(byGlobal)return byGlobal;
-        }
-      }catch(_){}
-    }
-
+    try{
+      const fromModule=window.DiagnostikaRequests?.current?.(c);
+      if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
+    }catch(_){}
+    try{
+      if(typeof requestId!=='undefined'&&requestId){
+        const byGlobal=requests.find(r=>String(r.id)===String(requestId));
+        if(byGlobal)return byGlobal;
+      }
+    }catch(_){}
     return requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
-      || requests.find(r=>String(r.id)===String(c?.activeRequestId||''))
-      || requests[requests.length-1]
-      || null;
-  }
-
-  function clientHasDebt(c){
-    const r=activeRequest(c);
-    return r?requestHasDebt(c,r):false;
+      ||requests.find(r=>String(r.id)===String(c?.activeRequestId||''))
+      ||requests[requests.length-1]
+      ||null;
   }
 
   function syncFlags(){
     if(!window.state||!Array.isArray(state.clients))return;
-
-    // Старый dashboard сам создавал кнопку «⋮» и флаг по устаревшей логике.
-    // Здесь удаляем их при каждом рендере и затем рисуем флаг только по актуальной оплате.
     document.querySelectorAll('.hd-client-more').forEach(btn=>btn.remove());
 
     document.querySelectorAll('.hd-client-row[data-id]').forEach(row=>{
@@ -93,8 +68,8 @@
       const flag=document.createElement('span');
       flag.className='hd-unpaid-flag';
       flag.textContent='⚑';
-      flag.setAttribute('aria-label','Есть задолженность по текущему запросу');
-      flag.title='Есть задолженность по текущему запросу';
+      flag.setAttribute('aria-label','Не оплачена полная стоимость работы');
+      flag.title='Не оплачена полная стоимость работы';
       tools.appendChild(flag);
     });
   }
@@ -109,7 +84,10 @@
   const mo=new MutationObserver(queue);
   mo.observe(document.body,{childList:true,subtree:true});
   document.addEventListener('click',e=>{
-    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete,.hd-client-row'))setTimeout(syncFlags,0);
+    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete,.hd-client-row,#paymentSaveSettings'))setTimeout(syncFlags,0);
+  },true);
+  document.addEventListener('input',e=>{
+    if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
   },true);
   document.addEventListener('change',e=>{
     if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
