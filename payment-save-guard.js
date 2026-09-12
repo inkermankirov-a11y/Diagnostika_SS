@@ -1,10 +1,9 @@
 'use strict';
 
 (() => {
+  const clone=v=>{try{return JSON.parse(JSON.stringify(v??null));}catch(_){return null;}};
   const todayLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
   const currentClient=()=>typeof client==='function'?client():null;
-  const escJson=v=>{try{return JSON.stringify(v??null);}catch(_){return 'null';}};
-  const clone=v=>{try{return JSON.parse(JSON.stringify(v??null));}catch(_){return null;}};
 
   function requestFromPaymentDialog(dlg,c=currentClient()){
     if(!c)return null;
@@ -35,37 +34,28 @@
   }
 
   function ensureSessionSnapshot(dlg){
-    if(!dlg||dlg.dataset.guardSessionReady==='1')return;
-    const c=currentClient(),s=sessionFromDialog(dlg,c);
-    if(!c||!s)return;
-    const grid=dlg.querySelector('.session-edit-grid');
-    const date=grid?.querySelector('input[type="date"]');
-    const req=grid?.querySelector('select');
-    const notes=dlg.querySelector('.session-edit-text');
-    dlg.dataset.guardSessionReady='1';
-    dlg.dataset.guardSessionDirty='0';
-    dlg.dataset.guardPaymentDraft=(s.payment?.paid?'1':'0');
-    dlg.__guardSessionSnapshot={
-      date:date?.value||s.date||'',
-      requestId:req?.value||s.requestId||'',
-      notes:notes?.value||s.notes||'',
-      payment:clone(s.payment||null)
-    };
+    if(!dlg||dlg.__saveGuardSessionSnapshot)return;
+    const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
+    dlg.__saveGuardSessionSnapshot={payment:clone(s.payment||null)};
+    dlg.dataset.saveGuardPaymentDraft=s.payment?.paid?'1':'0';
+    dlg.dataset.saveGuardSessionDirty='0';
   }
 
-  function sessionDirty(dlg){return dlg?.dataset.guardSessionDirty==='1';}
-  function markSessionDirty(dlg){ensureSessionSnapshot(dlg);if(dlg)dlg.dataset.guardSessionDirty='1';}
+  function markSessionDirty(dlg){
+    ensureSessionSnapshot(dlg);
+    if(dlg)dlg.dataset.saveGuardSessionDirty='1';
+  }
 
-  function paintSessionPaymentButton(dlg){
-    const btn=dlg?.querySelector('.session-editor-payment-state');
-    if(!btn)return;
+  function paintSessionPayment(dlg){
+    const btn=dlg?.querySelector('.session-editor-payment-state');if(!btn)return;
     ensureSessionSnapshot(dlg);
     const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
     const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
     const req=c.requests?.find(r=>r.id===reqId)||null;
     const amount=effectiveSessionPrice(req)||(Number(s.payment?.amount)||0);
-    const paid=dlg.dataset.guardPaymentDraft==='1';
-    btn.classList.toggle('paid',paid);btn.classList.toggle('unpaid',!paid);
+    const paid=dlg.dataset.saveGuardPaymentDraft==='1';
+    btn.classList.toggle('paid',paid);
+    btn.classList.toggle('unpaid',!paid);
     btn.textContent=paid?'✓ Оплачено':'Не оплачено';
     btn.title=paid?`Оплачено ${amount||0} ₽`:`Не оплачено${amount?` · ${amount} ₽`:''}`;
   }
@@ -76,7 +66,7 @@
     const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
     const req=c.requests?.find(r=>r.id===reqId)||null;
     const amount=effectiveSessionPrice(req)||(Number(s.payment?.amount)||0);
-    const paid=dlg.dataset.guardPaymentDraft==='1';
+    const paid=dlg.dataset.saveGuardPaymentDraft==='1';
     if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
     s.payment.paid=paid;
     s.payment.amount=amount;
@@ -93,136 +83,144 @@
       delete s.payment.paidAt;delete s.payment.sessionDate;delete s.payment.priceSnapshot;delete s.payment.baseAmount;delete s.payment.discountSnapshot;
     }
     if(typeof save==='function')save();
-    dlg.dataset.guardSessionDirty='0';
-    dlg.__guardSessionSnapshot={
-      date:dlg.querySelector('.session-edit-grid input[type="date"]')?.value||s.date||'',
-      requestId:reqId,
-      notes:dlg.querySelector('.session-edit-text')?.value||s.notes||'',
-      payment:clone(s.payment)
-    };
+    dlg.dataset.saveGuardSessionDirty='0';
+    dlg.__saveGuardSessionSnapshot={payment:clone(s.payment)};
   }
 
-  function discardSessionPayment(dlg){
-    const snap=dlg?.__guardSessionSnapshot,c=currentClient(),s=sessionFromDialog(dlg,c);
-    if(!snap||!s)return;
-    s.payment=clone(snap.payment);
+  function discardSessionDraft(dlg){
+    const c=currentClient(),s=sessionFromDialog(dlg,c),snap=dlg?.__saveGuardSessionSnapshot;
+    if(!s||!snap)return;
+    if(snap.payment===null)delete s.payment;else s.payment=clone(snap.payment);
+    if(typeof save==='function')save();
   }
 
   function ensurePaymentSnapshot(dlg){
-    if(!dlg||dlg.__guardPaymentSnapshot)return;
+    if(!dlg||dlg.__saveGuardPaymentSnapshotSet)return;
     const c=currentClient(),r=requestFromPaymentDialog(dlg,c);if(!r)return;
-    dlg.__guardPaymentRequestId=r.id;
-    dlg.__guardPaymentSnapshot=clone(r.payment||null);
-    dlg.dataset.guardPaymentDirty='0';
+    dlg.__saveGuardPaymentSnapshotSet=true;
+    dlg.__saveGuardPaymentRequestId=r.id;
+    dlg.__saveGuardPaymentSnapshot=clone(r.payment||null);
+    dlg.dataset.saveGuardPaymentDirty='0';
   }
-  function markPaymentDirty(dlg){ensurePaymentSnapshot(dlg);if(dlg)dlg.dataset.guardPaymentDirty='1';}
+
+  function markPaymentDirty(dlg){
+    ensurePaymentSnapshot(dlg);
+    if(dlg)dlg.dataset.saveGuardPaymentDirty='1';
+  }
+
   function commitPaymentSnapshot(dlg){
     const c=currentClient(),r=requestFromPaymentDialog(dlg,c);if(!r)return;
-    dlg.__guardPaymentRequestId=r.id;
-    dlg.__guardPaymentSnapshot=clone(r.payment||null);
-    dlg.dataset.guardPaymentDirty='0';
+    dlg.__saveGuardPaymentSnapshotSet=true;
+    dlg.__saveGuardPaymentRequestId=r.id;
+    dlg.__saveGuardPaymentSnapshot=clone(r.payment||null);
+    dlg.dataset.saveGuardPaymentDirty='0';
   }
+
   function restorePaymentSnapshot(dlg){
-    const c=currentClient();if(!c||!dlg?.__guardPaymentRequestId)return;
-    const r=c.requests?.find(x=>x.id===dlg.__guardPaymentRequestId);if(!r)return;
-    const snap=clone(dlg.__guardPaymentSnapshot);
+    const c=currentClient();if(!c||!dlg?.__saveGuardPaymentRequestId)return;
+    const r=c.requests?.find(x=>x.id===dlg.__saveGuardPaymentRequestId);if(!r)return;
+    const snap=clone(dlg.__saveGuardPaymentSnapshot);
     if(snap===null)delete r.payment;else r.payment=snap;
     if(typeof save==='function')save();
     try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
     try{window.DiagnostikaSessionPayments?.refresh?.();}catch(_){}
   }
 
-  // ВАЖНО: этот обработчик загружается ДО session-payment-editor.js,
-  // поэтому перехватывает старое мгновенное сохранение кнопки «Оплачено».
-  document.addEventListener('click',e=>{
-    const payState=e.target?.closest?.('.session-editor-payment-state');
-    if(payState){
-      const dlg=payState.closest('dialog.session-edit-dialog');if(!dlg)return;
-      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-      ensureSessionSnapshot(dlg);
-      dlg.dataset.guardPaymentDraft=dlg.dataset.guardPaymentDraft==='1'?'0':'1';
-      markSessionDirty(dlg);
-      paintSessionPaymentButton(dlg);
-      return;
-    }
-
-    const sessionSave=e.target?.closest?.('dialog.session-edit-dialog .session-edit-actions .primary');
-    if(sessionSave){
-      const dlg=sessionSave.closest('dialog.session-edit-dialog');
-      if(dlg){commitSessionPayment(dlg);setTimeout(()=>{try{window.DiagnostikaPayments?.refresh?.();}catch(_){}},0);}
-      return;
-    }
-
-    const paymentSave=e.target?.closest?.('#paymentSaveSettings');
-    if(paymentSave){const dlg=paymentSave.closest('dialog.payment-dialog');if(dlg)setTimeout(()=>commitPaymentSnapshot(dlg),0);return;}
-
-    const paymentMutation=e.target?.closest?.('#paymentAddBtn,.payment-remove');
-    if(paymentMutation){const dlg=paymentMutation.closest('dialog.payment-dialog');if(dlg)markPaymentDirty(dlg);}
-  },true);
-
-  document.addEventListener('input',e=>{
-    const sdlg=e.target?.closest?.('dialog.session-edit-dialog');
-    if(sdlg){markSessionDirty(sdlg);return;}
-    const pdlg=e.target?.closest?.('dialog.payment-dialog');
-    if(pdlg)markPaymentDirty(pdlg);
-  },true);
-  document.addEventListener('change',e=>{
-    const sdlg=e.target?.closest?.('dialog.session-edit-dialog');
-    if(sdlg){markSessionDirty(sdlg);return;}
-    const pdlg=e.target?.closest?.('dialog.payment-dialog');
-    if(pdlg)markPaymentDirty(pdlg);
-  },true);
-
   async function askSave(text){
     if(window.AppDialog?.confirm)return window.AppDialog.confirm(text,'Несохранённые изменения','Сохранить','Не сохранять');
     return window.confirm(text);
   }
 
-  function bindDialog(dlg){
-    if(!(dlg instanceof HTMLDialogElement)||dlg.dataset.guardBound==='1')return;
-    dlg.dataset.guardBound='1';
+  // Capture on WINDOW: this runs before legacy document/dialog handlers.
+  window.addEventListener('click',async e=>{
+    const target=e.target;
 
-    if(dlg.classList.contains('session-edit-dialog')){
-      setTimeout(()=>{ensureSessionSnapshot(dlg);paintSessionPaymentButton(dlg);},0);
-      dlg.addEventListener('click',async e=>{
-        if(e.target!==dlg||!dlg.open||!sessionDirty(dlg))return;
-        e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-        const yes=await askSave('Сохранить изменения сессии?');
-        if(yes){
-          const btn=dlg.querySelector('.session-edit-actions .primary');
-          if(btn){btn.click();return;}
-          commitSessionPayment(dlg);
-        }else discardSessionPayment(dlg);
-        try{dlg.close();}catch(_){}
-      },true);
+    const payState=target?.closest?.('.session-editor-payment-state');
+    if(payState){
+      const dlg=payState.closest('dialog.session-edit-dialog');if(!dlg)return;
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      ensureSessionSnapshot(dlg);
+      dlg.dataset.saveGuardPaymentDraft=dlg.dataset.saveGuardPaymentDraft==='1'?'0':'1';
+      markSessionDirty(dlg);
+      paintSessionPayment(dlg);
       return;
     }
 
-    if(dlg.classList.contains('payment-dialog')){
-      dlg.addEventListener('click',async e=>{
-        if(e.target!==dlg||!dlg.open)return;
-        if(dlg.dataset.guardPaymentDirty!=='1')return;
-        e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-        const yes=await askSave('Сохранить изменения оплаты?');
-        if(yes){
-          const btn=dlg.querySelector('#paymentSaveSettings');
-          if(btn)btn.click();
-          commitPaymentSnapshot(dlg);
-        }else restorePaymentSnapshot(dlg);
-        try{dlg.close();}catch(_){}
-      },true);
-      setTimeout(()=>ensurePaymentSnapshot(dlg),0);
+    const sessionSave=target?.closest?.('dialog.session-edit-dialog .session-edit-actions .primary');
+    if(sessionSave){
+      const dlg=sessionSave.closest('dialog.session-edit-dialog');
+      if(dlg)commitSessionPayment(dlg);
+      return;
     }
+
+    const sdlg=target instanceof HTMLDialogElement&&target.classList.contains('session-edit-dialog')?target:null;
+    if(sdlg&&sdlg.open&&sdlg.dataset.saveGuardSessionDirty==='1'){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      const yes=await askSave('Сохранить изменения сессии?');
+      if(yes){
+        const btn=sdlg.querySelector('.session-edit-actions .primary');
+        if(btn){btn.click();return;}
+        commitSessionPayment(sdlg);
+      }else{
+        discardSessionDraft(sdlg);
+        try{sdlg.close();}catch(_){}
+      }
+      return;
+    }
+
+    const pdlg=target instanceof HTMLDialogElement&&target.classList.contains('payment-dialog')?target:null;
+    if(pdlg&&pdlg.open&&pdlg.dataset.saveGuardPaymentDirty==='1'){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      const yes=await askSave('Сохранить изменения оплаты?');
+      if(yes){
+        const btn=pdlg.querySelector('#paymentSaveSettings');
+        if(btn)btn.click();
+        commitPaymentSnapshot(pdlg);
+      }else restorePaymentSnapshot(pdlg);
+      try{pdlg.close();}catch(_){}
+      return;
+    }
+
+    const paymentSave=target?.closest?.('#paymentSaveSettings');
+    if(paymentSave){
+      const dlg=paymentSave.closest('dialog.payment-dialog');
+      if(dlg)setTimeout(()=>commitPaymentSnapshot(dlg),0);
+      return;
+    }
+
+    const paymentMutation=target?.closest?.('#paymentAddBtn,.payment-remove');
+    if(paymentMutation){
+      const dlg=paymentMutation.closest('dialog.payment-dialog');
+      if(dlg)markPaymentDirty(dlg);
+    }
+  },true);
+
+  // Capture input/change at WINDOW so the snapshot is taken before legacy auto-save code mutates state.
+  window.addEventListener('input',e=>{
+    const sdlg=e.target?.closest?.('dialog.session-edit-dialog');
+    if(sdlg){markSessionDirty(sdlg);return;}
+    const pdlg=e.target?.closest?.('dialog.payment-dialog');
+    if(pdlg)markPaymentDirty(pdlg);
+  },true);
+
+  window.addEventListener('change',e=>{
+    const sdlg=e.target?.closest?.('dialog.session-edit-dialog');
+    if(sdlg){markSessionDirty(sdlg);return;}
+    const pdlg=e.target?.closest?.('dialog.payment-dialog');
+    if(pdlg)markPaymentDirty(pdlg);
+  },true);
+
+  function refresh(){
+    document.querySelectorAll('dialog.session-edit-dialog').forEach(dlg=>{
+      ensureSessionSnapshot(dlg);
+      paintSessionPayment(dlg);
+    });
+    document.querySelectorAll('dialog.payment-dialog').forEach(dlg=>{
+      if(dlg.open)ensurePaymentSnapshot(dlg);
+    });
   }
 
-  document.querySelectorAll('dialog').forEach(bindDialog);
-  const observer=new MutationObserver(muts=>{
-    for(const m of muts)for(const node of m.addedNodes){
-      if(!(node instanceof Element))continue;
-      if(node.matches?.('dialog'))bindDialog(node);
-      node.querySelectorAll?.('dialog').forEach(bindDialog);
-    }
-    document.querySelectorAll('dialog.session-edit-dialog').forEach(d=>{ensureSessionSnapshot(d);paintSessionPaymentButton(d);});
-  });
+  const observer=new MutationObserver(()=>setTimeout(refresh,0));
   observer.observe(document.body,{childList:true,subtree:true});
+  setTimeout(refresh,0);
 })();
