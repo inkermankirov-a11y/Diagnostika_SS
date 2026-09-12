@@ -4,10 +4,6 @@ function deleteCurrentClient() {
   const c = client();
   if (!c) return;
 
-  const name = c.name || 'Без имени';
-  if (!confirm(`Удалить клиента «${name}»?\n\nОн будет перемещён в «Удалённые клиенты».`)) return;
-  if (!confirm(`Подтвердите удаление клиента «${name}».\n\nЕго можно будет восстановить из раздела «Удалённые клиенты».`)) return;
-
   if (!Array.isArray(state.deletedClients)) state.deletedClients = [];
   if (!Array.isArray(state.deletedClientTombstones)) state.deletedClientTombstones = [];
 
