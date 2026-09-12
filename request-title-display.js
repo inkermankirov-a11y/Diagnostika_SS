@@ -82,6 +82,13 @@
 
 // Main home screen redesign. Loaded last so it can reuse the existing application logic safely.
 (() => {
+  if(!document.querySelector('link[data-brand-icon]')){
+    const icon=document.createElement('link');
+    icon.rel='stylesheet';
+    icon.href='brand-icon.css?v=20260912-46';
+    icon.setAttribute('data-brand-icon','1');
+    document.head.appendChild(icon);
+  }
   if(!document.querySelector('link[data-home-dashboard]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
