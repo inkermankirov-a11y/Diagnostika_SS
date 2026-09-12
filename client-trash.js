@@ -56,7 +56,9 @@
       info.querySelector('.trash-name').textContent=c.name||'Без имени';
       info.querySelector('.trash-meta').textContent=`${c.city||'Город не указан'} · ${formatDeletedAt(c.deletedAt)}`;
       const actions=document.createElement('div');actions.className='trash-actions';
-      const restore=document.createElement('button');restore.type='button';restore.className='tk-btn trash-restore';restore.textContent='Восстановить';
+
+      const restore=document.createElement('button');
+      restore.type='button';restore.className='tk-btn trash-restore';restore.textContent='Восстановить';
       restore.onclick=()=>{
         state.deletedClients=state.deletedClients.filter(x=>x.id!==c.id);
         state.deletedClientTombstones=state.deletedClientTombstones.filter(id=>id!==c.id);
@@ -66,41 +68,35 @@
         if(typeof window.renderClientDatabaseTable==='function') window.renderClientDatabaseTable();
         renderTrash();
       };
-      const forever=document.createElement('button');forever.type='button';forever.className='tk-btn trash-delete';forever.textContent='Удалить навсегда';
+
+      const forever=document.createElement('button');
+      forever.type='button';forever.className='tk-btn trash-delete';forever.textContent='Удалить навсегда';
       forever.onclick=()=>{
         state.deletedClients=state.deletedClients.filter(x=>x.id!==c.id);
         if(!state.deletedClientTombstones.includes(c.id)) state.deletedClientTombstones.push(c.id);
-        save();renderTrash();
+        save();
+        renderTrash();
       };
+
       actions.append(restore,forever);row.append(info,actions);root.appendChild(row);
     });
   }
 
-  window.openDeletedClients=function(){renderTrash();if(!dlg.open)dlg.showModal();};
-
-  window.deleteCurrentClient=function(){
-    const c=client();if(!c)return;
-    ensureState();
-    const index=state.clients.findIndex(x=>x.id===c.id);if(index<0)return;
-    const archived=clone(c);archived.deletedAt=new Date().toISOString();
-    state.deletedClients=state.deletedClients.filter(x=>x.id!==c.id);
-    state.deletedClients.push(archived);
-    state.deletedClientTombstones=state.deletedClientTombstones.filter(id=>id!==c.id);
-    state.clients.splice(index,1);
-    if(!state.clients.length){const replacement=newClient();state.clients.push(replacement);clientId=replacement.id;}
-    else{clientId=state.clients[Math.min(index,state.clients.length-1)].id;}
-    requestId=null;situationId=null;selected=null;mode='card';
-    save();renderClient();
+  window.openDeletedClients=function(){
+    renderTrash();
+    if(!dlg.open) dlg.showModal();
   };
 
   function installButton(){
     const actions=document.querySelector('#clientDialog .dialog-actions');
     if(!actions||actions.querySelector('#deletedClientsBtn'))return;
-    const btn=document.createElement('button');btn.type='button';btn.id='deletedClientsBtn';btn.className='db-trash-btn';btn.textContent='Удалённые клиенты';
+    const btn=document.createElement('button');
+    btn.type='button';btn.id='deletedClientsBtn';btn.className='db-trash-btn';btn.textContent='Удалённые клиенты';
     const close=actions.querySelector('[value="cancel"]');
-    if(close)actions.insertBefore(btn,close);else actions.appendChild(btn);
+    if(close) actions.insertBefore(btn,close); else actions.appendChild(btn);
     btn.onclick=()=>window.openDeletedClients();
   }
+
   installButton();
   new MutationObserver(installButton).observe(document.body,{childList:true,subtree:true});
 })();
