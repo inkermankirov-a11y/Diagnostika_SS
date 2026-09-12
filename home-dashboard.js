@@ -90,6 +90,10 @@
     }).length;
   }
 
+  function isNewClient(c){
+    return !!c && (!Array.isArray(c.sessions) || c.sessions.length===0);
+  }
+
   function renderHeroVisual(c){
     heroIcon.innerHTML='';
     heroIcon.classList.remove('has-photo');
@@ -159,7 +163,8 @@
       const avatar=c.photoData?`<div class="hd-avatar"><img src="${esc(c.photoData)}" alt=""></div>`:`<div class="hd-avatar">${esc(initials(c.name))}</div>`;
       const unpaid=unpaidSessionCount(c);
       const flag=unpaid?`<span class="hd-unpaid-flag" aria-label="Есть неоплаченные сессии" title="Есть неоплаченные сессии">⚑</span>`:'';
-      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools">${flag}<button class="hd-client-more" type="button" title="База клиентов">⋮</button></div>`;
+      const newClientDot=isNewClient(c)?`<span class="hd-new-client-dot" aria-label="Новый клиент" title="Новый клиент"></span>`:'';
+      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools">${newClientDot}${flag}<button class="hd-client-more" type="button" title="База клиентов">⋮</button></div>`;
       row.onclick=e=>{if(e.target.closest('.hd-client-more'))return;selectClient(c.id);};
       row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();selectClient(c.id);document.getElementById('clientBaseBtn')?.click();};
       list.appendChild(row);
