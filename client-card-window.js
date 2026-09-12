@@ -29,6 +29,10 @@
           <label class="cc-field cc-social-field"><span>VK</span><input id="ccVk" type="text"></label>
           <label class="cc-field cc-social-field"><span>Telegram</span><input id="ccTelegram" type="text"></label>
           <label class="cc-field cc-social-field"><span>MAX</span><input id="ccMax" type="text"></label>
+          <div class="cc-top-actions">
+            <button id="ccFreeConsultBtn" type="button" class="cc-top-action-btn cc-free-consult-btn">Бесплатная консультация</button>
+            <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
+          </div>
         </div>
 
         <div class="cc-long-fields">
@@ -41,7 +45,6 @@
         </div>
       </div>
       <div class="client-card-footer">
-        <button id="ccFreeConsultBtn" type="button" class="cc-free-consult-btn">Бесплатная консультация</button>
         <div class="cc-footer-spacer"></div>
         <button id="ccCloseBtn" type="button" class="cc-close-btn">Закрыть</button>
         <button id="ccSaveBtn" type="button" class="cc-save-btn">Сохранить карточку</button>
