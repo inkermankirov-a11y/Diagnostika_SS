@@ -37,7 +37,7 @@
 
   function evaluate(raw){
     let s=String(raw||'').replace(/,/g,'.').replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/\s+/g,'');
-    if(!s||!^[0-9+\-*/().%]+$/.test(s))throw Error('bad');
+    if(!s||!new RegExp('^[0-9+\\-*/().%]+$').test(s))throw Error('bad');
     s=s.replace(/(\d+(?:\.\d+)?)%/g,'($1/100)');
     const v=Function('"use strict";return ('+s+')')();
     if(typeof v!=='number'||!Number.isFinite(v))throw Error('bad');
