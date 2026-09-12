@@ -93,6 +93,19 @@
     const s=document.createElement('script');
     s.src='home-dashboard.js?v=20260912-34';
     s.setAttribute('data-home-dashboard','1');
+    s.onload=()=>{
+      if(!document.querySelector('script[data-home-dashboard-sessions]')){
+        const x=document.createElement('script');
+        x.src='home-dashboard-sessions.js?v=20260912-36';
+        x.setAttribute('data-home-dashboard-sessions','1');
+        document.body.appendChild(x);
+      }
+    };
     document.body.appendChild(s);
+  }else if(!document.querySelector('script[data-home-dashboard-sessions]')){
+    const x=document.createElement('script');
+    x.src='home-dashboard-sessions.js?v=20260912-36';
+    x.setAttribute('data-home-dashboard-sessions','1');
+    document.body.appendChild(x);
   }
 })();
