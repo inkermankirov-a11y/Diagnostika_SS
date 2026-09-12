@@ -55,4 +55,11 @@
     script.dataset.paymentSaveNormalizer='1';
     document.body.appendChild(script);
   }
+
+  if(!document.querySelector('script[data-all-payments-complete]')){
+    const script=document.createElement('script');
+    script.src='all-payments-complete.js?v=20260912-74';
+    script.dataset.allPaymentsComplete='1';
+    document.body.appendChild(script);
+  }
 })();
