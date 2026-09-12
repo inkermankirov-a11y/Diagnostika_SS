@@ -3,8 +3,6 @@
 (() => {
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
 
-  // Финальная локальная правка строки истории платежей: общие стили кнопки удаления
-  // больше не могут вытолкнуть её на отдельную строку.
   const style=document.createElement('style');
   style.textContent=`
     .payment-dialog .payment-row{grid-template-columns:100px 110px minmax(130px,1fr) minmax(130px,1fr) 155px!important;align-items:center!important;overflow:visible!important}
@@ -31,7 +29,7 @@
       const sessionModeRequests=requests.filter(x=>x?.payment?.mode==='session');
       return sessions.some(s=>{
         const linkedId=s?.payment?.requestId||s?.requestId||'';
-        const belongs=linkedId===r.id||(!linkedId&&sessionModeRequests.length===1&&sessionModeRequests[0]?.id===r.id);
+        const belongs=String(linkedId)===String(r.id)||(!linkedId&&sessionModeRequests.length===1&&String(sessionModeRequests[0]?.id)===String(r.id));
         return belongs&&s?.payment?.paid!==true;
       });
     }
@@ -49,6 +47,24 @@
   function activeRequest(c){
     const requests=Array.isArray(c?.requests)?c.requests:[];
     if(!requests.length)return null;
+
+    // Для выбранного клиента используем РОВНО тот же источник текущего запроса,
+    // что и окно оплаты. Это исключает ситуацию: окно показывает запрос №5,
+    // а красный флаг проверяет другой запрос.
+    const selectedClient=(typeof clientId!=='undefined')&&String(c?.id)===String(clientId);
+    if(selectedClient){
+      try{
+        const fromModule=window.DiagnostikaRequests?.current?.(c);
+        if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
+      }catch(_){}
+      try{
+        if(typeof requestId!=='undefined'&&requestId){
+          const byGlobal=requests.find(r=>String(r.id)===String(requestId));
+          if(byGlobal)return byGlobal;
+        }
+      }catch(_){}
+    }
+
     return requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
       || requests.find(r=>String(r.id)===String(c?.activeRequestId||''))
       || requests[requests.length-1]
@@ -102,5 +118,5 @@
   },true);
 
   setTimeout(syncFlags,0);
-  window.DiagnostikaClientPaymentFlags={refresh:syncFlags,hasDebt:clientHasDebt};
+  window.DiagnostikaClientPaymentFlags={refresh:syncFlags,hasDebt:clientHasDebt,activeRequest};
 })();
