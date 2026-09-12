@@ -30,21 +30,26 @@
       if(/[₽$€₸]/.test(text))node.nodeValue=text.replace(/[₽$€₸]/g,symbol);
     });
   }
+  let scheduled=false;
   function enforce(){
+    scheduled=false;
     const c=currentClient();
     if(!c)return;
     document.querySelectorAll('.payment-dialog:not(.all-client-payments-dialog)').forEach(dlg=>{
-      const r=requestFromDialog(c,dlg);
-      if(!r)return;
+      if(!dlg.open)return;
+      const r=requestFromDialog(c,dlg);if(!r)return;
       const sym=symbolForDialog(c,r,dlg);
-      // Текущий диалог запроса: ВСЕ суммы обязаны использовать валюту этого запроса.
       replaceMoneySymbols(dlg.querySelector('#paymentSummary'),sym);
       replaceMoneySymbols(dlg.querySelector('#paymentHistoryWrap'),sym);
       replaceMoneySymbols(dlg.querySelector('#sessionPaymentLedger'),sym);
       replaceMoneySymbols(dlg.querySelector('#sessionFinalPrice'),sym);
-      // На случай старых/добавочных элементов оплаты.
       dlg.querySelectorAll('.payment-row strong,.payment-summary-card,.session-final-price').forEach(el=>replaceMoneySymbols(el,sym));
     });
+  }
+  function schedule(){
+    if(scheduled)return;
+    scheduled=true;
+    requestAnimationFrame(enforce);
   }
 
   document.addEventListener('change',e=>{
@@ -56,17 +61,16 @@
         p.currency=code;p.currencyManual=true;
         if(typeof save==='function')save();
       }
-      setTimeout(enforce,0);setTimeout(enforce,50);
+      schedule();
     }
   },true);
   document.addEventListener('click',e=>{
-    if(e.target?.closest?.('#paymentAddBtn,#paymentSaveSettings,#allClientPaymentsBtn'))setTimeout(enforce,0);
+    if(e.target?.closest?.('#paymentAddBtn,#paymentSaveSettings,#allClientPaymentsBtn,.payment-remove,.all-payment-edit'))setTimeout(schedule,0);
   },true);
-  const mo=new MutationObserver(()=>setTimeout(enforce,0));
-  mo.observe(document.body,{childList:true,subtree:true,characterData:true});
-  setInterval(()=>{
-    if(document.querySelector('.payment-dialog[open]'))enforce();
-  },300);
-  setTimeout(enforce,0);
-  window.DiagnostikaCurrencyHardRule={refresh:enforce};
+  const mo=new MutationObserver(mutations=>{
+    if(mutations.some(m=>m.type==='childList'&&(m.addedNodes.length||m.removedNodes.length)))schedule();
+  });
+  mo.observe(document.body,{childList:true,subtree:true});
+  setTimeout(schedule,0);
+  window.DiagnostikaCurrencyHardRule={refresh:schedule};
 })();
