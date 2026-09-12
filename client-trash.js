@@ -68,9 +68,6 @@
       };
       const forever=document.createElement('button');forever.type='button';forever.className='tk-btn trash-delete';forever.textContent='Удалить навсегда';
       forever.onclick=()=>{
-        const name=c.name||'Без имени';
-        if(!confirm(`Удалить клиента «${name}» навсегда?`))return;
-        if(!confirm(`Точно удалить «${name}» навсегда?\n\nПосле этого восстановить клиента будет нельзя.`))return;
         state.deletedClients=state.deletedClients.filter(x=>x.id!==c.id);
         if(!state.deletedClientTombstones.includes(c.id)) state.deletedClientTombstones.push(c.id);
         save();renderTrash();
@@ -83,9 +80,6 @@
 
   window.deleteCurrentClient=function(){
     const c=client();if(!c)return;
-    const name=c.name||'Без имени';
-    if(!confirm(`Удалить клиента «${name}»?\n\nОн будет перемещён в «Удалённые клиенты».`))return;
-    if(!confirm(`Подтвердите удаление клиента «${name}».\n\nЕго можно будет восстановить из раздела «Удалённые клиенты».`))return;
     ensureState();
     const index=state.clients.findIndex(x=>x.id===c.id);if(index<0)return;
     const archived=clone(c);archived.deletedAt=new Date().toISOString();
