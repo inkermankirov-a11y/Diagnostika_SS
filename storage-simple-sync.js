@@ -65,6 +65,21 @@
     return base;
   }
 
+  // Состав списка клиентов берём ТОЛЬКО из primary.
+  // secondary может дополнять данные существующих клиентов, но не возвращать
+  // клиента, который уже удалён из более свежей базы.
+  function mergeStatesKeepClientSet(primary,secondary){
+    const p=primary||{clients:[]};
+    const s=secondary||{clients:[]};
+    const base=mergeObjects(p,s);
+    const secondaryById=new Map((s.clients||[]).filter(c=>c?.id).map(c=>[c.id,c]));
+    base.clients=(p.clients||[]).map(c=>{
+      const other=secondaryById.get(c?.id);
+      return other?mergeObjects(c,other):clone(c);
+    });
+    return base;
+  }
+
   function clientScore(c){
     if(!c||typeof c!=='object') return -1;
     let score=0;
@@ -194,7 +209,7 @@
   async function writeStateTree(app,data){
     await writeJson(app,'database.json',data);
     await writeJson(app,'settings.json',{
-      format:'diagnostika-folder-v5',
+      format:'diagnostika-folder-v6',
       updatedAt:new Date().toISOString(),
       clientCount:Array.isArray(data.clients)?data.clients.length:0
     });
@@ -228,11 +243,10 @@
     const scanned=await readClientsFromFolders(app);
     const folderOnlyState={clients:scanned.clients};
 
-    // database.json — основной источник для уже существующих клиентов.
-    // client.json из отдельных папок используется только как резерв: добавляет
-    // отсутствующих клиентов и заполняет реально пустые поля. Заглушка
-    // «Новый клиент» никогда не должна затирать настоящее имя.
-    const folderState=databaseState?mergeStates(databaseState,folderOnlyState):folderOnlyState;
+    // Если database.json существует, именно он определяет, КАКИЕ клиенты существуют.
+    // Старые папки client.json могут только дополнить уже существующего клиента,
+    // но больше никогда не добавляют удалённого обратно.
+    const folderState=databaseState?mergeStatesKeepClientSet(databaseState,folderOnlyState):folderOnlyState;
 
     const folderSettings=await readJson(app,'settings.json');
     const browserUpdated=Date.parse(localStorage.getItem(BROWSER_UPDATED_KEY)||'')||0;
@@ -241,17 +255,21 @@
 
     let merged;
     if(!databaseState){
-      merged=mergeStates(state,folderState);
+      // Папка ещё без общей базы. Если браузер рабочий — он формирует первый database.json.
+      // Если браузер пустой — восстанавливаемся из найденных клиентских папок.
+      merged=emptyBrowser && scanned.clients.length
+        ? mergeStatesKeepClientSet(folderState,state)
+        : mergeStates(state,folderState);
     }else if(emptyBrowser){
-      // Новый/чистый браузер обязан сначала импортировать существующую базу,
-      // а не записывать поверх неё стартового «Нового клиента».
-      merged=mergeStates(folderState,state);
+      // Новый/чистый браузер импортирует точный состав клиентов из database.json.
+      merged=mergeStatesKeepClientSet(folderState,state);
     }else if(browserUpdated>folderUpdated){
-      // Обычный рабочий браузер с более свежими изменениями имеет приоритет,
-      // но пустые поля дополняются из папки.
-      merged=mergeStates(state,folderState);
+      // Браузер новее: его состав клиентов главный. Это сохраняет удаления.
+      merged=mergeStatesKeepClientSet(state,folderState);
     }else{
-      merged=mergeStates(folderState,state);
+      // Папка новее: её состав клиентов главный. Удаления, сделанные в другом
+      // браузере и уже синхронизированные в database.json, также сохраняются.
+      merged=mergeStatesKeepClientSet(folderState,state);
     }
 
     localStorage.setItem(STATE_KEY,JSON.stringify(merged));
@@ -274,7 +292,7 @@
     dlg.dataset.simpleSync='1';
 
     const info=dlg.querySelector('.storage-info');
-    if(info)info.textContent='Изменения сохраняются в браузере автоматически. «Синхронизировать» безопасно объединяет браузер с выбранной папкой. database.json имеет приоритет перед старыми копиями client.json.';
+    if(info)info.textContent='Изменения сохраняются в браузере автоматически. При синхронизации более свежая база определяет точный список клиентов; удалённые клиенты не восстанавливаются из старых папок.';
 
     const actions=dlg.querySelector('.storage-actions-main');
     if(!actions)return;
