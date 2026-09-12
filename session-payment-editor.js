@@ -2,6 +2,7 @@
 
 (() => {
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(v)||0);
+  const uidPay=()=>crypto.randomUUID?crypto.randomUUID():'pay_'+Date.now()+'_'+Math.random().toString(16).slice(2);
   const currentClient=()=>typeof client==='function'?client():null;
   const paymentOf=r=>{
     if(!r)return null;
@@ -51,6 +52,8 @@
   }
   function priceForSession(c,s,preferredId){
     const sp=sessionPay(s);
+    const linked=linkedRequest(c,s,preferredId),p=paymentOf(linked);
+    if(p?.mode==='parts'&&sp.paid)return Number(sp.amount)||0;
     const configured=configuredPriceForSession(c,s,preferredId);
     const saved=Number(sp.amount)||0;
     if(sp.manualAmount&&saved>0)return saved;
@@ -58,16 +61,25 @@
     if(configured>0)return configured;
     return saved;
   }
+  function installmentPaymentForSession(r,s){
+    const p=paymentOf(r);
+    if(!p||!s)return null;
+    return p.payments.find(x=>x?.sessionId===s.id)||null;
+  }
 
   const style=document.createElement('style');
   style.textContent=`
     .session-date-payment-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0}
     .session-date-payment-wrap>input[type="date"]{width:100%;box-sizing:border-box}
-    .session-editor-payment{display:flex;align-items:center;gap:6px;min-height:30px;position:relative;z-index:3}
+    .session-editor-payment{display:flex;align-items:center;gap:6px;min-height:30px;position:relative;z-index:3;flex-wrap:wrap}
     .session-editor-payment-label{font-size:11px;font-weight:800;color:#475569}
     .session-editor-payment-state{min-height:28px!important;height:28px!important;padding:3px 9px!important;border-radius:8px!important;font-size:11px!important;font-weight:800!important;white-space:nowrap;pointer-events:auto!important;cursor:pointer!important;position:relative;z-index:4}
     .session-editor-payment-state.unpaid{background:linear-gradient(#ef6a6a,#d94d4d)!important;color:#fff!important;animation:sessionPayPulse 1.2s ease-in-out infinite}
     .session-editor-payment-state.paid{background:linear-gradient(#42ad73,#248d58)!important;color:#fff!important;animation:none!important}
+    .session-editor-payment-amount-wrap{display:flex;align-items:center;gap:5px}
+    .session-editor-payment-amount-label{font-size:11px;font-weight:800;color:#475569}
+    .session-editor-payment-amount{width:105px;height:28px;border:1px solid #b9c6d4;border-radius:7px;padding:0 8px;box-sizing:border-box;background:#fff;color:#243447;font-size:12px;font-weight:700}
+    .session-editor-payment-currency{font-size:12px;font-weight:800;color:#64748b}
     .session-pay-status.unpaid{animation:sessionPayPulse 1.2s ease-in-out infinite!important}
     @keyframes sessionPayPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.08)}50%{box-shadow:0 0 0 5px rgba(220,38,38,.16)}}
     .session-payment-ledger{margin-top:12px;border:1px solid #dbe4ed;border-radius:9px;background:#fff;overflow:hidden}
@@ -78,7 +90,7 @@
     .session-payment-ledger-row .request-note{display:block;margin-top:2px;color:#64748b;font-size:11px;font-weight:600}
     .session-payment-ledger-row strong{color:#26384b;text-align:right}
     .session-payment-ledger-empty{padding:10px 11px;color:#94a3b8;font-size:12px}
-    @media(max-width:640px){.session-payment-ledger-row{grid-template-columns:88px 1fr}.session-payment-ledger-row strong{grid-column:2;text-align:left}}
+    @media(max-width:640px){.session-payment-ledger-row{grid-template-columns:88px 1fr}.session-payment-ledger-row strong{grid-column:2;text-align:left}.session-editor-payment{align-items:flex-start}.session-editor-payment-amount-wrap{width:100%}}
   `;
   document.head.appendChild(style);
 
@@ -87,7 +99,7 @@
     const sp=sessionPay(s),paid=!!sp.paid,amount=priceForSession(c,s,preferredId);
     btn.classList.toggle('paid',paid);btn.classList.toggle('unpaid',!paid);
     btn.textContent=paid?'✓ Оплачено':'Не оплачено';
-    btn.title=paid?`Оплачено ${money(amount)} ₽. Нажми, чтобы снять оплату.`:`Стоимость сессии ${money(amount)} ₽. Нажми, чтобы отметить оплату.`;
+    btn.title=paid?`Оплачено ${money(amount)} ₽. Нажми, чтобы снять оплату.`:`Нажми, чтобы отметить оплату.`;
   }
   function persistSessionPayment(c,s,preferredId,paid,dateValue){
     const sp=sessionPay(s),linked=linkedRequest(c,s,preferredId),linkedPayment=paymentOf(linked),amount=configuredPriceForSession(c,s,preferredId)||priceForSession(c,s,preferredId);
@@ -104,6 +116,31 @@
     }
     if(typeof save==='function')save();
   }
+  function persistInstallmentSessionPayment(c,s,preferredId,paid,dateValue,amountValue){
+    const sp=sessionPay(s),linked=linkedRequest(c,s,preferredId),p=paymentOf(linked);
+    if(!linked||!p)return false;
+    if(linked.id){sp.requestId=linked.id;s.requestId=linked.id;}
+    const existing=installmentPaymentForSession(linked,s);
+    if(paid){
+      const amount=Math.max(0,Number(amountValue)||0);
+      if(amount<=0)return false;
+      sp.paid=true;sp.amount=amount;sp.manualAmount=true;sp.paidAt=today();sp.sessionDate=dateValue||s.date||today();
+      if(existing){
+        existing.amount=amount;
+        existing.date=dateValue||existing.date||today();
+        existing.note=existing.note||`Оплата за сессию №${globalSessionNumber(c,s)}`;
+        existing.source='session';
+      }else{
+        p.payments.push({id:uidPay(),date:dateValue||today(),amount,note:`Оплата за сессию №${globalSessionNumber(c,s)}`,receiptUrl:'',sessionId:s.id,source:'session'});
+      }
+    }else{
+      sp.paid=false;sp.amount=0;sp.manualAmount=false;
+      delete sp.paidAt;delete sp.sessionDate;
+      p.payments=p.payments.filter(x=>x?.sessionId!==s.id);
+    }
+    if(typeof save==='function')save();
+    return true;
+  }
   function getDialogSession(c,dlg){
     const id=dlg?.dataset.sessionId;if(id){const found=(c.sessions||[]).find(s=>s.id===id);if(found)return found;}
     if(typeof selectedSessionId!=='undefined'&&selectedSessionId){const found=(c.sessions||[]).find(s=>s.id===selectedSessionId);if(found)return found;}
@@ -117,10 +154,34 @@
     const dateInput=grid.querySelector('input[type="date"]');
     const dateWrap=document.createElement('div');dateWrap.className='session-date-payment-wrap';
     if(dateInput){dateInput.parentNode.insertBefore(dateWrap,dateInput);dateWrap.appendChild(dateInput);}else grid.prepend(dateWrap);
-    const box=document.createElement('div');box.className='session-editor-payment';box.innerHTML='<span class="session-editor-payment-label">Оплата:</span><button type="button" class="tk-btn session-editor-payment-state"></button>';dateWrap.appendChild(box);
-    const btn=box.querySelector('.session-editor-payment-state');btn.dataset.sessionId=s.id;
-    function render(){const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';btn.dataset.requestId=preferredId;box.hidden=false;applyButtonState(btn,c,s,preferredId);}
-    requestSelect?.addEventListener('change',render);render();
+    const box=document.createElement('div');
+    box.className='session-editor-payment';
+    box.innerHTML='<span class="session-editor-payment-label">Оплата:</span><button type="button" class="tk-btn session-editor-payment-state"></button><div class="session-editor-payment-amount-wrap" hidden><span class="session-editor-payment-amount-label">Сумма:</span><input class="session-editor-payment-amount" type="number" min="0" step="100" placeholder="0"><span class="session-editor-payment-currency">₽</span></div>';
+    dateWrap.appendChild(box);
+    const btn=box.querySelector('.session-editor-payment-state');
+    const amountWrap=box.querySelector('.session-editor-payment-amount-wrap');
+    const amountInput=box.querySelector('.session-editor-payment-amount');
+    btn.dataset.sessionId=s.id;
+    function render(){
+      const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';
+      const linked=linkedRequest(c,s,preferredId),p=paymentOf(linked),sp=sessionPay(s),existing=installmentPaymentForSession(linked,s);
+      btn.dataset.requestId=preferredId;box.hidden=false;
+      const parts=p?.mode==='parts';
+      amountWrap.hidden=!parts;
+      if(parts&&document.activeElement!==amountInput)amountInput.value=Number(existing?.amount??sp.amount)||'';
+      applyButtonState(btn,c,s,preferredId);
+    }
+    requestSelect?.addEventListener('change',render);
+    amountInput.addEventListener('change',()=>{
+      const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';
+      const linked=linkedRequest(c,s,preferredId),p=paymentOf(linked),sp=sessionPay(s);
+      if(p?.mode!=='parts'||!sp.paid)return;
+      const amount=Math.max(0,Number(amountInput.value)||0);
+      if(amount<=0){amountInput.value=sp.amount||'';return;}
+      persistInstallmentSessionPayment(c,s,preferredId,true,dateInput?.value||s.date||today(),amount);
+      applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();
+    });
+    render();
   }
   document.addEventListener('click',e=>{
     const btn=e.target?.closest?.('.session-editor-payment-state');if(!btn)return;
@@ -128,8 +189,17 @@
     const dlg=btn.closest('dialog.session-edit-dialog'),c=currentClient();if(!dlg||!c)return;
     const s=(c.sessions||[]).find(x=>x.id===btn.dataset.sessionId)||getDialogSession(c,dlg);if(!s)return;
     const requestSelect=dlg.querySelector('.session-edit-grid select');const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';if(preferredId)s.requestId=preferredId;
+    const linked=linkedRequest(c,s,preferredId),p=paymentOf(linked);
     const dateInput=dlg.querySelector('.session-edit-grid input[type="date"]'),next=!sessionPay(s).paid;
-    persistSessionPayment(c,s,preferredId,next,dateInput?.value||s.date||today());applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();renderPaymentLedger();
+    if(p?.mode==='parts'){
+      const amountInput=dlg.querySelector('.session-editor-payment-amount');
+      const amount=Math.max(0,Number(amountInput?.value)||0);
+      if(next&&amount<=0){amountInput?.focus();return;}
+      if(!persistInstallmentSessionPayment(c,s,preferredId,next,dateInput?.value||s.date||today(),amount))return;
+    }else{
+      persistSessionPayment(c,s,preferredId,next,dateInput?.value||s.date||today());
+    }
+    applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();renderPaymentLedger();
     setTimeout(()=>{try{if(typeof renderSessions==='function')renderSessions();}catch(err){}refreshGlobalPaymentUi();renderPaymentLedger();},0);
   },true);
   function renderPaymentLedger(){
@@ -159,6 +229,6 @@
   }
   function refresh(){document.querySelectorAll('.session-edit-dialog').forEach(enhanceDialog);renderPaymentLedger();}
   document.addEventListener('input',e=>{if(e.target?.id==='sessionBasePrice'||e.target?.id==='sessionDiscount')setTimeout(renderPaymentLedger,0);});
-  document.addEventListener('change',e=>{if(e.target?.id==='paymentMode'||e.target?.id==='sessionBasePrice'||e.target?.id==='sessionDiscount')setTimeout(renderPaymentLedger,0);});
+  document.addEventListener('change',e=>{if(e.target?.id==='paymentMode'||e.target?.id==='sessionBasePrice'||e.target?.id==='sessionDiscount')setTimeout(refresh,0);});
   const observer=new MutationObserver(()=>setTimeout(refresh,0));observer.observe(document.body,{childList:true,subtree:true});setTimeout(refresh,0);
 })();
