@@ -77,10 +77,16 @@
 
   function unpaidSessionCount(c){
     if(!c||!Array.isArray(c.sessions))return 0;
+    const requests=Array.isArray(c.requests)?c.requests:[];
+    const sessionModeRequests=requests.filter(r=>r?.payment?.mode==='session');
     return c.sessions.filter(s=>{
-      const r=(c.requests||[]).find(x=>x.id===s.requestId)||null;
-      if(r?.payment?.mode!=='session')return false;
-      return !s.payment?.paid;
+      if(s?.payment?.paid===true)return false;
+      const linkedId=s?.payment?.requestId||s?.requestId||'';
+      const linked=requests.find(r=>r.id===linkedId)||null;
+      if(linked?.payment?.mode==='session')return true;
+      if(s?.payment&&('paid' in s.payment||Number(s.payment.amount)>0||s.payment.manualAmount))return true;
+      if(!linkedId&&sessionModeRequests.length===1)return true;
+      return false;
     }).length;
   }
 
