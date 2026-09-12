@@ -26,16 +26,8 @@
       .sort((a,b)=>b.time-a.time||b.index-a.index);
   }
 
-  function latestSession(c){
-    return sortedSessions(c)[0]?.s||null;
-  }
-
-  // «Сохранить в историю» создаёт служебную запись без sessionFormat.
-  // Для колонки «Связь» берём последний реально указанный формат,
-  // чтобы такая служебная запись не заменяла иконку на «—».
-  function latestSessionWithFormat(c){
-    return sortedSessions(c).find(item=>item.s?.sessionFormat)?.s||null;
-  }
+  function latestSession(c){return sortedSessions(c)[0]?.s||null;}
+  function latestSessionWithFormat(c){return sortedSessions(c).find(item=>item.s?.sessionFormat)?.s||null;}
 
   function formatDate(raw){
     if(!raw) return '—';
@@ -77,72 +69,37 @@
       const last=latestSession(c);
       const lastWithFormat=latestSessionWithFormat(c);
 
-      const num=document.createElement('td');
-      num.className='db-col-num';
-      num.textContent=String(index+1);
-
-      const name=document.createElement('td');
-      name.className='db-client-name';
-      name.textContent=c.name||'Без имени';
-
-      const city=document.createElement('td');
-      city.className='db-col-city';
-      city.textContent=c.city||'—';
-
-      const lastCell=document.createElement('td');
-      lastCell.className='db-col-last';
-      lastCell.textContent=last?formatDate(last.date||last.createdAt||last.savedAt):'—';
-
-      const formatCell=document.createElement('td');
-      formatCell.className='db-col-format';
+      const num=document.createElement('td');num.className='db-col-num';num.textContent=String(index+1);
+      const name=document.createElement('td');name.className='db-client-name';name.textContent=c.name||'Без имени';
+      const city=document.createElement('td');city.className='db-col-city';city.textContent=c.city||'—';
+      const lastCell=document.createElement('td');lastCell.className='db-col-last';lastCell.textContent=last?formatDate(last.date||last.createdAt||last.savedAt):'—';
+      const formatCell=document.createElement('td');formatCell.className='db-col-format';
       const info=formatInfo(lastWithFormat);
-      if(info){
-        const badge=document.createElement('span');
-        badge.className=`db-format-icon ${info.cls}`;
-        badge.textContent=info.icon;
-        badge.title=info.label;
-        badge.setAttribute('aria-label',info.label);
-        formatCell.appendChild(badge);
-      }else{
-        formatCell.textContent='—';
-      }
+      if(info){const badge=document.createElement('span');badge.className=`db-format-icon ${info.cls}`;badge.textContent=info.icon;badge.title=info.label;badge.setAttribute('aria-label',info.label);formatCell.appendChild(badge);}else formatCell.textContent='—';
 
-      const actions=document.createElement('td');
-      actions.className='db-col-actions';
-      const group=document.createElement('div');
-      group.className='db-action-group';
+      const actions=document.createElement('td');actions.className='db-col-actions';
+      const group=document.createElement('div');group.className='db-action-group';
 
       const openBtn=document.createElement('button');
-      openBtn.type='button';
-      openBtn.className='db-open-btn';
-      openBtn.textContent='Открыть';
-      openBtn.onclick=()=>{
-        clientId=c.id;
-        requestId=null;
-        situationId=null;
-        selected=null;
-        dlg.close();
-        renderClient();
-      };
+      openBtn.type='button';openBtn.className='db-open-btn';openBtn.textContent='Открыть';
+      openBtn.onclick=()=>{clientId=c.id;requestId=null;situationId=null;selected=null;dlg.close();renderClient();};
 
       const delBtn=document.createElement('button');
-      delBtn.type='button';
-      delBtn.className='db-delete-btn db-delete-btn-compact';
-      delBtn.textContent='Удалить';
+      delBtn.type='button';delBtn.className='db-delete-btn db-delete-btn-compact';delBtn.textContent='Удалить';
       delBtn.onclick=()=>{
-        clientId=c.id;
-        deleteCurrentClient();
-        if(dlg.open) window.renderClientDatabaseTable();
+        if(typeof window.moveClientToTrashById!=='function'){
+          console.error('Функция удаления клиента не загружена');
+          return;
+        }
+        const removed=window.moveClientToTrashById(c.id);
+        if(removed && dlg.open) window.renderClientDatabaseTable();
       };
 
-      group.append(openBtn,delBtn);
-      actions.appendChild(group);
-      tr.append(num,name,city,lastCell,formatCell,actions);
-      tbody.appendChild(tr);
+      group.append(openBtn,delBtn);actions.appendChild(group);
+      tr.append(num,name,city,lastCell,formatCell,actions);tbody.appendChild(tr);
     });
 
-    table.appendChild(tbody);
-    root.appendChild(table);
+    table.appendChild(tbody);root.appendChild(table);
   };
 
   window.openDatabase=function(){
