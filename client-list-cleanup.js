@@ -41,4 +41,11 @@
   },true);
 
   setTimeout(schedule,0);
+
+  if(!document.querySelector('script[data-payment-full-mode-ui]')){
+    const script=document.createElement('script');
+    script.src='payment-full-mode-ui.js?v=20260912-70';
+    script.dataset.paymentFullModeUi='1';
+    document.body.appendChild(script);
+  }
 })();
