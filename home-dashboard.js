@@ -72,7 +72,7 @@
     if(!p.length)return 'К';
     return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase();
   };
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const currentClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
 
   function renderHeroVisual(c){
@@ -107,29 +107,17 @@
   }
 
   function openCard(){
-    const btn=document.getElementById('clientCardModeBtn');
-    if(btn) btn.click();
+    if(window.DiagnostikaClientCard?.openExisting){window.DiagnostikaClientCard.openExisting();return;}
+    document.getElementById('clientCardModeBtn')?.click();
   }
 
   function addClient(){
-    const btn=document.getElementById('addClientBtn');
-    if(btn){
-      btn.click();
-      setTimeout(()=>{
-        refresh();
-        openCard();
-      },0);
+    if(window.DiagnostikaClientCard?.openNew){
+      window.DiagnostikaClientCard.openNew();
       return;
     }
-    if(typeof newClient==='function'){
-      const c=newClient();
-      state.clients.push(c);
-      clientId=c.id;
-      save();
-      renderClient();
-      refresh();
-      setTimeout(openCard,0);
-    }
+    const btn=document.getElementById('addClientBtn');
+    if(btn) btn.click();
   }
 
   function openDiagnosis(){
@@ -177,12 +165,7 @@
     if(!meaningful){
       heroTitle.textContent='Новый клиент';
       heroSub.textContent='Заполните карточку клиента. После сохранения здесь появятся его данные.';
-      const card=document.createElement('button');
-      card.className='hd-primary';
-      card.type='button';
-      card.textContent='Заполнить карточку клиента';
-      card.onclick=openCard;
-      heroActions.appendChild(card);
+      const card=document.createElement('button');card.className='hd-primary';card.type='button';card.textContent='Заполнить карточку клиента';card.onclick=openCard;heroActions.appendChild(card);
       return;
     }
 
@@ -194,11 +177,7 @@
 
     const currentReq=(c.requests||[]).find(r=>r.id===requestId)||(c.requests||[])[0];
     const lastSession=(c.sessions||[]).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
-    const items=[
-      ['Текущий запрос',currentReq?.title||'Не указан'],
-      ['Сессии',String((c.sessions||[]).length)],
-      ['Последняя сессия',lastSession?.date||'—']
-    ];
+    const items=[['Текущий запрос',currentReq?.title||'Не указан'],['Сессии',String((c.sessions||[]).length)],['Последняя сессия',lastSession?.date||'—']];
     summary.innerHTML=items.map(([a,b])=>`<div class="hd-summary-box"><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
     summary.hidden=false;
   }
