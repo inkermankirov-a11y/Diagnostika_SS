@@ -32,6 +32,11 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const getClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
 
+  function requestForSession(c,s){
+    const id=s?.requestId||s?.payment?.requestId||'';
+    return c?.requests?.find(r=>r.id===id)||null;
+  }
+
   function requestName(c,id){
     if(!id) return 'Без связи с запросом';
     return c?.requests?.find(r=>r.id===id)?.title||'Без связи с запросом';
@@ -71,15 +76,18 @@
       card.tabIndex=0;
       card.title='Открыть и редактировать сессию';
       const notes=String(s.notes||'').trim();
+      const req=requestForSession(c,s);
+      const showPayment=req?.payment?.mode==='session';
       const paid=Boolean(s?.payment?.paid);
       const payClass=paid?'paid':'unpaid';
       const payText=paid?'Оплачено':'Не оплачено';
+      const paymentHtml=showPayment?`<span class="hd-session-pay ${payClass}"><span class="hd-session-flag">⚑</span>${payText}</span>`:'';
       card.innerHTML=`
         <div class="hd-session-top">
           <strong>Сессия №${number}</strong>
           <span class="hd-session-date">◷ ${esc(s.date||'—')}</span>
           <span class="hd-session-request">• ${esc(requestName(c,s.requestId))}</span>
-          <span class="hd-session-pay ${payClass}"><span class="hd-session-flag">⚑</span>${payText}</span>
+          ${paymentHtml}
           <span class="hd-session-edit-hint">Редактировать</span>
         </div>
         ${notes?`<div class="hd-session-note-label">ЗАМЕТКА</div><div class="hd-session-note">${esc(notes)}</div>`:'<div class="hd-session-note hd-session-note-empty">Заметка не добавлена</div>'}
