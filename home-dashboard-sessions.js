@@ -71,11 +71,15 @@
       card.tabIndex=0;
       card.title='Открыть и редактировать сессию';
       const notes=String(s.notes||'').trim();
+      const paid=Boolean(s?.payment?.paid);
+      const payClass=paid?'paid':'unpaid';
+      const payText=paid?'Оплачено':'Не оплачено';
       card.innerHTML=`
         <div class="hd-session-top">
           <strong>Сессия №${number}</strong>
           <span class="hd-session-date">◷ ${esc(s.date||'—')}</span>
           <span class="hd-session-request">• ${esc(requestName(c,s.requestId))}</span>
+          <span class="hd-session-pay ${payClass}"><span class="hd-session-flag">⚑</span>${payText}</span>
           <span class="hd-session-edit-hint">Редактировать</span>
         </div>
         ${notes?`<div class="hd-session-note-label">ЗАМЕТКА</div><div class="hd-session-note">${esc(notes)}</div>`:'<div class="hd-session-note hd-session-note-empty">Заметка не добавлена</div>'}
@@ -140,9 +144,13 @@
     .hd-session-card-openable{cursor:pointer}
     .hd-session-card-openable:hover{border-color:#9ec2f3;box-shadow:0 5px 14px rgba(31,71,122,.10);transform:translateY(-1px)}
     .hd-session-card-openable:focus{outline:3px solid rgba(47,124,246,.16);outline-offset:2px}
-    .hd-session-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;background:#f5f9fe;color:#173154;font-size:13px}
+    .hd-session-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;background:#f5f9fe;color:#173154;font-size:13px}
     .hd-session-top strong{font-size:14px}
     .hd-session-date,.hd-session-request{padding:4px 9px;border:1px solid #dce8f5;border-radius:999px;background:#fff;color:#647b99;font-size:12px}
+    .hd-session-pay{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid transparent;white-space:nowrap}
+    .hd-session-pay.paid{background:#e9f8ef;color:#247a49;border-color:#bfe7ce}
+    .hd-session-pay.unpaid{background:#fdecec;color:#b33a3a;border-color:#f1c3c3}
+    .hd-session-flag{font-size:13px;line-height:1}
     .hd-session-edit-hint{margin-left:auto;color:#2f70d4;font-size:12px;font-weight:800}
     .hd-session-note-label{padding:11px 14px 0;color:#a17b55;font-size:10px;font-weight:800;letter-spacing:.08em}
     .hd-session-note{padding:7px 14px 14px;color:#243a58;font-size:13px;line-height:1.45;white-space:pre-wrap}
