@@ -5,11 +5,20 @@ function deleteCurrentClient() {
   if (!c) return;
 
   const name = c.name || 'Без имени';
-  const ok = confirm(`Удалить клиента «${name}»?\n\nБудут удалены все его сессии, запросы и диагностики из локальной базы этого браузера.`);
-  if (!ok) return;
+  if (!confirm(`Удалить клиента «${name}»?\n\nОн будет перемещён в «Удалённые клиенты».`)) return;
+  if (!confirm(`Подтвердите удаление клиента «${name}».\n\nЕго можно будет восстановить из раздела «Удалённые клиенты».`)) return;
+
+  if (!Array.isArray(state.deletedClients)) state.deletedClients = [];
+  if (!Array.isArray(state.deletedClientTombstones)) state.deletedClientTombstones = [];
 
   const index = state.clients.findIndex(x => x.id === c.id);
   if (index < 0) return;
+
+  const archived = JSON.parse(JSON.stringify(c));
+  archived.deletedAt = new Date().toISOString();
+  state.deletedClients = state.deletedClients.filter(x => x && x.id !== c.id);
+  state.deletedClients.push(archived);
+  state.deletedClientTombstones = state.deletedClientTombstones.filter(id => id !== c.id);
 
   state.clients.splice(index, 1);
 
