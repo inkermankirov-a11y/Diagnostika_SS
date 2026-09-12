@@ -123,6 +123,12 @@
     if(typeof renderMode==='function') renderMode();
   }
 
+  function openPayment(){
+    const oldPaymentButton=document.querySelector('#clientPaymentBox .client-payment-btn');
+    if(oldPaymentButton){oldPaymentButton.click();return;}
+    window.AppDialog?.alert?.('Модуль оплаты ещё не готов. Попробуйте открыть клиента повторно.','Оплата');
+  }
+
   function renderClients(){
     const q=(search.value||'').trim().toLowerCase();
     const clients=(state?.clients||[]).filter(c=>{
@@ -169,7 +175,8 @@
     heroSub.textContent=clientMeta(c);
     const card=document.createElement('button');card.className='hd-secondary';card.type='button';card.textContent='Карточка клиента';card.onclick=openCard;
     const diag=document.createElement('button');diag.className='hd-primary';diag.type='button';diag.textContent='Диагностика';diag.onclick=openDiagnosis;
-    heroActions.append(card,diag);
+    const payment=document.createElement('button');payment.className='hd-secondary hd-payment-btn';payment.type='button';payment.textContent='Оплата';payment.onclick=openPayment;
+    heroActions.append(card,diag,payment);
 
     const currentReq=(c.requests||[]).find(r=>r.id===requestId)||(c.requests||[])[0];
     const lastSession=(c.sessions||[]).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
