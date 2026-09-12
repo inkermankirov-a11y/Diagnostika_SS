@@ -79,6 +79,7 @@
     .session-editor-payment-amount-wrap{display:flex;align-items:center;gap:5px}
     .session-editor-payment-amount-label{font-size:11px;font-weight:800;color:#475569}
     .session-editor-payment-amount{width:105px;height:28px;border:1px solid #b9c6d4;border-radius:7px;padding:0 8px;box-sizing:border-box;background:#fff;color:#243447;font-size:12px;font-weight:700}
+    .session-editor-payment-amount.invalid{border-color:#dc2626!important;box-shadow:0 0 0 3px rgba(220,38,38,.12)!important;background:#fff7f7}
     .session-editor-payment-currency{font-size:12px;font-weight:800;color:#64748b}
     .session-pay-status.unpaid{animation:sessionPayPulse 1.2s ease-in-out infinite!important}
     @keyframes sessionPayPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.08)}50%{box-shadow:0 0 0 5px rgba(220,38,38,.16)}}
@@ -141,6 +142,17 @@
     if(typeof save==='function')save();
     return true;
   }
+  function repairZeroPaidInstallment(c,s,preferredId){
+    const sp=sessionPay(s),linked=linkedRequest(c,s,preferredId),p=paymentOf(linked);
+    if(p?.mode!=='parts'||!sp.paid)return false;
+    const existing=installmentPaymentForSession(linked,s);
+    const amount=Math.max(0,Number(existing?.amount??sp.amount)||0);
+    if(amount>0)return false;
+    sp.paid=false;sp.amount=0;sp.manualAmount=false;
+    delete sp.paidAt;delete sp.sessionDate;
+    if(p?.payments)p.payments=p.payments.filter(x=>x?.sessionId!==s.id||Number(x?.amount)>0);
+    return true;
+  }
   function getDialogSession(c,dlg){
     const id=dlg?.dataset.sessionId;if(id){const found=(c.sessions||[]).find(s=>s.id===id);if(found)return found;}
     if(typeof selectedSessionId!=='undefined'&&selectedSessionId){const found=(c.sessions||[]).find(s=>s.id===selectedSessionId);if(found)return found;}
@@ -165,19 +177,31 @@
     function render(){
       const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';
       const linked=linkedRequest(c,s,preferredId),p=paymentOf(linked),sp=sessionPay(s),existing=installmentPaymentForSession(linked,s);
+      const repaired=repairZeroPaidInstallment(c,s,preferredId);
+      if(repaired&&typeof save==='function')save();
       btn.dataset.requestId=preferredId;box.hidden=false;
       const parts=p?.mode==='parts';
       amountWrap.hidden=!parts;
-      if(parts&&document.activeElement!==amountInput)amountInput.value=Number(existing?.amount??sp.amount)||'';
+      if(parts&&document.activeElement!==amountInput)amountInput.value=Number(existing?.amount??sp.amount)||0;
+      amountInput.classList.toggle('invalid',parts&&sp.paid&&(Number(amountInput.value)||0)<=0);
       applyButtonState(btn,c,s,preferredId);
     }
     requestSelect?.addEventListener('change',render);
+    amountInput.addEventListener('input',()=>amountInput.classList.remove('invalid'));
     amountInput.addEventListener('change',()=>{
       const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';
       const linked=linkedRequest(c,s,preferredId),p=paymentOf(linked),sp=sessionPay(s);
       if(p?.mode!=='parts'||!sp.paid)return;
       const amount=Math.max(0,Number(amountInput.value)||0);
-      if(amount<=0){amountInput.value=sp.amount||'';return;}
+      if(amount<=0){
+        sp.paid=false;sp.amount=0;sp.manualAmount=false;
+        p.payments=p.payments.filter(x=>x?.sessionId!==s.id);
+        delete sp.paidAt;delete sp.sessionDate;
+        amountInput.classList.add('invalid');
+        if(typeof save==='function')save();
+        applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();
+        return;
+      }
       persistInstallmentSessionPayment(c,s,preferredId,true,dateInput?.value||s.date||today(),amount);
       applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();
     });
@@ -194,7 +218,12 @@
     if(p?.mode==='parts'){
       const amountInput=dlg.querySelector('.session-editor-payment-amount');
       const amount=Math.max(0,Number(amountInput?.value)||0);
-      if(next&&amount<=0){amountInput?.focus();return;}
+      if(next&&amount<=0){
+        amountInput?.classList.add('invalid');
+        amountInput?.focus();
+        return;
+      }
+      amountInput?.classList.remove('invalid');
       if(!persistInstallmentSessionPayment(c,s,preferredId,next,dateInput?.value||s.date||today(),amount))return;
     }else{
       persistSessionPayment(c,s,preferredId,next,dateInput?.value||s.date||today());
