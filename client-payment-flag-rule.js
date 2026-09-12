@@ -11,6 +11,7 @@
     .payment-dialog .payment-row-actions .pr-delete{position:static!important;inset:auto!important;float:none!important;margin:0!important;transform:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;height:32px!important;min-height:32px!important;box-sizing:border-box!important;padding:5px 9px!important;font-size:11px!important;line-height:1!important}
     .payment-dialog .payment-row-actions .pr-save{min-width:76px!important}
     .payment-dialog .payment-row-actions .pr-delete{min-width:70px!important}
+    .hd-client-more{display:none!important}
     @media(max-width:760px){
       .payment-dialog .payment-row{grid-template-columns:1fr 1fr!important}
       .payment-dialog .payment-row-actions{grid-column:1/-1!important;width:100%!important;min-width:0!important;justify-content:flex-end!important}
@@ -48,9 +49,6 @@
     const requests=Array.isArray(c?.requests)?c.requests:[];
     if(!requests.length)return null;
 
-    // Для выбранного клиента используем РОВНО тот же источник текущего запроса,
-    // что и окно оплаты. Это исключает ситуацию: окно показывает запрос №5,
-    // а красный флаг проверяет другой запрос.
     const selectedClient=(typeof clientId!=='undefined')&&String(c?.id)===String(clientId);
     if(selectedClient){
       try{
@@ -78,23 +76,26 @@
 
   function syncFlags(){
     if(!window.state||!Array.isArray(state.clients))return;
+
+    // Старый dashboard сам создавал кнопку «⋮» и флаг по устаревшей логике.
+    // Здесь удаляем их при каждом рендере и затем рисуем флаг только по актуальной оплате.
+    document.querySelectorAll('.hd-client-more').forEach(btn=>btn.remove());
+
     document.querySelectorAll('.hd-client-row[data-id]').forEach(row=>{
       const c=state.clients.find(x=>String(x.id)===String(row.dataset.id));
       if(!c)return;
       const tools=row.querySelector('.hd-client-tools');
       if(!tools)return;
-      let flag=tools.querySelector('.hd-unpaid-flag');
-      const debt=clientHasDebt(c);
-      if(!debt){flag?.remove();return;}
-      if(!flag){
-        flag=document.createElement('span');
-        flag.className='hd-unpaid-flag';
-        flag.textContent='⚑';
-        const more=tools.querySelector('.hd-client-more');
-        if(more)tools.insertBefore(flag,more);else tools.appendChild(flag);
-      }
+
+      tools.querySelectorAll('.hd-unpaid-flag').forEach(flag=>flag.remove());
+      if(!clientHasDebt(c))return;
+
+      const flag=document.createElement('span');
+      flag.className='hd-unpaid-flag';
+      flag.textContent='⚑';
       flag.setAttribute('aria-label','Есть задолженность по текущему запросу');
       flag.title='Есть задолженность по текущему запросу';
+      tools.appendChild(flag);
     });
   }
 
@@ -108,7 +109,7 @@
   const mo=new MutationObserver(queue);
   mo.observe(document.body,{childList:true,subtree:true});
   document.addEventListener('click',e=>{
-    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete'))setTimeout(syncFlags,0);
+    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete,.hd-client-row'))setTimeout(syncFlags,0);
   },true);
   document.addEventListener('change',e=>{
     if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
