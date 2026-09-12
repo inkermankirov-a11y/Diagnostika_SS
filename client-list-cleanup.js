@@ -69,4 +69,11 @@
     script.dataset.sessionLedgerCurrentRequest='1';
     document.body.appendChild(script);
   }
+
+  if(!document.querySelector('script[data-session-scope-final]')){
+    const script=document.createElement('script');
+    script.src='session-scope-final.js?v=20260913-82';
+    script.dataset.sessionScopeFinal='1';
+    document.body.appendChild(script);
+  }
 })();
