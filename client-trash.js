@@ -6,8 +6,9 @@
     if(!Array.isArray(state.deletedClients)) state.deletedClients=[];
     if(!Array.isArray(state.deletedClientTombstones)) state.deletedClientTombstones=[];
     const blocked=new Set(state.deletedClientTombstones);
+    const activeIds=new Set((state.clients||[]).map(c=>c?.id).filter(Boolean));
     const before=state.deletedClients.length;
-    state.deletedClients=state.deletedClients.filter(c=>c?.id&&!blocked.has(c.id));
+    state.deletedClients=state.deletedClients.filter(c=>c?.id&&!blocked.has(c.id)&&!activeIds.has(c.id));
     if(before!==state.deletedClients.length) save();
   };
   ensureState();
@@ -78,7 +79,6 @@
 
   window.openDeletedClients=function(){renderTrash();if(!dlg.open)dlg.showModal();};
 
-  const oldDelete=window.deleteCurrentClient;
   window.deleteCurrentClient=function(){
     const c=client();if(!c)return;
     const name=c.name||'Без имени';
