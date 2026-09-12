@@ -25,8 +25,12 @@
 
   function requestForSession(c,s,dlg){
     const selectedId=dlg?.querySelector('.session-edit-grid select')?.value||'';
-    const rid=selectedId||s?.requestId||s?.payment?.requestId||'';
-    return (c?.requests||[]).find(r=>String(r?.id)===String(rid))||null;
+    const ids=[selectedId,s?.requestId,s?.payment?.requestId].filter(Boolean).map(String);
+    for(const id of ids){
+      const r=(c?.requests||[]).find(x=>String(x?.id)===id);
+      if(r)return r;
+    }
+    return null;
   }
 
   function effectivePrice(r){
@@ -43,9 +47,9 @@
     btn.title=paid?`Оплачено ${amount} ₽. Нажми, чтобы снять оплату.`:'Нажми, чтобы отметить оплату.';
   }
 
-  function hideLegacyControl(dlg,r){
+  function hideLegacyControl(dlg){
     const legacy=dlg?.querySelector('.session-payment-field');
-    if(legacy)legacy.style.display=r?.payment?.mode==='session'?'none':'';
+    if(legacy)legacy.style.display='none';
   }
 
   function syncOpenDialogs(){
@@ -54,10 +58,9 @@
       const btn=dlg.querySelector('.session-editor-payment-state');
       if(!btn)return;
       const s=sessionFromButton(btn,c);if(!s)return;
-      const r=requestForSession(c,s,dlg);if(!r)return;
-      hideLegacyControl(dlg,r);
-      if(r.payment?.mode!=='session')return;
-      const sp=s.payment&&typeof s.payment==='object'?s.payment:(s.payment={paid:false,amount:0});
+      const r=requestForSession(c,s,dlg);
+      hideLegacyControl(dlg);
+      const sp=s.payment&&typeof s.payment==='object'?s.payment:(s.payment={paid:false,amount:0,receiptUrl:'',note:''});
       const amount=num(sp.amount)||effectivePrice(r);
       paint(btn,!!sp.paid,amount);
       const amountInput=dlg.querySelector('.session-editor-payment-amount');
@@ -65,7 +68,7 @@
     });
   }
 
-  // Перехватываем раньше старого document-capture обработчика.
+  // Один авторитетный обработчик кнопки оплаты сессии. Не зависит от режима запроса.
   window.addEventListener('click',e=>{
     const btn=e.target?.closest?.('.session-editor-payment-state');
     if(!btn)return;
@@ -73,7 +76,7 @@
     const c=currentClient();
     if(!dlg||!c)return;
     const s=sessionFromButton(btn,c);if(!s)return;
-    const r=requestForSession(c,s,dlg);if(!r||r.payment?.mode!=='session')return;
+    const r=requestForSession(c,s,dlg);
 
     e.preventDefault();
     e.stopPropagation();
@@ -87,16 +90,20 @@
 
     sp.paid=next;
     sp.amount=amount;
-    sp.requestId=r.id;
-    s.requestId=r.id;
+    if(r?.id){
+      sp.requestId=r.id;
+      s.requestId=r.id;
+    }
     sp.manualAmount=false;
 
     if(next){
       sp.paidAt=today();
       sp.sessionDate=dlg.querySelector('.session-edit-grid input[type="date"]')?.value||s.date||today();
-      sp.baseAmount=num(r.payment?.sessionAmount)||amount;
-      sp.discountSnapshot=Math.min(100,Math.max(0,num(r.payment?.sessionDiscount)));
-      sp.priceSnapshot=true;
+      if(r){
+        sp.baseAmount=num(r.payment?.sessionAmount)||amount;
+        sp.discountSnapshot=Math.min(100,Math.max(0,num(r.payment?.sessionDiscount)));
+        sp.priceSnapshot=true;
+      }
     }else{
       delete sp.paidAt;
       delete sp.sessionDate;
@@ -107,7 +114,7 @@
 
     if(typeof save==='function')save();
     paint(btn,next,amount);
-    hideLegacyControl(dlg,r);
+    hideLegacyControl(dlg);
 
     try{window.DiagnostikaSessionPaymentUiSync?.refresh?.();}catch(_){}
     try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
@@ -117,6 +124,7 @@
 
     setTimeout(syncOpenDialogs,0);
     setTimeout(syncOpenDialogs,120);
+    setTimeout(syncOpenDialogs,500);
   },true);
 
   const observer=new MutationObserver(()=>requestAnimationFrame(syncOpenDialogs));
