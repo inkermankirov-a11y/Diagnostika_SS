@@ -22,44 +22,77 @@
   function activeRequest(c){
     const requests=Array.isArray(c?.requests)?c.requests:[];
     if(!requests.length)return null;
+
     try{
-      const fromModule=window.DiagnostikaRequests?.current?.(c);
-      if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
+      if(typeof clientId!=='undefined'&&String(c?.id)===String(clientId)&&typeof requestId!=='undefined'&&requestId){
+        const selected=requests.find(r=>String(r.id)===String(requestId));
+        if(selected)return selected;
+      }
     }catch(_){}
-    return requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
-      ||requests.find(r=>String(r.id)===String(c?.activeRequestId||''))
-      ||requests[requests.length-1]
-      ||null;
+
+    const remembered=requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
+      ||requests.find(r=>String(r.id)===String(c?.activeRequestId||''));
+    if(remembered)return remembered;
+
+    return requests[0]||null;
   }
 
-  function fullRequestHasDebt(r){
+  function sessionsFor(c,r){
+    const rid=String(r?.id||'');
+    if(!rid)return[];
+    return (Array.isArray(c?.sessions)?c.sessions:[]).filter(s=>String(s?.requestId||s?.payment?.requestId||'')===rid);
+  }
+
+  function fallbackPaidTotal(c,r){
     const p=r?.payment||{};
-    if(p.mode!=='full')return false;
-    const total=Math.max(0,num(p.total));
-    if(total<=0)return false;
-    const paid=(Array.isArray(p.payments)?p.payments:[]).reduce((sum,x)=>sum+Math.max(0,num(x?.amount)),0);
-    return paid+0.000001<total;
+    const paidSessions=sessionsFor(c,r).filter(s=>s?.payment?.paid===true&&num(s?.payment?.amount)>0);
+    const paidSessionIds=new Set(paidSessions.map(s=>String(s?.id||'')).filter(Boolean));
+
+    const direct=(Array.isArray(p.payments)?p.payments:[]).reduce((sum,pay)=>{
+      const amount=num(pay?.amount);
+      if(amount<=0)return sum;
+      if(pay?.sessionId&&paidSessionIds.has(String(pay.sessionId)))return sum;
+      return sum+amount;
+    },0);
+    const sessionTotal=paidSessions.reduce((sum,s)=>sum+num(s?.payment?.amount),0);
+    return direct+sessionTotal;
   }
 
-  function sessionRequestHasDebt(c,r){
-    if(r?.payment?.mode!=='session')return false;
-    const rid=String(r.id||'');
-    if(!rid)return false;
-    const sessions=Array.isArray(c?.sessions)?c.sessions:[];
-    return sessions.some(s=>{
-      const sid=String(s?.requestId||s?.payment?.requestId||'');
-      return sid===rid&&s?.payment?.paid!==true;
-    });
+  function paidTotal(c,r){
+    try{
+      const fn=window.DiagnostikaPaymentConsistency?.paidTotalForRequest;
+      if(typeof fn==='function')return Math.max(0,num(fn(c,r)));
+    }catch(_){}
+    return Math.max(0,fallbackPaidTotal(c,r));
+  }
+
+  function requestHasDebt(c,r){
+    const p=r?.payment||{};
+    const mode=p.mode||'';
+
+    if(mode==='full'||mode==='parts'){
+      const total=Math.max(0,num(p.total));
+      if(total<=0)return false;
+      return paidTotal(c,r)+0.000001<total;
+    }
+
+    if(mode==='session'){
+      const sessions=sessionsFor(c,r);
+      if(!sessions.length)return false;
+      return sessions.some(s=>s?.payment?.paid!==true);
+    }
+
+    return false;
   }
 
   function clientHasDebt(c){
     const r=activeRequest(c);
-    if(!r)return false;
-    return fullRequestHasDebt(r)||sessionRequestHasDebt(c,r);
+    return !!(r&&requestHasDebt(c,r));
   }
 
   function syncFlags(){
     if(typeof state==='undefined'||!Array.isArray(state?.clients))return;
+
     document.querySelectorAll('.hd-client-more').forEach(btn=>btn.remove());
 
     document.querySelectorAll('.hd-client-row[data-id]').forEach(row=>{
@@ -74,34 +107,48 @@
       const flag=document.createElement('span');
       flag.className='hd-unpaid-flag';
       flag.textContent='⚑';
-      flag.setAttribute('aria-label','Есть задолженность по текущему запросу');
-      flag.title='Есть задолженность по текущему запросу';
+      flag.setAttribute('aria-label','Есть непогашенный долг по текущему запросу');
+      flag.title='Есть непогашенный долг по текущему запросу';
       tools.appendChild(flag);
     });
   }
 
   let queued=false;
-  const queue=()=>{
+  function queue(){
     if(queued)return;
     queued=true;
     requestAnimationFrame(()=>{queued=false;syncFlags();});
-  };
+  }
 
   const mo=new MutationObserver(queue);
   mo.observe(document.body,{childList:true,subtree:true});
+
   document.addEventListener('click',e=>{
-    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete,.hd-client-row,#paymentSaveSettings,.session-payment-toggle-stable,.session-editor-payment-state'))setTimeout(syncFlags,0);
+    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete,.hd-client-row,#paymentSaveSettings,.session-payment-toggle-stable,.session-editor-payment-state')){
+      setTimeout(syncFlags,0);setTimeout(syncFlags,80);
+    }
   },true);
   document.addEventListener('input',e=>{
     if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
   },true);
   document.addEventListener('change',e=>{
-    if(e.target?.closest?.('.payment-dialog,dialog.session-edit-dialog'))setTimeout(syncFlags,0);
+    if(e.target?.id==='requestSelect'){
+      try{
+        const c=typeof client==='function'?client():null;
+        if(c&&e.target.value){c.currentRequestId=e.target.value;if(typeof save==='function')save();}
+      }catch(_){}
+    }
+    if(e.target?.closest?.('.payment-dialog,dialog.session-edit-dialog')||e.target?.id==='requestSelect'){
+      setTimeout(syncFlags,0);setTimeout(syncFlags,80);
+    }
   },true);
   document.addEventListener('close',e=>{
-    if(e.target?.matches?.('dialog.payment-dialog,dialog.session-edit-dialog'))setTimeout(syncFlags,0);
+    if(e.target?.matches?.('dialog.payment-dialog,dialog.session-edit-dialog')){
+      setTimeout(syncFlags,0);setTimeout(syncFlags,80);
+    }
   },true);
 
   setTimeout(syncFlags,0);
-  window.DiagnostikaClientPaymentFlags={refresh:syncFlags,hasDebt:clientHasDebt,activeRequest};
+  setTimeout(syncFlags,250);
+  window.DiagnostikaClientPaymentFlags={refresh:syncFlags,hasDebt:clientHasDebt,activeRequest,requestHasDebt,paidTotal};
 })();
