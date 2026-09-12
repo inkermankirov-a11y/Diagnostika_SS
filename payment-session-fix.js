@@ -3,6 +3,7 @@
 (() => {
   const currentClient=()=>typeof client==='function'?client():null;
   const currentRequest=c=>window.DiagnostikaRequests?.current?.(c)||c?.requests?.find(r=>r.id===c?.currentRequestId)||null;
+  const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const paymentOf=r=>{
     if(!r)return null;
     if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[]};
@@ -49,15 +50,16 @@
     if(mode==='session'){
       const base=dlg.querySelector('#sessionBasePrice')||dlg.querySelector('#sessionPrice');
       const discount=dlg.querySelector('#sessionDiscount');
-      if(base)p.sessionAmount=Math.max(0,Number(base.value)||0);
-      if(discount)p.sessionDiscount=Math.min(100,Math.max(0,Number(discount.value)||0));
+      if(base)p.sessionAmount=Math.max(0,num(base.value));
+      if(discount)p.sessionDiscount=Math.min(100,Math.max(0,num(discount.value)));
       p.total=0;
     }else{
-      p.total=Math.max(0,Number(dlg.querySelector('#paymentTotal')?.value)||0);
+      p.total=Math.max(0,num(dlg.querySelector('#paymentTotal')?.value));
     }
     if(typeof save==='function')save();
     try{window.DiagnostikaPayments?.refresh?.();}catch(e){}
     try{window.DiagnostikaSessionPayments?.refresh?.();}catch(e){}
+    try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(e){}
     renderFinal(dlg,p);
   }
 
