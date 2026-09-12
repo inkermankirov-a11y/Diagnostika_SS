@@ -30,7 +30,7 @@
   const add=section.querySelector('#hdAddSession');
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const getClient=()=>window.state?.clients?.find(c=>c.id===window.clientId)||null;
+  const getClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
 
   function requestName(c,id){
     if(!id) return 'Без связи с запросом';
@@ -39,10 +39,7 @@
 
   function render(){
     const c=getClient();
-    if(!c){
-      section.hidden=true;
-      return;
-    }
+    if(!c){section.hidden=true;return;}
     section.hidden=false;
     const sessions=Array.isArray(c.sessions)?c.sessions:[];
     count.textContent=sessions.length?`Всего: ${sessions.length}`:'Сессий пока нет';
@@ -72,30 +69,25 @@
 
   add.addEventListener('click',()=>{
     const oldAdd=document.getElementById('addSessionBtn');
-    if(oldAdd){
-      oldAdd.click();
-      setTimeout(render,0);
-    }
+    if(oldAdd){oldAdd.click();setTimeout(render,0);}
   });
 
   document.addEventListener('click',e=>{
     if(e.target.closest('.hd-client-row,.hd-add-client')) setTimeout(render,20);
   },true);
 
-  const oldRenderClient=window.renderClient;
-  if(typeof oldRenderClient==='function'&&!oldRenderClient.__hdSessionsPatched){
-    const wrapped=function(){
-      const out=oldRenderClient.apply(this,arguments);
-      setTimeout(render,0);
-      return out;
-    };
-    wrapped.__hdSessionsPatched=true;
-    window.renderClient=wrapped;
+  if(typeof renderClient==='function'){
+    const prev=renderClient;
+    if(!prev.__hdSessionsPatched){
+      const wrapped=function(){const out=prev.apply(this,arguments);setTimeout(render,0);return out;};
+      wrapped.__hdSessionsPatched=true;
+      renderClient=wrapped;
+    }
   }
 
   const style=document.createElement('style');
   style.textContent=`
-    .hd-sessions-section{width:min(760px,100%);margin-top:30px;text-align:left;border-top:1px solid #dbe7f4;padding-top:22px}
+    .hd-sessions-section{width:min(760px,100%);margin-top:26px;text-align:left;border-top:1px solid #dbe7f4;padding-top:20px}
     .hd-sessions-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
     .hd-sessions-title{font-size:20px;font-weight:800;color:#132747}
     .hd-sessions-count{margin-top:3px;font-size:12px;color:#8a9bb4}
@@ -112,6 +104,5 @@
     @media(max-width:820px){.hd-sessions-head{align-items:stretch;flex-direction:column}.hd-add-session{width:100%}}
   `;
   document.head.appendChild(style);
-
   render();
 })();
