@@ -38,6 +38,8 @@
 .hd-client-more{border:0;background:transparent;color:#46617e;font-size:22px;line-height:1;padding:5px;cursor:pointer}
 .hd-unpaid-flag{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;color:#dc2626;background:#fff1f1;border:1px solid #f0aaaa;font-size:16px;line-height:1;pointer-events:none;box-shadow:0 2px 6px rgba(220,38,38,.18);animation:hdUnpaidPulse 1.15s ease-in-out infinite;transform-origin:center}
 @keyframes hdUnpaidPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,.08)}50%{transform:scale(1.08);box-shadow:0 0 0 5px rgba(220,38,38,.14)}}
+.hd-new-client-dot{width:10px;height:10px;border-radius:50%;display:block;background:#22c55e;border:2px solid #fff;box-shadow:0 0 0 1px #86dca7,0 0 0 0 rgba(34,197,94,.18);cursor:help;animation:hdNewClientPulse 1.25s ease-in-out infinite;flex:0 0 auto}
+@keyframes hdNewClientPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 1px #86dca7,0 0 0 0 rgba(34,197,94,.12)}50%{transform:scale(1.14);box-shadow:0 0 0 1px #69cf91,0 0 0 5px rgba(34,197,94,.16)}}
 .hd-client-count{padding:10px 5px 0;color:#8da0bb;font-size:12px}
 .hd-empty-list{padding:22px 10px;text-align:center;color:#8a9ab3;font-size:13px}
 
