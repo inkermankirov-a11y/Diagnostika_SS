@@ -112,12 +112,8 @@
   }
 
   function addClient(){
-    if(window.DiagnostikaClientCard?.openNew){
-      window.DiagnostikaClientCard.openNew();
-      return;
-    }
-    const btn=document.getElementById('addClientBtn');
-    if(btn) btn.click();
+    if(window.DiagnostikaClientCard?.openNew){window.DiagnostikaClientCard.openNew();return;}
+    document.getElementById('addClientBtn')?.click();
   }
 
   function openDiagnosis(){
@@ -134,7 +130,7 @@
       return [c.name,c.city,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(q));
     });
     list.innerHTML='';
-    if(!clients.length){list.innerHTML='<div class="hd-empty-list">Ничего не найдено</div>';}
+    if(!clients.length) list.innerHTML='<div class="hd-empty-list">Ничего не найдено</div>';
     clients.forEach(c=>{
       const row=document.createElement('div');
       row.className='hd-client-row'+(c.id===clientId?' active':'');
@@ -177,8 +173,15 @@
 
     const currentReq=(c.requests||[]).find(r=>r.id===requestId)||(c.requests||[])[0];
     const lastSession=(c.sessions||[]).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
-    const items=[['Текущий запрос',currentReq?.title||'Не указан'],['Сессии',String((c.sessions||[]).length)],['Последняя сессия',lastSession?.date||'—']];
-    summary.innerHTML=items.map(([a,b])=>`<div class="hd-summary-box"><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
+    const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
+    const desiredResult=desiredResults.length?desiredResults[desiredResults.length-1]:'Не указан';
+    const items=[
+      ['Текущий запрос',currentReq?.title||'Не указан','wide'],
+      ['Сессии',String((c.sessions||[]).length),''],
+      ['Последняя сессия',lastSession?.date||'—',''],
+      ['Желаемый итог',desiredResult,'wide']
+    ];
+    summary.innerHTML=items.map(([a,b,cls])=>`<div class="hd-summary-box ${cls==='wide'?'hd-summary-wide':''}"><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
     summary.hidden=false;
   }
 
