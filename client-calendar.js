@@ -8,7 +8,7 @@
   const pad=n=>String(n).padStart(2,'0');
   const iso=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
   const todayIso=()=>{const d=new Date();return iso(d.getFullYear(),d.getMonth(),d.getDate());};
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
 
   const style=document.createElement('style');
   style.textContent=`
@@ -27,7 +27,7 @@
     .cal-side-title{font-size:15px;font-weight:900;margin-bottom:4px}.cal-selected-date{font-size:12px;color:#64748b;margin-bottom:10px}.cal-events{display:grid;gap:7px;max-height:300px;overflow:auto;margin-bottom:12px}.cal-empty{padding:14px;border:1px dashed #d6dee8;border-radius:10px;text-align:center;color:#94a3b8;font-size:12px}.cal-event{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:start;padding:9px;border:1px solid #e0e7ef;border-radius:10px;background:#f8fafc}.cal-event-time{font-size:12px;font-weight:900;color:#334155}.cal-event-title{font-size:12px;font-weight:900;color:#1e293b}.cal-event-meta{font-size:10px;color:#64748b;margin-top:2px}.cal-delete{width:28px;height:28px!important;padding:0!important;font-size:13px!important;color:#b42318!important}
     .cal-form{border-top:1px solid #e2e8f0;padding-top:12px}.cal-form-title{font-size:13px;font-weight:900;margin-bottom:8px}.cal-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cal-form label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#64748b}.cal-form input,.cal-form select,.cal-form textarea{width:100%;box-sizing:border-box;border:1px solid #c6d2df;border-radius:8px;background:#fff;padding:0 9px;font:600 12px 'Segoe UI',Arial,sans-serif;color:#243447}.cal-form input,.cal-form select{height:36px}.cal-form textarea{min-height:64px;padding-top:8px;resize:vertical}.cal-span2{grid-column:1/-1}.cal-save{width:100%;margin-top:9px;height:38px!important;background:linear-gradient(#48a873,#278656)!important;color:#fff!important;font-weight:900!important}
     @media(max-width:820px){.cal-layout{grid-template-columns:1fr}.cal-day{min-height:76px}.cal-panel{padding:12px}.cal-toolbar{grid-template-columns:1fr}.cal-month-title{order:-1}.cal-nav{justify-content:center}.cal-today{justify-self:center}}
-    @media(max-width:560px){.cal-overlay{place-items:end center;padding:0}.cal-panel{width:100%;max-height:94dvh;border-radius:18px 18px 0 0}.cal-grid,.cal-week{gap:3px}.cal-day{min-height:62px;padding:4px}.cal-chip{display:none}.cal-more{display:none}.cal-num{width:24px;height:24px}.cal-day-events:has(.cal-chip)::after{content:'•';font-size:20px;line-height:10px;color:#2f80ed;text-align:center}.cal-form-grid{grid-template-columns:1fr}.cal-span2{grid-column:auto}}
+    @media(max-width:560px){.cal-overlay{place-items:end center;padding:0}.cal-panel{width:100%;max-height:94dvh;border-radius:18px 18px 0 0}.cal-grid,.cal-week{gap:3px}.cal-day{min-height:62px;padding:4px}.cal-chip{display:none}.cal-more{display:none}.cal-num{width:24px;height:24px}.cal-form-grid{grid-template-columns:1fr}.cal-span2{grid-column:auto}}
   `;
   document.head.appendChild(style);
 
@@ -81,11 +81,18 @@
   let cursor=new Date(); cursor.setDate(1);
   let selected=todayIso();
 
-  function clients(){return Array.isArray(window.state?.clients)?window.state.clients:[];}
+  function getState(){
+    try{return typeof state!=='undefined'?state:null;}catch(_){return null;}
+  }
+  function clients(){
+    const st=getState();
+    return Array.isArray(st?.clients)?st.clients:[];
+  }
   function customEvents(){
-    if(!window.state) return [];
-    if(!Array.isArray(state.calendarEvents)) state.calendarEvents=[];
-    return state.calendarEvents;
+    const st=getState();
+    if(!st)return [];
+    if(!Array.isArray(st.calendarEvents))st.calendarEvents=[];
+    return st.calendarEvents;
   }
   function requestName(c,s){
     const rid=s?.payment?.requestId||s?.requestId||'';
@@ -96,7 +103,7 @@
     const out=[];
     clients().forEach(c=>{
       (c.sessions||[]).forEach((s,i)=>{
-        if(!s?.date) return;
+        if(!s?.date)return;
         out.push({id:`session:${c.id}:${s.id||i}`,kind:'session',date:String(s.date).slice(0,10),time:s.time||s.startTime||'',title:`Сессия №${s.number||i+1}`,clientId:c.id,clientName:c.name||'Без имени',meta:requestName(c,s)});
       });
     });
@@ -112,7 +119,7 @@
   function fillClientOptions(){
     const current=currentClientId();
     clientSelect.innerHTML='<option value="">— Без клиента —</option>'+clients().map(c=>`<option value="${esc(c.id)}">${esc(c.name||'Без имени')}</option>`).join('');
-    if(current&&clients().some(c=>String(c.id)===String(current))) clientSelect.value=String(current);
+    if(current&&clients().some(c=>String(c.id)===String(current)))clientSelect.value=String(current);
   }
   function humanDate(date){
     const d=new Date(date+'T12:00:00');
@@ -130,11 +137,11 @@
       row.className='cal-event';
       const meta=[e.clientName,e.meta,e.note].filter(Boolean).join(' • ');
       row.innerHTML=`<div class="cal-event-time">${esc(e.time||'—')}</div><div><div class="cal-event-title">${esc(e.title||e.type||'Запись')}</div><div class="cal-event-meta">${esc(meta)}</div></div>${e.kind==='manual'?'<button type="button" class="tk-btn cal-delete" title="Удалить">×</button>':''}`;
-      if(e.kind==='manual') row.querySelector('.cal-delete').onclick=()=>{
+      if(e.kind==='manual')row.querySelector('.cal-delete').onclick=()=>{
         const arr=customEvents();
         const idx=arr.findIndex(x=>String(x.id)===String(e.id));
-        if(idx>=0) arr.splice(idx,1);
-        if(typeof save==='function') save();
+        if(idx>=0)arr.splice(idx,1);
+        if(typeof save==='function')save();
         render();
       };
       eventsBox.appendChild(row);
@@ -158,7 +165,7 @@
       cell.className='cal-day'+(d.getMonth()!==m?' out':'')+(ds===selected?' selected':'')+(ds===today?' today':'')+(weekend?' cal-day-weekend':'');
       const chips=evs.slice(0,2).map(e=>`<div class="cal-chip ${e.kind==='manual'?'manual':''}">${esc((e.time?e.time+' ':'')+(e.clientName||e.title||''))}</div>`).join('');
       cell.innerHTML=`<div class="cal-num">${d.getDate()}</div><div class="cal-day-events">${chips}${evs.length>2?`<div class="cal-more">ещё ${evs.length-2}</div>`:''}</div>`;
-      cell.onclick=()=>{selected=ds;if(d.getMonth()!==m){cursor=new Date(d.getFullYear(),d.getMonth(),1);}render();};
+      cell.onclick=()=>{selected=ds;if(d.getMonth()!==m)cursor=new Date(d.getFullYear(),d.getMonth(),1);render();};
       grid.appendChild(cell);
     }
   }
@@ -190,7 +197,7 @@
     const note=noteInput.value.trim();
     const item={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,createdAt:new Date().toISOString()};
     customEvents().push(item);
-    if(typeof save==='function') save();
+    if(typeof save==='function')save();
     noteInput.value='';
     selected=date;
     const d=new Date(date+'T12:00:00');cursor=new Date(d.getFullYear(),d.getMonth(),1);
