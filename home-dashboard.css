@@ -12,7 +12,6 @@
   --hd-yellow:#fff8e8;
 }
 
-/* Client data is autosaved; the manual button is intentionally hidden. */
 #saveClientBtn{display:none!important}
 
 .home-dashboard{display:grid;grid-template-columns:320px minmax(520px,1fr) 350px;gap:14px;padding:14px 18px 18px;background:var(--hd-bg);min-height:calc(100vh - 78px);box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
@@ -41,7 +40,9 @@
 
 .hd-main{min-height:calc(100vh - 108px);display:flex;flex-direction:column;overflow:hidden}
 .hd-main-inner{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:34px 50px;min-height:520px}
-.hd-hero-icon{width:150px;height:118px;position:relative;margin-bottom:24px}
+.hd-hero-icon{width:150px;height:118px;position:relative;margin-bottom:24px;display:grid;place-items:center}
+.hd-hero-icon.has-photo{width:132px;height:132px;margin-bottom:20px;border-radius:50%;overflow:hidden;border:5px solid #fff;box-shadow:0 10px 28px rgba(35,78,130,.18),0 0 0 1px #dbe7f4;background:#eef4fb}
+.hd-hero-photo{width:100%;height:100%;display:block;object-fit:cover}
 .hd-hero-cloud{position:absolute;inset:28px 12px 12px;border-radius:62px;background:linear-gradient(145deg,#f0f6ff,#e2edfc)}
 .hd-folder{position:absolute;width:94px;height:70px;left:28px;top:38px;border-radius:10px 13px 12px 12px;background:linear-gradient(180deg,#9bc1ff,#6da3f4);box-shadow:0 10px 26px rgba(59,130,246,.16)}
 .hd-folder:before{content:'';position:absolute;left:9px;top:-11px;width:39px;height:17px;border-radius:8px 8px 0 0;background:#8bb6fb}
@@ -67,7 +68,6 @@
 .hd-note-box{background:var(--hd-yellow);border:1px solid #f3dfad;border-radius:10px;padding:12px 13px;color:#65758d;font-size:13px;line-height:1.4;cursor:pointer}.hd-note-box:hover{filter:brightness(.99)}
 .hd-next-box{background:linear-gradient(135deg,#eefaf4,#f6fcf8);border-radius:10px;padding:13px;border:1px solid #d8f0e3;color:#61798e;font-size:13px;line-height:1.4}.hd-next-box strong{display:block;color:#2b405e;margin-bottom:4px}.hd-plan-btn{margin-top:10px;border:1px solid #bdd3ef;background:#fff;color:#2d6fda;border-radius:8px;height:36px;padding:0 15px;font-weight:800;cursor:pointer}
 
-/* Header closer to the approved mockup. Existing weather/currency/notes/settings controls are preserved. */
 .app-header{background:#f8fbff!important;border-bottom:1px solid #e1eaf5!important;box-shadow:0 2px 12px rgba(45,79,120,.05)!important;padding-left:24px!important;padding-right:22px!important;min-height:76px!important}
 .app-header h1{color:#0c2045!important;font-size:28px!important;letter-spacing:-.4px;display:flex;align-items:center;gap:11px}.app-header h1:before{content:'Ψ';display:grid;place-items:center;width:42px;height:42px;border-radius:13px;color:#327bf2;background:#e9f2ff;font-family:Georgia,serif;font-size:31px;font-weight:700}
 .header-btn,.quick-notes-btn,.settings-btn,.header-utility-btn{border-radius:9px!important}
