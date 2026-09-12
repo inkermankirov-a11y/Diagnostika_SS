@@ -33,6 +33,17 @@
     return Math.max(0,Math.round(base*(1-discount/100)*100)/100);
   }
 
+  function legacyPaidCheckbox(dlg){
+    return dlg?.querySelector('.session-payment-field input[type="checkbox"]')
+      || dlg?.querySelector('.session-payment-paid input[type="checkbox"]')
+      || null;
+  }
+
+  function legacyAmountInput(dlg){
+    const field=dlg?.querySelector('.session-payment-field');
+    return field?.querySelector('input[type="number"]')||null;
+  }
+
   function ensureSessionSnapshot(dlg){
     if(!dlg||dlg.__saveGuardSessionSnapshot)return;
     const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
@@ -47,17 +58,27 @@
   }
 
   function paintSessionPayment(dlg){
-    const btn=dlg?.querySelector('.session-editor-payment-state');if(!btn)return;
     ensureSessionSnapshot(dlg);
     const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
     const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
     const req=c.requests?.find(r=>r.id===reqId)||null;
     const amount=effectiveSessionPrice(req)||(Number(s.payment?.amount)||0);
     const paid=dlg.dataset.saveGuardPaymentDraft==='1';
-    btn.classList.toggle('paid',paid);
-    btn.classList.toggle('unpaid',!paid);
-    btn.textContent=paid?'✓ Оплачено':'Не оплачено';
-    btn.title=paid?`Оплачено ${amount||0} ₽`:`Не оплачено${amount?` · ${amount} ₽`:''}`;
+
+    const btn=dlg.querySelector('.session-editor-payment-state');
+    if(btn){
+      btn.classList.toggle('paid',paid);
+      btn.classList.toggle('unpaid',!paid);
+      btn.textContent=paid?'✓ Оплачено':'Не оплачено';
+      btn.title=paid?`Оплачено ${amount||0} ₽`:`Не оплачено${amount?` · ${amount} ₽`:''}`;
+    }
+
+    // В старом редакторе оплаты есть отдельный чекбокс. Он обязан всегда
+    // совпадать с верхней кнопкой, иначе старый обработчик перезаписывает статус.
+    const checkbox=legacyPaidCheckbox(dlg);
+    if(checkbox) checkbox.checked=paid;
+    const amountInput=legacyAmountInput(dlg);
+    if(amountInput&&amount>0&&!amountInput.matches(':focus')) amountInput.value=String(amount);
   }
 
   function commitSessionPayment(dlg){
@@ -65,12 +86,17 @@
     const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
     const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
     const req=c.requests?.find(r=>r.id===reqId)||null;
-    const amount=effectiveSessionPrice(req)||(Number(s.payment?.amount)||0);
+    const amountFromField=Math.max(0,Number(legacyAmountInput(dlg)?.value)||0);
+    const amount=amountFromField||effectiveSessionPrice(req)||(Number(s.payment?.amount)||0);
     const paid=dlg.dataset.saveGuardPaymentDraft==='1';
+
+    const checkbox=legacyPaidCheckbox(dlg);
+    if(checkbox) checkbox.checked=paid;
+
     if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
     s.payment.paid=paid;
     s.payment.amount=amount;
-    s.payment.manualAmount=false;
+    s.payment.manualAmount=amountFromField>0;
     s.payment.receiptUrl='';
     if(reqId){s.payment.requestId=reqId;s.requestId=reqId;}
     if(paid){
@@ -91,6 +117,8 @@
     const c=currentClient(),s=sessionFromDialog(dlg,c),snap=dlg?.__saveGuardSessionSnapshot;
     if(!s||!snap)return;
     if(snap.payment===null)delete s.payment;else s.payment=clone(snap.payment);
+    dlg.dataset.saveGuardPaymentDraft=s.payment?.paid?'1':'0';
+    paintSessionPayment(dlg);
     if(typeof save==='function')save();
   }
 
@@ -149,7 +177,10 @@
     const sessionSave=target?.closest?.('dialog.session-edit-dialog .session-edit-actions .primary');
     if(sessionSave){
       const dlg=sessionSave.closest('dialog.session-edit-dialog');
-      if(dlg)commitSessionPayment(dlg);
+      if(dlg){
+        paintSessionPayment(dlg);
+        commitSessionPayment(dlg);
+      }
       return;
     }
 
@@ -158,9 +189,11 @@
       e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
       const yes=await askSave('Сохранить изменения сессии?');
       if(yes){
+        paintSessionPayment(sdlg);
+        commitSessionPayment(sdlg);
         const btn=sdlg.querySelector('.session-edit-actions .primary');
         if(btn){btn.click();return;}
-        commitSessionPayment(sdlg);
+        try{sdlg.close();}catch(_){}
       }else{
         discardSessionDraft(sdlg);
         try{sdlg.close();}catch(_){}
@@ -205,7 +238,19 @@
 
   window.addEventListener('change',e=>{
     const sdlg=e.target?.closest?.('dialog.session-edit-dialog');
-    if(sdlg){markSessionDirty(sdlg);return;}
+    if(sdlg){
+      const checkbox=legacyPaidCheckbox(sdlg);
+      if(checkbox&&e.target===checkbox){
+        e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+        ensureSessionSnapshot(sdlg);
+        sdlg.dataset.saveGuardPaymentDraft=checkbox.checked?'1':'0';
+        markSessionDirty(sdlg);
+        paintSessionPayment(sdlg);
+        return;
+      }
+      markSessionDirty(sdlg);
+      return;
+    }
     const pdlg=e.target?.closest?.('dialog.payment-dialog');
     if(pdlg)markPaymentDirty(pdlg);
   },true);
