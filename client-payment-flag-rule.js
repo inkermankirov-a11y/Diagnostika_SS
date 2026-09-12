@@ -3,6 +3,23 @@
 (() => {
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
 
+  // Финальная локальная правка строки истории платежей: общие стили кнопки удаления
+  // больше не могут вытолкнуть её на отдельную строку.
+  const style=document.createElement('style');
+  style.textContent=`
+    .payment-dialog .payment-row{grid-template-columns:100px 110px minmax(130px,1fr) minmax(130px,1fr) 155px!important;align-items:center!important;overflow:visible!important}
+    .payment-dialog .payment-row-actions{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;min-width:155px!important;width:155px!important;grid-column:auto!important}
+    .payment-dialog .payment-row-actions .pr-save,
+    .payment-dialog .payment-row-actions .pr-delete{position:static!important;inset:auto!important;float:none!important;margin:0!important;transform:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;height:32px!important;min-height:32px!important;box-sizing:border-box!important;padding:5px 9px!important;font-size:11px!important;line-height:1!important}
+    .payment-dialog .payment-row-actions .pr-save{min-width:76px!important}
+    .payment-dialog .payment-row-actions .pr-delete{min-width:70px!important}
+    @media(max-width:760px){
+      .payment-dialog .payment-row{grid-template-columns:1fr 1fr!important}
+      .payment-dialog .payment-row-actions{grid-column:1/-1!important;width:100%!important;min-width:0!important;justify-content:flex-end!important}
+    }
+  `;
+  document.head.appendChild(style);
+
   function requestHasDebt(c,r){
     const p=r?.payment||{};
     const mode=p.mode||'';
