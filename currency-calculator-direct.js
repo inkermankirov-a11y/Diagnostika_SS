@@ -22,7 +22,8 @@
     .ccd-title{font-size:13px;font-weight:900;color:#475569;margin:0 0 8px;text-align:center}
     .ccd-shell{width:min(430px,100%);margin:0 auto;padding:18px 17px 17px;border-radius:25px;background:linear-gradient(180deg,#5a5d61 0%,#3d4044 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 9px 22px rgba(15,23,42,.24);box-sizing:border-box}
     .ccd-screen-wrap{position:relative;margin-bottom:12px}
-    .ccd-screen{display:block;width:100%;height:72px;box-sizing:border-box;border:2px solid #aeb7c2;border-radius:8px;background:linear-gradient(180deg,#dbe3ec,#c6d0dc);box-shadow:inset 0 2px 6px rgba(15,23,42,.18);padding:7px 12px 5px;color:#111;font-family:'Courier New',monospace;font-size:38px;font-weight:700;line-height:1;text-align:right;outline:none;overflow:hidden}
+    .ccd-screen{display:block;width:100%;height:72px;box-sizing:border-box;border:2px solid #aeb7c2;border-radius:8px;background:linear-gradient(180deg,#dbe3ec,#c6d0dc);box-shadow:inset 0 2px 6px rgba(15,23,42,.18);padding:7px 12px 5px;color:#111;font-family:'Courier New',monospace;font-size:38px;font-weight:700;line-height:1;text-align:right;outline:none;overflow:hidden;caret-color:transparent;user-select:none;-webkit-user-select:none;cursor:default;pointer-events:none}
+    .ccd-screen::selection{background:transparent;color:#111}.ccd-screen::-moz-selection{background:transparent;color:#111}
     .ccd-memory-indicator{position:absolute;left:11px;top:8px;font:700 11px/1 'Segoe UI',Arial,sans-serif;color:#536273;opacity:.85}
     .ccd-memory,.ccd-functions{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:8px}
     .ccd-memory button,.ccd-functions button{height:32px!important;min-width:0!important;padding:0 3px!important;border:0!important;border-radius:6px!important;background:linear-gradient(180deg,#777b80,#62666b)!important;color:#fff!important;font-size:11px!important;font-weight:800!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 1px 2px rgba(0,0,0,.2)!important}
@@ -63,7 +64,7 @@
       <div class="ccd-shell">
         <div class="ccd-screen-wrap">
           <span class="ccd-memory-indicator"></span>
-          <input class="ccd-screen" inputmode="decimal" autocomplete="off" value="0" aria-label="${t.title}">
+          <input class="ccd-screen" inputmode="decimal" autocomplete="off" value="0" aria-label="${t.title}" readonly tabindex="-1">
         </div>
         <div class="ccd-memory">
           <button type="button" data-action="mc">MC</button>
@@ -182,7 +183,6 @@
       if(k)append(k);
     });
 
-    screen.addEventListener('focus',()=>screen.select());
     screen.addEventListener('keydown',e=>{
       if(e.key==='Enter'){e.preventDefault();calc(true);}
       if(e.key==='Escape'){screen.value='0';lastValue=0;justCalculated=false;parenOpen=false;}
