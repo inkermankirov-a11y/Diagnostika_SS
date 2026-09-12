@@ -75,6 +75,15 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const currentClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
 
+  function unpaidSessionCount(c){
+    if(!c||!Array.isArray(c.sessions))return 0;
+    return c.sessions.filter(s=>{
+      const r=(c.requests||[]).find(x=>x.id===s.requestId)||null;
+      if(r?.payment?.mode!=='session')return false;
+      return !s.payment?.paid;
+    }).length;
+  }
+
   function renderHeroVisual(c){
     heroIcon.innerHTML='';
     heroIcon.classList.remove('has-photo');
@@ -142,7 +151,9 @@
       row.className='hd-client-row'+(c.id===clientId?' active':'');
       row.dataset.id=c.id;
       const avatar=c.photoData?`<div class="hd-avatar"><img src="${esc(c.photoData)}" alt=""></div>`:`<div class="hd-avatar">${esc(initials(c.name))}</div>`;
-      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><button class="hd-client-more" type="button" title="База клиентов">⋮</button>`;
+      const unpaid=unpaidSessionCount(c);
+      const flag=unpaid?`<span class="hd-unpaid-flag" aria-label="Есть неоплаченные сессии" title="Есть неоплаченные сессии">⚑</span>`:'';
+      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools">${flag}<button class="hd-client-more" type="button" title="База клиентов">⋮</button></div>`;
       row.onclick=e=>{if(e.target.closest('.hd-client-more'))return;selectClient(c.id);};
       row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();selectClient(c.id);document.getElementById('clientBaseBtn')?.click();};
       list.appendChild(row);
@@ -213,6 +224,12 @@
     const prev=renderMode;
     renderMode=function(){const out=prev.apply(this,arguments);setTimeout(syncVisibility,0);return out;};
   }
+
+  document.addEventListener('close',e=>{
+    if(e.target?.matches?.('dialog.session-edit-dialog,dialog.payment-dialog'))setTimeout(renderClients,0);
+  },true);
+
+  window.DiagnostikaHomeDashboard={refresh,renderClients};
 
   const saveBtn=document.getElementById('saveClientBtn');
   if(saveBtn) saveBtn.hidden=true;
