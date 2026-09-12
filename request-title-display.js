@@ -76,7 +76,6 @@
     s.setAttribute(marker,'1');
     document.body.appendChild(s);
   }
-  loadOnce('currency-calculator-history.js?v=2','data-currency-calculator-direct');
   loadOnce('quick-notes.js?v=1','data-quick-notes-direct');
   loadOnce('session-payment-data-repair.js?v=20260912-56','data-session-payment-data-repair');
   loadOnce('session-payment-mode-rule.js?v=20260912-59','data-session-payment-mode-rule');
