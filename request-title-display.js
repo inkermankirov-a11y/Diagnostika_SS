@@ -80,17 +80,18 @@
   loadOnce('quick-notes.js?v=1','data-quick-notes-direct');
 })();
 
+// Main home screen redesign. Loaded last so it can reuse the existing application logic safely.
 (() => {
   if(!document.querySelector('link[data-home-dashboard]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
-    l.href='home-dashboard.css?v=20260912-38';
+    l.href='home-dashboard.css?v=20260912-37';
     l.setAttribute('data-home-dashboard','1');
     document.head.appendChild(l);
   }
   if(!document.querySelector('script[data-home-dashboard]')){
     const s=document.createElement('script');
-    s.src='home-dashboard.js?v=20260912-38';
+    s.src='home-dashboard.js?v=20260912-39';
     s.setAttribute('data-home-dashboard','1');
     s.onload=()=>{
       if(!document.querySelector('script[data-home-dashboard-sessions]')){
