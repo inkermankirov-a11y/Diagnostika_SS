@@ -5,16 +5,22 @@
   if(!headerButtons || document.querySelector('#settingsMenuBtn')) return;
 
   const LABELS={
-    ru:{settings:'Настройки',close:'Закрыть настройки'},
-    en:{settings:'Settings',close:'Close settings'},
-    fr:{settings:'Paramètres',close:'Fermer les paramètres'},
-    de:{settings:'Einstellungen',close:'Einstellungen schließen'},
-    it:{settings:'Impostazioni',close:'Chiudi impostazioni'}
+    ru:{settings:'Настройки',close:'Закрыть настройки',clients:'Клиенты'},
+    en:{settings:'Settings',close:'Close settings',clients:'Clients'},
+    fr:{settings:'Paramètres',close:'Fermer les paramètres',clients:'Clients'},
+    de:{settings:'Einstellungen',close:'Einstellungen schließen',clients:'Kunden'},
+    it:{settings:'Impostazioni',close:'Chiudi impostazioni',clients:'Clienti'}
   };
 
   const style=document.createElement('style');
   style.textContent=`
-    .header-buttons.settings-only{position:relative;display:flex!important;justify-content:flex-end!important;align-items:center!important;flex-wrap:nowrap!important}
+    .app-header{display:flex;align-items:center;gap:14px}
+    .header-title-group{display:flex;align-items:center;gap:14px;min-width:0;flex:1 1 auto}
+    .header-title-group h1{margin:0;white-space:nowrap}
+    .header-client-btn{height:42px;min-width:112px;padding:0 16px;border:1px solid #31506f;border-radius:10px;background:linear-gradient(#66809a,#47627c);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 9px rgba(30,41,59,.22);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease}
+    .header-client-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 14px rgba(30,41,59,.24)}
+    .header-client-btn:active{transform:translateY(1px)}
+    .header-buttons.settings-only{position:relative;display:flex!important;justify-content:flex-end!important;align-items:center!important;flex-wrap:nowrap!important;flex:0 0 auto;margin-left:auto}
     .settings-wrap{position:relative;display:flex;align-items:center}
     .settings-main-btn{height:42px;min-width:132px;padding:0 15px;border:1px solid #3d4f66;border-radius:10px;background:linear-gradient(#5d7188,#405268);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;box-shadow:0 3px 9px rgba(30,41,59,.24);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease}
     .settings-main-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 14px rgba(30,41,59,.25)}
@@ -33,8 +39,10 @@
     #testFillBtn,#exportTxtBtn{display:none!important}
     .utility-overlay[hidden]{display:none!important}
     @media(max-width:760px){
-      .app-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
-      .app-header h1{margin:0!important;min-width:0!important}
+      .app-header{align-items:center!important;gap:7px!important}
+      .header-title-group{gap:7px!important;min-width:0;flex:1 1 auto}
+      .header-title-group h1{font-size:18px!important;overflow:hidden;text-overflow:ellipsis}
+      .header-client-btn{height:42px;min-width:78px;padding:0 10px;font-size:12px}
       .header-buttons.settings-only{flex:0 0 auto!important}
       .settings-main-btn{min-width:46px!important;width:46px!important;height:42px!important;padding:0!important}
       .settings-main-btn .settings-label{display:none}
@@ -58,7 +66,21 @@
   const saveHistory=document.getElementById('saveHistoryBtn');
   if(saveHistory) saveHistory.remove();
 
-  const moveIds=['clientBaseBtn','storageBtn','testFillBtn','exportTxtBtn'];
+  const appHeader=document.querySelector('.app-header');
+  const title=appHeader?.querySelector('h1');
+  const clientBase=document.getElementById('clientBaseBtn');
+  if(appHeader&&title&&clientBase){
+    const titleGroup=document.createElement('div');
+    titleGroup.className='header-title-group';
+    appHeader.insertBefore(titleGroup,headerButtons);
+    titleGroup.appendChild(title);
+    clientBase.classList.remove('header-btn','client-base-inline');
+    clientBase.classList.add('header-client-btn');
+    clientBase.removeAttribute('style');
+    titleGroup.appendChild(clientBase);
+  }
+
+  const moveIds=['storageBtn','testFillBtn','exportTxtBtn'];
   moveIds.forEach(id=>{
     const el=document.getElementById(id);
     if(el){
@@ -84,6 +106,7 @@
     if(label) label.textContent=t.settings;
     btn.title=t.settings;
     btn.setAttribute('aria-label',wrap.classList.contains('open')?t.close:t.settings);
+    if(clientBase){clientBase.textContent=t.clients;clientBase.title=t.clients;}
   }
   function setOpen(open){
     wrap.classList.toggle('open',open);
