@@ -36,6 +36,56 @@
     return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0;
   }
 
+  function tryJson(value){
+    if(typeof value!=='string')return value;
+    const text=value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/i,'').trim();
+    if(!text)return {};
+    try{return JSON.parse(text);}catch(_){return value;}
+  }
+
+  function extractOpenAIText(obj){
+    if(!obj||typeof obj!=='object')return '';
+    if(typeof obj.output_text==='string'&&obj.output_text.trim())return obj.output_text.trim();
+    let text='';
+    if(Array.isArray(obj.output)){
+      for(const item of obj.output){
+        if(!Array.isArray(item?.content))continue;
+        for(const part of item.content){
+          if(part?.type==='output_text'&&part?.text)text+=String(part.text);
+        }
+      }
+    }
+    return text.trim();
+  }
+
+  function unwrap(out){
+    out=tryJson(out);
+    for(let i=0;i<6;i++){
+      if(Array.isArray(out)){
+        out=out[0]??{};
+        out=tryJson(out);
+        continue;
+      }
+      if(!out||typeof out!=='object')break;
+
+      if(out.mainRequest||out.main_request||out.shortRequests||out.short_requests)break;
+
+      const aiText=extractOpenAIText(out);
+      if(aiText){
+        const parsed=tryJson(aiText);
+        if(parsed!==aiText){out=parsed;continue;}
+      }
+
+      if(out.body!==undefined){out=tryJson(out.body);continue;}
+      if(out.data!==undefined){out=tryJson(out.data);continue;}
+      if(out.result!==undefined){out=tryJson(out.result);continue;}
+      if(out.response!==undefined){out=tryJson(out.response);continue;}
+      if(out.json!==undefined){out=tryJson(out.json);continue;}
+      break;
+    }
+    return out;
+  }
+
   function normalizeShortRequests(out){
     let raw=Array.isArray(out?.shortRequests)?out.shortRequests:
       Array.isArray(out?.short_requests)?out.short_requests:
@@ -60,18 +110,21 @@
     return one?[one]:[];
   }
 
-  function normalize(out){
+  function normalize(raw){
+    let out=unwrap(raw);
     if(typeof out==='string'){
-      try{out=JSON.parse(out);}catch(_){return {mainRequest:out,shortRequests:[],rationale:'',desiredResult:'',clarifyingQuestions:[],situations:[]};}
+      return {mainRequest:out.trim(),shortRequests:[],rationale:'',desiredResult:'',clarifyingQuestions:[],situations:[],_raw:raw};
     }
     out=out&&typeof out==='object'?out:{};
     return {
-      mainRequest:String(out.mainRequest||out.main_request||'').trim(),
+      mainRequest:String(out.mainRequest||out.main_request||out.request||out.main||'').trim(),
       shortRequests:normalizeShortRequests(out),
       rationale:String(out.rationale||out.reasoning||out.analysis||out.explanation||'').trim(),
-      desiredResult:String(out.desiredResult||out.desired_result||'').trim(),
+      desiredResult:String(out.desiredResult||out.desired_result||out.resultGoal||out.goal||'').trim(),
       clarifyingQuestions:normalizeStringArray(out.clarifyingQuestions||out.clarifying_questions||out.clarifyingQuestion||out.clarifying_question),
-      situations:normalizeStringArray(out.situations)
+      situations:normalizeStringArray(out.situations||out.scenarios),
+      _raw:raw,
+      _unwrapped:out
     };
   }
 
@@ -127,11 +180,16 @@
     }
 
     let data;
-    try{data=text?JSON.parse(text):{};}catch(_){data={mainRequest:text};}
-    if(data&&typeof data==='object'&&data.error)throw new Error(String(data.error));
+    try{data=text?JSON.parse(text):{};}catch(_){data=text;}
+    if(data&&typeof data==='object'&&!Array.isArray(data)&&data.error)throw new Error(String(data.error));
 
     const result=normalize(data);
-    if(!result.mainRequest)throw new Error('ИИ не вернул развёрнутый основной запрос');
+    if(!result.mainRequest){
+      const shape=result._unwrapped&&typeof result._unwrapped==='object'
+        ?Object.keys(result._unwrapped).slice(0,12).join(', ')
+        :typeof result._unwrapped;
+      throw new Error(`ИИ ответил, но mainRequest не найден. Поля ответа: ${shape||'пусто'}`);
+    }
     return result;
   }
 
