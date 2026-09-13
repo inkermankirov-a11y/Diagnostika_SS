@@ -8,9 +8,10 @@
   style.textContent=`
     .ai-processing-overlay{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.46);backdrop-filter:blur(5px)}
     .ai-processing-overlay.show{display:flex}
-    .ai-processing-card{width:min(440px,calc(100vw - 32px));background:#fff;border:1px solid #d9e2ec;border-radius:16px;box-shadow:0 28px 80px rgba(15,23,42,.36);padding:22px;box-sizing:border-box;text-align:center;color:#25364a}
+    .ai-processing-card{width:min(470px,calc(100vw - 32px));background:#fff;border:1px solid #d9e2ec;border-radius:16px;box-shadow:0 28px 80px rgba(15,23,42,.36);padding:22px;box-sizing:border-box;text-align:center;color:#25364a}
     .ai-processing-spinner{width:54px;height:54px;margin:0 auto 14px;border-radius:50%;border:5px solid #dfe9f6;border-top-color:#2f7fe9;animation:aiProcessingSpin .85s linear infinite}
     .ai-processing-title{font-size:18px;font-weight:900;margin-bottom:7px}
+    .ai-processing-mode{font-size:12px;font-weight:800;color:#2f6ebc;margin-bottom:7px;min-height:18px}
     .ai-processing-status{font-size:13px;line-height:1.45;color:#60758f;min-height:38px;display:flex;align-items:center;justify-content:center}
     .ai-processing-track{height:7px;background:#edf2f7;border-radius:999px;overflow:hidden;margin-top:14px}
     .ai-processing-bar{height:100%;width:34%;border-radius:999px;background:linear-gradient(90deg,#4b90f5,#2c6ed7,#4b90f5);animation:aiProcessingBar 1.5s ease-in-out infinite}
@@ -29,15 +30,17 @@
     <div class="ai-processing-card" role="status">
       <div class="ai-processing-spinner"></div>
       <div class="ai-processing-title">ИИ обрабатывает консультацию</div>
-      <div class="ai-processing-status">Отправляю данные в ИИ…</div>
+      <div class="ai-processing-mode">Связь с n8n…</div>
+      <div class="ai-processing-status">Отправляю данные…</div>
       <div class="ai-processing-track"><div class="ai-processing-bar"></div></div>
-      <div class="ai-processing-note">Обычно это занимает несколько секунд.</div>
+      <div class="ai-processing-note">Если в n8n включён Listen for test event, выполнение будет видно по узлам прямо в редакторе.</div>
     </div>`;
   document.body.appendChild(overlay);
 
+  const modeEl=overlay.querySelector('.ai-processing-mode');
   const statusEl=overlay.querySelector('.ai-processing-status');
   const stages=[
-    'Отправляю данные в ИИ…',
+    'Передаю данные консультации…',
     'Анализирую слова клиента и отделяю препятствие от результата…',
     'Формирую развёрнутый и короткий запросы…',
     'Выделяю ситуации для Диагностики…',
@@ -45,15 +48,40 @@
   ];
   let timer=null;
   let stageIndex=0;
+  let transportMessageUntil=0;
+
+  function setTransport(stage,details){
+    const map={
+      'test-attempt':'Проверяю Test URL n8n',
+      'test-active':'TEST: выполнение видно в n8n',
+      'test-fallback':'TEST не слушает → переключение',
+      'production-attempt':'Пробую Production URL n8n',
+      'production-active':'PRODUCTION: workflow запущен'
+    };
+    modeEl.textContent=map[stage]||'Связь с n8n…';
+    if(details){
+      statusEl.textContent=details;
+      transportMessageUntil=Date.now()+2600;
+    }
+  }
+
+  window.addEventListener('diagnostika-ai-transport',(event)=>{
+    const detail=event?.detail||{};
+    setTransport(detail.stage,detail.details||'');
+  });
 
   function show(){
     stageIndex=0;
+    modeEl.textContent='Связь с n8n…';
     statusEl.textContent=stages[0];
+    transportMessageUntil=0;
     overlay.classList.add('show');
     clearInterval(timer);
     timer=setInterval(()=>{
       stageIndex=Math.min(stageIndex+1,stages.length-1);
-      statusEl.textContent=stages[stageIndex];
+      if(Date.now()>=transportMessageUntil){
+        statusEl.textContent=stages[stageIndex];
+      }
       if(stageIndex===stages.length-1) clearInterval(timer);
     },2200);
   }
@@ -85,5 +113,5 @@
     setTimeout(()=>clearInterval(timerId),10000);
   }
 
-  window.DiagnostikaAiProcessingIndicator={show,hide};
+  window.DiagnostikaAiProcessingIndicator={show,hide,setTransport};
 })();
