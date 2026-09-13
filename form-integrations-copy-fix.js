@@ -37,13 +37,11 @@
 
   function attach(){
     const dlg=document.getElementById('formIntegrationsDialog');
-    if(!dlg || dlg.dataset.copyFix==='1') return;
+    if(!dlg || dlg.dataset.copyFix==='1') return false;
     dlg.dataset.copyFix='1';
     dlg.dataset.noBackdropClose='1';
-
     forceProdInbox();
 
-    // Правый клик нужен для обычного контекстного меню и не должен закрывать окно.
     dlg.addEventListener('contextmenu',e=>e.stopPropagation(),true);
     dlg.addEventListener('mousedown',e=>{if(e.button===2)e.stopPropagation();},true);
     dlg.addEventListener('mouseup',e=>{if(e.button===2)e.stopPropagation();},true);
@@ -71,11 +69,11 @@
       b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();copyValue(input,b);});
       wrap.appendChild(b);
     }
+    return true;
   }
 
-  attach();
-  setTimeout(forceProdInbox,100);
-  setTimeout(forceProdInbox,500);
-  setTimeout(forceProdInbox,1500);
-  new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
+  if(!attach()){
+    setTimeout(attach,100);
+    setTimeout(attach,500);
+  }
 })();
