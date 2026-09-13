@@ -156,7 +156,10 @@
           <label class="payment-field">Комментарий<input class="pce-note" type="text"></label>
           <label class="payment-field">Ссылка на чек<input class="pce-receipt" type="url" placeholder="https://..."></label>
         </div>
-        <div class="payment-footer"><button type="button" class="tk-btn pce-cancel">Отмена</button><button type="button" class="tk-btn pce-save">Сохранить</button></div>
+        <div class="payment-footer" style="justify-content:space-between">
+          <button type="button" class="db-delete-btn pce-delete">Удалить платёж</button>
+          <div style="display:flex;gap:8px"><button type="button" class="tk-btn pce-cancel">Отмена</button><button type="button" class="tk-btn pce-save">Сохранить</button></div>
+        </div>
       </div>`;
     document.body.appendChild(dlg);
     dlg.querySelector('.pce-close').onclick=()=>dlg.close();
@@ -171,6 +174,38 @@
     try{window.DiagnostikaPaymentConsistency?.refresh?.();}catch(_){}
     try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(_){}
     try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
+  }
+
+  async function confirmDelete(){
+    if(window.AppDialog?.confirm){
+      return window.AppDialog.confirm('Удалить этот платёж?','Удаление платежа','Удалить','Отмена');
+    }
+    return window.confirm('Удалить этот платёж?');
+  }
+
+  function removePayment(item){
+    if(!item)return false;
+
+    if(item.kind==='request'){
+      const payments=item.request?.payment?.payments;
+      if(!Array.isArray(payments))return false;
+      const index=payments.indexOf(item.pay);
+      if(index<0)return false;
+      payments.splice(index,1);
+      return true;
+    }
+
+    if(item.kind==='session'&&item.session){
+      const sp=sessionPayment(item.session);
+      sp.paid=false;
+      delete sp.paidAt;
+      delete sp.sessionDate;
+      sp.note='';
+      sp.receiptUrl='';
+      return true;
+    }
+
+    return false;
   }
 
   function editPayment(item){
@@ -220,6 +255,15 @@
         }
       }
 
+      refreshEverywhere();
+      dlg.close();
+      setTimeout(renderAll,0);
+    };
+
+    dlg.querySelector('.pce-delete').onclick=async()=>{
+      const yes=await confirmDelete();
+      if(!yes)return;
+      if(!removePayment(item))return;
       refreshEverywhere();
       dlg.close();
       setTimeout(renderAll,0);
