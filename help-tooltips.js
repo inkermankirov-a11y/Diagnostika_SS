@@ -1,6 +1,13 @@
 'use strict';
 
 (() => {
+  const KEY='diagnostika-help-tooltips-enabled';
+
+  function hintsEnabled(){
+    if(window.DiagnostikaHelpHints?.enabled) return !!window.DiagnostikaHelpHints.enabled();
+    return localStorage.getItem(KEY)==='1';
+  }
+
   function makeHelp(text){
     const wrap=document.createElement('span');
     wrap.className='help-tip';
@@ -20,20 +27,40 @@
     return wrap;
   }
 
+  function removeFieldHelp(dialog){
+    if(!dialog) return;
+    dialog.querySelectorAll('.help-tip').forEach(x=>x.remove());
+  }
+
   function addFieldHelp(dialog){
-    if(!dialog || dialog.dataset.helpReady==='1') return;
-    dialog.dataset.helpReady='1';
+    if(!dialog) return;
+    if(!hintsEnabled()){
+      removeFieldHelp(dialog);
+      return;
+    }
 
     const grid=dialog.querySelector('.session-edit-grid');
     const select=grid?.querySelector('select');
-    if(select && !select.parentElement?.classList.contains('session-request-field')){
-      const field=document.createElement('div');
-      field.className='session-request-field';
-      const label=document.createElement('div');
-      label.className='session-field-label';
-      label.append('Связать с запросом',makeHelp('Привязывает сессию к конкретному запросу клиента из раздела «Диагностика». Если сессия общая или вводная — оставь «Без связи».'));
-      select.replaceWith(field);
-      field.append(label,select);
+    if(select){
+      let field=select.closest('.session-request-field');
+      if(!field){
+        field=document.createElement('div');
+        field.className='session-request-field';
+        const label=document.createElement('div');
+        label.className='session-field-label';
+        select.replaceWith(field);
+        field.append(label,select);
+      }
+      let label=field.querySelector('.session-field-label');
+      if(!label){
+        label=document.createElement('div');
+        label.className='session-field-label';
+        field.insertBefore(label,select);
+      }
+      if(!label.childNodes.length) label.append('Связать с запросом');
+      if(!label.querySelector('.help-tip')){
+        label.appendChild(makeHelp('Привязывает сессию к конкретному запросу клиента из раздела «Диагностика». Если сессия общая или вводная — оставь «Без связи».'));
+      }
     }
 
     const yt=dialog.querySelector('.session-youtube-editor label');
@@ -47,6 +74,11 @@
     }
   }
 
+  function applyAll(){
+    document.querySelectorAll('.session-edit-dialog').forEach(addFieldHelp);
+    if(!hintsEnabled()) document.querySelectorAll('.help-tip').forEach(x=>x.remove());
+  }
+
   const observer=new MutationObserver(records=>{
     for(const rec of records){
       for(const node of rec.addedNodes){
@@ -58,4 +90,6 @@
   });
 
   observer.observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('diagnostika-help-hints-change',applyAll);
+  setTimeout(applyAll,0);
 })();
