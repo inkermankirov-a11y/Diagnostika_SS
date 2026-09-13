@@ -56,6 +56,8 @@
     const map={
       ccInitialProblem:c.initialProblem||'',
       ccMainRequest:c.mainRequest||'',
+      ccTried:c.tried||'',
+      ccDidntHelp:c.didntHelp||'',
       ccDesiredOutcome:c.desiredOutcome||'',
       ccClientNotes:c.clientNotes||''
     };
@@ -71,6 +73,8 @@
 
     c.initialProblem=String(fc.pain||'').trim();
     c.mainRequest=String(ai.mainRequest||'').trim();
+    c.tried=String(fc.tried||'').trim();
+    c.didntHelp=String(fc.didntHelp||'').trim();
     c.desiredOutcome=desiredText(fc);
     c.clientNotes=replaceAutoBlock(c.clientNotes,summaryText(fc));
     c.freeConsultationLinkedAt=new Date().toISOString();
