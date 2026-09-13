@@ -5,7 +5,6 @@
   window.__formIntegrationsTestModeReady=true;
 
   const PROD_INBOX='https://lugovoyn8n.ru/webhook/diagnostika-forms-inbox';
-  const TEST_INBOX='https://lugovoyn8n.ru/webhook-test/diagnostika-forms-inbox';
   const PROD_YANDEX='https://lugovoyn8n.ru/webhook/diagnostika-form-yandex';
   const TEST_YANDEX='https://lugovoyn8n.ru/webhook-test/diagnostika-form-yandex';
 
@@ -40,19 +39,24 @@
   function syncMode(){
     const inbox=document.getElementById('fiInboxUrl');
     const yandex=document.getElementById('fiYandexUrl');
-    const test=isTestValue(inbox?.value)||isTestValue(yandex?.value);
+
+    // Получение уже сохранённых анкет программой всегда идёт через production inbox.
+    // Тестовым делаем только вход Яндекс Формы в n8n.
+    setValue(inbox,PROD_INBOX);
+    const test=isTestValue(yandex?.value);
+
     const toggle=document.getElementById('fiN8nTestMode');
     const label=document.getElementById('fiN8nModeLabel');
     const note=document.getElementById('fiN8nModeNote');
     if(toggle && toggle.checked!==test) toggle.checked=test;
     setText(label,test?'ТЕСТОВЫЙ':'РАБОЧИЙ');
     setText(note,test
-      ? 'Тест: в n8n нажми Execute workflow / Listen for test event. Для Яндекс Формы используй тестовый webhook ниже. Он работает только пока n8n ждёт событие.'
-      : 'Рабочий режим: используется production webhook. Workflow n8n должен быть Published / Active.');
+      ? 'Тестируется только Яндекс → n8n. В n8n нажми Execute workflow / Listen for test event и используй тестовый webhook Яндекс ниже. Получение анкет сайтом всегда идёт через рабочий inbox, поэтому после успешного теста можно сразу нажать «Проверить анкеты сейчас».'
+      : 'Рабочий режим: Яндекс отправляет в production webhook, а сайт получает анкеты через рабочий inbox. Workflow n8n должен быть Published / Active.');
   }
 
   function setMode(test){
-    setValue(document.getElementById('fiInboxUrl'),test?TEST_INBOX:PROD_INBOX);
+    setValue(document.getElementById('fiInboxUrl'),PROD_INBOX);
     setValue(document.getElementById('fiYandexUrl'),test?TEST_YANDEX:PROD_YANDEX);
     syncMode();
   }
@@ -89,7 +93,7 @@
       box.innerHTML=`
         <div class="fi-mode-head">
           <strong>Режим n8n</strong>
-          <label class="fi-mode-toggle"><input id="fiN8nTestMode" type="checkbox"> Тестовый режим</label>
+          <label class="fi-mode-toggle"><input id="fiN8nTestMode" type="checkbox"> Тест Яндекс → n8n</label>
           <span id="fiN8nModeLabel" class="fi-mode-badge">РАБОЧИЙ</span>
         </div>
         <div id="fiN8nModeNote" class="fi-mode-note"></div>`;
@@ -97,7 +101,11 @@
       box.querySelector('#fiN8nTestMode')?.addEventListener('change',e=>setMode(e.target.checked));
     }
 
-    wrapUrlWithCopy(document.getElementById('fiInboxUrl'),'Копировать URL');
+    const inbox=document.getElementById('fiInboxUrl');
+    const inboxTitle=inbox?.closest('label')?.querySelector('span');
+    if(inboxTitle) inboxTitle.textContent='URL получения анкет из n8n — всегда рабочий';
+
+    wrapUrlWithCopy(inbox,'Копировать URL');
     wrapUrlWithCopy(document.getElementById('fiYandexUrl'),'Копировать webhook');
 
     if(!document.getElementById('fiTestModeStyles')){
