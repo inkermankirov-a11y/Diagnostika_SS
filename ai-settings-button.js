@@ -4,6 +4,15 @@
   if (window.__diagnostikaAiSettingsButtonReady) return;
   window.__diagnostikaAiSettingsButtonReady = true;
 
+  function loadProcessingIndicator(){
+    if(window.__diagnostikaAiProcessingIndicatorReady) return;
+    if(document.querySelector('script[data-ai-processing-indicator]')) return;
+    const s=document.createElement('script');
+    s.src='ai-processing-indicator.js?v=20260913-113';
+    s.setAttribute('data-ai-processing-indicator','1');
+    document.body.appendChild(s);
+  }
+
   function attach(){
     const dlg=document.getElementById('freeConsultationDialog');
     if(!dlg) return;
@@ -29,6 +38,7 @@
     left.appendChild(btn);
   }
 
+  loadProcessingIndicator();
   attach();
   new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
 })();
