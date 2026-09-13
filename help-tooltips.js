@@ -1,6 +1,16 @@
 'use strict';
 
 (() => {
+  if(window.__diagnostikaHelpTooltipsReady) return;
+  window.__diagnostikaHelpTooltipsReady=true;
+
+  if(!document.querySelector('script[data-hints-settings]')){
+    const s=document.createElement('script');
+    s.src='hints-settings.js?v=20260913-121';
+    s.setAttribute('data-hints-settings','1');
+    document.body.appendChild(s);
+  }
+
   const KEY='diagnostika-help-tooltips-enabled';
 
   function hintsEnabled(){
