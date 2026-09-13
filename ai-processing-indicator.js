@@ -6,112 +6,51 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    .ai-processing-overlay{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.46);backdrop-filter:blur(5px)}
-    .ai-processing-overlay.show{display:flex}
-    .ai-processing-card{width:min(470px,calc(100vw - 32px));background:#fff;border:1px solid #d9e2ec;border-radius:16px;box-shadow:0 28px 80px rgba(15,23,42,.36);padding:22px;box-sizing:border-box;text-align:center;color:#25364a}
-    .ai-processing-spinner{width:54px;height:54px;margin:0 auto 14px;border-radius:50%;border:5px solid #dfe9f6;border-top-color:#2f7fe9;animation:aiProcessingSpin .85s linear infinite}
-    .ai-processing-title{font-size:18px;font-weight:900;margin-bottom:7px}
-    .ai-processing-mode{font-size:12px;font-weight:800;color:#2f6ebc;margin-bottom:7px;min-height:18px}
-    .ai-processing-status{font-size:13px;line-height:1.45;color:#60758f;min-height:38px;display:flex;align-items:center;justify-content:center}
-    .ai-processing-track{height:7px;background:#edf2f7;border-radius:999px;overflow:hidden;margin-top:14px}
-    .ai-processing-bar{height:100%;width:34%;border-radius:999px;background:linear-gradient(90deg,#4b90f5,#2c6ed7,#4b90f5);animation:aiProcessingBar 1.5s ease-in-out infinite}
-    .ai-processing-note{font-size:11px;color:#8a99ab;margin-top:9px}
-    @keyframes aiProcessingSpin{to{transform:rotate(360deg)}}
-    @keyframes aiProcessingBar{0%{transform:translateX(-110%)}50%{transform:translateX(105%)}100%{transform:translateX(300%)}}
-    @media (prefers-reduced-motion:reduce){.ai-processing-spinner,.ai-processing-bar{animation-duration:2.4s}}
+    .fc-status{display:inline-flex;align-items:center;min-height:24px}
+    .fc-inline-ai-loading{display:inline-flex;align-items:center;gap:9px;color:#70859d;font-size:12px;white-space:nowrap}
+    .fc-inline-ai-spinner{position:relative;width:22px;height:22px;flex:0 0 22px}
+    .fc-inline-ai-spinner i{position:absolute;left:9.5px;top:1px;width:3px;height:6px;border-radius:999px;background:#347fe8;transform-origin:1.5px 10px;opacity:.14;animation:fcAiDotFade .88s linear infinite}
+    .fc-inline-ai-spinner i:nth-child(1){transform:rotate(0deg);animation-delay:-.77s}
+    .fc-inline-ai-spinner i:nth-child(2){transform:rotate(45deg);animation-delay:-.66s}
+    .fc-inline-ai-spinner i:nth-child(3){transform:rotate(90deg);animation-delay:-.55s}
+    .fc-inline-ai-spinner i:nth-child(4){transform:rotate(135deg);animation-delay:-.44s}
+    .fc-inline-ai-spinner i:nth-child(5){transform:rotate(180deg);animation-delay:-.33s}
+    .fc-inline-ai-spinner i:nth-child(6){transform:rotate(225deg);animation-delay:-.22s}
+    .fc-inline-ai-spinner i:nth-child(7){transform:rotate(270deg);animation-delay:-.11s}
+    .fc-inline-ai-spinner i:nth-child(8){transform:rotate(315deg);animation-delay:0s}
+    .fc-ai[disabled]{cursor:wait;opacity:.82}
+    @keyframes fcAiDotFade{0%,12.5%{opacity:1}25%{opacity:.72}50%{opacity:.36}75%,100%{opacity:.14}}
+    @media(prefers-reduced-motion:reduce){.fc-inline-ai-spinner i{animation-duration:1.8s}}
   `;
   document.head.appendChild(style);
 
-  const overlay=document.createElement('div');
-  overlay.className='ai-processing-overlay';
-  overlay.setAttribute('aria-live','polite');
-  overlay.setAttribute('aria-busy','true');
-  overlay.innerHTML=`
-    <div class="ai-processing-card" role="status">
-      <div class="ai-processing-spinner"></div>
-      <div class="ai-processing-title">ИИ обрабатывает консультацию</div>
-      <div class="ai-processing-mode">Связь с n8n…</div>
-      <div class="ai-processing-status">Отправляю данные…</div>
-      <div class="ai-processing-track"><div class="ai-processing-bar"></div></div>
-      <div class="ai-processing-note">Если в n8n включён Listen for test event, выполнение будет видно по узлам прямо в редакторе.</div>
-    </div>`;
-  document.body.appendChild(overlay);
-
-  const modeEl=overlay.querySelector('.ai-processing-mode');
-  const statusEl=overlay.querySelector('.ai-processing-status');
-  const stages=[
-    'Передаю данные консультации…',
-    'Анализирую слова клиента и отделяю препятствие от результата…',
-    'Формирую развёрнутый и короткий запросы…',
-    'Выделяю ситуации для Диагностики…',
-    'Проверяю обоснование и уточняющие вопросы…'
-  ];
-  let timer=null;
-  let stageIndex=0;
-  let transportMessageUntil=0;
-
-  function setTransport(stage,details){
-    const map={
-      'test-attempt':'Проверяю Test URL n8n',
-      'test-active':'TEST: выполнение видно в n8n',
-      'test-fallback':'TEST не слушает → переключение',
-      'production-attempt':'Пробую Production URL n8n',
-      'production-active':'PRODUCTION: workflow запущен'
-    };
-    modeEl.textContent=map[stage]||'Связь с n8n…';
-    if(details){
-      statusEl.textContent=details;
-      transportMessageUntil=Date.now()+2600;
-    }
+  function spinnerHtml(){
+    return `<span class="fc-inline-ai-loading"><span class="fc-inline-ai-spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Анализирую консультацию...</span></span>`;
   }
 
-  window.addEventListener('diagnostika-ai-transport',(event)=>{
-    const detail=event?.detail||{};
-    setTransport(detail.stage,detail.details||'');
-  });
+  function attach(){
+    const dlg=document.getElementById('freeConsultationDialog');
+    if(!dlg)return;
+    const status=dlg.querySelector('.fc-status');
+    if(!status||status.dataset.aiInlineLoader==='1')return;
+    status.dataset.aiInlineLoader='1';
 
-  function show(){
-    stageIndex=0;
-    modeEl.textContent='Связь с n8n…';
-    statusEl.textContent=stages[0];
-    transportMessageUntil=0;
-    overlay.classList.add('show');
-    clearInterval(timer);
-    timer=setInterval(()=>{
-      stageIndex=Math.min(stageIndex+1,stages.length-1);
-      if(Date.now()>=transportMessageUntil){
-        statusEl.textContent=stages[stageIndex];
+    let changing=false;
+    const sync=()=>{
+      if(changing)return;
+      const text=(status.textContent||'').trim();
+      const shouldSpin=/анализирую консультац/i.test(text);
+      if(shouldSpin&&!status.querySelector('.fc-inline-ai-loading')){
+        changing=true;
+        status.innerHTML=spinnerHtml();
+        changing=false;
       }
-      if(stageIndex===stages.length-1) clearInterval(timer);
-    },2200);
-  }
-
-  function hide(){
-    clearInterval(timer);
-    timer=null;
-    overlay.classList.remove('show');
-  }
-
-  function wrapGenerator(){
-    const api=window.DiagnostikaRequestAI;
-    if(!api||typeof api.generate!=='function'||api.generate.__processingWrapped) return false;
-    const original=api.generate.bind(api);
-    const wrapped=async function(){
-      show();
-      try{return await original(...arguments);}
-      finally{hide();}
     };
-    wrapped.__processingWrapped=true;
-    api.generate=wrapped;
-    return true;
+
+    new MutationObserver(sync).observe(status,{childList:true,subtree:true,characterData:true});
+    sync();
   }
 
-  if(!wrapGenerator()){
-    const timerId=setInterval(()=>{
-      if(wrapGenerator()) clearInterval(timerId);
-    },250);
-    setTimeout(()=>clearInterval(timerId),10000);
-  }
-
-  window.DiagnostikaAiProcessingIndicator={show,hide,setTransport};
+  attach();
+  new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
 })();
