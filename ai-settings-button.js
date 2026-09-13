@@ -5,12 +5,13 @@
   window.__diagnostikaAiSettingsButtonReady = true;
 
   function loadOnce(src, attr, readyFlag){
-    if(window[readyFlag]) return;
-    if(document.querySelector(`script[${attr}]`)) return;
+    if(window[readyFlag]) return null;
+    if(document.querySelector(`script[${attr}]`)) return null;
     const s=document.createElement('script');
     s.src=src;
     s.setAttribute(attr,'1');
     document.body.appendChild(s);
+    return s;
   }
 
   function attach(){
@@ -41,8 +42,28 @@
     left.appendChild(btn);
   }
 
+  function loadQuestionnaireIntegrations(){
+    if(window.__diagnostikaStableFormLoaderStarted) return;
+    window.__diagnostikaStableFormLoaderStarted=true;
+
+    const storage=loadOnce('integration-folder-storage.js?v=20260913-136','data-integration-folder-storage','__diagnostikaIntegrationStorageReady');
+    const loadCore=()=>{
+      const core=loadOnce('form-integrations.js?v=20260913-136','data-form-integrations','__diagnostikaFormIntegrationsReady');
+      const loadHelpers=()=>{
+        loadOnce('form-integrations-copy-fix.js?v=20260913-136','data-form-integrations-copy-fix','__formIntegrationsCopyFixReady');
+        loadOnce('form-integrations-inbox-fix.js?v=20260913-136','data-form-integrations-inbox-fix','__formIntegrationsInboxFixReady');
+        loadOnce('client-questionnaires.js?v=20260913-136','data-client-questionnaires','__diagnostikaClientQuestionnairesReady');
+      };
+      if(core) core.addEventListener('load',loadHelpers,{once:true}); else loadHelpers();
+    };
+    if(storage) storage.addEventListener('load',loadCore,{once:true}); else loadCore();
+  }
+
   loadOnce('ai-processing-indicator.js?v=20260913-136','data-ai-processing-indicator','__diagnostikaAiProcessingIndicatorReady');
   loadOnce('free-consultation-archive.js?v=20260913-136','data-fc-archive','__freeConsultationArchiveReady');
   loadOnce('free-consultation-extra-fields.js?v=20260913-136','data-fc-extra-fields','__freeConsultationExtraFieldsReady');
   attach();
+
+  if(document.readyState==='complete') loadQuestionnaireIntegrations();
+  else window.addEventListener('load',loadQuestionnaireIntegrations,{once:true});
 })();
