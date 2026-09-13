@@ -53,7 +53,7 @@
     if(window.__formIntegrationsModeButtonsReady) return;
     if(document.querySelector('script[data-form-integrations-mode-buttons]')) return;
     const s=document.createElement('script');
-    s.src='form-integrations-mode-buttons.js?v=20260913-130';
+    s.src='form-integrations-mode-buttons.js?v=20260913-132';
     s.setAttribute('data-form-integrations-mode-buttons','1');
     document.body.appendChild(s);
   }
