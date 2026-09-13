@@ -214,8 +214,18 @@
   q('fiCheck').onclick=async()=>{config=collect();q('fiCheck').disabled=true;q('fiStatus').textContent='Проверяю очередь анкет…';try{const r=await checkInbox({silent:false});q('fiStatus').textContent=r.imported?`Получено новых: ${r.imported}. Новых клиентов: ${r.newClients}. Добавлено к существующим: ${r.attached}.`:'Анкет не найдено.';}catch(e){q('fiStatus').textContent=e?.message||'Не удалось получить анкеты.';}finally{q('fiCheck').disabled=false;}};
 
   function attachSettingsButton(){
-    const panel=document.getElementById('settingsPanel');if(!panel||panel.querySelector('#formIntegrationsBtn'))return;
-    const b=document.createElement('button');b.id='formIntegrationsBtn';b.type='button';b.className='header-btn';b.textContent='Анкеты / формы';b.style.cssText='background:#6d5d91;color:#fff;width:100%;height:42px';b.onclick=openDialog;panel.appendChild(b);
+    const panel=document.getElementById('settingsPanel');
+    if(!panel||panel.querySelector('#formIntegrationsBtn'))return;
+    const b=document.createElement('button');
+    b.id='formIntegrationsBtn';
+    b.type='button';
+    b.className='header-btn';
+    b.textContent='Анкеты / формы';
+    b.style.cssText='background:#6d5d91;color:#fff;width:100%;height:42px';
+    b.onclick=openDialog;
+    const storageBtn=panel.querySelector('#storageBtn');
+    if(storageBtn) storageBtn.insertAdjacentElement('afterend',b);
+    else panel.prepend(b);
   }
 
   window.DiagnostikaForms={openSettings:openDialog,checkInbox,importSubmissions,getConfig:()=>config};
