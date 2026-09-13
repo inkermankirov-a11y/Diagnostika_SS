@@ -52,6 +52,7 @@
 
   function syncUi(){
     inboxUrl.value=PROD_INBOX;
+    inboxUrl.readOnly=true;
     const test=String(yandexUrl.value||'').includes('/webhook-test/');
     q('fiYandexProdMode')?.classList.toggle('active',!test);
     q('fiYandexTestMode')?.classList.toggle('active',test);
@@ -77,5 +78,9 @@
   q('fiYandexTestMode').addEventListener('click',()=>setMode(true));
   yandexUrl.addEventListener('input',syncUi);
   dlg.addEventListener('close',syncUi);
+
+  // openDialog сначала подставляет сохранённые значения. После открытия возвращаем inbox на production.
+  q('formIntegrationsBtn')?.addEventListener('click',()=>setTimeout(syncUi,0));
+
   syncUi();
 })();
