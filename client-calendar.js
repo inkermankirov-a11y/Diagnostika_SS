@@ -85,17 +85,10 @@
   function getState(){try{return typeof state!=='undefined'?state:null;}catch(_){return null;}}
   function clients(){const st=getState();return Array.isArray(st?.clients)?st.clients:[];}
   function customEvents(){const st=getState();if(!st)return[];if(!Array.isArray(st.calendarEvents))st.calendarEvents=[];return st.calendarEvents;}
-  function requestName(c,s){const rid=s?.payment?.requestId||s?.requestId||'';const r=(c?.requests||[]).find(x=>String(x.id)===String(rid));return r?.title||'';}
   function allEvents(){
-    const out=[];
-    clients().forEach(c=>{
-      (c.sessions||[]).forEach((s,i)=>{
-        if(!s?.date)return;
-        out.push({id:`session:${c.id}:${s.id||i}`,kind:'session',date:String(s.date).slice(0,10),time:s.time||s.startTime||'',title:`Сессия №${s.number||i+1}`,clientId:c.id,clientName:c.name||'Без имени',meta:requestName(c,s)});
-      });
-    });
-    customEvents().forEach(e=>out.push({...e,kind:'manual'}));
-    return out.sort((a,b)=>String(a.time||'99:99').localeCompare(String(b.time||'99:99'))||String(a.title||'').localeCompare(String(b.title||'')));
+    return customEvents()
+      .map(e=>({...e,kind:'manual'}))
+      .sort((a,b)=>String(a.time||'99:99').localeCompare(String(b.time||'99:99'))||String(a.title||'').localeCompare(String(b.title||'')));
   }
   function eventsOn(date){return allEvents().filter(e=>e.date===date);}
   function currentClientId(){try{const c=typeof client==='function'?client():null;if(c?.id)return c.id;}catch(_){}try{if(typeof clientId!=='undefined'&&clientId)return clientId;}catch(_){}return '';}
@@ -112,8 +105,8 @@
       const row=document.createElement('div');
       row.className='cal-event';
       const meta=[e.clientName,e.meta,e.note].filter(Boolean).join(' • ');
-      row.innerHTML=`<div class="cal-event-time">${esc(e.time||'—')}</div><div><div class="cal-event-title">${esc(e.title||e.type||'Запись')}</div><div class="cal-event-meta">${esc(meta)}</div></div>${e.kind==='manual'?'<button type="button" class="tk-btn cal-delete" title="Удалить">×</button>':''}`;
-      if(e.kind==='manual')row.querySelector('.cal-delete').onclick=()=>{const arr=customEvents();const idx=arr.findIndex(x=>String(x.id)===String(e.id));if(idx>=0)arr.splice(idx,1);if(typeof save==='function')save();render();};
+      row.innerHTML=`<div class="cal-event-time">${esc(e.time||'—')}</div><div><div class="cal-event-title">${esc(e.title||e.type||'Запись')}</div><div class="cal-event-meta">${esc(meta)}</div></div><button type="button" class="tk-btn cal-delete" title="Удалить">×</button>`;
+      row.querySelector('.cal-delete').onclick=()=>{const arr=customEvents();const idx=arr.findIndex(x=>String(x.id)===String(e.id));if(idx>=0)arr.splice(idx,1);if(typeof save==='function')save();render();};
       eventsBox.appendChild(row);
     });
   }
@@ -133,7 +126,7 @@
       const cell=document.createElement('div');
       const weekend=(i%7)>=5;
       cell.className='cal-day'+(d.getMonth()!==m?' out':'')+(ds===selected?' selected':'')+(ds===today?' today':'')+(weekend?' cal-day-weekend':'');
-      const chips=evs.slice(0,2).map(e=>`<div class="cal-chip ${e.kind==='manual'?'manual':''}">${esc((e.time?e.time+' ':'')+(e.clientName||e.title||''))}</div>`).join('');
+      const chips=evs.slice(0,2).map(e=>`<div class="cal-chip manual">${esc((e.time?e.time+' ':'')+(e.clientName||e.title||''))}</div>`).join('');
       cell.innerHTML=`<div class="cal-num">${d.getDate()}</div><div class="cal-day-events">${chips}${evs.length>2?`<div class="cal-more">ещё ${evs.length-2}</div>`:''}</div>`;
       cell.onclick=()=>{selected=ds;if(d.getMonth()!==m)cursor=new Date(d.getFullYear(),d.getMonth(),1);render();};
       grid.appendChild(cell);
@@ -182,8 +175,6 @@
     return true;
   }
   attach();
-  const mo=new MutationObserver(()=>attach());
-  mo.observe(document.body,{childList:true,subtree:true});
 
   window.DiagnostikaCalendar={open:openCalendar,refresh:render};
 })();
