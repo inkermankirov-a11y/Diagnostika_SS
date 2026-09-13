@@ -3,7 +3,7 @@
 (() => {
   if (window.DiagnostikaRequestAI) return;
 
-  const PRODUCTION_URL='https://lugovoyn8n.ru/webhook/diagnostika-ai-request';
+  const PRODUCTION_URL='https://lugovoyn8n.ru/webhook/diagnostika-ai-request-v2';
   const ACCESS_KEY='diagnostika-ai-n8n-access-key';
 
   function getConfig(){
