@@ -40,6 +40,20 @@
     document.body.appendChild(s);
   }
 
+  function loadQuestionnaireTestMode(){
+    if(window.__formIntegrationsTestModeReady) return;
+    if(document.querySelector('script[data-form-integrations-test-mode]')) return;
+    const s=document.createElement('script');
+    s.src='form-integrations-test-mode.js?v=20260913-125';
+    s.setAttribute('data-form-integrations-test-mode','1');
+    document.body.appendChild(s);
+  }
+
+  function loadQuestionnaireHelpers(){
+    loadQuestionnaireCopyFix();
+    loadQuestionnaireTestMode();
+  }
+
   function loadQuestionnaireIntegrations(){
     if(!window.__diagnostikaIntegrationStorageReady && !document.querySelector('script[data-integration-folder-storage]')){
       const s=document.createElement('script');
@@ -53,10 +67,10 @@
       const s=document.createElement('script');
       s.src='form-integrations.js?v=20260913-123';
       s.setAttribute('data-form-integrations','1');
-      s.onload=()=>loadQuestionnaireCopyFix();
+      s.onload=()=>loadQuestionnaireHelpers();
       document.body.appendChild(s);
     }else{
-      loadQuestionnaireCopyFix();
+      loadQuestionnaireHelpers();
     }
     if(!window.__diagnostikaClientQuestionnairesReady && !document.querySelector('script[data-client-questionnaires]')){
       const s=document.createElement('script');
