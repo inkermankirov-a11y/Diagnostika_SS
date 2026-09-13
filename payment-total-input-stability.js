@@ -3,8 +3,13 @@
 (() => {
   if (window.DiagnostikaPaymentTotalInputStability) return;
 
-  const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const currentClient=()=>typeof client==='function'?client():null;
+  const digits=v=>String(v??'').replace(/\D/g,'');
+  const toNumber=v=>{const d=digits(v);return d?Number(d):0;};
+  const format=v=>{
+    const d=digits(v);
+    return d?d.replace(/\B(?=(\d{3})+(?!\d))/g,' '):'';
+  };
 
   function currentRequest(c){
     if(!c)return null;
@@ -35,11 +40,6 @@
     return r.payment;
   }
 
-  function lightRefresh(){
-    try{window.DiagnostikaPaymentConsistency?.refresh?.();}catch(_){}
-    try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(_){}
-  }
-
   function fullRefresh(){
     try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
     try{window.DiagnostikaPaymentConsistency?.refresh?.();}catch(_){}
@@ -49,29 +49,51 @@
 
   function install(){
     const field=document.getElementById('paymentTotal');
-    if(!field||field.dataset.totalInputStable==='1')return false;
-    field.dataset.totalInputStable='1';
+    if(!field||field.dataset.totalInputStable==='2')return false;
 
-    // Replace the old per-keystroke handler. It used to launch several global
-    // rerenders on every digit, which could switch/reset the active request.
-    field.oninput=e=>{
+    field.dataset.totalInputStable='2';
+    field.type='text';
+    field.inputMode='numeric';
+    field.autocomplete='off';
+    field.removeAttribute('min');
+    field.removeAttribute('step');
+
+    // Keep the visual value grouped, but only ever store plain digits.
+    field.value=format(field.value);
+
+    const onInput=e=>{
+      e.stopImmediatePropagation();
+      const raw=digits(field.value);
+      field.value=format(raw);
+      try{field.setSelectionRange(field.value.length,field.value.length);}catch(_){}
+
       const c=currentClient(),r=currentRequest(c);if(!c||!r)return;
       const p=paymentOf(c,r);if(!p)return;
-      p.total=Math.max(0,num(e.target.value));
-      try{if(typeof save==='function')save();}catch(_){}
-      lightRefresh();
+      p.total=raw?Number(raw):0;
+      // Deliberately no save(), no global refresh and no rerender while typing.
     };
 
     const commit=e=>{
+      if(e)e.stopImmediatePropagation();
+      const raw=digits(field.value);
+      field.value=format(raw);
       const c=currentClient(),r=currentRequest(c);if(!c||!r)return;
       const p=paymentOf(c,r);if(!p)return;
-      p.total=Math.max(0,num(e.target.value));
+      p.total=raw?Number(raw):0;
       try{if(typeof save==='function')save();}catch(_){}
       fullRefresh();
     };
 
-    field.onchange=commit;
-    field.addEventListener('blur',commit);
+    // Capture phase on the field itself runs before the old payment-system
+    // target handlers, so legacy per-keystroke rerenders cannot reset the value.
+    field.addEventListener('input',onInput,true);
+    field.addEventListener('change',commit,true);
+    field.addEventListener('blur',commit,true);
+
+    // Neutralize legacy property handlers as an extra safeguard.
+    field.oninput=null;
+    field.onchange=null;
+
     return true;
   }
 
@@ -79,5 +101,5 @@
   observer.observe(document.body,{childList:true,subtree:true});
   setTimeout(install,0);
 
-  window.DiagnostikaPaymentTotalInputStability={refresh:install};
+  window.DiagnostikaPaymentTotalInputStability={refresh:install,format};
 })();
