@@ -18,57 +18,74 @@
       setTimeout(()=>button.textContent=old,1200);
     };
     if(navigator.clipboard?.writeText){
-      navigator.clipboard.writeText(value).then(done).catch(()=>fallback());
+      navigator.clipboard.writeText(value).then(done).catch(fallback);
     }else fallback();
     function fallback(){
       const ta=document.createElement('textarea');
-      ta.value=value;ta.style.position='fixed';ta.style.opacity='0';
-      document.body.appendChild(ta);ta.focus();ta.select();
+      ta.value=value;
+      ta.style.position='fixed';
+      ta.style.opacity='0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
       try{document.execCommand('copy');done();}catch(_){}
       ta.remove();
     }
   }
 
-  function isTestValue(v){return String(v||'').includes('/webhook-test/');}
+  const isTestValue=v=>String(v||'').includes('/webhook-test/');
+  const setText=(el,text)=>{if(el && el.textContent!==text) el.textContent=text;};
+  const setValue=(el,value)=>{if(el && el.value!==value) el.value=value;};
 
-  function setMode(test){
+  function syncMode(){
     const inbox=document.getElementById('fiInboxUrl');
     const yandex=document.getElementById('fiYandexUrl');
+    const test=isTestValue(inbox?.value)||isTestValue(yandex?.value);
     const toggle=document.getElementById('fiN8nTestMode');
     const label=document.getElementById('fiN8nModeLabel');
     const note=document.getElementById('fiN8nModeNote');
-    if(toggle) toggle.checked=!!test;
-    if(inbox) inbox.value=test?TEST_INBOX:PROD_INBOX;
-    if(yandex) yandex.value=test?TEST_YANDEX:PROD_YANDEX;
-    if(label) label.textContent=test?'ТЕСТОВЫЙ':'РАБОЧИЙ';
-    if(note){
-      note.textContent=test
-        ? 'Тест: в n8n нажми Execute workflow / Listen for test event. Для проверки Яндекс Формы временно укажи тестовый webhook ниже. Тестовый адрес работает только пока n8n ждёт событие.'
-        : 'Рабочий режим: используется production webhook. Workflow n8n должен быть Published / Active.';
-    }
+    if(toggle && toggle.checked!==test) toggle.checked=test;
+    setText(label,test?'ТЕСТОВЫЙ':'РАБОЧИЙ');
+    setText(note,test
+      ? 'Тест: в n8n нажми Execute workflow / Listen for test event. Для Яндекс Формы используй тестовый webhook ниже. Он работает только пока n8n ждёт событие.'
+      : 'Рабочий режим: используется production webhook. Workflow n8n должен быть Published / Active.');
+  }
+
+  function setMode(test){
+    setValue(document.getElementById('fiInboxUrl'),test?TEST_INBOX:PROD_INBOX);
+    setValue(document.getElementById('fiYandexUrl'),test?TEST_YANDEX:PROD_YANDEX);
+    syncMode();
   }
 
   function wrapUrlWithCopy(input,label){
-    if(!input || input.parentElement?.querySelector(`[data-url-copy-for="${input.id}"]`)) return;
+    if(!input) return;
+    if(input.closest('.fi-test-url-row')) return;
     const parent=input.parentElement;
+    if(!parent) return;
     const row=document.createElement('div');
     row.className='fi-test-url-row';
     parent.insertBefore(row,input);
     row.appendChild(input);
     const b=document.createElement('button');
-    b.type='button';b.dataset.urlCopyFor=input.id;b.textContent=label;b.title='Скопировать URL';
+    b.type='button';
+    b.dataset.urlCopyFor=input.id;
+    b.textContent=label;
+    b.title='Скопировать URL';
     b.onclick=e=>{e.preventDefault();e.stopPropagation();copy(input.value,b);};
     row.appendChild(b);
   }
 
   function attach(){
     const dlg=document.getElementById('formIntegrationsDialog');
-    if(!dlg) return;
+    if(!dlg) return false;
+    if(dlg.dataset.testModeReady==='1') return true;
+    dlg.dataset.testModeReady='1';
 
     const grid=dlg.querySelector('.fi-grid');
     if(grid && !document.getElementById('fiN8nModeBox')){
       const box=document.createElement('div');
-      box.id='fiN8nModeBox';box.className='fi-mode-box';
+      box.id='fiN8nModeBox';
+      box.className='fi-mode-box';
       box.innerHTML=`
         <div class="fi-mode-head">
           <strong>Режим n8n</strong>
@@ -77,45 +94,37 @@
         </div>
         <div id="fiN8nModeNote" class="fi-mode-note"></div>`;
       grid.insertAdjacentElement('afterend',box);
-      box.querySelector('#fiN8nTestMode').addEventListener('change',e=>setMode(e.target.checked));
+      box.querySelector('#fiN8nTestMode')?.addEventListener('change',e=>setMode(e.target.checked));
     }
 
     wrapUrlWithCopy(document.getElementById('fiInboxUrl'),'Копировать URL');
     wrapUrlWithCopy(document.getElementById('fiYandexUrl'),'Копировать webhook');
 
     if(!document.getElementById('fiTestModeStyles')){
-      const style=document.createElement('style');style.id='fiTestModeStyles';style.textContent=`
+      const style=document.createElement('style');
+      style.id='fiTestModeStyles';
+      style.textContent=`
         .fi-mode-box{margin-top:14px;padding:12px 14px;border:1px solid #dbe3ed;border-radius:12px;background:#f8fafc}
         .fi-mode-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.fi-mode-head strong{margin-right:auto}
         .fi-mode-toggle{font-size:13px;font-weight:800;display:flex;align-items:center;gap:7px}.fi-mode-badge{font-size:11px;font-weight:900;padding:4px 8px;border-radius:999px;background:#dbeafe;color:#1e40af}
         .fi-mode-note{margin-top:8px;font-size:12px;line-height:1.4;color:#475569}
         .fi-test-url-row{display:grid;grid-template-columns:1fr auto;gap:7px}.fi-test-url-row>button{border:1px solid #cbd5e1;background:#f8fafc;border-radius:9px;padding:0 12px;font-weight:800;cursor:pointer;min-height:40px}
         @media(max-width:650px){.fi-test-url-row{grid-template-columns:1fr}.fi-test-url-row>button{height:38px}}
-      `;document.head.appendChild(style);
+      `;
+      document.head.appendChild(style);
     }
 
-    const sync=()=>{
-      const inbox=document.getElementById('fiInboxUrl');
-      const yandex=document.getElementById('fiYandexUrl');
-      const test=isTestValue(inbox?.value)||isTestValue(yandex?.value);
-      const toggle=document.getElementById('fiN8nTestMode');
-      const label=document.getElementById('fiN8nModeLabel');
-      const note=document.getElementById('fiN8nModeNote');
-      if(toggle) toggle.checked=test;
-      if(label) label.textContent=test?'ТЕСТОВЫЙ':'РАБОЧИЙ';
-      if(note) note.textContent=test
-        ? 'Тест: в n8n нажми Execute workflow / Listen for test event. Для проверки Яндекс Формы временно укажи тестовый webhook ниже. Тестовый адрес работает только пока n8n ждёт событие.'
-        : 'Рабочий режим: используется production webhook. Workflow n8n должен быть Published / Active.';
-    };
-
-    if(dlg.dataset.testModeWatch!=='1'){
-      dlg.dataset.testModeWatch='1';
-      new MutationObserver(()=>{if(dlg.open)setTimeout(sync,0);}).observe(dlg,{attributes:true,attributeFilter:['open']});
-      dlg.addEventListener('close',sync);
-    }
-    sync();
+    const openObserver=new MutationObserver(()=>{if(dlg.open) syncMode();});
+    openObserver.observe(dlg,{attributes:true,attributeFilter:['open']});
+    dlg.addEventListener('close',syncMode);
+    syncMode();
+    return true;
   }
 
-  attach();
-  new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
+  if(!attach()){
+    const observer=new MutationObserver(()=>{
+      if(attach()) observer.disconnect();
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+  }
 })();
