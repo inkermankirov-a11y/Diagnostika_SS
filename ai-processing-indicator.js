@@ -19,6 +19,8 @@
     .fc-inline-ai-spinner i:nth-child(7){transform:rotate(270deg);animation-delay:-.11s}
     .fc-inline-ai-spinner i:nth-child(8){transform:rotate(315deg);animation-delay:0s}
     .fc-ai[disabled]{cursor:wait;opacity:.82}
+    #freeConsultationDialog .fcq-answer{background:#f1fbf4!important;border-color:#b9ddc5!important}
+    #freeConsultationDialog .fcq-value{color:#146534!important;font-weight:700!important}
     @keyframes fcAiDotFade{0%,12.5%{opacity:1}25%{opacity:.72}50%{opacity:.36}75%,100%{opacity:.14}}
     @media(prefers-reduced-motion:reduce){.fc-inline-ai-spinner i{animation-duration:1.8s}}
   `;
