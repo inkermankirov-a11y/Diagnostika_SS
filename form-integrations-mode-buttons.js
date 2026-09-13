@@ -7,12 +7,40 @@
   const PROD_INBOX='https://lugovoyn8n.ru/webhook/diagnostika-forms-inbox';
   const PROD_YANDEX='https://lugovoyn8n.ru/webhook/diagnostika-form-yandex';
   const TEST_YANDEX='https://lugovoyn8n.ru/webhook-test/diagnostika-form-yandex';
+  const MODE_KEY='diagnostika-yandex-form-mode-v1';
 
   const q=id=>document.getElementById(id);
   const dlg=q('formIntegrationsDialog');
   const yandexUrl=q('fiYandexUrl');
   const inboxUrl=q('fiInboxUrl');
   if(!dlg || !yandexUrl || !inboxUrl) return;
+
+  function readMode(){
+    const saved=localStorage.getItem(MODE_KEY);
+    if(saved==='test'||saved==='prod') return saved;
+    const inferred=String(yandexUrl.value||'').includes('/webhook-test/')?'test':'prod';
+    localStorage.setItem(MODE_KEY,inferred);
+    return inferred;
+  }
+
+  function rememberConfig(mode){
+    try{
+      const url=mode==='test'?TEST_YANDEX:PROD_YANDEX;
+      const cfg=window.DiagnostikaForms?.getConfig?.();
+      if(cfg){
+        cfg.inboxUrl=PROD_INBOX;
+        cfg.yandex=cfg.yandex||{};
+        cfg.yandex.intakeUrl=url;
+      }
+      const storage=window.DiagnostikaIntegrationStorage;
+      const local=storage?.readLocal?.();
+      if(local&&typeof local==='object'){
+        local.inboxUrl=PROD_INBOX;
+        local.yandex={...(local.yandex||{}),intakeUrl:url};
+        storage.writeLocal?.(local);
+      }
+    }catch(_){}
+  }
 
   // Сайт всегда забирает анкеты через опубликованный production inbox.
   inboxUrl.value=PROD_INBOX;
@@ -50,37 +78,44 @@
   `;
   document.head.appendChild(style);
 
-  function syncUi(){
+  function applyMode(mode,{message=false}={}){
+    const test=mode==='test';
+    localStorage.setItem(MODE_KEY,test?'test':'prod');
     inboxUrl.value=PROD_INBOX;
     inboxUrl.readOnly=true;
-    const test=String(yandexUrl.value||'').includes('/webhook-test/');
+    yandexUrl.value=test?TEST_YANDEX:PROD_YANDEX;
+    rememberConfig(test?'test':'prod');
+
     q('fiYandexProdMode')?.classList.toggle('active',!test);
     q('fiYandexTestMode')?.classList.toggle('active',test);
     const badge=q('fiYandexModeBadge');
     if(badge) badge.textContent=test?'ТЕСТ':'РАБОЧИЙ';
     const help=q('fiYandexModeHelp');
     if(help) help.textContent=test
-      ? 'Тест: в тестовой копии n8n сначала нажми Execute workflow, затем включи тестовый сценарий в Яндекс Форме. Сайт продолжает получать анкеты через рабочий inbox.'
-      : 'Рабочий режим: основной workflow n8n должен быть Published / Active, а в Яндекс Форме включён рабочий сценарий.';
+      ? 'Тестовый режим сохранён. В тестовой копии n8n нажми Execute workflow, затем отправь форму через тестовый сценарий Яндекс Формы. Сайт забирает результат через рабочий inbox.'
+      : 'Рабочий режим сохранён. Основной workflow n8n должен быть Published / Active, а в Яндекс Форме включён рабочий сценарий.';
+    if(message){
+      const st=q('fiStatus');
+      if(st) st.textContent=test?'Тестовый режим включён и сохранён.':'Рабочий режим включён и сохранён.';
+    }
   }
 
-  function setMode(test){
-    inboxUrl.value=PROD_INBOX;
-    yandexUrl.value=test?TEST_YANDEX:PROD_YANDEX;
-    const st=q('fiStatus');
-    if(st) st.textContent=test
-      ? 'Выбран тестовый webhook Яндекс Формы. Нажми «Сохранить».'
-      : 'Выбран рабочий webhook Яндекс Формы. Нажми «Сохранить».';
-    syncUi();
-  }
+  q('fiYandexProdMode').addEventListener('click',()=>applyMode('prod',{message:true}));
+  q('fiYandexTestMode').addEventListener('click',()=>applyMode('test',{message:true}));
 
-  q('fiYandexProdMode').addEventListener('click',()=>setMode(false));
-  q('fiYandexTestMode').addEventListener('click',()=>setMode(true));
-  yandexUrl.addEventListener('input',syncUi);
-  dlg.addEventListener('close',syncUi);
+  // openDialog сначала загружает integrations.json и заполняет поля. Подменяем showModal,
+  // чтобы после этого всегда восстановить именно выбранный пользователем режим.
+  const nativeShowModal=dlg.showModal.bind(dlg);
+  dlg.showModal=function(){
+    applyMode(readMode());
+    return nativeShowModal();
+  };
 
-  // openDialog сначала подставляет сохранённые значения. После открытия возвращаем inbox на production.
-  q('formIntegrationsBtn')?.addEventListener('click',()=>setTimeout(syncUi,0));
+  // Если поле изменили вручную — запоминаем соответствующий режим.
+  yandexUrl.addEventListener('change',()=>{
+    const mode=String(yandexUrl.value||'').includes('/webhook-test/')?'test':'prod';
+    applyMode(mode);
+  });
 
-  syncUi();
+  applyMode(readMode());
 })();
