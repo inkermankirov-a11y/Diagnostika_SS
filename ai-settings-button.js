@@ -44,14 +44,24 @@
     if(window.__formIntegrationsInboxFixReady) return;
     if(document.querySelector('script[data-form-integrations-inbox-fix]')) return;
     const s=document.createElement('script');
-    s.src='form-integrations-inbox-fix.js?v=20260913-134';
+    s.src='form-integrations-inbox-fix.js?v=20260913-129';
     s.setAttribute('data-form-integrations-inbox-fix','1');
+    document.body.appendChild(s);
+  }
+
+  function loadQuestionnaireProdOnly(){
+    if(window.__formIntegrationsProdOnlyReady) return;
+    if(document.querySelector('script[data-form-integrations-prod-only]')) return;
+    const s=document.createElement('script');
+    s.src='form-integrations-prod-only.js?v=20260913-135';
+    s.setAttribute('data-form-integrations-prod-only','1');
     document.body.appendChild(s);
   }
 
   function loadQuestionnaireHelpers(){
     loadQuestionnaireCopyFix();
     loadQuestionnaireInboxFix();
+    loadQuestionnaireProdOnly();
   }
 
   function loadQuestionnaireIntegrations(){
