@@ -26,7 +26,13 @@
 
   function mergeConfig(v){
     const d=blankConfig();v=v||{};
-    return {...d,...v,yandex:{...d.yandex,...(v.yandex||{})},google:{...d.google,...(v.google||{})}};
+    return {
+      ...d,
+      ...v,
+      inboxUrl:DEFAULT_INBOX,
+      yandex:{...d.yandex,...(v.yandex||{}),intakeUrl:DEFAULT_YANDEX},
+      google:{...d.google,...(v.google||{})}
+    };
   }
 
   function getClientByPhone(phone){
@@ -139,13 +145,13 @@
   async function checkInbox({silent=false}={}){
     if(checking)return {imported:0};
     config=mergeConfig(config||await window.DiagnostikaIntegrationStorage?.load?.());
-    if(!config.specialistId||!config.accessKey||!config.inboxUrl){
-      if(!silent)throw new Error('Сначала настрой интеграцию анкет: ID специалиста, ключ и URL получения.');
+    if(!config.specialistId||!config.accessKey){
+      if(!silent)throw new Error('Сначала настрой интеграцию анкет: ID специалиста и ключ.');
       return {imported:0};
     }
     checking=true;
     try{
-      const r=await fetch(config.inboxUrl,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({specialistId:config.specialistId,accessKey:config.accessKey})});
+      const r=await fetch(DEFAULT_INBOX,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({specialistId:config.specialistId,accessKey:config.accessKey})});
       const text=await r.text();let data={};try{data=text?JSON.parse(text):{};}catch(_){data={raw:text};}
       if(!r.ok)throw new Error(data?.error||`Сервис анкет вернул HTTP ${r.status}`);
       const list=Array.isArray(data)?data:(Array.isArray(data.submissions)?data.submissions:[]);
@@ -161,11 +167,11 @@
       <label><span>ID специалиста</span><div class="fi-inline"><input id="fiSpecialistId"><button type="button" id="fiGenId">Создать</button></div></label>
       <label><span>Имя специалиста</span><input id="fiSpecialistName"></label>
       <label><span>Ключ программы ↔ n8n</span><div class="fi-inline"><input id="fiAccessKey" type="password"><button type="button" id="fiGenAccess">Новый ключ</button></div></label>
-      <label class="fi-wide"><span>URL получения анкет из n8n</span><input id="fiInboxUrl"></label>
+      <label class="fi-wide"><span>URL получения анкет из n8n</span><input id="fiInboxUrl" readonly></label>
     </div>
     <div class="fi-source"><div class="fi-source-head"><strong>Яндекс Формы</strong><label class="fi-switch"><input id="fiYandexEnabled" type="checkbox"> включено</label></div>
       <label><span>Ключ Яндекс Формы</span><div class="fi-inline"><input id="fiYandexKey" type="password"><button type="button" id="fiGenYandex">Новый ключ</button></div></label>
-      <label><span>Webhook для Яндекс Формы</span><input id="fiYandexUrl"></label>
+      <label><span>Webhook для Яндекс Формы</span><input id="fiYandexUrl" readonly></label>
     </div>
     <div class="fi-source fi-muted"><div class="fi-source-head"><strong>Google Forms</strong><span>подключим следующим этапом</span></div></div>
     <div id="fiStatus" class="fi-status"></div>
@@ -181,10 +187,18 @@
 
   const q=id=>document.getElementById(id);
   function fillDialog(){
-    config=mergeConfig(config);q('fiSpecialistId').value=config.specialistId||'';q('fiSpecialistName').value=config.specialistName||'';q('fiAccessKey').value=config.accessKey||'';q('fiInboxUrl').value=config.inboxUrl||DEFAULT_INBOX;q('fiYandexEnabled').checked=config.yandex.enabled!==false;q('fiYandexKey').value=config.yandex.formKey||'';q('fiYandexUrl').value=config.yandex.intakeUrl||DEFAULT_YANDEX;q('fiStatus').textContent='';
+    config=mergeConfig(config);
+    q('fiSpecialistId').value=config.specialistId||'';
+    q('fiSpecialistName').value=config.specialistName||'';
+    q('fiAccessKey').value=config.accessKey||'';
+    q('fiInboxUrl').value=DEFAULT_INBOX;
+    q('fiYandexEnabled').checked=config.yandex.enabled!==false;
+    q('fiYandexKey').value=config.yandex.formKey||'';
+    q('fiYandexUrl').value=DEFAULT_YANDEX;
+    q('fiStatus').textContent='';
   }
   function collect(){
-    return mergeConfig({specialistId:q('fiSpecialistId').value.trim(),specialistName:q('fiSpecialistName').value.trim(),accessKey:q('fiAccessKey').value.trim(),inboxUrl:q('fiInboxUrl').value.trim()||DEFAULT_INBOX,yandex:{enabled:q('fiYandexEnabled').checked,formKey:q('fiYandexKey').value.trim(),intakeUrl:q('fiYandexUrl').value.trim()||DEFAULT_YANDEX},google:config?.google||{enabled:false}});
+    return mergeConfig({specialistId:q('fiSpecialistId').value.trim(),specialistName:q('fiSpecialistName').value.trim(),accessKey:q('fiAccessKey').value.trim(),inboxUrl:DEFAULT_INBOX,yandex:{enabled:q('fiYandexEnabled').checked,formKey:q('fiYandexKey').value.trim(),intakeUrl:DEFAULT_YANDEX},google:config?.google||{enabled:false}});
   }
   async function openDialog(){config=mergeConfig(await window.DiagnostikaIntegrationStorage?.load?.());fillDialog();dlg.showModal();}
 
@@ -194,10 +208,10 @@
   q('fiSave').onclick=async()=>{
     const next=collect();if(!next.specialistId)return q('fiStatus').textContent='Укажи ID специалиста.';if(!next.accessKey)return q('fiStatus').textContent='Создай ключ программы ↔ n8n.';if(next.yandex.enabled&&!next.yandex.formKey)return q('fiStatus').textContent='Создай ключ Яндекс Формы.';
     q('fiSave').disabled=true;q('fiStatus').textContent='Сохраняю…';
-    try{const res=await window.DiagnostikaIntegrationStorage.save(next,{folder:true,requestFolder:true});config=res.config;q('fiStatus').textContent=res.folderSaved?'Сохранено в браузере и подключённой папке (Diagnostika/integrations.json).':`Сохранено в браузере.${res.folderError?' Папка: '+res.folderError:''}`;}
+    try{const res=await window.DiagnostikaIntegrationStorage.save(next,{folder:true,requestFolder:true});config=mergeConfig(res.config);q('fiStatus').textContent=res.folderSaved?'Сохранено в браузере и подключённой папке (Diagnostika/integrations.json).':`Сохранено в браузере.${res.folderError?' Папка: '+res.folderError:''}`;}
     catch(e){q('fiStatus').textContent=e?.message||'Ошибка сохранения';}finally{q('fiSave').disabled=false;}
   };
-  q('fiCheck').onclick=async()=>{config=collect();q('fiCheck').disabled=true;q('fiStatus').textContent='Проверяю очередь анкет…';try{const r=await checkInbox({silent:false});q('fiStatus').textContent=`Получено новых: ${r.imported}. Новых клиентов: ${r.newClients}. Добавлено к существующим: ${r.attached}.`; }catch(e){q('fiStatus').textContent=e?.message||'Ошибка получения анкет';}finally{q('fiCheck').disabled=false;}};
+  q('fiCheck').onclick=async()=>{config=collect();q('fiCheck').disabled=true;q('fiStatus').textContent='Проверяю очередь анкет…';try{const r=await checkInbox({silent:false});q('fiStatus').textContent=r.imported?`Получено новых: ${r.imported}. Новых клиентов: ${r.newClients}. Добавлено к существующим: ${r.attached}.`:'Анкет не найдено.';}catch(e){q('fiStatus').textContent=e?.message||'Не удалось получить анкеты.';}finally{q('fiCheck').disabled=false;}};
 
   function attachSettingsButton(){
     const panel=document.getElementById('settingsPanel');if(!panel||panel.querySelector('#formIntegrationsBtn'))return;
@@ -205,6 +219,20 @@
   }
 
   window.DiagnostikaForms={openSettings:openDialog,checkInbox,importSubmissions,getConfig:()=>config};
-  (async()=>{config=mergeConfig(await window.DiagnostikaIntegrationStorage?.load?.());attachSettingsButton();setTimeout(()=>checkInbox({silent:true}).catch(()=>{}),2500);setInterval(()=>checkInbox({silent:true}).catch(()=>{}),120000);})();
-  new MutationObserver(attachSettingsButton).observe(document.body,{childList:true,subtree:true});
+  (async()=>{
+    config=mergeConfig(await window.DiagnostikaIntegrationStorage?.load?.());
+    try{
+      const storage=window.DiagnostikaIntegrationStorage;
+      const local=storage?.readLocal?.();
+      if(local&&typeof local==='object'){
+        local.inboxUrl=DEFAULT_INBOX;
+        local.yandex={...(local.yandex||{}),intakeUrl:DEFAULT_YANDEX};
+        storage.writeLocal?.(local);
+      }
+      localStorage.removeItem('diagnostika-yandex-form-mode-v1');
+    }catch(_){}
+    attachSettingsButton();
+    setTimeout(()=>checkInbox({silent:true}).catch(()=>{}),2500);
+    setInterval(()=>checkInbox({silent:true}).catch(()=>{}),120000);
+  })();
 })();
