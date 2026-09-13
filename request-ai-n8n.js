@@ -178,12 +178,12 @@
     form.set('pain',payload?.pain||'');
     form.set('manifestations',payload?.manifestations||'');
     form.set('impact',payload?.impact||'');
+    form.set('tried',payload?.tried||'');
+    form.set('didntHelp',payload?.didntHelp||'');
     form.set('desired',payload?.desired||'');
     form.set('whyNow',payload?.whyNow||'');
     form.set('lifeAfter',payload?.lifeAfter||'');
 
-    // 1. Сначала пробуем тестовый webhook. Если в n8n нажата кнопка
-    // Listen for test event, выполнение будет видно по узлам прямо в редакторе.
     notify('test-attempt','Проверяю тестовый webhook n8n…');
     const testAttempt=await postForm(TEST_URL,form);
 
@@ -193,12 +193,10 @@
         return parseSuccessfulResponse(testAttempt.text,'test');
       }
 
-      // 401/403 — webhook найден, но ключ неверный. На production не маскируем эту ошибку.
       if(testAttempt.response.status===401||testAttempt.response.status===403){
         throw new Error('n8n отклонил ключ доступа. Проверь ключ ИИ.');
       }
 
-      // Для типичных ответов "test webhook is not registered" просто идём в production.
       if(![404,405,409,410].includes(testAttempt.response.status)){
         notify('test-fallback',`Тестовый webhook ответил HTTP ${testAttempt.response.status}; пробую production.`);
       }else{
@@ -208,7 +206,6 @@
       notify('test-fallback','Тестовый webhook недоступен — переключаюсь на production.');
     }
 
-    // 2. Если тестовый режим не активен, автоматически используем опубликованный workflow.
     notify('production-attempt','Отправляю запрос в опубликованный workflow n8n…');
     const prodAttempt=await postForm(PRODUCTION_URL,form);
 
