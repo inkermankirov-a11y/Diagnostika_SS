@@ -31,6 +31,29 @@
     document.body.appendChild(s);
   }
 
+  function loadQuestionnaireIntegrations(){
+    if(!window.__diagnostikaIntegrationStorageReady && !document.querySelector('script[data-integration-folder-storage]')){
+      const s=document.createElement('script');
+      s.src='integration-folder-storage.js?v=20260913-123';
+      s.setAttribute('data-integration-folder-storage','1');
+      s.onload=()=>loadQuestionnaireIntegrations();
+      document.body.appendChild(s);
+      return;
+    }
+    if(!window.__diagnostikaFormIntegrationsReady && !document.querySelector('script[data-form-integrations]')){
+      const s=document.createElement('script');
+      s.src='form-integrations.js?v=20260913-123';
+      s.setAttribute('data-form-integrations','1');
+      document.body.appendChild(s);
+    }
+    if(!window.__diagnostikaClientQuestionnairesReady && !document.querySelector('script[data-client-questionnaires]')){
+      const s=document.createElement('script');
+      s.src='client-questionnaires.js?v=20260913-123';
+      s.setAttribute('data-client-questionnaires','1');
+      document.body.appendChild(s);
+    }
+  }
+
   function attach(){
     const dlg=document.getElementById('freeConsultationDialog');
     if(!dlg) return;
@@ -62,10 +85,12 @@
   loadProcessingIndicator();
   loadConsultationArchive();
   loadConsultationExtraFields();
+  loadQuestionnaireIntegrations();
   attach();
   new MutationObserver(()=>{
     attach();
     loadConsultationArchive();
     loadConsultationExtraFields();
+    loadQuestionnaireIntegrations();
   }).observe(document.body,{childList:true,subtree:true});
 })();
