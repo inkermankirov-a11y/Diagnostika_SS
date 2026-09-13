@@ -152,3 +152,11 @@
   setTimeout(syncFlags,250);
   window.DiagnostikaClientPaymentFlags={refresh:syncFlags,hasDebt:clientHasDebt,activeRequest,requestHasDebt,paidTotal};
 })();
+
+(() => {
+  if(document.querySelector('script[data-payment-total-stability]'))return;
+  const s=document.createElement('script');
+  s.src='payment-total-input-stability.js?v=20260913-105';
+  s.dataset.paymentTotalStability='1';
+  document.head.appendChild(s);
+})();
