@@ -23,12 +23,23 @@
     const requests=Array.isArray(c?.requests)?c.requests:[];
     if(!requests.length)return null;
 
-    try{
-      if(typeof clientId!=='undefined'&&String(c?.id)===String(clientId)&&typeof requestId!=='undefined'&&requestId){
-        const selected=requests.find(r=>String(r.id)===String(requestId));
-        if(selected)return selected;
-      }
-    }catch(_){}
+    const isSelected=(()=>{
+      try{return typeof clientId!=='undefined'&&String(c?.id)===String(clientId);}catch(_){return false;}
+    })();
+
+    if(isSelected){
+      try{
+        const fromModule=window.DiagnostikaRequests?.current?.(c);
+        if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
+      }catch(_){}
+
+      try{
+        if(typeof requestId!=='undefined'&&requestId){
+          const selected=requests.find(r=>String(r.id)===String(requestId));
+          if(selected)return selected;
+        }
+      }catch(_){}
+    }
 
     const remembered=requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
       ||requests.find(r=>String(r.id)===String(c?.activeRequestId||''));
@@ -151,12 +162,4 @@
   setTimeout(syncFlags,0);
   setTimeout(syncFlags,250);
   window.DiagnostikaClientPaymentFlags={refresh:syncFlags,hasDebt:clientHasDebt,activeRequest,requestHasDebt,paidTotal};
-})();
-
-(() => {
-  if(document.querySelector('script[data-payment-total-stability]'))return;
-  const s=document.createElement('script');
-  s.src='payment-total-input-stability.js?v=20260913-105';
-  s.dataset.paymentTotalStability='1';
-  document.head.appendChild(s);
 })();
