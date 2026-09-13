@@ -44,24 +44,14 @@
     if(window.__formIntegrationsInboxFixReady) return;
     if(document.querySelector('script[data-form-integrations-inbox-fix]')) return;
     const s=document.createElement('script');
-    s.src='form-integrations-inbox-fix.js?v=20260913-129';
+    s.src='form-integrations-inbox-fix.js?v=20260913-134';
     s.setAttribute('data-form-integrations-inbox-fix','1');
-    document.body.appendChild(s);
-  }
-
-  function loadQuestionnaireModeButtons(){
-    if(window.__formIntegrationsModeButtonsReady) return;
-    if(document.querySelector('script[data-form-integrations-mode-buttons]')) return;
-    const s=document.createElement('script');
-    s.src='form-integrations-mode-buttons.js?v=20260913-133';
-    s.setAttribute('data-form-integrations-mode-buttons','1');
     document.body.appendChild(s);
   }
 
   function loadQuestionnaireHelpers(){
     loadQuestionnaireCopyFix();
     loadQuestionnaireInboxFix();
-    loadQuestionnaireModeButtons();
   }
 
   function loadQuestionnaireIntegrations(){
