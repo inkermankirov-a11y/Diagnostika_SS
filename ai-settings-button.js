@@ -44,7 +44,7 @@
     if(window.__formIntegrationsInboxFixReady) return;
     if(document.querySelector('script[data-form-integrations-inbox-fix]')) return;
     const s=document.createElement('script');
-    s.src='form-integrations-inbox-fix.js?v=20260913-128';
+    s.src='form-integrations-inbox-fix.js?v=20260913-129';
     s.setAttribute('data-form-integrations-inbox-fix','1');
     document.body.appendChild(s);
   }
