@@ -17,8 +17,17 @@
     if(window.__freeConsultationArchiveReady) return;
     if(document.querySelector('script[data-fc-archive]')) return;
     const s=document.createElement('script');
-    s.src='free-consultation-archive.js?v=20260913-119';
+    s.src='free-consultation-archive.js?v=20260913-121';
     s.setAttribute('data-fc-archive','1');
+    document.body.appendChild(s);
+  }
+
+  function loadConsultationCardSync(){
+    if(window.__fcClientCardSyncReady) return;
+    if(document.querySelector('script[data-fc-card-sync]')) return;
+    const s=document.createElement('script');
+    s.src='free-consultation-client-card-sync.js?v=20260913-121';
+    s.setAttribute('data-fc-card-sync','1');
     document.body.appendChild(s);
   }
 
@@ -52,6 +61,7 @@
 
   loadProcessingIndicator();
   loadConsultationArchive();
+  loadConsultationCardSync();
   attach();
-  new MutationObserver(()=>{attach();loadConsultationArchive();}).observe(document.body,{childList:true,subtree:true});
+  new MutationObserver(()=>{attach();loadConsultationArchive();loadConsultationCardSync();}).observe(document.body,{childList:true,subtree:true});
 })();
