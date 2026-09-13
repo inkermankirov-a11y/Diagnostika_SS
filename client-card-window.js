@@ -25,7 +25,7 @@
           <label class="cc-field">Страна<input id="ccCountry" type="text"></label>
           <label class="cc-field">Город<input id="ccCity" type="text"></label>
           <label class="cc-field">Дата рождения<input id="ccBirth" type="date"></label>
-          <label class="cc-field">Возраст<input id="ccAge" type="text" readonly></label>
+          <label class="cc-field">Возраст<input id="ccAge" type="text" inputmode="numeric"></label>
           <label class="cc-field cc-social-field"><span>VK</span><input id="ccVk" type="text"></label>
           <label class="cc-field cc-social-field"><span>Telegram</span><input id="ccTelegram" type="text"></label>
           <label class="cc-field cc-social-field"><span>MAX</span><input id="ccMax" type="text"></label>
@@ -53,7 +53,7 @@
   document.body.appendChild(dlg);
 
   const q = id => document.getElementById(id);
-  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDidntHelp','ccDesiredOutcome','ccClientNotes'];
+  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDidntHelp','ccDesiredOutcome','ccClientNotes'];
   let draftMode=false;
   let draft=null;
   let dirty=false;
@@ -113,7 +113,7 @@
     c.country = q('ccCountry').value.trim();
     c.city = q('ccCity').value.trim();
     c.birth = q('ccBirth').value;
-    c.age = ageFromBirth(c.birth) || q('ccAge').value.trim();
+    c.age = q('ccAge').value.trim() || ageFromBirth(c.birth) || '';
     c.vk = q('ccVk').value.trim();
     c.telegram = q('ccTelegram').value.trim();
     c.max = q('ccMax').value.trim();
