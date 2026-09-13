@@ -65,12 +65,12 @@
       #freeConsultationDialog .fcq-panel-spacer{flex:1}
       #freeConsultationDialog .fcq-hide{height:30px!important;padding:0 9px!important;font-size:12px!important;white-space:nowrap}
       #freeConsultationDialog .fcq-selector-wrap{padding:10px 12px;border-bottom:1px solid #edf1f5;background:#fff}
-      #freeConsultationDialog .fcq-selector-label{display:block;font-size:11px;font-weight:900;color:#61758c;margin-bottom:5px}
+      #freeConsultationDialog .fcq-selector-label{display:block;font-size:11px;font-weight:900;color:#c23d70;margin-bottom:5px}
       #freeConsultationDialog .fcq-selector{width:100%;box-sizing:border-box;border:1px solid #cbd7e3;border-radius:8px;background:#fff;padding:7px 8px;font:600 12px 'Segoe UI',Arial,sans-serif;color:#31465f}
       #freeConsultationDialog .fcq-panel-body{min-height:0;overflow:auto;padding:10px 12px 14px;display:grid;align-content:start;gap:9px}
-      #freeConsultationDialog .fcq-answer{border:1px solid #e1e8f0;border-radius:9px;background:#f9fbfd;padding:9px 10px}
-      #freeConsultationDialog .fcq-question{font-size:11px;font-weight:900;line-height:1.35;color:#52677f;margin-bottom:5px}
-      #freeConsultationDialog .fcq-value{font-size:13px;line-height:1.5;color:#26384d;white-space:pre-wrap;overflow-wrap:anywhere}
+      #freeConsultationDialog .fcq-answer{border:1px solid #cfe8d9;border-radius:9px;background:#f4fbf7;padding:9px 10px}
+      #freeConsultationDialog .fcq-question{font-size:11px;font-weight:900;line-height:1.35;color:#c23d70;margin-bottom:5px}
+      #freeConsultationDialog .fcq-value{font-size:13px;font-weight:700;line-height:1.5;color:#167a45;white-space:pre-wrap;overflow-wrap:anywhere}
       #freeConsultationDialog .fcq-empty{padding:18px 8px;text-align:center;color:#7a8b9f;font-size:12px;line-height:1.45}
       #freeConsultationDialog .fcq-show{display:none;height:34px!important;padding:0 10px!important;margin-left:auto;white-space:nowrap;font-size:12px!important}
       #freeConsultationDialog.fcq-collapsed .fcq-body,#freeConsultationDialog.fcq-no-questionnaire .fcq-body{grid-template-columns:minmax(0,1fr)}
