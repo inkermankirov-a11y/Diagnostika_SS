@@ -1,0 +1,108 @@
+{
+  "name": "Diagnostika_SS — настройка анкет",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "4be81c05-267c-436a-8f43-42958b5d4784",
+      "name": "Запустить настройку",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-680, 0]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "diagnostika_specialists",
+        "columns": {"column": [
+          {"name": "specialistId", "type": "string"},
+          {"name": "specialistName", "type": "string"},
+          {"name": "accessKey", "type": "string"},
+          {"name": "yandexFormKey", "type": "string"},
+          {"name": "googleFormKey", "type": "string"},
+          {"name": "active", "type": "boolean"}
+        ]},
+        "options": {"createIfNotExists": true}
+      },
+      "id": "91d8b4c5-4c4d-407d-82c2-0ef835a757fb",
+      "name": "Создать таблицу специалистов",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-460, 0]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "diagnostika_questionnaires",
+        "columns": {"column": [
+          {"name": "externalId", "type": "string"},
+          {"name": "specialistId", "type": "string"},
+          {"name": "source", "type": "string"},
+          {"name": "receivedAt", "type": "string"},
+          {"name": "answersJson", "type": "string"},
+          {"name": "rawJson", "type": "string"}
+        ]},
+        "options": {"createIfNotExists": true}
+      },
+      "id": "4e39fa32-65df-4774-9a78-030946a00b3c",
+      "name": "Создать таблицу анкет",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-230, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{\n  specialistId:'CHANGE_SPECIALIST_ID',\n  specialistName:'Евгений',\n  accessKey:'CHANGE_PROGRAM_ACCESS_KEY',\n  yandexFormKey:'CHANGE_YANDEX_FORM_KEY',\n  googleFormKey:'',\n  active:true\n}}];"
+      },
+      "id": "a3aa06c7-79da-40a5-9eb1-0a1532364eda",
+      "name": "МОИ КЛЮЧИ — ЗАМЕНИ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {"__rl": true, "value": "diagnostika_specialists", "mode": "name"},
+        "matchType": "allConditions",
+        "filters": {"conditions": [{"keyName": "specialistId", "condition": "eq", "keyValue": "={{ $json.specialistId }}"}]},
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "specialistId": "={{ $json.specialistId }}",
+            "specialistName": "={{ $json.specialistName }}",
+            "accessKey": "={{ $json.accessKey }}",
+            "yandexFormKey": "={{ $json.yandexFormKey }}",
+            "googleFormKey": "={{ $json.googleFormKey }}",
+            "active": "={{ $json.active }}"
+          },
+          "schema": [
+            {"id":"specialistId","displayName":"specialistId","required":false,"defaultMatch":true,"display":true,"type":"string","canBeUsedToMatch":true},
+            {"id":"specialistName","displayName":"specialistName","required":false,"defaultMatch":false,"display":true,"type":"string","canBeUsedToMatch":false},
+            {"id":"accessKey","displayName":"accessKey","required":false,"defaultMatch":false,"display":true,"type":"string","canBeUsedToMatch":false},
+            {"id":"yandexFormKey","displayName":"yandexFormKey","required":false,"defaultMatch":false,"display":true,"type":"string","canBeUsedToMatch":false},
+            {"id":"googleFormKey","displayName":"googleFormKey","required":false,"defaultMatch":false,"display":true,"type":"string","canBeUsedToMatch":false},
+            {"id":"active","displayName":"active","required":false,"defaultMatch":false,"display":true,"type":"boolean","canBeUsedToMatch":false}
+          ]
+        },
+        "options": {}
+      },
+      "id": "5511b8ff-057f-41eb-b6a4-8d006bd80c15",
+      "name": "Сохранить специалиста",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Запустить настройку": {"main": [[{"node":"Создать таблицу специалистов","type":"main","index":0}]]},
+    "Создать таблицу специалистов": {"main": [[{"node":"Создать таблицу анкет","type":"main","index":0}]]},
+    "Создать таблицу анкет": {"main": [[{"node":"МОИ КЛЮЧИ — ЗАМЕНИ","type":"main","index":0}]]},
+    "МОИ КЛЮЧИ — ЗАМЕНИ": {"main": [[{"node":"Сохранить специалиста","type":"main","index":0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1"}
+}
