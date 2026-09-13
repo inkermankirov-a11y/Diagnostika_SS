@@ -5,6 +5,8 @@
     if(!(dlg instanceof HTMLDialogElement) || dlg.dataset.backdropCloseBound==='1') return;
     dlg.dataset.backdropCloseBound='1';
     dlg.addEventListener('click',e=>{
+      if(dlg.dataset.noBackdropClose==='1') return;
+      if(e.button!==0) return;
       if(e.target===dlg && dlg.open){
         try{dlg.close();}catch(_){}
       }
