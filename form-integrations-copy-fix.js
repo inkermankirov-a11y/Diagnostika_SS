@@ -4,6 +4,17 @@
   if (window.__formIntegrationsCopyFixReady) return;
   window.__formIntegrationsCopyFixReady = true;
 
+  const PROD_INBOX='https://lugovoyn8n.ru/webhook/diagnostika-forms-inbox';
+
+  function forceProdInbox(){
+    try{
+      const cfg=window.DiagnostikaForms?.getConfig?.();
+      if(cfg) cfg.inboxUrl=PROD_INBOX;
+    }catch(_){}
+    const input=document.getElementById('fiInboxUrl');
+    if(input && input.value!==PROD_INBOX) input.value=PROD_INBOX;
+  }
+
   function copyValue(input, button){
     const value=String(input?.value||'');
     if(!value) return;
@@ -30,10 +41,17 @@
     dlg.dataset.copyFix='1';
     dlg.dataset.noBackdropClose='1';
 
+    forceProdInbox();
+
     // Правый клик нужен для обычного контекстного меню и не должен закрывать окно.
     dlg.addEventListener('contextmenu',e=>e.stopPropagation(),true);
     dlg.addEventListener('mousedown',e=>{if(e.button===2)e.stopPropagation();},true);
     dlg.addEventListener('mouseup',e=>{if(e.button===2)e.stopPropagation();},true);
+
+    const check=document.getElementById('fiCheck');
+    if(check) check.addEventListener('click',forceProdInbox,true);
+    const save=document.getElementById('fiSave');
+    if(save) save.addEventListener('click',forceProdInbox,true);
 
     const fields=[
       ['fiSpecialistId','Копировать ID'],
@@ -56,5 +74,8 @@
   }
 
   attach();
+  setTimeout(forceProdInbox,100);
+  setTimeout(forceProdInbox,500);
+  setTimeout(forceProdInbox,1500);
   new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
 })();
