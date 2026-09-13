@@ -4,92 +4,13 @@
   if (window.__diagnostikaAiSettingsButtonReady) return;
   window.__diagnostikaAiSettingsButtonReady = true;
 
-  function loadProcessingIndicator(){
-    if(window.__diagnostikaAiProcessingIndicatorReady) return;
-    if(document.querySelector('script[data-ai-processing-indicator]')) return;
+  function loadOnce(src, attr, readyFlag){
+    if(window[readyFlag]) return;
+    if(document.querySelector(`script[${attr}]`)) return;
     const s=document.createElement('script');
-    s.src='ai-processing-indicator.js?v=20260913-119';
-    s.setAttribute('data-ai-processing-indicator','1');
+    s.src=src;
+    s.setAttribute(attr,'1');
     document.body.appendChild(s);
-  }
-
-  function loadConsultationArchive(){
-    if(window.__freeConsultationArchiveReady) return;
-    if(document.querySelector('script[data-fc-archive]')) return;
-    const s=document.createElement('script');
-    s.src='free-consultation-archive.js?v=20260913-121';
-    s.setAttribute('data-fc-archive','1');
-    document.body.appendChild(s);
-  }
-
-  function loadConsultationExtraFields(){
-    if(window.__freeConsultationExtraFieldsReady) return;
-    if(document.querySelector('script[data-fc-extra-fields]')) return;
-    const s=document.createElement('script');
-    s.src='free-consultation-extra-fields.js?v=20260913-122';
-    s.setAttribute('data-fc-extra-fields','1');
-    document.body.appendChild(s);
-  }
-
-  function loadQuestionnaireCopyFix(){
-    if(window.__formIntegrationsCopyFixReady) return;
-    if(document.querySelector('script[data-form-integrations-copy-fix]')) return;
-    const s=document.createElement('script');
-    s.src='form-integrations-copy-fix.js?v=20260913-124';
-    s.setAttribute('data-form-integrations-copy-fix','1');
-    document.body.appendChild(s);
-  }
-
-  function loadQuestionnaireInboxFix(){
-    if(window.__formIntegrationsInboxFixReady) return;
-    if(document.querySelector('script[data-form-integrations-inbox-fix]')) return;
-    const s=document.createElement('script');
-    s.src='form-integrations-inbox-fix.js?v=20260913-129';
-    s.setAttribute('data-form-integrations-inbox-fix','1');
-    document.body.appendChild(s);
-  }
-
-  function loadQuestionnaireProdOnly(){
-    if(window.__formIntegrationsProdOnlyReady) return;
-    if(document.querySelector('script[data-form-integrations-prod-only]')) return;
-    const s=document.createElement('script');
-    s.src='form-integrations-prod-only.js?v=20260913-135';
-    s.setAttribute('data-form-integrations-prod-only','1');
-    document.body.appendChild(s);
-  }
-
-  function loadQuestionnaireHelpers(){
-    loadQuestionnaireCopyFix();
-    loadQuestionnaireInboxFix();
-    loadQuestionnaireProdOnly();
-  }
-
-  function loadQuestionnaireIntegrations(){
-    if(!window.__diagnostikaIntegrationStorageReady && !document.querySelector('script[data-integration-folder-storage]')){
-      const s=document.createElement('script');
-      s.src='integration-folder-storage.js?v=20260913-123';
-      s.setAttribute('data-integration-folder-storage','1');
-      s.onload=loadQuestionnaireIntegrations;
-      document.body.appendChild(s);
-      return;
-    }
-
-    if(!window.__diagnostikaFormIntegrationsReady && !document.querySelector('script[data-form-integrations]')){
-      const s=document.createElement('script');
-      s.src='form-integrations.js?v=20260913-131';
-      s.setAttribute('data-form-integrations','1');
-      s.onload=loadQuestionnaireHelpers;
-      document.body.appendChild(s);
-    }else if(window.__diagnostikaFormIntegrationsReady){
-      loadQuestionnaireHelpers();
-    }
-
-    if(!window.__diagnostikaClientQuestionnairesReady && !document.querySelector('script[data-client-questionnaires]')){
-      const s=document.createElement('script');
-      s.src='client-questionnaires.js?v=20260913-123';
-      s.setAttribute('data-client-questionnaires','1');
-      document.body.appendChild(s);
-    }
   }
 
   function attach(){
@@ -120,16 +41,8 @@
     left.appendChild(btn);
   }
 
-  function boot(){
-    loadProcessingIndicator();
-    loadConsultationArchive();
-    loadConsultationExtraFields();
-    loadQuestionnaireIntegrations();
-    attach();
-  }
-
-  boot();
-  setTimeout(boot,150);
-  setTimeout(boot,600);
-  setTimeout(boot,1500);
+  loadOnce('ai-processing-indicator.js?v=20260913-136','data-ai-processing-indicator','__diagnostikaAiProcessingIndicatorReady');
+  loadOnce('free-consultation-archive.js?v=20260913-136','data-fc-archive','__freeConsultationArchiveReady');
+  loadOnce('free-consultation-extra-fields.js?v=20260913-136','data-fc-extra-fields','__freeConsultationExtraFieldsReady');
+  attach();
 })();
