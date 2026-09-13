@@ -16,7 +16,8 @@
   }
 
   function sessionPayment(s){
-    return s?.payment&&typeof s.payment==='object'?s.payment:{};
+    if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
+    return s.payment;
   }
 
   function requestForSession(c,s){
@@ -115,6 +116,7 @@
         if(amount<=0)return;
         if(pay?.sessionId&&paidSessionIds.has(String(pay.sessionId)))return;
         rows.push({
+          kind:'request',request:r,pay,
           date:pay?.date||'',amount,sym,
           title:pay?.note||`Платёж по запросу ${rn}`,
           sub:`Запрос ${rn}: ${r?.title||'Без названия'}`
@@ -125,6 +127,7 @@
     paidSessions.forEach(s=>{
       const sp=sessionPayment(s),r=requestForSession(c,s);
       rows.push({
+        kind:'session',request:r,session:s,payment:sp,
         date:sp.paidAt||s?.date||'',
         amount:num(sp.amount),
         sym:r?symbolFor(c,r):(SYMBOLS[c?.currency||'RUB']||'₽'),
@@ -134,6 +137,95 @@
     });
 
     return rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  }
+
+  function ensureEditor(){
+    let dlg=document.getElementById('paymentConsistencyEditor');
+    if(dlg)return dlg;
+
+    dlg=document.createElement('dialog');
+    dlg.id='paymentConsistencyEditor';
+    dlg.className='payment-dialog';
+    dlg.innerHTML=`
+      <div class="payment-window" style="width:min(560px,calc(100vw - 24px))">
+        <div class="payment-head"><strong>РЕДАКТИРОВАТЬ ПЛАТЁЖ</strong><button type="button" class="payment-x pce-close">×</button></div>
+        <div class="payment-sub pce-context"></div>
+        <div class="payment-grid" style="grid-template-columns:1fr">
+          <label class="payment-field">Дата оплаты<input class="pce-date" type="date"></label>
+          <label class="payment-field">Сумма<input class="pce-amount" type="number" min="0" step="1"></label>
+          <label class="payment-field">Комментарий<input class="pce-note" type="text"></label>
+          <label class="payment-field">Ссылка на чек<input class="pce-receipt" type="url" placeholder="https://..."></label>
+        </div>
+        <div class="payment-footer"><button type="button" class="tk-btn pce-cancel">Отмена</button><button type="button" class="tk-btn pce-save">Сохранить</button></div>
+      </div>`;
+    document.body.appendChild(dlg);
+    dlg.querySelector('.pce-close').onclick=()=>dlg.close();
+    dlg.querySelector('.pce-cancel').onclick=()=>dlg.close();
+    dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
+    return dlg;
+  }
+
+  function refreshEverywhere(){
+    try{if(typeof save==='function')save();}catch(_){}
+    try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
+    try{window.DiagnostikaPaymentConsistency?.refresh?.();}catch(_){}
+    try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(_){}
+    try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
+  }
+
+  function editPayment(item){
+    if(!item)return;
+    const dlg=ensureEditor();
+    const date=dlg.querySelector('.pce-date');
+    const amount=dlg.querySelector('.pce-amount');
+    const note=dlg.querySelector('.pce-note');
+    const receipt=dlg.querySelector('.pce-receipt');
+    const context=dlg.querySelector('.pce-context');
+
+    context.textContent=`${item.title} · ${item.sub}`;
+    date.value=item.date||'';
+    amount.value=item.amount||'';
+
+    if(item.kind==='request'){
+      note.value=item.pay?.note||'';
+      receipt.value=item.pay?.receiptUrl||'';
+    }else{
+      const sp=sessionPayment(item.session);
+      note.value=sp.note||'';
+      receipt.value=sp.receiptUrl||'';
+    }
+
+    dlg.querySelector('.pce-save').onclick=()=>{
+      const value=num(amount.value);
+      if(value<=0){amount.focus();return;}
+      const newDate=date.value||item.date||'';
+      const newNote=note.value.trim();
+      const newReceipt=receipt.value.trim();
+
+      if(item.kind==='request'){
+        item.pay.date=newDate;
+        item.pay.amount=value;
+        item.pay.note=newNote;
+        item.pay.receiptUrl=newReceipt;
+      }else{
+        const sp=sessionPayment(item.session);
+        sp.paid=true;
+        sp.amount=value;
+        sp.paidAt=newDate;
+        sp.note=newNote;
+        sp.receiptUrl=newReceipt;
+        if(item.request?.id){
+          item.session.requestId=item.request.id;
+          sp.requestId=item.request.id;
+        }
+      }
+
+      refreshEverywhere();
+      dlg.close();
+      setTimeout(renderAll,0);
+    };
+
+    if(!dlg.open)dlg.showModal();
   }
 
   function renderAll(){
@@ -173,8 +265,9 @@
     rows.forEach(x=>{
       const row=document.createElement('div');
       row.className='all-payment-row';
-      row.style.gridTemplateColumns='105px 120px 1fr';
-      row.innerHTML=`<span>${x.date||'—'}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div>`;
+      row.style.gridTemplateColumns='105px 120px minmax(0,1fr) 92px';
+      row.innerHTML=`<span>${x.date||'—'}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn pc-edit-payment">Изменить</button>`;
+      row.querySelector('.pc-edit-payment').onclick=()=>editPayment(x);
       list.appendChild(row);
     });
   }
@@ -192,6 +285,6 @@
   document.addEventListener('input',e=>{if(e.target?.closest?.('.payment-dialog'))schedule();},true);
   document.addEventListener('close',e=>{if(e.target?.matches?.('dialog.payment-dialog'))schedule();},true);
 
-  window.DiagnostikaPaymentConsistency={refresh,allRows,paidTotalForRequest};
+  window.DiagnostikaPaymentConsistency={refresh,allRows,paidTotalForRequest,editPayment};
   setTimeout(refresh,0);
 })();
