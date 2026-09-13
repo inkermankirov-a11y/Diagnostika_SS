@@ -1,0 +1,150 @@
+{
+  "name": "Diagnostika_SS — сформировать основной запрос",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "diagnostika-ai-request",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d1a8c8a1-9d81-4f42-9505-5b992566bc92",
+      "name": "Webhook — Diagnostika",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-760, 0],
+      "webhookId": "d3d09c02-2c4a-4a0e-9716-88cece040f73"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\n\nconst pain = String(body.pain || '').trim();\nconst manifestations = String(body.manifestations || '').trim();\nconst impact = String(body.impact || '').trim();\nconst desired = String(body.desired || '').trim();\n\nif (!pain && !manifestations && !impact && !desired) {\n  throw new Error('Не заполнены данные консультации');\n}\n\nconst instructions = `Ты помогаешь специалисту сформулировать рабочий терапевтический запрос из слов клиента. Не ставь диагнозы. Не придумывай травмы, причины, события или убеждения, которых клиент не называл. Не утверждай скрытые причины как факты. Главный запрос формулируй от первого лица через «Хочу…» и описывай желаемое изменение, а не ярлык проблемы. Если информации недостаточно, прямо укажи, что нужно уточнить. Отвечай только валидным JSON без markdown и без пояснений вокруг JSON.`;\n\nconst prompt = `Данные бесплатной консультации:\n\nБОЛЬ КЛИЕНТА:\n${pain || 'Не указано'}\n\nГДЕ ПРОЯВЛЯЕТСЯ:\n${manifestations || 'Не указано'}\n\nКАК МЕШАЕТ ЖИТЬ:\n${impact || 'Не указано'}\n\nЧЕГО ХОЧЕТ ВМЕСТО ЭТОГО:\n${desired || 'Не указано'}\n\nВерни JSON строго такой структуры:\n{\n  \"mainRequest\": \"Короткий основной запрос от первого лица, начинающийся с Хочу\",\n  \"analysis\": \"Кратко: главная трудность, повторяющийся сценарий и последствия — только то, что следует из слов клиента\",\n  \"desiredResult\": \"Желаемый результат понятным языком\",\n  \"clarifyingQuestion\": \"Один самый полезный уточняющий вопрос. Если всё достаточно ясно — Информации достаточно.\",\n  \"alternatives\": [\"Вариант 1\", \"Вариант 2\", \"Вариант 3\"]\n}`;\n\nreturn [{ json: {\n  accessKey: String(body.accessKey || ''),\n  clientId: String(body.clientId || ''),\n  clientName: String(body.clientName || ''),\n  instructions,\n  prompt\n} }];"
+      },
+      "id": "4fd7eb40-457f-4afc-bd03-45b7f7332f49",
+      "name": "Подготовить запрос",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-540, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6e5d6c98-8660-498b-aa9c-e03db52ce50d",
+              "leftValue": "={{ $json.accessKey }}",
+              "rightValue": "CHANGE_ME_TO_A_LONG_RANDOM_KEY",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f32363d2-a04d-4d7b-a02e-79cbc58bf3cc",
+      "name": "Ключ верный?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-310, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-5.6-luna', instructions: $json.instructions, input: $json.prompt, max_output_tokens: 1200 }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "d41af206-347a-4a71-865a-4e94a9ab33b6",
+      "name": "OpenAI — Responses API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-60, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $json || {};\nlet text = String(r.output_text || '').trim();\n\nif (!text && Array.isArray(r.output)) {\n  for (const item of r.output) {\n    if (!Array.isArray(item?.content)) continue;\n    for (const part of item.content) {\n      if (part?.type === 'output_text' && part?.text) {\n        text += String(part.text);\n      }\n    }\n  }\n}\n\ntext = text.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '').trim();\nif (!text) throw new Error('OpenAI не вернул текст');\n\nlet obj;\ntry {\n  obj = JSON.parse(text);\n} catch (e) {\n  throw new Error('OpenAI вернул невалидный JSON: ' + text.slice(0, 300));\n}\n\nreturn [{ json: {\n  mainRequest: String(obj.mainRequest || '').trim(),\n  analysis: String(obj.analysis || '').trim(),\n  desiredResult: String(obj.desiredResult || '').trim(),\n  clarifyingQuestion: String(obj.clarifyingQuestion || '').trim(),\n  alternatives: Array.isArray(obj.alternatives) ? obj.alternatives.map(x => String(x || '').trim()).filter(Boolean) : []\n} }];"
+      },
+      "id": "c858a283-9990-448a-b148-520d5665ea68",
+      "name": "Разобрать ответ ИИ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [180, -100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "bd7ba164-ab62-4701-b234-bde7adcf67da",
+      "name": "Ответ программе",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [420, -100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'Недействительный ключ доступа' } }}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "ba40360a-80ae-4efb-a3c9-da095ae54d65",
+      "name": "Ошибка доступа",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-60, 120]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook — Diagnostika": {
+      "main": [[{"node":"Подготовить запрос","type":"main","index":0}]]
+    },
+    "Подготовить запрос": {
+      "main": [[{"node":"Ключ верный?","type":"main","index":0}]]
+    },
+    "Ключ верный?": {
+      "main": [
+        [{"node":"OpenAI — Responses API","type":"main","index":0}],
+        [{"node":"Ошибка доступа","type":"main","index":0}]
+      ]
+    },
+    "OpenAI — Responses API": {
+      "main": [[{"node":"Разобрать ответ ИИ","type":"main","index":0}]]
+    },
+    "Разобрать ответ ИИ": {
+      "main": [[{"node":"Ответ программе","type":"main","index":0}]]
+    }
+  },
+  "active": false,
+  "settings": {"executionOrder":"v1"},
+  "versionId": "f7f15a86-8d53-4a4b-b58e-f3e05515187c",
+  "meta": {"templateCredsSetupCompleted":false},
+  "tags": []
+}
