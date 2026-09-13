@@ -46,22 +46,23 @@
     if(window.__diagnostikaStableFormLoaderStarted) return;
     window.__diagnostikaStableFormLoaderStarted=true;
 
-    const storage=loadOnce('integration-folder-storage.js?v=20260913-137','data-integration-folder-storage','__diagnostikaIntegrationStorageReady');
+    const storage=loadOnce('integration-folder-storage.js?v=20260913-138','data-integration-folder-storage','__diagnostikaIntegrationStorageReady');
     const loadCore=()=>{
-      const core=loadOnce('form-integrations.js?v=20260913-137','data-form-integrations','__diagnostikaFormIntegrationsReady');
+      const core=loadOnce('form-integrations.js?v=20260913-138','data-form-integrations','__diagnostikaFormIntegrationsReady');
       const loadHelpers=()=>{
-        loadOnce('form-integrations-copy-fix.js?v=20260913-137','data-form-integrations-copy-fix','__formIntegrationsCopyFixReady');
-        loadOnce('form-integrations-inbox-fix.js?v=20260913-137','data-form-integrations-inbox-fix','__formIntegrationsInboxFixReady');
-        loadOnce('client-questionnaires.js?v=20260913-137','data-client-questionnaires','__diagnostikaClientQuestionnairesReady');
+        loadOnce('form-integrations-copy-fix.js?v=20260913-138','data-form-integrations-copy-fix','__formIntegrationsCopyFixReady');
+        loadOnce('form-integrations-inbox-fix.js?v=20260913-138','data-form-integrations-inbox-fix','__formIntegrationsInboxFixReady');
+        loadOnce('form-integrations-lock.js?v=20260913-138','data-form-integrations-lock','__formIntegrationsLockReady');
+        loadOnce('client-questionnaires.js?v=20260913-138','data-client-questionnaires','__diagnostikaClientQuestionnairesReady');
       };
       if(core) core.addEventListener('load',loadHelpers,{once:true}); else loadHelpers();
     };
     if(storage) storage.addEventListener('load',loadCore,{once:true}); else loadCore();
   }
 
-  loadOnce('ai-processing-indicator.js?v=20260913-137','data-ai-processing-indicator','__diagnostikaAiProcessingIndicatorReady');
-  loadOnce('free-consultation-archive.js?v=20260913-137','data-fc-archive','__freeConsultationArchiveReady');
-  loadOnce('free-consultation-extra-fields.js?v=20260913-137','data-fc-extra-fields','__freeConsultationExtraFieldsReady');
+  loadOnce('ai-processing-indicator.js?v=20260913-138','data-ai-processing-indicator','__diagnostikaAiProcessingIndicatorReady');
+  loadOnce('free-consultation-archive.js?v=20260913-138','data-fc-archive','__freeConsultationArchiveReady');
+  loadOnce('free-consultation-extra-fields.js?v=20260913-138','data-fc-extra-fields','__freeConsultationExtraFieldsReady');
   attach();
 
   if(document.readyState==='complete') loadQuestionnaireIntegrations();
