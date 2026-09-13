@@ -44,7 +44,7 @@
     if(window.__formIntegrationsTestModeReady) return;
     if(document.querySelector('script[data-form-integrations-test-mode]')) return;
     const s=document.createElement('script');
-    s.src='form-integrations-test-mode.js?v=20260913-126';
+    s.src='form-integrations-test-mode.js?v=20260913-127';
     s.setAttribute('data-form-integrations-test-mode','1');
     document.body.appendChild(s);
   }
