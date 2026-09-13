@@ -3,46 +3,34 @@
 (() => {
   if (window.DiagnostikaRequestAI) return;
 
-  const PRODUCTION_URL='https://lugovoyn8n.ru/webhook/diagnostika-ai-request-v2';
+  const TEST_URL='https://lugovoyn8n.ru/webhook-test/diagnostika-ai-request-v2';
   const ACCESS_KEY='diagnostika-ai-n8n-access-key';
 
   function getConfig(){
-    return {
-      url:PRODUCTION_URL,
-      key:(localStorage.getItem(ACCESS_KEY)||'').trim()
-    };
+    return {url:TEST_URL,key:(localStorage.getItem(ACCESS_KEY)||'').trim()};
   }
-
-  function saveConfig(_url,key){
-    localStorage.setItem(ACCESS_KEY,String(key||'').trim());
-  }
-
-  function clearConfig(){
-    localStorage.removeItem(ACCESS_KEY);
-  }
-
+  function saveConfig(_url,key){localStorage.setItem(ACCESS_KEY,String(key||'').trim());}
+  function clearConfig(){localStorage.removeItem(ACCESS_KEY);}
   function configure(){
     const old=getConfig();
     const key=window.prompt('Введи ключ доступа, который указан в n8n:',old.key||'');
     if(key===null)return null;
     const cleanKey=String(key).trim();
     if(cleanKey.length<12)throw new Error('Ключ доступа должен быть не короче 12 символов');
-    saveConfig(PRODUCTION_URL,cleanKey);
-    return {url:PRODUCTION_URL,key:cleanKey};
+    saveConfig(TEST_URL,cleanKey);
+    return {url:TEST_URL,key:cleanKey};
   }
 
   function clampPriority(v){
     const n=Math.round(Number(v));
     return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0;
   }
-
   function tryJson(value){
     if(typeof value!=='string')return value;
     const text=value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/i,'').trim();
     if(!text)return {};
     try{return JSON.parse(text);}catch(_){return value;}
   }
-
   function extractOpenAIText(obj){
     if(!obj||typeof obj!=='object')return '';
     if(typeof obj.output_text==='string'&&obj.output_text.trim())return obj.output_text.trim();
@@ -57,25 +45,14 @@
     }
     return text.trim();
   }
-
   function unwrap(out){
     out=tryJson(out);
     for(let i=0;i<6;i++){
-      if(Array.isArray(out)){
-        out=out[0]??{};
-        out=tryJson(out);
-        continue;
-      }
+      if(Array.isArray(out)){out=tryJson(out[0]??{});continue;}
       if(!out||typeof out!=='object')break;
-
       if(out.mainRequest||out.main_request||out.shortRequests||out.short_requests)break;
-
       const aiText=extractOpenAIText(out);
-      if(aiText){
-        const parsed=tryJson(aiText);
-        if(parsed!==aiText){out=parsed;continue;}
-      }
-
+      if(aiText){const parsed=tryJson(aiText);if(parsed!==aiText){out=parsed;continue;}}
       if(out.body!==undefined){out=tryJson(out.body);continue;}
       if(out.data!==undefined){out=tryJson(out.data);continue;}
       if(out.result!==undefined){out=tryJson(out.result);continue;}
@@ -85,36 +62,22 @@
     }
     return out;
   }
-
   function normalizeShortRequests(out){
-    let raw=Array.isArray(out?.shortRequests)?out.shortRequests:
-      Array.isArray(out?.short_requests)?out.short_requests:
-      Array.isArray(out?.alternatives)?out.alternatives:[];
-
-    const list=raw.map((item,index)=>{
+    const raw=Array.isArray(out?.shortRequests)?out.shortRequests:Array.isArray(out?.short_requests)?out.short_requests:Array.isArray(out?.alternatives)?out.alternatives:[];
+    return raw.map((item,index)=>{
       if(typeof item==='string')return {title:item.trim(),priority:index===0?100:0};
       item=item&&typeof item==='object'?item:{};
-      return {
-        title:String(item.title||item.request||item.shortRequest||item.short_request||'').trim(),
-        priority:clampPriority(item.priority??item.percent??item.probability??item.score)
-      };
-    }).filter(x=>x.title);
-
-    list.sort((a,b)=>b.priority-a.priority);
-    return list.slice(0,4);
+      return {title:String(item.title||item.request||item.shortRequest||item.short_request||'').trim(),priority:clampPriority(item.priority??item.percent??item.probability??item.score)};
+    }).filter(x=>x.title).sort((a,b)=>b.priority-a.priority).slice(0,4);
   }
-
   function normalizeStringArray(value){
     if(Array.isArray(value))return value.map(x=>typeof x==='string'?x:String(x?.text||x?.question||x?.name||'')).map(x=>x.trim()).filter(Boolean);
     const one=String(value||'').trim();
     return one?[one]:[];
   }
-
   function normalize(raw){
     let out=unwrap(raw);
-    if(typeof out==='string'){
-      return {mainRequest:out.trim(),shortRequests:[],rationale:'',desiredResult:'',clarifyingQuestions:[],situations:[],_raw:raw};
-    }
+    if(typeof out==='string')return {mainRequest:out.trim(),shortRequests:[],rationale:'',desiredResult:'',clarifyingQuestions:[],situations:[],_raw:raw};
     out=out&&typeof out==='object'?out:{};
     return {
       mainRequest:String(out.mainRequest||out.main_request||out.request||out.main||'').trim(),
@@ -123,33 +86,19 @@
       desiredResult:String(out.desiredResult||out.desired_result||out.resultGoal||out.goal||'').trim(),
       clarifyingQuestions:normalizeStringArray(out.clarifyingQuestions||out.clarifying_questions||out.clarifyingQuestion||out.clarifying_question),
       situations:normalizeStringArray(out.situations||out.scenarios),
-      _raw:raw,
-      _unwrapped:out
+      _raw:raw,_unwrapped:out
     };
   }
-
   async function postForm(url,form){
     try{
-      const response=await fetch(url,{
-        method:'POST',
-        body:form,
-        cache:'no-store',
-        credentials:'omit',
-        redirect:'follow'
-      });
+      const response=await fetch(url,{method:'POST',body:form,cache:'no-store',credentials:'omit',redirect:'follow'});
       const text=await response.text();
       return {response,text,networkError:null};
-    }catch(err){
-      return {response:null,text:'',networkError:err};
-    }
+    }catch(err){return {response:null,text:'',networkError:err};}
   }
-
   async function generate(payload){
     let cfg=getConfig();
-    if(!cfg.key){
-      cfg=configure();
-      if(!cfg)throw new Error('Настройка ИИ отменена');
-    }
+    if(!cfg.key){cfg=configure();if(!cfg)throw new Error('Настройка ИИ отменена');}
 
     const form=new URLSearchParams();
     form.set('accessKey',cfg.key);
@@ -162,36 +111,26 @@
     form.set('whyNow',payload?.whyNow||'');
     form.set('lifeAfter',payload?.lifeAfter||'');
 
-    const url=PRODUCTION_URL;
-    const attempt=await postForm(url,form);
-
-    if(attempt.networkError){
-      throw new Error(`Не удалось получить ответ от production webhook: ${url}. Проверь, что workflow опубликован и в Webhook разрешён CORS для https://inkermankirov-a11y.github.io`);
-    }
+    const attempt=await postForm(TEST_URL,form);
+    if(attempt.networkError)throw new Error('Тестовый webhook n8n сейчас не слушает. Сначала нажми в n8n «Listen for test event», затем снова запусти анализ.');
 
     const response=attempt.response;
     const text=attempt.text;
-
     if(!response.ok){
-      if(response.status===401||response.status===403){
-        throw new Error('n8n отклонил ключ доступа. Проверь ключ ИИ.');
-      }
-      throw new Error(`Production webhook ${url} вернул HTTP ${response.status}${text?`: ${text.slice(0,220)}`:''}`);
+      if(response.status===401||response.status===403)throw new Error('n8n отклонил ключ доступа. Проверь ключ ИИ.');
+      throw new Error(`Test webhook вернул HTTP ${response.status}${text?`: ${text.slice(0,220)}`:''}`);
     }
 
     let data;
     try{data=text?JSON.parse(text):{};}catch(_){data=text;}
     if(data&&typeof data==='object'&&!Array.isArray(data)&&data.error)throw new Error(String(data.error));
-
     const result=normalize(data);
     if(!result.mainRequest){
-      const shape=result._unwrapped&&typeof result._unwrapped==='object'
-        ?Object.keys(result._unwrapped).slice(0,12).join(', ')
-        :typeof result._unwrapped;
+      const shape=result._unwrapped&&typeof result._unwrapped==='object'?Object.keys(result._unwrapped).slice(0,12).join(', '):typeof result._unwrapped;
       throw new Error(`ИИ ответил, но mainRequest не найден. Поля ответа: ${shape||'пусто'}`);
     }
     return result;
   }
 
-  window.DiagnostikaRequestAI={generate,configure,clearConfig,getConfig,normalize,productionUrl:PRODUCTION_URL};
+  window.DiagnostikaRequestAI={generate,configure,clearConfig,getConfig,normalize,testUrl:TEST_URL};
 })();
