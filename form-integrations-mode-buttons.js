@@ -6,7 +6,7 @@
 
   const PROD_INBOX='https://lugovoyn8n.ru/webhook/diagnostika-forms-inbox';
   const PROD_YANDEX='https://lugovoyn8n.ru/webhook/diagnostika-form-yandex';
-  const TEST_YANDEX='https://lugovoyn8n.ru/webhook-test/diagnostika-form-yandex';
+  const TEST_YANDEX='https://lugovoyn8n.ru/webhook/diagnostika-form-yandex-test';
   const MODE_KEY='diagnostika-yandex-form-mode-v1';
 
   const q=id=>document.getElementById(id);
@@ -15,10 +15,12 @@
   const inboxUrl=q('fiInboxUrl');
   if(!dlg || !yandexUrl || !inboxUrl) return;
 
+  const isTestUrl=value=>String(value||'').includes('diagnostika-form-yandex-test');
+
   function readMode(){
     const saved=localStorage.getItem(MODE_KEY);
     if(saved==='test'||saved==='prod') return saved;
-    const inferred=String(yandexUrl.value||'').includes('/webhook-test/')?'test':'prod';
+    const inferred=isTestUrl(yandexUrl.value)?'test':'prod';
     localStorage.setItem(MODE_KEY,inferred);
     return inferred;
   }
@@ -92,7 +94,7 @@
     if(badge) badge.textContent=test?'ТЕСТ':'РАБОЧИЙ';
     const help=q('fiYandexModeHelp');
     if(help) help.textContent=test
-      ? 'Тестовый режим сохранён. В тестовой копии n8n нажми Execute workflow, затем отправь форму через тестовый сценарий Яндекс Формы. Сайт забирает результат через рабочий inbox.'
+      ? 'Тестовый режим сохранён. Тестовая копия n8n должна быть Published / Active с отдельным webhook diagnostika-form-yandex-test. Execute workflow не нужен.'
       : 'Рабочий режим сохранён. Основной workflow n8n должен быть Published / Active, а в Яндекс Форме включён рабочий сценарий.';
     if(message){
       const st=q('fiStatus');
@@ -103,17 +105,14 @@
   q('fiYandexProdMode').addEventListener('click',()=>applyMode('prod',{message:true}));
   q('fiYandexTestMode').addEventListener('click',()=>applyMode('test',{message:true}));
 
-  // openDialog сначала загружает integrations.json и заполняет поля. Подменяем showModal,
-  // чтобы после этого всегда восстановить именно выбранный пользователем режим.
   const nativeShowModal=dlg.showModal.bind(dlg);
   dlg.showModal=function(){
     applyMode(readMode());
     return nativeShowModal();
   };
 
-  // Если поле изменили вручную — запоминаем соответствующий режим.
   yandexUrl.addEventListener('change',()=>{
-    const mode=String(yandexUrl.value||'').includes('/webhook-test/')?'test':'prod';
+    const mode=isTestUrl(yandexUrl.value)?'test':'prod';
     applyMode(mode);
   });
 
