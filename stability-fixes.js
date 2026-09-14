@@ -27,13 +27,4 @@
     questionnaireCompact.dataset.questionnaireCompactLock = '1';
     document.body.appendChild(questionnaireCompact);
   }
-
-  // Заметки выбранного клиента + AI-чат на главном экране.
-  // Модуль сам ждёт появления нового dashboard и не использует MutationObserver.
-  if (!document.querySelector('script[data-client-ai-chat]')) {
-    const clientAi = document.createElement('script');
-    clientAi.src = 'client-ai-chat.js?v=20260914-1';
-    clientAi.dataset.clientAiChat = '1';
-    document.body.appendChild(clientAi);
-  }
 })();
