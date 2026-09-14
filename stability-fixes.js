@@ -24,7 +24,7 @@
   // не застревают в браузерном кеше при проверке новой сборки.
   let pageBuild='';
   try{pageBuild=new URL(location.href).searchParams.get('build')||'';}catch(_){ }
-  const moduleVersion=encodeURIComponent(pageBuild||'20260914-live');
+  const moduleVersion=encodeURIComponent(pageBuild||'20260915-live');
 
   // Компактный режим анкет: без перетаскивания и кнопок смены порядка.
   if (!document.querySelector('script[data-questionnaire-compact-lock]')) {
@@ -42,5 +42,14 @@
     aiChatView.dataset.clientAiChatView = '1';
     aiChatView.onerror=()=>console.error('Не удалось загрузить client-ai-chat-view.js');
     document.body.appendChild(aiChatView);
+  }
+
+  // Отдельные AI-чаты по каждой сессии + кнопки очистки истории.
+  if (!document.querySelector('script[data-session-ai-chat]')) {
+    const sessionAiChat = document.createElement('script');
+    sessionAiChat.src = `session-ai-chat.js?v=${moduleVersion}`;
+    sessionAiChat.dataset.sessionAiChat = '1';
+    sessionAiChat.onerror=()=>console.error('Не удалось загрузить session-ai-chat.js');
+    document.body.appendChild(sessionAiChat);
   }
 })();
