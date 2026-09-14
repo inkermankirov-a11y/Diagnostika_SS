@@ -4,6 +4,7 @@
   if(window.__diagnostikaGoogleDriveStorageReady) return;
   window.__diagnostikaGoogleDriveStorageReady=true;
 
+  const STATE_KEY='diagnostika-web-v1';
   const AUTH_START='/auth/google';
   const driveIcon=`<svg class="gdrive-icon" viewBox="0 0 87.3 78" aria-hidden="true" focusable="false">
     <path fill="#0066DA" d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5l5.4 9.35z"/>
@@ -28,12 +29,41 @@
     .gdrive-connect:hover{background:#f7f9fc;border-color:#b8c5d2}
     .gdrive-connect.connected{border-color:#b6dfc5;background:#edf8f1;color:#287047}
     .gdrive-note{margin-top:10px;padding-top:9px;border-top:1px solid #edf1f5;font-size:10.5px;line-height:1.45;color:#7b8b9d}
-    .gdrive-tools{display:none;gap:10px;margin-top:8px}
-    .gdrive-card.connected .gdrive-tools{display:flex}
-    .gdrive-link-btn{border:0;background:transparent;padding:0;color:#4f78a8;font-size:10.5px;cursor:pointer;text-decoration:underline}
-    @media(max-width:520px){.gdrive-main-row{align-items:flex-start;flex-wrap:wrap}.gdrive-copy{flex:1 1 180px}.gdrive-connect{width:100%}}
+    .gdrive-tools{display:none;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+    .gdrive-card.connected .gdrive-tools{display:grid}
+    .gdrive-action{border:1px solid #cbd5df;background:#fff;color:#33485d;border-radius:7px;padding:8px 10px;cursor:pointer;font-size:11px;font-weight:700}
+    .gdrive-action:hover{background:#f7fafc}.gdrive-action:disabled{opacity:.55;cursor:wait}
+    .gdrive-disconnect{grid-column:1/-1;border:0;background:transparent;color:#a34b4b;padding:4px 0;text-align:left;font-size:10.5px;text-decoration:underline;cursor:pointer}
+    @media(max-width:520px){.gdrive-main-row{align-items:flex-start;flex-wrap:wrap}.gdrive-copy{flex:1 1 180px}.gdrive-connect{width:100%}.gdrive-tools{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
+
+  async function notify(message,title='Google Drive'){
+    if(window.AppDialog?.alert) return AppDialog.alert(message,title);
+    alert(message);
+  }
+  async function confirmAction(message,title,ok='Продолжить'){
+    if(window.AppDialog?.confirm) return AppDialog.confirm(message,title,ok,'Отмена');
+    return confirm(`${title}\n\n${message}`);
+  }
+  async function api(url,options={}){
+    const res=await fetch(url,{credentials:'include',cache:'no-store',...options});
+    let data=null;
+    try{data=await res.json();}catch{}
+    if(!res.ok) throw new Error(data?.error||`Ошибка сервера: ${res.status}`);
+    return data;
+  }
+  function currentDatabase(){
+    try{
+      if(window.state && Array.isArray(window.state.clients)) return JSON.parse(JSON.stringify(window.state));
+    }catch(_){}
+    try{
+      const raw=localStorage.getItem(STATE_KEY);
+      const db=raw?JSON.parse(raw):null;
+      if(db && Array.isArray(db.clients)) return db;
+    }catch(_){}
+    return null;
+  }
 
   function mount(){
     const dlg=document.querySelector('.storage-dialog');
@@ -50,13 +80,15 @@
           ${driveIcon}
           <div class="gdrive-copy">
             <div class="gdrive-name">Google Drive</div>
-            <div class="gdrive-status">Не подключён</div>
+            <div class="gdrive-status">Проверяю подключение…</div>
           </div>
           <button type="button" class="gdrive-connect">Подключить Google Drive</button>
         </div>
-        <div class="gdrive-note">Подключение выполняется через официальный вход Google. Пароль Google в Diagnostika не передаётся.</div>
+        <div class="gdrive-note">Подключение выполняется через официальный вход Google. Пароль Google в Diagnostika не передаётся. В Google Drive создаётся отдельная папка «Diagnostika».</div>
         <div class="gdrive-tools">
-          <button type="button" class="gdrive-link-btn gdrive-disconnect">Отключить Google Drive</button>
+          <button type="button" class="gdrive-action gdrive-backup">Сохранить базу в Google Drive</button>
+          <button type="button" class="gdrive-action gdrive-restore">Восстановить базу из Google Drive</button>
+          <button type="button" class="gdrive-disconnect">Отключить Google Drive</button>
         </div>
       </div>`;
     shell.insertBefore(section,footer);
@@ -64,54 +96,84 @@
     const card=section.querySelector('.gdrive-card');
     const status=section.querySelector('.gdrive-status');
     const connectBtn=section.querySelector('.gdrive-connect');
+    const backupBtn=section.querySelector('.gdrive-backup');
+    const restoreBtn=section.querySelector('.gdrive-restore');
     const disconnectBtn=section.querySelector('.gdrive-disconnect');
+    let connected=false;
 
+    function setBusy(busy){backupBtn.disabled=busy;restoreBtn.disabled=busy;disconnectBtn.disabled=busy;connectBtn.disabled=busy;}
+    function applyStatus(data){
+      connected=Boolean(data?.connected);
+      card.classList.toggle('connected',connected);
+      connectBtn.classList.toggle('connected',connected);
+      connectBtn.textContent=connected?'Google Drive подключён':'Подключить Google Drive';
+      if(connected){
+        const account=data.email||data.name||'Google-аккаунт';
+        status.textContent=`Подключён: ${account} · папка «${data.folderName||'Diagnostika'}»`;
+      }else status.textContent='Не подключён';
+    }
     async function refresh(){
-      try{
-        const res=await fetch('/api/google-drive/status',{credentials:'include',cache:'no-store'});
-        if(!res.ok) throw new Error('backend unavailable');
-        const data=await res.json();
-        if(data?.connected){
-          card.classList.add('connected');
-          connectBtn.classList.add('connected');
-          connectBtn.textContent='Google Drive подключён';
-          status.textContent=data.email?`Подключён: ${data.email}`:'Подключён';
-        }else{
-          card.classList.remove('connected');
-          connectBtn.classList.remove('connected');
-          connectBtn.textContent='Подключить Google Drive';
-          status.textContent='Не подключён';
-        }
-      }catch(_){
-        card.classList.remove('connected');
-        connectBtn.classList.remove('connected');
+      try{applyStatus(await api('/api/google-drive/status'));}
+      catch(_){
+        connected=false;card.classList.remove('connected');connectBtn.classList.remove('connected');
         connectBtn.textContent='Подключить Google Drive';
-        status.textContent='Готов к подключению после запуска серверной авторизации';
+        status.textContent=location.hostname.endsWith('github.io')?'Готов к подключению после запуска сайта на VPS':'Сервер Google Drive пока недоступен';
       }
     }
 
     connectBtn.onclick=async()=>{
-      if(card.classList.contains('connected')) return;
+      if(connected) return;
       if(location.hostname.endsWith('github.io')){
-        const message='Интерфейс Google Drive готов. Для настоящего перенаправления через Google нужен серверный OAuth на VPS. После переноса сайта кнопка будет вести на Google без ввода Client ID.';
-        if(window.AppDialog?.alert) await AppDialog.alert(message,'Google Drive'); else alert(message);
+        await notify('Интерфейс и серверная логика уже подготовлены. Реальное перенаправление на Google заработает после запуска этой же версии сайта через VPS с настроенными OAuth-параметрами.');
         return;
       }
-      const returnTo=location.href;
-      location.assign(`${AUTH_START}?returnTo=${encodeURIComponent(returnTo)}`);
+      location.assign(AUTH_START);
+    };
+
+    backupBtn.onclick=async()=>{
+      const db=currentDatabase();
+      if(!db){await notify('Не удалось получить текущую базу клиентов.');return;}
+      setBusy(true);backupBtn.textContent='Сохраняю…';
+      try{
+        const result=await api('/api/google-drive/backup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({database:db})});
+        await notify(`База сохранена в Google Drive. Клиентов: ${result.clientCount||0}.`,'Готово');
+        await refresh();
+      }catch(e){await notify(e?.message||'Не удалось сохранить базу в Google Drive.','Ошибка');}
+      finally{backupBtn.textContent='Сохранить базу в Google Drive';setBusy(false);}
+    };
+
+    restoreBtn.onclick=async()=>{
+      const ok=await confirmAction('Текущая база в этом браузере будет заменена версией из Google Drive.','Восстановить базу?','Восстановить');
+      if(!ok) return;
+      setBusy(true);restoreBtn.textContent='Загружаю…';
+      try{
+        const result=await api('/api/google-drive/restore');
+        if(!result?.database || !Array.isArray(result.database.clients)) throw new Error('На Google Drive найдена некорректная база.');
+        localStorage.setItem(STATE_KEY,JSON.stringify(result.database));
+        await notify(`База восстановлена. Клиентов: ${result.database.clients.length}. Страница будет перезагружена.`,'Готово');
+        location.reload();
+      }catch(e){await notify(e?.message||'Не удалось восстановить базу из Google Drive.','Ошибка');}
+      finally{restoreBtn.textContent='Восстановить базу из Google Drive';setBusy(false);}
     };
 
     disconnectBtn.onclick=async()=>{
-      try{
-        await fetch('/api/google-drive/disconnect',{method:'POST',credentials:'include'});
-      }catch(_){}
-      await refresh();
+      const ok=await confirmAction('Файлы в папке Google Drive удалены не будут.','Отключить Google Drive?','Отключить');
+      if(!ok) return;
+      setBusy(true);
+      try{await api('/api/google-drive/disconnect',{method:'POST'});applyStatus({connected:false});}
+      catch(e){await notify(e?.message||'Не удалось отключить Google Drive.','Ошибка');}
+      finally{setBusy(false);}
     };
 
     const params=new URLSearchParams(location.search);
-    if(params.get('googleDrive')==='connected'){
+    if(params.get('google_drive')==='connected'){
       history.replaceState(null,'',location.pathname+location.hash);
       setTimeout(refresh,0);
+    }else if(params.get('google_drive')==='error'){
+      const message=params.get('message')||'Не удалось подключить Google Drive.';
+      history.replaceState(null,'',location.pathname+location.hash);
+      setTimeout(()=>notify(message,'Ошибка Google Drive'),0);
+      refresh();
     }else refresh();
     return true;
   }
