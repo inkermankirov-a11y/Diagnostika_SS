@@ -114,3 +114,9 @@
 
   window.DiagnostikaGoogleCalendarLink={refresh:sync};
 })();
+
+// This is the final startup script in index.html. Reveal the UI only after all
+// synchronous modules above have finished transforming the legacy HTML shell.
+requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  document.body.classList.add('diagnostika-ready');
+}));
