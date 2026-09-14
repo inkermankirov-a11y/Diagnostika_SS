@@ -1,0 +1,98 @@
+name: Core CRM audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app.js'
+      - 'test-data.js'
+      - 'diagnosis-compact-client.js'
+      - 'header-calculator.js'
+      - 'index.html'
+      - '.github/workflows/core-crm-audit.yml'
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Test client diagnosis sessions and calculator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > core-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const context=await browser.newContext({viewport:{width:1440,height:1000}});
+          const page=await context.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('dialog',d=>d.accept().catch(()=>{}));
+
+          await page.goto(`http://127.0.0.1:8000/index.html?core=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await page.waitForFunction(()=>document.readyState!=='loading',null,{timeout:20000});
+          await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+
+          if((await page.locator('#clientSelect option').count())===0) await page.locator('#addClientBtn').click();
+          await page.locator('#clientSelect option').first().waitFor({state:'attached'});
+          await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
+          await page.waitForTimeout(400);
+
+          const name=(await page.locator('#clientName').inputValue()).trim();
+          if(!name||name==='Новый клиент') throw new Error('Client test fill failed');
+          if((await page.locator('#requestSelect option').count())<1) throw new Error('Requests missing');
+          if((await page.locator('#situationList .situation-item').count())<1) throw new Error('Situations missing');
+          if((await page.locator('#tree .tree-row').count())<1) throw new Error('Diagnosis tree missing');
+
+          const belief=page.locator('#tree .tree-row.primary').first();
+          await belief.click();
+          await page.locator('#editorText').fill('Аудит: тестовое убеждение');
+          await page.locator('#saveElementBtn').click();
+          await page.waitForTimeout(100);
+          if(!(await belief.textContent())?.includes('Аудит: тестовое убеждение')) throw new Error('Diagnosis edit failed');
+
+          await page.locator('.diagnosis-compact-back').click();
+          await page.locator('#clientHome').waitFor({state:'visible',timeout:3000});
+          const before=await page.locator('#sessionsList .session-row').count();
+          await page.locator('#addSessionBtn').click();
+          await page.waitForTimeout(100);
+          const after=await page.locator('#sessionsList .session-row').count();
+          if(after!==before+1) throw new Error(`Add session failed: before=${before}, after=${after}`);
+
+          const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null'));
+          if(!saved?.clients?.length) throw new Error('State not saved');
+          const current=saved.clients.find(c=>c.name===name)||saved.clients[0];
+          if((current.sessions||[]).length!==after) throw new Error(`Session persistence failed: stored=${(current.sessions||[]).length}, ui=${after}`);
+
+          const calc=page.locator('#headerCalculatorBtn');
+          if(await calc.count()){
+            await calc.click();
+            const input=page.locator('.standalone-calc-expression');
+            await input.fill('2+2');
+            await input.press('Enter');
+            const result=(await page.locator('.standalone-calc-result').textContent())?.trim();
+            if(result!=='4') throw new Error('Calculator failed: '+result);
+            await page.locator('.standalone-calc-close').click();
+          }
+
+          const raf=[];
+          for(let i=0;i<5;i++) raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));
+          console.log('CLIENT:',name,'SESSIONS:',before,'->',after,'RAF:',JSON.stringify(raf));
+          if(Math.max(...raf)>1200) throw new Error('Main thread responsiveness failed');
+
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          console.log('BROWSER_ERRORS:',JSON.stringify(errors));
+          if(serious.length) throw new Error(serious.join(' | '));
+          await browser.close();
+          JS
+          node core-audit.mjs
