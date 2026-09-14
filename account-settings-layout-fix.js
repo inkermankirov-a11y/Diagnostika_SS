@@ -45,8 +45,15 @@
     .settings-profile-name{font-size:14px!important}
     .settings-profile-sub{display:none!important}
 
-    /* В учетной записи не дублируем аватар, имя и кнопку смены фото. */
     .account-avatar-large{display:none!important}
+
+    .settings-account-content .account-forms-button{
+      width:100%!important;
+      min-width:0!important;
+      height:42px!important;
+      margin:2px 0 0!important;
+      box-sizing:border-box!important;
+    }
 
     .avatar-editor-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}
     .avatar-editor-dialog::backdrop{background:rgba(15,23,42,.56);backdrop-filter:blur(4px)}
@@ -88,6 +95,19 @@
   function applyPosition(){
     const p=getPos();
     document.querySelectorAll('.settings-profile-avatar img').forEach(img=>{img.style.objectPosition=`${p.x}% ${p.y}%`;});
+  }
+
+  function relocateFormsButton(){
+    const panel=document.getElementById('settingsPanel');
+    const account=panel?.querySelector('.settings-account-content');
+    if(!panel||!account) return;
+    const button=[...panel.querySelectorAll('button')].find(btn=>{
+      if(btn.closest('.settings-account-content')) return false;
+      return (btn.textContent||'').trim()==='Анкеты / формы';
+    });
+    if(!button) return;
+    button.classList.add('account-forms-button');
+    account.appendChild(button);
   }
 
   preview.addEventListener('pointerdown',e=>{
@@ -154,6 +174,7 @@
     document.querySelectorAll('.settings-profile-sub').forEach(x=>x.remove());
     applyPosition();
     bindAvatarInput();
+    relocateFormsButton();
   }
 
   cleanup();
