@@ -5,11 +5,11 @@
   if(!headerButtons || document.querySelector('#settingsMenuBtn')) return;
 
   const LABELS={
-    ru:{settings:'Настройки',close:'Закрыть настройки',clients:'Клиенты'},
-    en:{settings:'Settings',close:'Close settings',clients:'Clients'},
-    fr:{settings:'Paramètres',close:'Fermer les paramètres',clients:'Clients'},
-    de:{settings:'Einstellungen',close:'Einstellungen schließen',clients:'Kunden'},
-    it:{settings:'Impostazioni',close:'Chiudi impostazioni',clients:'Clienti'}
+    ru:{settings:'Настройки',close:'Закрыть настройки',clients:'Клиенты',accounts:'Учетные записи',interface:'Настройки интерфейса',coming:'Раздел учетных записей уже заложен и будет подключён позже.'},
+    en:{settings:'Settings',close:'Close settings',clients:'Clients',accounts:'Accounts',interface:'Interface settings',coming:'The accounts section is prepared and will be connected later.'},
+    fr:{settings:'Paramètres',close:'Fermer les paramètres',clients:'Clients',accounts:'Comptes',interface:"Paramètres d’interface",coming:'La section des comptes est préparée et sera connectée plus tard.'},
+    de:{settings:'Einstellungen',close:'Einstellungen schließen',clients:'Kunden',accounts:'Konten',interface:'Oberflächeneinstellungen',coming:'Der Kontobereich ist vorbereitet und wird später angeschlossen.'},
+    it:{settings:'Impostazioni',close:'Chiudi impostazioni',clients:'Clienti',accounts:'Account',interface:"Impostazioni interfaccia",coming:'La sezione account è pronta e verrà collegata in seguito.'}
   };
 
   const style=document.createElement('style');
@@ -29,13 +29,20 @@
     .settings-main-btn:hover .settings-gear{transform:rotate(90deg)}
     .settings-wrap.open .settings-gear{animation:settingsGearSpin 3.2s linear infinite}
     @keyframes settingsGearSpin{to{transform:rotate(360deg)}}
-    .settings-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:6500;width:min(310px,calc(100vw - 18px));padding:9px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;box-shadow:0 18px 45px rgba(15,23,42,.25);display:none}
+    .settings-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:6500;width:min(330px,calc(100vw - 18px));padding:9px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;box-shadow:0 18px 45px rgba(15,23,42,.25);display:none}
     .settings-wrap.open .settings-panel{display:grid;gap:7px;animation:settingsPanelIn .14s ease-out}
     @keyframes settingsPanelIn{from{opacity:0;transform:translateY(-5px) scale(.98)}to{opacity:1;transform:none}}
+    .settings-section-btn{width:100%;height:44px;border:1px solid #ccd7e2;border-radius:10px;background:#f8fafc;color:#33465a;font-size:13px;font-weight:850;text-align:left;padding:0 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+    .settings-section-btn:hover{background:#eef4fa}
+    .settings-section-btn.active{background:#eaf3ff;border-color:#a9c6ea;color:#245fae}
+    .settings-section-chevron{font-size:12px;transition:transform .18s ease}
+    .settings-section-btn.active .settings-section-chevron{transform:rotate(180deg)}
+    .settings-interface-content{display:none;padding:3px 0 1px;gap:7px}
+    .settings-interface-content.open{display:grid}
+    .settings-interface-content .language-switcher{width:100%!important;display:block!important}
+    .settings-interface-content .language-btn{width:100%!important;min-width:0!important;height:42px!important;justify-content:center!important}
+    .settings-interface-content .language-menu{position:static!important;width:100%!important;margin-top:6px!important;box-shadow:none!important;border-color:#d8e0e9!important}
     .settings-panel>.header-btn,.settings-panel>.storage-btn{width:100%!important;min-width:0!important;height:42px!important;margin:0!important;flex:none!important;text-align:center!important}
-    .settings-panel .language-switcher{width:100%!important;display:block!important}
-    .settings-panel .language-btn{width:100%!important;min-width:0!important;height:42px!important;justify-content:center!important}
-    .settings-panel .language-menu{position:static!important;width:100%!important;margin-top:6px!important;box-shadow:none!important;border-color:#d8e0e9!important}
     #testFillBtn,#exportTxtBtn{display:none!important}
     .utility-overlay[hidden]{display:none!important}
     @media(max-width:760px){
@@ -58,10 +65,17 @@
       <span class="settings-gear" aria-hidden="true">⚙</span>
       <span class="settings-label">Настройки</span>
     </button>
-    <div class="settings-panel" id="settingsPanel"></div>`;
+    <div class="settings-panel" id="settingsPanel">
+      <button type="button" class="settings-section-btn settings-accounts-btn"><span>Учетные записи</span><span>›</span></button>
+      <button type="button" class="settings-section-btn settings-interface-btn"><span>Настройки интерфейса</span><span class="settings-section-chevron">⌄</span></button>
+      <div class="settings-interface-content"></div>
+    </div>`;
 
   const btn=wrap.querySelector('#settingsMenuBtn');
   const panel=wrap.querySelector('#settingsPanel');
+  const accountsBtn=wrap.querySelector('.settings-accounts-btn');
+  const interfaceBtn=wrap.querySelector('.settings-interface-btn');
+  const interfaceContent=wrap.querySelector('.settings-interface-content');
 
   const saveHistory=document.getElementById('saveHistoryBtn');
   if(saveHistory) saveHistory.remove();
@@ -90,15 +104,15 @@
   });
 
   const language=document.querySelector('.language-switcher');
-  if(language) panel.appendChild(language);
+  if(language) interfaceContent.appendChild(language);
 
   headerButtons.innerHTML='';
   headerButtons.classList.add('settings-only');
   headerButtons.appendChild(wrap);
 
   function currentLang(){
-    const l=window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';
-    return LABELS[l]?l:'en';
+    const l=window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'ru';
+    return LABELS[l]?l:'ru';
   }
   function updateLabel(){
     const t=LABELS[currentLang()];
@@ -107,17 +121,30 @@
     btn.title=t.settings;
     btn.setAttribute('aria-label',wrap.classList.contains('open')?t.close:t.settings);
     if(clientBase){clientBase.textContent=t.clients;clientBase.title=t.clients;}
+    accountsBtn.firstElementChild.textContent=t.accounts;
+    interfaceBtn.firstElementChild.textContent=t.interface;
   }
   function setOpen(open){
     wrap.classList.toggle('open',open);
     btn.setAttribute('aria-expanded',String(open));
     updateLabel();
   }
+  function toggleInterface(){
+    const open=!interfaceContent.classList.contains('open');
+    interfaceContent.classList.toggle('open',open);
+    interfaceBtn.classList.toggle('active',open);
+  }
 
   btn.addEventListener('click',e=>{
     e.stopPropagation();
     setOpen(!wrap.classList.contains('open'));
   });
+  accountsBtn.addEventListener('click',async e=>{
+    e.stopPropagation();
+    const t=LABELS[currentLang()];
+    if(window.AppDialog?.alert) await AppDialog.alert(t.coming,t.accounts); else alert(t.coming);
+  });
+  interfaceBtn.addEventListener('click',e=>{e.stopPropagation();toggleInterface();});
 
   panel.addEventListener('click',e=>{
     e.stopPropagation();
@@ -125,16 +152,12 @@
       setTimeout(updateLabel,0);
       return;
     }
-    if(e.target.closest('.language-btn')) return;
+    if(e.target.closest('.language-btn,.settings-hints-control,.settings-section-btn')) return;
     if(e.target.closest('button')) setTimeout(()=>setOpen(false),0);
   });
 
-  document.addEventListener('click',e=>{
-    if(!wrap.contains(e.target)) setOpen(false);
-  });
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape' && wrap.classList.contains('open')) setOpen(false);
-  });
+  document.addEventListener('click',e=>{if(!wrap.contains(e.target)) setOpen(false);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape' && wrap.classList.contains('open')) setOpen(false);});
 
   const oldSetLanguage=window.DiagnostikaI18n?.setLanguage;
   if(oldSetLanguage){
@@ -144,6 +167,15 @@
       return result;
     };
   }
+
+  window.DiagnostikaSettingsUI={
+    interfaceContent,
+    openInterface(){
+      interfaceContent.classList.add('open');
+      interfaceBtn.classList.add('active');
+      setOpen(true);
+    }
+  };
 
   updateLabel();
 })();
