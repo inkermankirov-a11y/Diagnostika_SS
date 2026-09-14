@@ -27,4 +27,13 @@
     questionnaireCompact.dataset.questionnaireCompactLock = '1';
     document.body.appendChild(questionnaireCompact);
   }
+
+  // Улучшения AI-чата: разворачивание в крупную область экрана и
+  // прокрутка к началу нового ответа, а не к его концу.
+  if (!document.querySelector('script[data-client-ai-chat-view]')) {
+    const aiChatView = document.createElement('script');
+    aiChatView.src = 'client-ai-chat-view.js?v=20260914-1';
+    aiChatView.dataset.clientAiChatView = '1';
+    document.body.appendChild(aiChatView);
+  }
 })();
