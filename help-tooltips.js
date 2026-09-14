@@ -4,9 +4,12 @@
   if(window.__diagnostikaHelpTooltipsReady) return;
   window.__diagnostikaHelpTooltipsReady=true;
 
+  const LANGUAGE_KEY='diagnostika-ui-language';
+  if(!localStorage.getItem(LANGUAGE_KEY)) localStorage.setItem(LANGUAGE_KEY,'ru');
+
   if(!document.querySelector('script[data-hints-settings]')){
     const s=document.createElement('script');
-    s.src='hints-settings.js?v=20260913-121';
+    s.src='hints-settings.js?v=20260914-2';
     s.setAttribute('data-hints-settings','1');
     document.body.appendChild(s);
   }
