@@ -21,11 +21,19 @@
   }
 
   // Компактный режим анкет: без перетаскивания и кнопок смены порядка.
-  // Загружается отдельным модулем, чтобы не трогать данные самих анкет.
   if (!document.querySelector('script[data-questionnaire-compact-lock]')) {
     const questionnaireCompact = document.createElement('script');
     questionnaireCompact.src = 'questionnaire-compact-lock.js?v=20260914-1';
     questionnaireCompact.dataset.questionnaireCompactLock = '1';
     document.body.appendChild(questionnaireCompact);
+  }
+
+  // Заметки выбранного клиента + AI-чат на главном экране.
+  // Модуль сам ждёт появления нового dashboard и не использует MutationObserver.
+  if (!document.querySelector('script[data-client-ai-chat]')) {
+    const clientAi = document.createElement('script');
+    clientAi.src = 'client-ai-chat.js?v=20260914-1';
+    clientAi.dataset.clientAiChat = '1';
+    document.body.appendChild(clientAi);
   }
 })();
