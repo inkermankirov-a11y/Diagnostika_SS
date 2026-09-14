@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Психологическая диагностика — Recovery</title>
+  <link rel="stylesheet" href="styles.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="ui-fixes.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="session-attachments.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="session-format.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="storage-manager.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="help-tooltips.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="last-session-display.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="client-db-enhancements.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="client-card-window.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="modal-and-history-fixes.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="session-interactions.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="button-theme.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="deep-belief-hints-fix.css?v=20260914-recovery1">
+  <link rel="stylesheet" href="mobile-responsive.css?v=20260914-recovery1">
+</head>
+<body>
+<div class="desktop-app">
+  <header class="app-header">
+    <h1>Психологическая диагностика</h1>
+    <div class="header-buttons">
+      <button id="clientBaseBtn" class="header-btn" style="background:#64748b;color:#fff">База клиентов</button>
+      <button id="storageBtn" class="header-btn" style="background:#475569;color:#fff">Хранилище</button>
+      <button id="testFillBtn" class="header-btn" style="background:#d97706;color:#fff">ТЕСТ</button>
+      <button id="saveHistoryBtn" class="header-btn green">Сохранить в историю</button>
+      <button id="exportTxtBtn" class="header-btn blue">Сохранить TXT</button>
+    </div>
+  </header>
+
+  <main class="workspace-grid">
+    <aside class="left-panel panel-frame">
+      <section class="client-card inner-frame">
+        <div class="section-title">КЛИЕНТ</div>
+        <div class="client-select-line">
+          <select id="clientSelect"></select>
+          <button id="addClientBtn" class="combo-drop" title="Добавить клиента">+</button>
+        </div>
+        <div class="profile-row">
+          <div class="photo-column">
+            <div id="photoFrame" class="photo-frame">
+              <img id="clientPhoto" alt="Фото клиента">
+              <span id="photoPlaceholder">Фото</span>
+              <input id="photoInput" type="file" accept="image/*" hidden>
+            </div>
+            <div class="social-icons">
+              <button id="vkBtn" class="social-icon vk" title="VK">B</button>
+              <button id="tgBtn" class="social-icon tg" title="Telegram">➤</button>
+              <button id="maxBtn" class="social-icon max" title="MAX">◉</button>
+            </div>
+          </div>
+          <div class="profile-fields">
+            <label class="mini-label">ФИО<input id="clientName" class="entry"></label>
+            <div class="field-pair">
+              <label class="mini-label">Город<input id="clientCity" class="entry"></label>
+              <label class="mini-label">Возраст<input id="clientAge" class="entry readonly" readonly></label>
+            </div>
+            <button id="saveClientBtn" class="tk-btn">Сохранить данные</button>
+            <div class="profile-actions"><button id="backToProgressBtn" class="tk-btn back-btn hidden">← Назад к карте прогресса</button></div>
+          </div>
+        </div>
+        <div class="client-work">
+          <div class="work-label">РАБОТА С КЛИЕНТОМ</div>
+          <div class="work-buttons"><button id="clientCardModeBtn" class="mode-btn active">Карточка клиента</button><button id="diagnosisModeBtn" class="mode-btn">Диагностика</button></div>
+        </div>
+      </section>
+      <section id="diagnosticsLeft" class="diagnostics-left hidden">
+        <div class="separator"></div>
+        <div class="queries-block">
+          <div class="small-section-title">ЗАПРОСЫ КЛИЕНТА</div>
+          <div class="query-toolbar"><select id="requestSelect"></select><button id="addRequestBtn" class="tk-btn">+ Добавить запрос</button><button id="deleteRequestBtn" class="tk-btn">Удалить запрос</button></div>
+          <div class="small-section-title spacer-top">ОСНОВНОЙ ЗАПРОС</div><textarea id="requestTitle" class="text-area compact"></textarea>
+        </div>
+        <div class="situations-block"><div class="small-section-title">СИТУАЦИИ</div><div id="situationList" class="situation-list"></div></div>
+        <div class="left-footer-actions"><div class="situation-buttons"><button id="addSituationBtn" class="tk-btn">+ Добавить</button><button id="editSituationBtn" class="tk-btn">Изменить</button><button id="deleteSituationBtn" class="tk-btn">Удалить</button></div><button id="hintBtn" class="tk-btn hint-btn">Подсказки — убеждения 1</button></div>
+      </section>
+    </aside>
+    <section id="clientHome" class="client-home panel-frame span-two">
+      <h2>КАРТА КЛИЕНТА</h2><div id="clientHomeName" class="client-home-name">Выберите клиента</div><div id="clientLastSession" class="client-last-session">Последняя сессия: —</div><p class="client-home-muted">Здесь будет история работы и прогресс клиента.</p><div class="sessions-divider"></div><div class="sessions-head"><strong>СЕССИИ</strong><button id="addSessionBtn" class="tk-btn">+ Добавить сессию</button></div><div id="sessionsList" class="sessions-list"></div>
+    </section>
+    <section id="centerPanel" class="center-panel panel-frame hidden"><div class="center-actions"><button id="addBeliefBtn" class="tk-btn">+ Убеждение 1</button><button id="addFeelingBtn" class="tk-btn">+ Вторичные чувства</button><button id="addDeepBtn" class="tk-btn">+ Убеждение 2</button><button id="deleteElementBtn" class="tk-btn push-right">Удалить</button></div><div id="situationTitle" class="situation-title">Выберите ситуацию</div><div id="situationInfo" class="situation-info"></div><div id="tree" class="tree-view"></div></section>
+    <aside id="rightPanel" class="right-panel panel-frame hidden">
+      <div class="section-title right-title">РЕДАКТОР</div>
+      <div id="elementEditor"><div id="editorType" class="editor-type">Элемент не выбран</div><textarea id="editorText" class="text-area editor-text"></textarea><label class="editor-label">Уровень 1–10<input id="editorLevel" class="level-input" type="number" min="1" max="10" value="5"></label><label class="editor-label">Комментарий / уточнение<textarea id="editorComment" class="text-area editor-comment"></textarea></label><button id="saveElementBtn" class="editor-save-btn">Сохранить элемент</button></div>
+      <fieldset id="instinctFrame" class="instinct-frame hidden"><legend>ИНСТИНКТЫ — только для убеждения 2</legend><div id="instinctSelectedLabel" class="editor-type">Инстинкт 1</div><select id="instinctCombo"></select><label class="editor-label">Уровень 1–10<input id="instinctLevel" class="level-input" type="number" min="1" max="10" value="5"></label><label class="editor-label">Комментарий / уточнение<input id="instinctComment" class="entry"></label><div class="instinct-actions"><button id="saveInstinctBtn" class="editor-save-btn">Сохранить инстинкт</button><button id="addInstinctBtn" class="tk-btn">+ Добавить инстинкт</button></div></fieldset>
+      <div id="resultBlock" class="result-block hidden"><div class="result-title">★ ЖЕЛАЕМЫЙ РЕЗУЛЬТАТ СИТУАЦИИ</div><textarea id="situationResult" class="text-area result-text"></textarea><button id="saveResultBtn" class="tk-btn">Сохранить результат</button></div>
+    </aside>
+  </main>
+</div>
+<dialog id="clientDialog" class="client-dialog"><form method="dialog" class="dialog-card"><div class="dialog-title">БАЗА КЛИЕНТОВ</div><div id="clientDatabaseList" class="client-database-list"></div><div class="dialog-actions"><button id="dialogAddClientBtn" type="button" class="tk-btn">+ Новый клиент</button><button value="cancel" class="tk-btn">Закрыть</button></div></form></dialog>
+<script src="app.js?v=20260914-recovery1"></script>
+<script src="delete-client.js?v=20260914-recovery1"></script>
+<script src="test-data.js?v=20260914-recovery1"></script>
+<script src="diagnosis-navigation.js?v=20260914-recovery1"></script>
+<script src="ui-fixes.js?v=20260914-recovery1"></script>
+<script src="client-card-window.js?v=20260914-recovery1"></script>
+<script src="request-ai-n8n.js?v=20260914-recovery1"></script>
+<script src="free-consultation-request-builder.js?v=20260914-recovery1"></script>
+<script src="free-consultation-v2.js?v=20260914-recovery1"></script>
+<script src="ai-settings-button.js?v=20260914-recovery1"></script>
+<script src="ai-processing-indicator.js?v=20260914-recovery1"></script>
+<script src="stability-fixes.js?v=20260914-recovery1"></script>
+<script src="session-attachments.js?v=20260914-recovery1"></script>
+<script src="last-client.js?v=20260914-recovery1"></script>
+<script src="app-dialogs.js?v=20260914-recovery1"></script>
+<script src="storage-manager.js?v=20260914-recovery1"></script>
+<script src="google-drive-lazy-loader.js?v=20260914-recovery1"></script>
+<script src="help-tooltips.js?v=20260914-recovery1"></script>
+<script src="last-session-display.js?v=20260914-recovery1"></script>
+<script src="session-format.js?v=20260914-recovery1"></script>
+<script src="client-db-enhancements.js?v=20260914-recovery1"></script>
+<script src="client-trash.js?v=20260914-recovery1"></script>
+<script src="modal-and-history-fixes.js?v=20260914-recovery1"></script>
+<script src="session-interactions.js?v=20260914-recovery1"></script>
+<script src="export-txt-classic.js?v=20260914-recovery1"></script>
+<script src="diagnosis-resume.js?v=20260914-recovery1"></script>
+<script src="situation-create.js?v=20260914-recovery1"></script>
+<script src="diagnosis-add-focus.js?v=20260914-recovery1"></script>
+<script src="belief-hints.js?v=20260914-recovery1"></script>
+<script src="belief-hints-layout-fix.js?v=20260914-recovery1"></script>
+<script src="secondary-feeling-hints.js?v=20260914-recovery1"></script>
+<script src="feeling-tooltip-fix.js?v=20260914-recovery1"></script>
+<script src="feeling-collapse.js?v=20260914-recovery1"></script>
+<script src="deep-belief-hints.js?v=20260914-recovery1"></script>
+<script src="dynamic-save-labels.js?v=20260914-recovery1"></script>
+<script src="i18n.js?v=20260914-recovery1"></script>
+<script src="language-flags-fix.js?v=20260914-recovery1"></script>
+<script src="i18n-observer-guard.js?v=20260914-recovery1"></script>
+<script src="secondary-feelings-i18n.js?v=20260914-recovery1"></script>
+<script src="beliefs-i18n.js?v=20260914-recovery1"></script>
+<script src="settings-menu.js?v=20260914-recovery1"></script>
+<script src="about-program.js?v=20260914-recovery1"></script>
+<script src="header-utilities.js?v=20260914-recovery1"></script>
+<script src="header-currency-display.js?v=20260914-recovery1"></script>
+<script src="currency-safe-style.js?v=20260914-recovery1"></script>
+<script src="quick-notes.js?v=20260914-recovery1"></script>
+<script src="header-calculator.js?v=20260914-recovery1"></script>
+<script src="client-transfer.js?v=20260914-recovery1"></script>
+<script src="request-select-labels.js?v=20260914-recovery1"></script>
+<script src="payment-system.js?v=20260914-recovery1"></script>
+<script src="dialog-backdrop-close.js?v=20260914-recovery1"></script>
+<script src="session-active-request.js?v=20260914-recovery1"></script>
+<script src="request-date-unsaved.js?v=20260914-recovery1"></script>
+<script src="session-payment-status.js?v=20260914-recovery1"></script>
+<script src="payment-enhancements.js?v=20260914-recovery1"></script>
+<script src="payment-session-fix.js?v=20260914-recovery1"></script>
+<script src="session-payment-editor.js?v=20260914-recovery1"></script>
+<script src="session-ledger-current-request.js?v=20260914-recovery1"></script>
+<script src="diagnosis-compact-client.js?v=20260914-recovery1"></script>
+<script src="request-title-display.js?v=20260914-recovery1"></script>
+<script src="payment-save-guard.js?v=20260914-recovery1"></script>
+<script src="session-payment-ui-sync.js?v=20260914-recovery1"></script>
+<script src="client-payment-flag-rule.js?v=20260914-recovery1"></script>
+<script src="client-list-cleanup.js?v=20260914-recovery1"></script>
+<script src="session-payment-button-authority.js?v=20260914-recovery1"></script>
+<script src="payment-consistency-core.js?v=20260914-recovery1"></script>
+<script src="payment-total-input-stability.js?v=20260914-recovery1"></script>
+<script src="currency-calculator-direct.js?v=20260914-recovery1"></script>
+<script src="calculator-digit-grouping.js?v=20260914-recovery1"></script>
+<script src="client-calendar.js?v=20260914-recovery1"></script>
+<script src="calendar-session-planning.js?v=20260914-recovery1"></script>
+<script src="calendar-google-link.js?v=20260914-recovery1"></script>
+</body>
+</html>
