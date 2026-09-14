@@ -1,6 +1,9 @@
 'use strict';
 
 (() => {
+  if(window.__diagnostikaHeaderCurrencyDisplayReady) return;
+  window.__diagnostikaHeaderCurrencyDisplayReady=true;
+
   const style=document.createElement('style');
   style.textContent=`
     #headerCurrencyBtn.currency-compact-display{grid-template-columns:28px 1fr!important;grid-template-rows:16px 18px!important;grid-template-areas:'icon code' 'icon rate'!important;column-gap:7px!important;row-gap:2px!important;align-items:center!important;padding:4px 8px!important}
@@ -26,12 +29,23 @@
     return true;
   }
 
-  function start(){
-    if(!apply()){setTimeout(start,100);return;}
+  function bind(){
+    if(!apply()) return false;
     const btn=document.getElementById('headerCurrencyBtn');
+    if(!btn||btn.dataset.currencyDisplayBound==='1') return Boolean(btn);
+    btn.dataset.currencyDisplayBound='1';
     const observer=new MutationObserver(()=>apply());
     observer.observe(btn,{subtree:true,childList:true,characterData:true});
+    return true;
   }
 
-  start();
+  if(!bind()){
+    let tries=0;
+    const retry=()=>{
+      tries+=1;
+      if(bind()||tries>=30) return;
+      setTimeout(retry,100);
+    };
+    setTimeout(retry,100);
+  }
 })();
