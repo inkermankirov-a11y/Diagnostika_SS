@@ -1,6 +1,10 @@
 'use strict';
 
 (() => {
+  // Release the startup cover after the parser has finished the remaining synchronous scripts.
+  // CSS also has its own timeout, so the cover can never remain forever.
+  setTimeout(()=>document.body?.classList.add('diagnostika-ready'),0);
+
   const btn=document.querySelector('#saveHistoryBtn');
   if(!btn) return;
 
