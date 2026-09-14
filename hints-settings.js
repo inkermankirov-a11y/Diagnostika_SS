@@ -18,9 +18,7 @@
     return LABELS[lang]?lang:'ru';
   }
 
-  function enabled(){
-    return localStorage.getItem(KEY)==='1';
-  }
+  function enabled(){return localStorage.getItem(KEY)==='1';}
 
   function setEnabled(value){
     const next=!!value;
@@ -68,11 +66,9 @@
   function attach(){
     const panel=document.getElementById('settingsPanel');
     if(!panel) return;
-    if(panel.querySelector('.settings-hints-control')){
-      root=panel.querySelector('.settings-hints-control');
-      render();
-      return;
-    }
+    const target=panel.querySelector('.settings-interface-content')||panel;
+    const existing=target.querySelector('.settings-hints-control');
+    if(existing){root=existing;render();return;}
 
     root=document.createElement('div');
     root.className='settings-hints-control';
@@ -87,13 +83,14 @@
     root.querySelector('[data-value="on"]').onclick=e=>{e.stopPropagation();setEnabled(true);};
     root.querySelector('[data-value="off"]').onclick=e=>{e.stopPropagation();setEnabled(false);};
 
-    const language=panel.querySelector('.language-switcher');
-    if(language) panel.insertBefore(root,language);
-    else panel.appendChild(root);
+    const language=target.querySelector('.language-switcher');
+    if(language) target.insertBefore(root,language);
+    else target.appendChild(root);
     render();
   }
 
   attach();
-  new MutationObserver(()=>{attach();render();}).observe(document.body,{childList:true,subtree:true});
+  const observer=new MutationObserver(()=>{attach();render();});
+  observer.observe(document.body,{childList:true,subtree:true});
   window.addEventListener('diagnostika-language-changed',()=>setTimeout(render,0));
 })();
