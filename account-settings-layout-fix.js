@@ -17,36 +17,12 @@
   const style=document.createElement('style');
   style.textContent=`
     #specialistSettings{display:none!important}
-
-    .settings-profile-summary{
-      padding:12px 8px 14px!important;
-      gap:14px!important;
-      align-items:center!important;
-    }
-    .settings-profile-summary .settings-profile-avatar{
-      width:72px!important;
-      height:72px!important;
-      min-width:72px!important;
-      min-height:72px!important;
-      border-radius:50%!important;
-      overflow:hidden!important;
-      font-size:20px!important;
-      padding:0!important;
-      cursor:pointer!important;
-      box-shadow:0 2px 8px rgba(15,23,42,.14)!important;
-    }
-    .settings-profile-summary .settings-profile-avatar img{
-      width:100%!important;
-      height:100%!important;
-      object-fit:cover!important;
-      border-radius:50%!important;
-      display:block!important;
-    }
+    .settings-profile-summary{padding:12px 8px 14px!important;gap:14px!important;align-items:center!important}
+    .settings-profile-summary .settings-profile-avatar{width:72px!important;height:72px!important;min-width:72px!important;min-height:72px!important;border-radius:50%!important;overflow:hidden!important;font-size:20px!important;padding:0!important;cursor:pointer!important;box-shadow:0 2px 8px rgba(15,23,42,.14)!important}
+    .settings-profile-summary .settings-profile-avatar img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important;display:block!important}
     .settings-profile-name{font-size:14px!important}
     .settings-profile-sub{display:none!important}
-
     .account-avatar-large{display:none!important}
-
     .avatar-editor-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}
     .avatar-editor-dialog::backdrop{background:rgba(15,23,42,.56);backdrop-filter:blur(4px)}
     .avatar-editor-card{width:min(360px,calc(100vw - 28px));background:#fff;border:1px solid #d7e0e9;border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.34);padding:18px;box-sizing:border-box;color:#26384b}
@@ -64,16 +40,7 @@
 
   const dlg=document.createElement('dialog');
   dlg.className='avatar-editor-dialog';
-  dlg.innerHTML=`
-    <div class="avatar-editor-card">
-      <div class="avatar-editor-title">Настройка аватара</div>
-      <div class="avatar-editor-hint">Перетащи фотографию внутри круга, чтобы выставить лицо как нужно.</div>
-      <div class="avatar-editor-preview"><img alt=""></div>
-      <div class="avatar-editor-actions">
-        <button type="button" class="avatar-editor-cancel">Отмена</button>
-        <button type="button" class="avatar-editor-save">Сохранить</button>
-      </div>
-    </div>`;
+  dlg.innerHTML=`<div class="avatar-editor-card"><div class="avatar-editor-title">Настройка аватара</div><div class="avatar-editor-hint">Перетащи фотографию внутри круга, чтобы выставить лицо как нужно.</div><div class="avatar-editor-preview"><img alt=""></div><div class="avatar-editor-actions"><button type="button" class="avatar-editor-cancel">Отмена</button><button type="button" class="avatar-editor-save">Сохранить</button></div></div>`;
   document.body.appendChild(dlg);
 
   const preview=dlg.querySelector('.avatar-editor-preview');
@@ -84,28 +51,10 @@
   let startX=0,startY=0,startPosX=50,startPosY=50;
 
   function paintPreview(){previewImg.style.objectPosition=`${pos.x}% ${pos.y}%`;}
-  function applyPosition(){
-    const p=getPos();
-    document.querySelectorAll('.settings-profile-avatar img').forEach(img=>{img.style.objectPosition=`${p.x}% ${p.y}%`;});
-  }
+  function applyPosition(){const p=getPos();document.querySelectorAll('.settings-profile-avatar img').forEach(img=>{img.style.objectPosition=`${p.x}% ${p.y}%`;});}
 
-  preview.addEventListener('pointerdown',e=>{
-    dragging=true;
-    preview.classList.add('dragging');
-    preview.setPointerCapture?.(e.pointerId);
-    startX=e.clientX;startY=e.clientY;startPosX=pos.x;startPosY=pos.y;
-    e.preventDefault();
-  });
-  preview.addEventListener('pointermove',e=>{
-    if(!dragging)return;
-    const rect=preview.getBoundingClientRect();
-    const dx=(e.clientX-startX)/Math.max(1,rect.width)*100;
-    const dy=(e.clientY-startY)/Math.max(1,rect.height)*100;
-    pos.x=Math.max(0,Math.min(100,startPosX-dx));
-    pos.y=Math.max(0,Math.min(100,startPosY-dy));
-    paintPreview();
-    e.preventDefault();
-  });
+  preview.addEventListener('pointerdown',e=>{dragging=true;preview.classList.add('dragging');preview.setPointerCapture?.(e.pointerId);startX=e.clientX;startY=e.clientY;startPosX=pos.x;startPosY=pos.y;e.preventDefault();});
+  preview.addEventListener('pointermove',e=>{if(!dragging)return;const rect=preview.getBoundingClientRect();const dx=(e.clientX-startX)/Math.max(1,rect.width)*100;const dy=(e.clientY-startY)/Math.max(1,rect.height)*100;pos.x=Math.max(0,Math.min(100,startPosX-dx));pos.y=Math.max(0,Math.min(100,startPosY-dy));paintPreview();e.preventDefault();});
   function stopDrag(){dragging=false;preview.classList.remove('dragging');}
   preview.addEventListener('pointerup',stopDrag);
   preview.addEventListener('pointercancel',stopDrag);
@@ -113,50 +62,41 @@
   dlg.querySelector('.avatar-editor-cancel').onclick=()=>{dlg.close();tempData='';};
   dlg.querySelector('.avatar-editor-save').onclick=()=>{
     if(!tempData){dlg.close();return;}
-    try{
-      localStorage.setItem(AVATAR_KEY,tempData);
-      localStorage.setItem(POS_KEY,JSON.stringify(pos));
-    }catch(e){console.warn('Avatar save failed',e);}
-    document.querySelectorAll('.settings-profile-avatar').forEach(el=>{
-      el.innerHTML='';
-      const img=document.createElement('img');
-      img.src=tempData;img.alt='';img.style.objectPosition=`${pos.x}% ${pos.y}%`;
-      el.appendChild(img);
-    });
+    try{localStorage.setItem(AVATAR_KEY,tempData);localStorage.setItem(POS_KEY,JSON.stringify(pos));}catch(e){console.warn('Avatar save failed',e);}
+    document.querySelectorAll('.settings-profile-avatar').forEach(el=>{el.innerHTML='';const img=document.createElement('img');img.src=tempData;img.alt='';img.style.objectPosition=`${pos.x}% ${pos.y}%`;el.appendChild(img);});
     window.dispatchEvent(new CustomEvent('diagnostika-specialist-profile-change',{detail:{avatar:tempData,position:{...pos}}}));
-    dlg.close();
-    tempData='';
+    dlg.close();tempData='';
   };
 
   function bindAvatarInput(){
     const input=document.querySelector('.account-avatar-input');
-    if(!input || input.dataset.manualAvatarEditor==='1') return;
+    if(!input || input.dataset.manualAvatarEditor==='1') return false;
     input.dataset.manualAvatarEditor='1';
     input.addEventListener('change',e=>{
       const file=input.files?.[0];
       if(!file || !file.type.startsWith('image/')) return;
       e.stopImmediatePropagation();
       const reader=new FileReader();
-      reader.onload=()=>{
-        tempData=String(reader.result||'');
-        pos=getPos();
-        previewImg.src=tempData;
-        paintPreview();
-        if(!dlg.open) dlg.showModal();
-      };
-      reader.readAsDataURL(file);
-      input.value='';
+      reader.onload=()=>{tempData=String(reader.result||'');pos=getPos();previewImg.src=tempData;paintPreview();if(!dlg.open) dlg.showModal();};
+      reader.readAsDataURL(file);input.value='';
     },true);
+    return true;
   }
 
-  function cleanup(){
+  function initProfileFixes(){
     document.querySelectorAll('.settings-profile-sub').forEach(x=>x.remove());
     applyPosition();
-    bindAvatarInput();
+    return bindAvatarInput();
   }
 
-  cleanup();
-  const observer=new MutationObserver(()=>cleanup());
-  observer.observe(document.body,{childList:true,subtree:true});
+  let tries=0;
+  const timer=setInterval(()=>{
+    tries++;
+    const done=initProfileFixes();
+    if(done || tries>=20) clearInterval(timer);
+  },150);
+  initProfileFixes();
+
+  document.getElementById('settingsMenuBtn')?.addEventListener('click',()=>setTimeout(()=>{initProfileFixes();},0));
   window.addEventListener('diagnostika-specialist-profile-change',()=>setTimeout(applyPosition,0));
 })();
