@@ -44,6 +44,7 @@
 
       await loadScript('google-oauth-config.js?v=20260914-2');
       await loadScript('google-drive-storage.js?v=20260914-5');
+      await loadScript('google-drive-auth-popup-fix.js?v=20260914-1');
       await loadScript('google-drive-sync-safe.js?v=20260914-2');
       loaded = true;
     } catch (error) {
