@@ -47,14 +47,6 @@
 
     .account-avatar-large{display:none!important}
 
-    .settings-account-content .account-forms-button{
-      width:100%!important;
-      min-width:0!important;
-      height:42px!important;
-      margin:2px 0 0!important;
-      box-sizing:border-box!important;
-    }
-
     .avatar-editor-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}
     .avatar-editor-dialog::backdrop{background:rgba(15,23,42,.56);backdrop-filter:blur(4px)}
     .avatar-editor-card{width:min(360px,calc(100vw - 28px));background:#fff;border:1px solid #d7e0e9;border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.34);padding:18px;box-sizing:border-box;color:#26384b}
@@ -95,19 +87,6 @@
   function applyPosition(){
     const p=getPos();
     document.querySelectorAll('.settings-profile-avatar img').forEach(img=>{img.style.objectPosition=`${p.x}% ${p.y}%`;});
-  }
-
-  function relocateFormsButton(){
-    const panel=document.getElementById('settingsPanel');
-    const account=panel?.querySelector('.settings-account-content');
-    if(!panel||!account) return;
-    const button=[...panel.querySelectorAll('button')].find(btn=>{
-      if(btn.closest('.settings-account-content')) return false;
-      return (btn.textContent||'').trim()==='Анкеты / формы';
-    });
-    if(!button) return;
-    button.classList.add('account-forms-button');
-    account.appendChild(button);
   }
 
   preview.addEventListener('pointerdown',e=>{
@@ -174,7 +153,6 @@
     document.querySelectorAll('.settings-profile-sub').forEach(x=>x.remove());
     applyPosition();
     bindAvatarInput();
-    relocateFormsButton();
   }
 
   cleanup();
