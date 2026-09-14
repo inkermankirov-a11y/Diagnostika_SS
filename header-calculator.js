@@ -1,6 +1,9 @@
 'use strict';
 
 (() => {
+  if (window.__diagnostikaStandaloneCalculatorReady) return;
+  window.__diagnostikaStandaloneCalculatorReady = true;
+
   const HISTORY_KEY='diagnostika-standalone-calculator-history';
   if(document.getElementById('standaloneCalculatorOverlay')) return;
 
@@ -45,7 +48,7 @@
 
   function evaluate(raw){
     let expr=String(raw||'').replace(/,/g,'.').replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/\s+/g,'');
-    if(!expr||!^[0-9+\-*/().%]+$/.test(expr)) throw new Error('bad');
+    if(!expr || !/^[0-9+\-*/().%]+$/.test(expr)) throw new Error('bad');
     expr=expr.replace(/(\d+(?:\.\d+)?)%/g,'($1/100)');
     const value=Function('"use strict";return ('+expr+')')();
     if(typeof value!=='number'||!Number.isFinite(value)) throw new Error('bad');
@@ -59,10 +62,7 @@
   overlay.innerHTML=`
     <section class="standalone-calc-panel">
       <div class="standalone-calc-head"><h2>🧮 Калькулятор</h2><button type="button" class="tk-btn standalone-calc-close">×</button></div>
-      <div class="standalone-calc-screen">
-        <input class="standalone-calc-expression" inputmode="decimal" autocomplete="off" placeholder="0">
-        <div class="standalone-calc-result">0</div>
-      </div>
+      <div class="standalone-calc-screen"><input class="standalone-calc-expression" inputmode="decimal" autocomplete="off" placeholder="0"><div class="standalone-calc-result">0</div></div>
       <div class="standalone-calc-grid">
         <button type="button" class="tk-btn calc-clear" data-k="C">C</button><button type="button" class="tk-btn" data-k="(">(</button><button type="button" class="tk-btn" data-k=")">)</button><button type="button" class="tk-btn calc-op" data-k="÷">÷</button>
         <button type="button" class="tk-btn" data-k="7">7</button><button type="button" class="tk-btn" data-k="8">8</button><button type="button" class="tk-btn" data-k="9">9</button><button type="button" class="tk-btn calc-op" data-k="×">×</button>
@@ -71,10 +71,7 @@
         <button type="button" class="tk-btn" data-k="0">0</button><button type="button" class="tk-btn" data-k=",">,</button><button type="button" class="tk-btn" data-k="⌫">⌫</button><button type="button" class="tk-btn calc-eq" data-k="=">=</button>
         <button type="button" class="tk-btn" data-k="%">%</button>
       </div>
-      <div class="standalone-calc-history">
-        <div class="standalone-calc-history-head"><strong>История расчётов</strong><button type="button" class="tk-btn standalone-calc-history-clear">Очистить</button></div>
-        <div class="standalone-calc-history-list"></div>
-      </div>
+      <div class="standalone-calc-history"><div class="standalone-calc-history-head"><strong>История расчётов</strong><button type="button" class="tk-btn standalone-calc-history-clear">Очистить</button></div><div class="standalone-calc-history-list"></div></div>
     </section>`;
   document.body.appendChild(overlay);
 
@@ -89,7 +86,11 @@
     h.forEach(item=>{
       const row=document.createElement('div');
       row.className='standalone-calc-history-row';
-      row.innerHTML=`<span>${item.expr}</span><strong>= ${item.result}</strong>`;
+      const expression=document.createElement('span');
+      expression.textContent=String(item.expr||'');
+      const value=document.createElement('strong');
+      value.textContent='= '+String(item.result||'');
+      row.append(expression,value);
       row.onclick=()=>{input.value=item.expr;result.textContent=item.result;};
       historyList.appendChild(row);
     });
@@ -131,21 +132,22 @@
     btn.type='button';
     btn.innerHTML='<span class="calc-head-icon">🧮</span><span class="calc-head-label">Калькулятор</span>';
     btn.onclick=openCalc;
-
     const weather=document.getElementById('headerWeatherBtn');
     if(weather?.parentNode){weather.insertAdjacentElement('afterend',btn);return true;}
-
     const settings=document.querySelector('.settings-wrap');
     if(settings?.parentNode){settings.parentNode.insertBefore(btn,settings);return true;}
-
     const headerButtons=document.querySelector('.header-buttons');
     if(headerButtons){headerButtons.appendChild(btn);return true;}
     return false;
   }
 
-  installButton();
-  const observer=new MutationObserver(()=>installButton());
-  observer.observe(document.body,{childList:true,subtree:true});
-  let tries=0;
-  const timer=setInterval(()=>{tries++;if(installButton()||tries>120)clearInterval(timer);},100);
+  if(!installButton()){
+    let tries=0;
+    const retry=()=>{
+      tries+=1;
+      if(installButton()||tries>=20) return;
+      setTimeout(retry,100);
+    };
+    setTimeout(retry,100);
+  }
 })();
