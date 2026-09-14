@@ -1,0 +1,110 @@
+{
+  "name": "Diagnostika_SS — AI чат по клиенту v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "diagnostika-client-chat-v1",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://inkermankirov-a11y.github.io"
+        }
+      },
+      "id": "b1c9d8a0-18ce-4d94-8d16-2fe54a8a1001",
+      "name": "Webhook — AI чат",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-760, 0],
+      "webhookId": "6bd39513-42e6-4d90-9e6d-2cc8abfce101"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst message = String(body.message || '').trim();\nif (!message) throw new Error('Пустое сообщение');\n\nconst context = body.clientContext && typeof body.clientContext === 'object' ? body.clientContext : {};\nconst history = Array.isArray(body.chatHistory) ? body.chatHistory.slice(-16) : [];\n\nconst instructions = `Ты — AI-ассистент специалиста по психологическому консультированию. Ты помогаешь специалисту анализировать материалы только выбранного клиента и готовиться к дальнейшей работе.\n\nПравила:\n- используй только данные, которые переданы в контексте выбранного клиента;\n- никогда не придумывай события, травмы, диагнозы, убеждения или факты, которых нет в данных;\n- если делаешь вывод, предположение или рабочую гипотезу, прямо называй это гипотезой;\n- не выдавай медицинский или психиатрический диагноз как факт;\n- различай слова клиента, записи специалиста и свою интерпретацию;\n- если данных недостаточно, прямо скажи, чего не хватает и что можно уточнить;\n- отвечай практично: что видно по данным, на что обратить внимание, какие вопросы можно задать, что можно проверить на следующей сессии;\n- не упоминай других клиентов и не предполагай, что у тебя есть доступ к ним;\n- платежные данные не используются для психологического анализа.\n\nОтвечай по-русски, если специалист явно не попросил другой язык.`;\n\nconst historyText = history.map(x => `${x.role === 'assistant' ? 'AI' : 'Специалист'}: ${String(x.text || '').trim()}`).filter(Boolean).join('\\n');\nconst prompt = `ВЫБРАННЫЙ КЛИЕНТ: ${String(body.clientName || '').trim() || 'Без имени'}\n\nКОНТЕКСТ КЛИЕНТА (JSON):\n${JSON.stringify(context)}\n\nПОСЛЕДНИЕ СООБЩЕНИЯ ЧАТА:\n${historyText || 'Истории пока нет.'}\n\nНОВЫЙ ВОПРОС СПЕЦИАЛИСТА:\n${message}\n\nОтветь специалисту по существу. Если ссылаешься на факт, укажи источник внутри контекста: анкета, запрос, диагностика, сессия или заметка. Гипотезы отделяй от фактов.`;\n\nreturn [{json:{accessKey:String(body.accessKey || ''),clientId:String(body.clientId || ''),clientName:String(body.clientName || ''),instructions,prompt}}];"
+      },
+      "id": "b1c9d8a0-18ce-4d94-8d16-2fe54a8a1002",
+      "name": "Подготовить контекст",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-530, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true,"leftValue": "","typeValidation": "strict","version": 2},
+          "conditions": [{
+            "id": "b1c9d8a0-18ce-4d94-8d16-2fe54a8a1003",
+            "leftValue": "={{ $json.accessKey }}",
+            "rightValue": "CHANGE_ME_TO_THE_SAME_ACCESS_KEY_AS_DIAGNOSTIKA_AI",
+            "operator": {"type": "string","operation": "equals"}
+          }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1c9d8a0-18ce-4d94-8d16-2fe54a8a1004",
+      "name": "Ключ верный?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-300, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Content-Type","value": "application/json"}]},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-5.6-luna', instructions: $json.instructions, input: $json.prompt, max_output_tokens: 1800 }) }}",
+        "options": {"timeout": 60000}
+      },
+      "id": "b1c9d8a0-18ce-4d94-8d16-2fe54a8a1005",
+      "name": "OpenAI — Responses API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-50, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$json||{};\nlet text=String(r.output_text||'').trim();\nif(!text&&Array.isArray(r.output)){for(const item of r.output){for(const part of item?.content||[]){if(part?.type==='output_text'&&part?.text)text+=String(part.text);}}}\ntext=text.trim();\nif(!text)throw new Error('OpenAI не вернул текст');\nreturn [{json:{reply:text}}];"
+      },
+      "id": "b1c9d8a0-18ce-4d94-8d16-2fe54a8a1006",
+      "name": "Подготовить ответ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [190, -100]
+    },
+    {
+      "parameters": {"respondWith": "json","responseBody": "={{ $json }}","options": {}},
+      "id": "b1c9d8a0-18ce-4d94-8d16-2fe54a8a1007",
+      "name": "Ответ программе",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [430, -100]
+    },
+    {
+      "parameters": {"respondWith": "json","responseBody": "={{ { error: 'Недействительный ключ доступа' } }}","options": {"responseCode": 403}},
+      "id": "b1c9d8a0-18ce-4d94-8d16-2fe54a8a1008",
+      "name": "Ошибка доступа",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-50, 120]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook — AI чат": {"main": [[{"node": "Подготовить контекст","type": "main","index": 0}]]},
+    "Подготовить контекст": {"main": [[{"node": "Ключ верный?","type": "main","index": 0}]]},
+    "Ключ верный?": {"main": [[{"node": "OpenAI — Responses API","type": "main","index": 0}],[{"node": "Ошибка доступа","type": "main","index": 0}]]},
+    "OpenAI — Responses API": {"main": [[{"node": "Подготовить ответ","type": "main","index": 0}]]},
+    "Подготовить ответ": {"main": [[{"node": "Ответ программе","type": "main","index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "792576b2-07fa-49f8-a060-8432b90c0141",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}
