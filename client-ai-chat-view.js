@@ -10,6 +10,7 @@
   let widget=null;
   let backdrop=null;
   let messagesObserver=null;
+  let clientObserver=null;
   let lastSeenCount=0;
 
   function getMode(){
@@ -98,8 +99,9 @@
     .hd-ai-backdrop[hidden]{display:none!important}
 
     #hdClientAiWidget.hd-ai-widget{padding:13px!important}
-    #hdClientAiWidget .hd-widget-title{margin-bottom:3px!important}
-    #hdClientAiWidget .hd-ai-client{font-size:10px!important;color:#94a3b8!important;margin:0 0 9px!important}
+    #hdClientAiWidget .hd-widget-title{margin-bottom:4px!important;color:#172b4d!important;font-weight:800!important}
+    #hdClientAiWidget .hd-widget-title>span:nth-child(2){font-size:15px!important;letter-spacing:-.1px}
+    #hdClientAiWidget .hd-ai-client{font-size:12px!important;color:#334155!important;font-weight:700!important;margin:0 0 10px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #hdClientAiWidget .hd-ai-quick{display:none!important}
     #hdClientAiWidget .hd-ai-messages{height:220px!important;border-color:#e2e8f0!important;background:#fbfcfe!important;border-radius:12px!important;padding:9px!important}
     #hdClientAiWidget .hd-ai-compose{grid-template-columns:1fr 42px!important;gap:7px!important;margin-top:7px!important}
@@ -122,8 +124,8 @@
     .hd-ai-mode-btn:hover{color:#334155}
 
     #hdClientAiWidget.hd-ai-expanded{position:fixed!important;z-index:14000!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(900px,calc(100vw - 48px))!important;height:min(78vh,760px)!important;max-height:calc(100vh - 48px)!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:18px!important;background:#fff!important;border-radius:16px!important;box-shadow:0 28px 80px rgba(15,23,42,.38)!important}
-    #hdClientAiWidget.hd-ai-expanded .hd-widget-title{font-size:17px!important;margin-bottom:3px!important}
-    #hdClientAiWidget.hd-ai-expanded .hd-ai-client{font-size:11px!important;margin-bottom:10px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-widget-title{font-size:17px!important;margin-bottom:4px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-client{font-size:13px!important;margin-bottom:10px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-messages{height:auto!important;min-height:0!important;flex:1 1 auto!important;font-size:14px!important;padding:12px!important;gap:10px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-msg{font-size:14px!important;line-height:1.5!important;padding:10px 12px!important;max-width:84%!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-msg-time{font-size:10px!important}
@@ -189,6 +191,27 @@
     updateModeButtons();
   }
 
+  function normalizeHeader(){
+    if(!widget)return;
+    const title=widget.querySelector('.hd-widget-title');
+    if(title){
+      const parts=[...title.children].filter(el=>!el.classList.contains('hd-ai-title-actions'));
+      if(parts[1])parts[1].textContent='ИИ помощник по клиенту';
+    }
+    const clientEl=widget.querySelector('.hd-ai-client');
+    if(clientEl){
+      const current=String(clientEl.textContent||'');
+      if(current.startsWith('Контекст: '))clientEl.textContent=current.slice('Контекст: '.length);
+      if(!clientObserver){
+        clientObserver=new MutationObserver(()=>{
+          const text=String(clientEl.textContent||'');
+          if(text.startsWith('Контекст: '))clientEl.textContent=text.slice('Контекст: '.length);
+        });
+        clientObserver.observe(clientEl,{childList:true,characterData:true,subtree:true});
+      }
+    }
+  }
+
   function setExpanded(expanded){
     if(!widget)return;
     widget.classList.toggle('hd-ai-expanded',expanded);
@@ -244,6 +267,7 @@
       actions.appendChild(btn);title.appendChild(actions);
     }
 
+    normalizeHeader();
     installFooterControls();
 
     let shouldExpand=false;
@@ -270,7 +294,7 @@
       if(widget?.classList.contains('hd-ai-expanded'))setExpanded(false);
     }
   });
-  window.addEventListener('diagnostika-client-ai-chat-changed',()=>setTimeout(()=>{install();scrollAssistantToStart();},0));
+  window.addEventListener('diagnostika-client-ai-chat-changed',()=>setTimeout(()=>{install();normalizeHeader();scrollAssistantToStart();},0));
 
   init();
 })();
