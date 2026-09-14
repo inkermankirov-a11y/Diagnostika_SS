@@ -43,7 +43,7 @@
       if (!storageDialogReady()) return;
 
       await loadScript('google-oauth-config.js?v=20260914-2');
-      await loadScript('google-drive-storage.js?v=20260914-4');
+      await loadScript('google-drive-storage.js?v=20260914-5');
       loaded = true;
     } catch (error) {
       console.error('[Google Drive lazy loader]', error);
@@ -56,14 +56,9 @@
     const button = document.getElementById('storageBtn');
     if (!button || button.dataset.googleDriveLazyBound === '1') return;
     button.dataset.googleDriveLazyBound = '1';
-    button.addEventListener('click', () => {
-      setTimeout(loadGoogleDriveModule, 0);
-    });
+    button.addEventListener('click', () => setTimeout(loadGoogleDriveModule, 0));
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bind, { once: true });
-  } else {
-    bind();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
+  else bind();
 })();
