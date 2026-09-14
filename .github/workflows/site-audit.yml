@@ -92,6 +92,7 @@ jobs:
           const errors=[];
           page.on('pageerror',e=>errors.push(`pageerror: ${e.message}`));
           page.on('console',m=>{if(m.type()==='error') errors.push(`console: ${m.text()}`);});
+          page.on('dialog',async d=>{try{await d.accept();}catch{}});
           const shot=async n=>{await page.screenshot({path:`/tmp/${n}.png`,fullPage:true});console.log('MARK',n);};
           const openSettings=async()=>{
             if(!(await page.locator('#settingsPanel').isVisible())){
@@ -136,6 +137,43 @@ jobs:
           await shot('06-client-db');
           await page.keyboard.press('Escape');
 
+          // Core CRM workflow on isolated browser storage.
+          if((await page.locator('#clientSelect option').count())===0){
+            await page.locator('#addClientBtn').click();
+          }
+          await page.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
+          await page.waitForTimeout(400);
+          const clientName=(await page.locator('#clientName').inputValue()).trim();
+          if(!clientName || clientName==='Новый клиент') throw new Error('Test client was not populated');
+          if((await page.locator('#requestSelect option').count())<1) throw new Error('No client requests after test fill');
+          if((await page.locator('#situationList .situation-item').count())<1) throw new Error('No situations after test fill');
+          if((await page.locator('#tree .tree-row').count())<1) throw new Error('No diagnosis tree rows after test fill');
+          if(await page.locator('#centerPanel').evaluate(el=>el.classList.contains('hidden'))) throw new Error('Diagnosis mode did not open');
+          await shot('07-diagnosis');
+
+          const firstBelief=page.locator('#tree .tree-row.primary').first();
+          await firstBelief.click();
+          await page.locator('#editorText').fill('Аудит: тестовое убеждение');
+          await page.locator('#saveElementBtn').click();
+          await page.waitForTimeout(100);
+          if(!(await page.locator('#tree .tree-row.primary').first().textContent())?.includes('Аудит: тестовое убеждение')){
+            throw new Error('Diagnosis element edit did not persist');
+          }
+
+          await page.locator('#clientCardModeBtn').click();
+          await page.locator('#clientHome').waitFor({state:'visible',timeout:3000});
+          const beforeSessions=await page.locator('#sessionsList .session-row').count();
+          if(beforeSessions<2) throw new Error(`Expected test sessions, got ${beforeSessions}`);
+          await page.locator('#addSessionBtn').click();
+          const afterSessions=await page.locator('#sessionsList .session-row').count();
+          if(afterSessions!==beforeSessions+1) throw new Error('Add session did not increase session count');
+          await shot('08-client-card');
+
+          const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null'));
+          if(!stored?.clients?.length) throw new Error('CRM state was not persisted to localStorage');
+          if((stored.clients[0]?.sessions||[]).length<afterSessions) throw new Error('Session state was not persisted');
+
           const calc=page.locator('#headerCalculatorBtn');
           if(await calc.count()){
             await calc.click();
@@ -170,5 +208,7 @@ jobs:
             /tmp/04-interface.png
             /tmp/05-storage.png
             /tmp/06-client-db.png
+            /tmp/07-diagnosis.png
+            /tmp/08-client-card.png
             /tmp/browser-errors.txt
           if-no-files-found: ignore
