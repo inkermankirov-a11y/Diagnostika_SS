@@ -134,7 +134,7 @@
       if(db&&Array.isArray(db.clients))return db;
     }catch{}
     try{
-      if(window.state&&Array.isArray(window.state.clients))return clone(window.state);
+      if(typeof state!=='undefined'&&state&&Array.isArray(state.clients))return clone(state);
     }catch{}
     return null;
   }
@@ -218,6 +218,25 @@
     }catch(error){console.warn('[Google safe backup cleanup]',error);}
   }
 
+  function applyDatabaseToRuntime(db){
+    if(!db||!Array.isArray(db.clients))return false;
+    try{
+      if(typeof state!=='undefined'){
+        state=db;
+        if(typeof clientId!=='undefined'){
+          const exists=state.clients.some(c=>String(c?.id)===String(clientId));
+          if(!exists)clientId=state.clients[0]?.id||null;
+        }
+        if(typeof requestId!=='undefined')requestId=null;
+        if(typeof situationId!=='undefined')situationId=null;
+        if(typeof selected!=='undefined')selected=null;
+        if(typeof renderClient==='function')renderClient();
+        return true;
+      }
+    }catch(error){console.warn('[Google safe runtime refresh]',error);}
+    return false;
+  }
+
   async function safeSync(setStatus){
     setStatus('Подготавливаю локальную базу…');
     const local=currentDatabase();
@@ -245,10 +264,10 @@
     await pause();
 
     setStatus('Сохраняю локальную копию…');
-    let serialized;
-    try{serialized=JSON.stringify(merged);localStorage.setItem(STATE_KEY,serialized);}
+    try{localStorage.setItem(STATE_KEY,JSON.stringify(merged));}
     catch{throw new Error('Объединённая база уже сохранена в Google, но браузеру не хватило места для локальной копии. Не удаляй резервные копии в Diagnostika/Backups.');}
     await setBase(merged);
+    applyDatabaseToRuntime(merged);
 
     setStatus(`Готово: ${merged.clients?.length||0} клиент(ов)`);
     cleanupBackups(remote.folder.id);
@@ -276,6 +295,7 @@
     try{localStorage.setItem(STATE_KEY,JSON.stringify(remote.data));}
     catch{throw new Error('Не удалось сохранить облачную базу в браузере. Текущая локальная база не изменена.');}
     await setBase(remote.data);
+    applyDatabaseToRuntime(remote.data);
     cleanupBackups(remote.folder.id);
     return remote.data;
   }
@@ -318,10 +338,9 @@
       try{
         const result=await safeSync(setStatus);
         await notify(
-          `Готово.\nНа этом ПК было: ${result.localCount}.\nВ Google было: ${result.remoteCount}.\nПосле объединения: ${result.merged.clients?.length||0}.\nРезервные копии находятся в Diagnostika/Backups.${result.conflicts.length?`\nКонфликтов: ${result.conflicts.length}.`:''}`,
+          `Готово.\nНа этом ПК было: ${result.localCount}.\nВ Google было: ${result.remoteCount}.\nПосле объединения: ${result.merged.clients?.length||0}.\nРезервные копии находятся в Diagnostika/Backups.${result.conflicts.length?`\nКонфликтов: ${result.conflicts.length}.`:''}\n\nПерезагрузка страницы не требуется.`,
           'Синхронизация завершена'
         );
-        location.reload();
       }catch(error){
         setStatus(error.message||'Ошибка синхронизации');
         await notify(error.message||String(error),'Ошибка синхронизации');
@@ -345,8 +364,7 @@
       restore.textContent='Восстанавливаю…';
       try{
         const db=await safeRestore(setStatus);
-        await notify(`Восстановлено клиентов: ${db.clients?.length||0}. Локальная версия до восстановления сохранена в Backups.`,'Готово');
-        location.reload();
+        await notify(`Восстановлено клиентов: ${db.clients?.length||0}. Локальная версия до восстановления сохранена в Backups. Перезагрузка страницы не требуется.`,'Готово');
       }catch(error){
         setStatus(error.message||'Ошибка восстановления');
         await notify(error.message||String(error),'Ошибка восстановления');
@@ -357,7 +375,7 @@
     });
 
     const note=card.querySelector('.gdrive-note');
-    if(note)note.textContent='Безопасная синхронизация: резервные копии создаются до записи, объединение выполняется в отдельном потоке, запросы Google имеют таймаут. Основная облачная база перезаписывается только после успешного объединения.';
+    if(note)note.textContent='Безопасная синхронизация: резервные копии создаются до записи, объединение выполняется в отдельном потоке, запросы Google имеют таймаут. После синхронизации страница не перезагружается.';
     return true;
   }
 
