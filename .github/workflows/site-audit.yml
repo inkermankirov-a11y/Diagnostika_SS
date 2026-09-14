@@ -1,0 +1,198 @@
+name: Site audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.js'
+      - '**/*.css'
+      - 'index.html'
+      - '.github/workflows/site-audit.yml'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JavaScript syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' f; do
+            node --check "$f"
+            count=$((count+1))
+          done < <(find . -type f -name '*.js' -print0)
+          echo "Checked $count JavaScript files"
+
+      - name: Check local file references and report risky loops
+        shell: python
+        run: |
+          from pathlib import Path
+          import re, sys
+
+          root = Path('.')
+          html = (root / 'index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'''(?:src|href)=["']([^"']+)["']''', html)
+          local = []
+          missing = []
+          for ref in refs:
+              if ref.startswith(('http://','https://','data:','#')):
+                  continue
+              path = ref.split('?',1)[0].split('#',1)[0]
+              if not path:
+                  continue
+              local.append(path)
+              if not (root / path).exists():
+                  missing.append((ref,path))
+          print(f'Local refs in index.html: {len(local)}')
+          if missing:
+              print('MISSING LOCAL REFERENCES:')
+              for ref,path in missing:
+                  print(f'  {ref} -> {path}')
+              sys.exit(1)
+
+          scripts = re.findall(r'''<script[^>]+src=["']([^"']+)["']''', html)
+          base = [x.split('?',1)[0] for x in scripts]
+          dup = sorted({x for x in base if base.count(x)>1})
+          print('Duplicate direct script tags:', dup or 'none')
+
+          dynamic_missing = []
+          dynamic = set()
+          for f in root.rglob('*.js'):
+              text = f.read_text(encoding='utf-8', errors='replace')
+              for m in re.finditer(r'''["']([A-Za-z0-9._/-]+\.js)(?:\?[^"']*)?["']''', text):
+                  p = m.group(1)
+                  dynamic.add(p)
+                  if not (root / p).exists():
+                      dynamic_missing.append((str(f),p))
+          print(f'Dynamic JS refs found: {len(dynamic)}')
+          if dynamic_missing:
+              print('MISSING DYNAMIC JS REFERENCES:')
+              for f,p in dynamic_missing:
+                  print(f'  {f}: {p}')
+              sys.exit(1)
+
+          print('\nRISK REPORT:')
+          body_observers=[]
+          observers=[]
+          intervals=[]
+          rafs=[]
+          for f in root.rglob('*.js'):
+              text=f.read_text(encoding='utf-8', errors='replace')
+              mo=len(re.findall(r'\bMutationObserver\b',text))
+              si=len(re.findall(r'\bsetInterval\s*\(',text))
+              raf=len(re.findall(r'\brequestAnimationFrame\s*\(',text))
+              if mo: observers.append((str(f),mo))
+              if si: intervals.append((str(f),si))
+              if raf: rafs.append((str(f),raf))
+              if re.search(r'\.observe\s*\(\s*document\.(?:body|documentElement)\s*,[^)]*subtree\s*:\s*true', text, re.S):
+                  body_observers.append(str(f))
+          print('MutationObserver files:', observers)
+          print('Whole-document subtree observers:', body_observers)
+          print('setInterval files:', intervals)
+          print('requestAnimationFrame files:', rafs)
+
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 > /tmp/diag-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 1
+          cat > /tmp/diag-smoke.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const browser = await chromium.launch({headless:true});
+          const context = await browser.newContext({viewport:{width:1440,height:1000}});
+          const page = await context.newPage();
+          const errors=[];
+          page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+          page.on('console', m => { if(m.type()==='error') errors.push(`console: ${m.text()}`); });
+
+          const mark = async(name) => {
+            await page.screenshot({path:`/tmp/${name}.png`,fullPage:true});
+            console.log(`MARK ${name}`);
+          };
+
+          await page.goto(`http://127.0.0.1:8000/index.html?audit=${Date.now()}`, {waitUntil:'domcontentloaded', timeout:15000});
+          await page.waitForTimeout(4500);
+          await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:7000});
+          await mark('01-loaded');
+
+          await page.locator('#settingsMenuBtn').click();
+          await page.locator('#settingsPanel').waitFor({state:'visible',timeout:3000});
+          await mark('02-settings');
+
+          await page.locator('.settings-accounts-btn').click();
+          await page.locator('.settings-account-content.open').waitFor({state:'visible',timeout:3000});
+          await mark('03-accounts');
+
+          const forms = page.locator('#formIntegrationsBtn');
+          if (await forms.count()) {
+            await forms.click();
+            await page.locator('#formIntegrationsDialog').waitFor({state:'visible',timeout:3000});
+            await page.locator('#fiClose').click();
+          }
+
+          await page.locator('.settings-interface-btn').click();
+          await page.locator('.settings-interface-content.open').waitFor({state:'visible',timeout:3000});
+          await mark('04-interface');
+
+          await page.locator('#storageBtn').click();
+          await page.waitForTimeout(500);
+          const storageDialog = page.locator('.storage-dialog');
+          if (await storageDialog.count()) {
+            await storageDialog.waitFor({state:'visible',timeout:3000});
+            await mark('05-storage');
+            const close = storageDialog.locator('button').filter({hasText:/Закрыть|Close/i}).first();
+            if (await close.count()) await close.click();
+            else await page.keyboard.press('Escape');
+          }
+
+          await page.locator('#clientBaseBtn').click();
+          await page.locator('#clientDialog').waitFor({state:'visible',timeout:3000});
+          await mark('06-client-db');
+          await page.keyboard.press('Escape');
+
+          // Ensure the page is still responsive after all DOM-heavy operations.
+          const responsive = await page.evaluate(() => new Promise(resolve => {
+            const start=performance.now();
+            requestAnimationFrame(()=>resolve(performance.now()-start < 1500));
+          }));
+          if(!responsive) throw new Error('Main thread did not respond to requestAnimationFrame in time');
+
+          console.log('Browser errors:', JSON.stringify(errors,null,2));
+          fs.writeFileSync('/tmp/browser-errors.txt', errors.join('\n'));
+          if(errors.some(x => !x.includes('Failed to fetch') && !x.includes('ERR_'))) {
+            throw new Error('Browser console/page errors detected');
+          }
+          await browser.close();
+          JS
+          node /tmp/diag-smoke.mjs
+
+      - name: Upload smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-audit-screenshots
+          path: |
+            /tmp/01-loaded.png
+            /tmp/02-settings.png
+            /tmp/03-accounts.png
+            /tmp/04-interface.png
+            /tmp/05-storage.png
+            /tmp/06-client-db.png
+            /tmp/browser-errors.txt
+          if-no-files-found: ignore
