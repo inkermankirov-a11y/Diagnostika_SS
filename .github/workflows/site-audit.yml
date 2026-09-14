@@ -93,14 +93,19 @@ jobs:
           page.on('pageerror',e=>errors.push(`pageerror: ${e.message}`));
           page.on('console',m=>{if(m.type()==='error') errors.push(`console: ${m.text()}`);});
           const shot=async n=>{await page.screenshot({path:`/tmp/${n}.png`,fullPage:true});console.log('MARK',n);};
+          const openSettings=async()=>{
+            if(!(await page.locator('#settingsPanel').isVisible())){
+              await page.locator('#settingsMenuBtn').click();
+              await page.locator('#settingsPanel').waitFor({state:'visible',timeout:3000});
+            }
+          };
 
           await page.goto(`http://127.0.0.1:8000/index.html?audit=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:15000});
           await page.waitForTimeout(3500);
           await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:7000});
           await shot('01-loaded');
 
-          await page.locator('#settingsMenuBtn').click();
-          await page.locator('#settingsPanel').waitFor({state:'visible',timeout:3000});
+          await openSettings();
           await shot('02-settings');
 
           await page.locator('.settings-accounts-btn').click();
@@ -114,6 +119,7 @@ jobs:
             await page.locator('#fiClose').click();
           }
 
+          await openSettings();
           await page.locator('.settings-interface-btn').click();
           await page.locator('.settings-interface-content.open').waitFor({state:'visible',timeout:3000});
           await shot('04-interface');
