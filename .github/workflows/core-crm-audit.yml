@@ -8,7 +8,9 @@ on:
       - 'app.js'
       - 'test-data.js'
       - 'diagnosis-compact-client.js'
-      - 'header-calculator.js'
+      - 'home-dashboard*.js'
+      - 'session-ai-chat.js'
+      - 'client-ai-chat*.js'
       - 'index.html'
       - '.github/workflows/core-crm-audit.yml'
 
@@ -23,7 +25,7 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Test client diagnosis sessions and calculator
+      - name: Test client diagnosis sessions and AI shells
         shell: bash
         run: |
           set -euo pipefail
@@ -42,6 +44,7 @@ jobs:
           await page.goto(`http://127.0.0.1:8000/index.html?core=${Date.now()}`,{waitUntil:'commit',timeout:10000});
           await page.waitForFunction(()=>document.readyState!=='loading',null,{timeout:20000});
           await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
 
           if((await page.locator('#clientSelect option').count())===0) await page.locator('#addClientBtn').click();
           await page.locator('#clientSelect option').first().waitFor({state:'attached'});
@@ -62,28 +65,27 @@ jobs:
           if(!(await belief.textContent())?.includes('Аудит: тестовое убеждение')) throw new Error('Diagnosis edit failed');
 
           await page.locator('.diagnosis-compact-back').click();
-          await page.locator('#clientHome').waitFor({state:'visible',timeout:3000});
-          const before=await page.locator('#sessionsList .session-row').count();
-          await page.locator('#addSessionBtn').click();
-          await page.waitForTimeout(100);
-          const after=await page.locator('#sessionsList .session-row').count();
-          if(after!==before+1) throw new Error(`Add session failed: before=${before}, after=${after}`);
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+          await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
+          if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1) throw new Error('Client AI clear control failed');
 
-          const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null'));
-          if(!saved?.clients?.length) throw new Error('State not saved');
-          const current=saved.clients.find(c=>c.name===name)||saved.clients[0];
-          if((current.sessions||[]).length!==after) throw new Error(`Session persistence failed: stored=${(current.sessions||[]).length}, ui=${after}`);
-
-          const calc=page.locator('#headerCalculatorBtn');
-          if(await calc.count()){
-            await calc.click();
-            const input=page.locator('.standalone-calc-expression');
-            await input.fill('2+2');
-            await input.press('Enter');
-            const result=(await page.locator('.standalone-calc-result').textContent())?.trim();
-            if(result!=='4') throw new Error('Calculator failed: '+result);
-            await page.locator('.standalone-calc-close').click();
-          }
+          const countSessions=()=>page.evaluate(()=>{
+            const saved=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');
+            const id=document.querySelector('#clientSelect')?.value;
+            return saved?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;
+          });
+          const before=await countSessions();
+          await page.locator('#hdAddSession').waitFor({state:'visible',timeout:5000});
+          await page.locator('#hdAddSession').click();
+          const dlg=page.locator('dialog.session-edit-dialog');
+          await dlg.waitFor({state:'visible',timeout:5000});
+          await dlg.locator('.session-ai-box').waitFor({state:'visible',timeout:5000});
+          if((await dlg.locator('.session-ai-clear').count())!==1) throw new Error('Session AI clear control failed');
+          if((await dlg.locator('.session-ai-mode button').count())!==2) throw new Error('Session AI answer modes failed');
+          const cancel=dlg.getByRole('button',{name:'Отмена'});if(await cancel.count())await cancel.click();else await page.keyboard.press('Escape');
+          await dlg.waitFor({state:'hidden',timeout:3000});
+          const after=await countSessions();
+          if(after!==before+1) throw new Error(`Session persistence failed: before=${before}, after=${after}`);
 
           const raf=[];
           for(let i=0;i<5;i++) raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));
