@@ -1,6 +1,9 @@
 'use strict';
 
 (() => {
+  if(window.__diagnostikaSessionLedgerCurrentRequestReady)return;
+  window.__diagnostikaSessionLedgerCurrentRequestReady=true;
+
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
   const fmtDate=v=>{if(!v)return '—';const p=String(v).slice(0,10).split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:v;};
