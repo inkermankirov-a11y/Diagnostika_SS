@@ -63,10 +63,6 @@
     document.body.appendChild(script);
   }
 
-  if(!document.querySelector('script[data-session-ledger-current-request]')){
-    const script=document.createElement('script');
-    script.src='session-ledger-current-request.js?v=20260912-75';
-    script.dataset.sessionLedgerCurrentRequest='1';
-    document.body.appendChild(script);
-  }
+  // session-ledger-current-request.js уже подключён напрямую в index.html.
+  // Второй динамический запуск здесь раньше создавал дубли MutationObserver/listeners.
 })();
