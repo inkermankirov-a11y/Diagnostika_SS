@@ -20,36 +20,19 @@
     cardDialog.addEventListener('close', normalizeClientMap);
   }
 
-  // Берём build из адреса страницы: так новые вспомогательные модули
-  // не застревают в браузерном кеше при проверке новой сборки.
+  // Берём build из адреса страницы: так динамический модуль чата
+  // не застревает в браузерном кеше при проверке новой сборки.
   let pageBuild='';
   try{pageBuild=new URL(location.href).searchParams.get('build')||'';}catch(_){ }
   const moduleVersion=encodeURIComponent(pageBuild||'20260915-live');
 
-  // Компактный режим анкет: без перетаскивания и кнопок смены порядка.
-  if (!document.querySelector('script[data-questionnaire-compact-lock]')) {
-    const questionnaireCompact = document.createElement('script');
-    questionnaireCompact.src = `questionnaire-compact-lock.js?v=${moduleVersion}`;
-    questionnaireCompact.dataset.questionnaireCompactLock = '1';
-    document.body.appendChild(questionnaireCompact);
-  }
-
-  // Улучшения AI-чата: разворачивание в крупную область экрана и
-  // прокрутка к началу нового ответа, а не к его концу.
+  // client-ai-chat-view не подключён напрямую в index.html, поэтому
+  // загружаем только его. Остальные патчи подключаются index.html ровно один раз.
   if (!document.querySelector('script[data-client-ai-chat-view]')) {
     const aiChatView = document.createElement('script');
     aiChatView.src = `client-ai-chat-view.js?v=${moduleVersion}`;
     aiChatView.dataset.clientAiChatView = '1';
     aiChatView.onerror=()=>console.error('Не удалось загрузить client-ai-chat-view.js');
     document.body.appendChild(aiChatView);
-  }
-
-  // Отдельные AI-чаты по каждой сессии + кнопки очистки истории.
-  if (!document.querySelector('script[data-session-ai-chat]')) {
-    const sessionAiChat = document.createElement('script');
-    sessionAiChat.src = `session-ai-chat.js?v=${moduleVersion}`;
-    sessionAiChat.dataset.sessionAiChat = '1';
-    sessionAiChat.onerror=()=>console.error('Не удалось загрузить session-ai-chat.js');
-    document.body.appendChild(sessionAiChat);
   }
 })();
