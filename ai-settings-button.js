@@ -191,7 +191,6 @@
     if(storage) storage.addEventListener('load',loadCore,{once:true}); else loadCore();
   }
 
-  loadOnce('ai-processing-indicator.js?v=20260913-142','data-ai-processing-indicator','__diagnostikaAiProcessingIndicatorReady');
   loadOnce('free-consultation-archive.js?v=20260913-142','data-fc-archive','__freeConsultationArchiveReady');
   loadOnce('free-consultation-extra-fields.js?v=20260913-142','data-fc-extra-fields','__freeConsultationExtraFieldsReady');
   attach();
