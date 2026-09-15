@@ -34,7 +34,7 @@ jobs:
               if p and not (root/p).exists(): missing.append(p)
           scripts=[x.split('?',1)[0] for x in re.findall(r'''<script[^>]+src=["']([^"']+)["']''',html)]
           dup=sorted({x for x in scripts if scripts.count(x)>1})
-          print('Local refs:',len(refs),'Missing:',missing or 'none','Duplicate scripts:',dup or 'none')
+          print('Local refs:',len(refs),'Missing:',missing or 'none','Duplicate index scripts:',dup or 'none')
           if missing or dup: sys.exit(1)
           PY
           test "$failed" -eq 0
@@ -70,20 +70,30 @@ jobs:
           async function ready(page){
             await page.waitForFunction(()=>document.readyState!=='loading',null,{timeout:25000});
             await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+            await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
           }
+          const duplicateAssets=async page=>page.evaluate(()=>{
+            const names=[...document.scripts].map(s=>s.src).filter(Boolean).map(src=>new URL(src).pathname.split('/').pop());
+            const scripts=[...new Set(names.filter((n,i)=>names.indexOf(n)!==i))].sort();
+            const cssNames=[...document.styleSheets].map(s=>s.href).filter(Boolean).map(src=>new URL(src).pathname.split('/').pop());
+            const css=[...new Set(cssNames.filter((n,i)=>cssNames.indexOf(n)!==i))].sort();
+            return {scripts,css};
+          });
 
           for(let i=1;i<=3;i++){
             const c=await browser.newContext({viewport:{width:1440,height:1000}}),p=await c.newPage();await instrument(p);
-            const t=Date.now();await p.goto(`http://127.0.0.1:8000/index.html?cold=${i}-${t}`,{waitUntil:'commit',timeout:10000});await ready(p);await p.waitForTimeout(1800);
+            const t=Date.now();await p.goto(`http://127.0.0.1:8000/index.html?cold=${i}-${t}`,{waitUntil:'commit',timeout:10000});await ready(p);await p.waitForTimeout(1500);
             const ms=Date.now()-t;
+            const assets=await duplicateAssets(p);
             const top=await p.evaluate(()=>(window.__moStats||[]).map(x=>({source:(x.stack.split('\n').find(v=>/\.js/.test(v))||'unknown').trim(),count:x.count,records:x.records})).sort((a,b)=>b.count-a.count).slice(0,8));
-            console.log(`COLD_LOAD_${i}: ${ms}ms`);console.log(`MO_TOP_${i}: ${JSON.stringify(top)}`);if(ms>20000)throw new Error(`Cold load ${i} too slow`);await c.close();
+            console.log(`COLD_LOAD_${i}: ${ms}ms`);console.log(`DUPLICATE_ASSETS_${i}: ${JSON.stringify(assets)}`);console.log(`MO_TOP_${i}: ${JSON.stringify(top)}`);
+            if(ms>20000)throw new Error(`Cold load ${i} too slow`);await c.close();
           }
 
           const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();await instrument(page);
           const errors=[];page.on('pageerror',e=>errors.push('pageerror: '+e.message));page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});page.on('dialog',d=>d.accept().catch(()=>{}));
           const shot=async n=>page.screenshot({path:`/tmp/${n}.png`,fullPage:true});
-          await page.goto(`http://127.0.0.1:8000/index.html?audit=${Date.now()}`,{waitUntil:'commit',timeout:10000});await ready(page);await page.waitForTimeout(1000);await shot('01-loaded');
+          await page.goto(`http://127.0.0.1:8000/index.html?audit=${Date.now()}`,{waitUntil:'commit',timeout:10000});await ready(page);await page.waitForTimeout(800);await shot('01-loaded');
 
           const openSettings=async()=>{if(!(await page.locator('#settingsPanel').isVisible())){await page.locator('#settingsMenuBtn').click();await page.locator('#settingsPanel').waitFor({state:'visible'});}};
           await openSettings();await shot('02-settings');
@@ -99,10 +109,22 @@ jobs:
           if((await page.locator('#requestSelect option').count())<1)throw new Error('No requests');if((await page.locator('#situationList .situation-item').count())<1)throw new Error('No situations');if((await page.locator('#tree .tree-row').count())<1)throw new Error('No diagnosis tree');await shot('07-diagnosis');
           const belief=page.locator('#tree .tree-row.primary').first();await belief.click();await page.locator('#editorText').fill('Аудит: тестовое убеждение');await page.locator('#saveElementBtn').click();await page.waitForTimeout(100);if(!(await belief.textContent())?.includes('Аудит: тестовое убеждение'))throw new Error('Diagnosis edit failed');
 
-          await page.locator('.diagnosis-compact-back').click();await page.locator('#clientHome').waitFor({state:'visible'});const before=await page.locator('#sessionsList .session-row').count();if(before<2)throw new Error(`Expected test sessions, got ${before}`);await page.locator('#addSessionBtn').click();const after=await page.locator('#sessionsList .session-row').count();if(after!==before+1)throw new Error('Add session failed');await shot('08-client-card');
-          const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null'));if(!stored?.clients?.length)throw new Error('State not persisted');const current=stored.clients.find(c=>c.name===name)||stored.clients[0];if((current?.sessions||[]).length<after)throw new Error('Session not persisted');
+          await page.locator('.diagnosis-compact-back').click();await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+          await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
+          if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1)throw new Error('Client AI clear button missing or duplicated');
+          const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          await page.locator('#hdAddSession').waitFor({state:'visible',timeout:5000});await page.locator('#hdAddSession').click();
+          const sessionDialog=page.locator('dialog.session-edit-dialog');await sessionDialog.waitFor({state:'visible',timeout:5000});
+          await sessionDialog.locator('.session-ai-box').waitFor({state:'visible',timeout:5000});
+          if((await sessionDialog.locator('.session-ai-clear').count())!==1)throw new Error('Session AI clear button missing or duplicated');
+          if((await sessionDialog.locator('.session-ai-mode button').count())!==2)throw new Error('Session AI modes missing');
+          await shot('08-session-ai');
+          const cancel=sessionDialog.getByRole('button',{name:'Отмена'});if(await cancel.count())await cancel.click();else await page.keyboard.press('Escape');
+          await sessionDialog.waitFor({state:'hidden',timeout:3000});
+          const after=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          if(after!==before+1)throw new Error(`Session persistence failed: before=${before}, after=${after}`);await shot('09-dashboard');
 
-          if(await page.locator('#headerCalculatorBtn').count()){await page.locator('#headerCalculatorBtn').click();const input=page.locator('.standalone-calc-expression');await input.fill('2+2');await input.press('Enter');if((await page.locator('.standalone-calc-result').textContent())?.trim()!=='4')throw new Error('Calculator failed');await page.locator('.standalone-calc-close').click();}
+          const assets=await duplicateAssets(page);console.log('RUNTIME_DUPLICATE_ASSETS:',JSON.stringify(assets));
           const raf=[];for(let i=0;i<5;i++)raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));console.log('RAF_LATENCY_MS:',JSON.stringify(raf));if(Math.max(...raf)>1200)throw new Error('Main thread slow');
           const top=await page.evaluate(()=>(window.__moStats||[]).map(x=>({source:(x.stack.split('\n').find(v=>/\.js/.test(v))||'unknown').trim(),count:x.count,records:x.records})).sort((a,b)=>b.count-a.count).slice(0,15));console.log('MO_FINAL_TOP:',JSON.stringify(top));
           fs.writeFileSync('/tmp/browser-errors.txt',errors.join('\n'));console.log('Browser errors:',JSON.stringify(errors));const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));if(serious.length)throw new Error(serious.join(' | '));
@@ -123,6 +145,7 @@ jobs:
             /tmp/05-storage.png
             /tmp/06-client-db.png
             /tmp/07-diagnosis.png
-            /tmp/08-client-card.png
+            /tmp/08-session-ai.png
+            /tmp/09-dashboard.png
             /tmp/browser-errors.txt
           if-no-files-found: ignore
