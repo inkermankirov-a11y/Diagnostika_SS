@@ -119,6 +119,8 @@ jobs:
 
           await page.locator('.diagnosis-compact-back').click();await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
           if(await oldWorkspace.isVisible())throw new Error('Legacy workspace visible after returning from diagnosis');
+          await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
+          await page.locator('.hd-client-row').first().waitFor({state:'visible',timeout:3000});
 
           await page.evaluate(()=>{
             window.__legacyDashboardClicks=[];
@@ -129,6 +131,7 @@ jobs:
           });
           const cardBtn=page.locator('#hdHeroActions button').filter({hasText:'Карточка клиента'}).first();
           await cardBtn.click();await page.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});await page.evaluate(()=>document.getElementById('clientCardDialog')?.close());await page.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
+          await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
           await page.locator('.hd-client-row .hd-client-more').first().click();await page.locator('#clientDialog').waitFor({state:'visible',timeout:3000});await page.keyboard.press('Escape');await page.locator('#clientDialog').waitFor({state:'hidden',timeout:3000});
           await page.locator('#hdAddClient').click();await page.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});await page.locator('#ccCloseBtn').click();await page.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
           const legacyClicks=await page.evaluate(()=>window.__legacyDashboardClicks||[]);
