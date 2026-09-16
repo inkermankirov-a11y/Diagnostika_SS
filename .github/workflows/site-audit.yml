@@ -120,8 +120,10 @@ jobs:
           await dep.evaluate(()=>document.getElementById('clientCardDialog')?.close());
           await dep.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
           await dep.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
-          const dbOpened=await dep.evaluate(()=>{const b=document.querySelector('.hd-client-row .hd-client-more');if(!b)return false;b.click();return true;});
-          if(!dbOpened)throw new Error('Dashboard client-database action missing');
+          // client-list-cleanup.js intentionally removes the row's transient three-dot button.
+          // Test the dashboard's public client-database action instead of racing that cleanup.
+          const dbOpened=await dep.evaluate(()=>{const api=window.DiagnostikaHomeDashboard;if(!api||typeof api.openClientDatabase!=='function')return false;api.openClientDatabase();return true;});
+          if(!dbOpened)throw new Error('Dashboard client-database API missing');
           await dep.locator('#clientDialog').waitFor({state:'visible',timeout:3000});
           await dep.evaluate(()=>document.getElementById('clientDialog')?.close());
           await dep.locator('#clientDialog').waitFor({state:'hidden',timeout:3000});
