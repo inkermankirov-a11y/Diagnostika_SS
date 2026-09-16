@@ -1,0 +1,37 @@
+name: Manual backup artifact
+
+on:
+  push:
+    branches:
+      - backup-helper-20260916-1714-run
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: 988019664df05b5b12f0fbf9b4b3ae16583e11ae
+          fetch-depth: 1
+      - name: Create backup archive
+        shell: bash
+        run: |
+          cat > BACKUP_INFO.txt <<'EOF'
+          Repository: inkermankirov-a11y/Diagnostika_SS
+          Branch at backup time: main
+          Commit: 988019664df05b5b12f0fbf9b4b3ae16583e11ae
+          Created: 2026-09-16
+          This archive is an exact source snapshot of the commit above, excluding Git history.
+          EOF
+          zip -r Diagnostika_SS_backup_2026-09-16_9880196.zip . -x '.git/*' 'Diagnostika_SS_backup_2026-09-16_9880196.zip'
+      - name: Upload backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: Diagnostika_SS_backup_2026-09-16_9880196
+          path: Diagnostika_SS_backup_2026-09-16_9880196.zip
+          if-no-files-found: error
+          retention-days: 30
