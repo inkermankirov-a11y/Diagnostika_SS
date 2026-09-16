@@ -1,18 +1,21 @@
 name: Site audit
 
 on:
-  workflow_dispatch:
   push:
-    branches: [main]
-    paths: ['**/*.js','**/*.css','index.html','.github/workflows/site-audit.yml']
+    branches: [ main ]
+    paths:
+      - '**.js'
+      - '**.css'
+      - 'index.html'
+      - '.github/workflows/site-audit.yml'
+  workflow_dispatch:
 
 jobs:
   audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - name: Static audit
         shell: bash
         run: |
@@ -38,13 +41,11 @@ jobs:
           if missing or dup: sys.exit(1)
           PY
           test "$failed" -eq 0
-
       - name: Install browser
         run: |
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-
       - name: Full browser audit
         shell: bash
         run: |
@@ -87,6 +88,7 @@ jobs:
             const assets=await duplicateAssets(p);
             const top=await p.evaluate(()=>(window.__moStats||[]).map(x=>({source:(x.stack.split('\n').find(v=>/\.js/.test(v))||'unknown').trim(),count:x.count,records:x.records})).sort((a,b)=>b.count-a.count).slice(0,8));
             console.log(`COLD_LOAD_${i}: ${ms}ms`);console.log(`DUPLICATE_ASSETS_${i}: ${JSON.stringify(assets)}`);console.log(`MO_TOP_${i}: ${JSON.stringify(top)}`);
+            if(assets.scripts.length||assets.css.length)throw new Error(`Duplicate runtime assets on cold load ${i}: ${JSON.stringify(assets)}`);
             if(ms>20000)throw new Error(`Cold load ${i} too slow`);await c.close();
           }
 
@@ -94,6 +96,9 @@ jobs:
           const errors=[];page.on('pageerror',e=>errors.push('pageerror: '+e.message));page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});page.on('dialog',d=>d.accept().catch(()=>{}));
           const shot=async n=>page.screenshot({path:`/tmp/${n}.png`,fullPage:true});
           await page.goto(`http://127.0.0.1:8000/index.html?audit=${Date.now()}`,{waitUntil:'commit',timeout:10000});await ready(page);await page.waitForTimeout(800);await shot('01-loaded');
+
+          const oldWorkspace=page.locator('.workspace-grid');
+          if(await oldWorkspace.isVisible())throw new Error('Legacy workspace visible on dashboard');
 
           const openSettings=async()=>{if(!(await page.locator('#settingsPanel').isVisible())){await page.locator('#settingsMenuBtn').click();await page.locator('#settingsPanel').waitFor({state:'visible'});}};
           await openSettings();await shot('02-settings');
@@ -110,6 +115,7 @@ jobs:
           const belief=page.locator('#tree .tree-row.primary').first();await belief.click();await page.locator('#editorText').fill('Аудит: тестовое убеждение');await page.locator('#saveElementBtn').click();await page.waitForTimeout(100);if(!(await belief.textContent())?.includes('Аудит: тестовое убеждение'))throw new Error('Diagnosis edit failed');
 
           await page.locator('.diagnosis-compact-back').click();await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+          if(await oldWorkspace.isVisible())throw new Error('Legacy workspace visible after returning from diagnosis');
           await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
           if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1)throw new Error('Client AI clear button missing or duplicated');
           const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
@@ -119,19 +125,19 @@ jobs:
           if((await sessionDialog.locator('.session-ai-clear').count())!==1)throw new Error('Session AI clear button missing or duplicated');
           if((await sessionDialog.locator('.session-ai-mode button').count())!==2)throw new Error('Session AI modes missing');
           await shot('08-session-ai');
-          const cancel=sessionDialog.getByRole('button',{name:'Отмена'});if(await cancel.count())await cancel.click();else await page.keyboard.press('Escape');
+          await page.evaluate(()=>document.querySelector('dialog.session-edit-dialog')?.close());
           await sessionDialog.waitFor({state:'hidden',timeout:3000});
           const after=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
           if(after!==before+1)throw new Error(`Session persistence failed: before=${before}, after=${after}`);await shot('09-dashboard');
 
           const assets=await duplicateAssets(page);console.log('RUNTIME_DUPLICATE_ASSETS:',JSON.stringify(assets));
+          if(assets.scripts.length||assets.css.length)throw new Error(`Duplicate runtime assets: ${JSON.stringify(assets)}`);
           const raf=[];for(let i=0;i<5;i++)raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));console.log('RAF_LATENCY_MS:',JSON.stringify(raf));if(Math.max(...raf)>1200)throw new Error('Main thread slow');
           const top=await page.evaluate(()=>(window.__moStats||[]).map(x=>({source:(x.stack.split('\n').find(v=>/\.js/.test(v))||'unknown').trim(),count:x.count,records:x.records})).sort((a,b)=>b.count-a.count).slice(0,15));console.log('MO_FINAL_TOP:',JSON.stringify(top));
           fs.writeFileSync('/tmp/browser-errors.txt',errors.join('\n'));console.log('Browser errors:',JSON.stringify(errors));const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));if(serious.length)throw new Error(serious.join(' | '));
           await browser.close();
           JS
           node diag-audit.mjs
-
       - name: Upload audit screenshots
         if: always()
         uses: actions/upload-artifact@v4
