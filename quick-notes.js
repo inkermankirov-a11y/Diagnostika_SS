@@ -73,7 +73,9 @@
     render();setTimeout(()=>input.focus(),0);
   }
 
+  window.DiagnostikaQuickNotes={open,close,isOpen:()=>!overlay.hidden};
   wrap.querySelector('#quickNotesBtn').onclick=open;
+  document.addEventListener('diagnostika:quick-notes-open',open);
   overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden)close();});
 })();
