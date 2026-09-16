@@ -75,6 +75,7 @@
   };
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const clientsApi=()=>window.DiagnostikaClients||null;
+  const requestsApi=()=>window.DiagnostikaRequests||null;
   const allClients=()=>clientsApi()?.list?.()||[];
   const currentClient=()=>clientsApi()?.current?.()||null;
   const currentClientId=()=>clientsApi()?.currentId?.()||null;
@@ -217,7 +218,7 @@
     const payment=document.createElement('button');payment.className='hd-secondary hd-payment-btn';payment.type='button';payment.textContent='Оплата';payment.onclick=openPayment;
     heroActions.append(card,diag,payment);
 
-    const currentReq=(c.requests||[]).find(r=>r.id===requestId)||(c.requests||[])[0];
+    const currentReq=requestsApi()?.current?.()||(c.requests||[])[0]||null;
     const lastSession=(c.sessions||[]).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
     const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
     const desiredResult=desiredResults.length?desiredResults[desiredResults.length-1]:'Не указан';
