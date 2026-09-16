@@ -6,11 +6,15 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="diagnostika-build" content="20260915-sessionai1">
+  <meta name="diagnostika-build" content="20260916-legacyhide1">
   <title>Психологическая диагностика</title>
   <style>
     #diagnostikaRepairStatus{position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:2147483000;padding:9px 14px;border:1px solid #cbd5e1;border-radius:9px;background:rgba(255,255,255,.96);box-shadow:0 4px 18px rgba(15,23,42,.14);color:#334155;font:700 13px/1.3 "Segoe UI",Arial,sans-serif;opacity:0;pointer-events:none;animation:diagnostikaRepairStatusShow .01s 1.5s forwards}@keyframes diagnostikaRepairStatusShow{to{opacity:1}}
+    html:not(.diagnostika-dashboard-ready):not(.diagnostika-dashboard-fallback) .workspace-grid{visibility:hidden!important}
   </style>
+  <script>
+    setTimeout(()=>{const root=document.documentElement;if(!root.classList.contains('diagnostika-dashboard-ready'))root.classList.add('diagnostika-dashboard-fallback');},4500);
+  </script>
   <link rel="stylesheet" href="styles.css?v=20260911-8">
   <link rel="stylesheet" href="ui-fixes.css?v=20260911-8">
   <link rel="stylesheet" href="session-attachments.css?v=20260911-8">
@@ -112,7 +116,7 @@
 <script src="free-consultation-v2.js?v=20260913-118"></script>
 <script src="ai-settings-button.js?v=20260913-142"></script>
 <script src="ai-processing-indicator.js?v=20260914-audit1"></script>
-<script src="stability-fixes.js?v=20260915-sessionai1"></script>
+<script src="stability-fixes.js?v=20260916-audit1"></script>
 <script src="questionnaire-compact-lock.js?v=20260914-1"></script>
 <script src="session-attachments.js?v=20260911-8"></script>
 <script src="last-client.js?v=20260911-8"></script>
@@ -141,7 +145,7 @@
 <script src="language-flags-fix.js?v=20260911-8"></script>
 <script src="secondary-feelings-i18n.js?v=20260911-8"></script>
 <script src="beliefs-i18n.js?v=20260911-8"></script>
-<script src="settings-menu.js?v=20260914-safe1"></script>
+<script src="settings-menu.js?v=20260916-audit1"></script>
 <script src="account-settings.js?v=20260914-safe1"></script>
 <script src="about-program.js?v=20260912-19"></script>
 <script src="header-utilities.js?v=20260911-8"></script>
@@ -160,9 +164,9 @@
 <script src="payment-enhancements.js?v=20260911-8"></script>
 <script src="payment-session-fix.js?v=20260911-8"></script>
 <script src="session-payment-editor.js?v=20260912-55"></script>
-<script src="session-ledger-current-request.js?v=20260912-76"></script>
+<script src="session-ledger-current-request.js?v=20260916-audit1"></script>
 <script src="diagnosis-compact-client.js?v=20260911-8"></script>
-<script src="request-title-display.js?v=20260913-120"></script>
+<script src="request-title-display.js?v=20260916-legacyhide1"></script>
 <script src="payment-save-guard.js?v=20260912-43"></script>
 <script src="session-payment-ui-sync.js?v=20260912-57"></script>
 <script src="client-payment-flag-rule.js?v=20260913-108"></script>
