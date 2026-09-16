@@ -74,7 +74,10 @@
     return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase();
   };
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const currentClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
+  const clientsApi=()=>window.DiagnostikaClients||null;
+  const allClients=()=>clientsApi()?.list?.()||[];
+  const currentClient=()=>clientsApi()?.current?.()||null;
+  const currentClientId=()=>clientsApi()?.currentId?.()||null;
 
   function unavailable(message,title='Ошибка'){
     if(window.AppDialog?.alert){window.AppDialog.alert(message,title);return;}
@@ -126,9 +129,8 @@
 
   function selectClient(id){
     if(!id)return;
-    clientId=id;requestId=null;situationId=null;selected=null;
-    if(typeof renderClient==='function') renderClient();
-    refresh();
+    if(clientsApi()?.select?.(id)){refresh();return;}
+    unavailable('Модуль выбора клиента не загрузился. Обновите страницу.','Клиенты');
   }
 
   function openCard(){
@@ -142,7 +144,7 @@
   }
 
   function openClientDatabase(){
-    if(typeof window.openDatabase==='function'){window.openDatabase();return;}
+    if(clientsApi()?.openDatabase?.())return;
     unavailable('Модуль базы клиентов не загрузился. Обновите страницу.','База клиентов');
   }
 
@@ -163,7 +165,9 @@
 
   function renderClients(){
     const q=(search.value||'').trim().toLowerCase();
-    const clients=(state?.clients||[]).filter(c=>{
+    const all=allClients();
+    const activeId=currentClientId();
+    const clients=all.filter(c=>{
       if(!q)return true;
       return [c.name,c.city,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(q));
     });
@@ -171,7 +175,7 @@
     if(!clients.length) list.innerHTML='<div class="hd-empty-list">Ничего не найдено</div>';
     clients.forEach(c=>{
       const row=document.createElement('div');
-      row.className='hd-client-row'+(c.id===clientId?' active':'');
+      row.className='hd-client-row'+(c.id===activeId?' active':'');
       row.dataset.id=c.id;
       const avatar=c.photoData?`<div class="hd-avatar"><img src="${esc(c.photoData)}" alt=""></div>`:`<div class="hd-avatar">${esc(initials(c.name))}</div>`;
       const unpaid=unpaidSessionCount(c);
@@ -182,7 +186,7 @@
       row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();selectClient(c.id);openClientDatabase();};
       list.appendChild(row);
     });
-    count.textContent=`Клиентов: ${(state?.clients||[]).length}`;
+    count.textContent=`Клиентов: ${all.length}`;
   }
 
   function renderHero(){
