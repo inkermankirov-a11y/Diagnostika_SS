@@ -34,7 +34,7 @@ jobs:
           if 'window.DiagnostikaClients=Object.freeze' not in api: errors.append('client API export missing')
           if re.search(r'\bstate\s*\?*\.?\s*clients\b|\bclientId\b',dash): errors.append('dashboard still owns client state directly')
           if 'window.openDatabase' in dash: errors.append('dashboard still calls legacy database global directly')
-          for token in ['clientsApi()?.select?.(id)','clientsApi()?.openDatabase?.()','client-api.js?v=20260916-clientapi1','home-dashboard.js?v=20260916-clientapi1']:
+          for token in ['clientsApi()?.select?.(id)','clientsApi()?.openDatabase?.()','client-api.js?v=20260916-clientapi1','home-dashboard.js?v=20260916-requestapi2']:
               if token not in (dash+'\n'+loader): errors.append('missing '+token)
           print('CLIENT_BOUNDARY_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)

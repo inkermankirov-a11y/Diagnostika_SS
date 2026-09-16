@@ -3,39 +3,90 @@
 (() => {
   // Public boundary for request navigation from the new UI.
   // Legacy request state stays encapsulated here until the data core is split into modules.
-  if (window.DiagnostikaRequests?.select) return;
+  if (window.DiagnostikaRequests?.select && window.DiagnostikaRequests?.get && Object.isFrozen(window.DiagnostikaRequests)) return;
 
-  function currentClient(){
+  const legacy=window.DiagnostikaRequests||{};
+
+  function resolveClient(clientRef){
+    if(clientRef&&typeof clientRef==='object'&&Array.isArray(clientRef.requests))return clientRef;
+    if(clientRef!==undefined&&clientRef!==null){
+      return window.DiagnostikaClients?.list?.().find(c=>String(c.id)===String(clientRef))||null;
+    }
     return window.DiagnostikaClients?.current?.() || (typeof client === 'function' ? client() : null);
   }
 
-  function list(){
-    const c=currentClient();
+  function list(clientRef){
+    const c=resolveClient(clientRef);
     return Array.isArray(c?.requests) ? c.requests : [];
   }
 
-  function current(){
-    if (typeof request === 'function') return request();
-    const id=currentId();
-    return list().find(r=>String(r.id)===String(id)) || null;
+  function get(id,clientRef){
+    if(!id)return null;
+    return list(clientRef).find(r=>String(r.id)===String(id))||null;
   }
 
-  function currentId(){
-    return typeof requestId !== 'undefined' ? requestId : null;
+  function current(clientRef){
+    const c=resolveClient(clientRef);
+    if(!c)return null;
+    if(typeof legacy.current==='function'){
+      const remembered=legacy.current(c);
+      if(remembered&&get(remembered.id,c))return remembered;
+    }
+    return get(c.currentRequestId,c)||null;
+  }
+
+  function currentId(clientRef){
+    return current(clientRef)?.id||null;
+  }
+
+  function syncLegacySelection(target){
+    if(!target)return;
+    requestId=target.id;
+    situationId=null;
+    selected=null;
+  }
+
+  function refresh(){
+    if(typeof legacy.refresh==='function')legacy.refresh();
+    window.DiagnostikaHomeDashboard?.refresh?.();
+    return true;
   }
 
   function select(id){
     if (!id) return false;
-    const target=list().find(r=>String(r.id)===String(id));
+    const c=resolveClient();
+    const target=get(id,c);
     if (!target) return false;
+    if(target.status==='completed')return false;
 
-    requestId=target.id;
-    situationId=null;
-    selected=null;
+    c.currentRequestId=target.id;
+    c.lastDiagnosisRequestId=target.id;
+    syncLegacySelection(target);
 
+    if(typeof save==='function')save();
     if (typeof renderRequests === 'function') renderRequests();
+    refresh();
     return true;
   }
 
-  window.DiagnostikaRequests=Object.freeze({list,current,currentId,select});
+  if(typeof window.renderClient==='function'&&!window.renderClient.__requestApiBoundaryPatched){
+    const previous=window.renderClient;
+    const wrapped=function(){
+      const active=current();
+      if(active)syncLegacySelection(active);
+      const result=previous.apply(this,arguments);
+      setTimeout(refresh,0);
+      return result;
+    };
+    wrapped.__requestApiBoundaryPatched=true;
+    window.renderClient=wrapped;
+  }
+
+  const active=current();
+  if(active){
+    syncLegacySelection(active);
+    if(typeof renderRequests==='function')renderRequests();
+  }
+
+  window.DiagnostikaRequests=Object.freeze({...legacy,list,get,current,currentId,select,refresh});
 })();

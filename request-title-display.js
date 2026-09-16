@@ -114,7 +114,7 @@
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20260916-requestapi1';
+      s.src='home-dashboard.js?v=20260916-requestapi2';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
@@ -146,7 +146,7 @@
     }
 
     const api=document.createElement('script');
-    api.src='request-api.js?v=20260916-requestapi1';
+    api.src='request-api.js?v=20260916-requestapi2';
     api.setAttribute('data-request-api','1');
     api.onload=loadDashboard;
     document.body.appendChild(api);
