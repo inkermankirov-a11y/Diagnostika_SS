@@ -74,7 +74,7 @@ jobs:
             const first=window.DiagnostikaClients.current();
             if(!first)throw new Error('No current client');
             const stamp=new Date().toISOString();
-            const mk=title=>({id:crypto.randomUUID(),title,status:'active',createdAt:stamp,updatedAt:stamp,situations:[],payment:{mode:'',total:0,payments:[],currency:'RUB'}});
+            const mk=title=>({id:crypto.randomUUID(),title,status:'active',createdAt:stamp,updatedAt:stamp,situations:[],payment:{mode:'',total:0,payments:[],currency:'RUB',sessionAmount:0,sessionDiscount:0}});
             const fill=(c,name)=>{
               c.name=name;
               c.requests=[mk(`${name} A`),mk(`${name} B`)];
