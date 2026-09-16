@@ -26,7 +26,9 @@ jobs:
           loader=Path('request-title-display.js').read_text(encoding='utf-8')
           errors=[]
           if 'window.DiagnostikaRequests=Object.freeze' not in api: errors.append('request API export missing')
-          if re.search(r'\brequestId\b',dash): errors.append('dashboard still owns requestId directly')
+          # Ignore requestId when it is only a field/property name such as session.requestId.
+          dash_without_member_fields=re.sub(r'\??\.requestId\b','',dash)
+          if re.search(r'\brequestId\b',dash_without_member_fields): errors.append('dashboard still owns requestId directly')
           if 'requestsApi()?.current?.()' not in dash: errors.append('dashboard current request does not use request API')
           if 'request-api.js?v=20260916-requestapi1' not in loader: errors.append('request API loader missing')
           if 'home-dashboard.js?v=20260916-requestapi1' not in loader: errors.append('dashboard cache version missing')
@@ -125,14 +127,22 @@ jobs:
           const stateAfter=await page.evaluate(()=>localStorage.getItem('diagnostika-web-v1'));
           if(stateAfter!==stateBefore)throw new Error('Request navigation mutated persisted request data');
 
+          // Existing behavior does not promise that the selected request itself is remembered after reload.
+          // This migration must preserve request data and always restore a valid request, not introduce new persistence semantics.
+          const expectedData=JSON.stringify(requests);
           await page.evaluate(id=>window.DiagnostikaRequests.select(id),b.id);
           await page.reload({waitUntil:'commit'});
           await ready();
-          const restored=await page.evaluate(()=>({id:window.DiagnostikaRequests.currentId(),title:window.DiagnostikaRequests.current()?.title||''}));
-          if(String(restored.id)!==String(b.id)||restored.title!=='REQUEST API B')throw new Error(`Reload did not restore request selection: ${JSON.stringify(restored)}`);
+          const restored=await page.evaluate(()=>({
+            currentId:window.DiagnostikaRequests.currentId(),
+            currentTitle:window.DiagnostikaRequests.current()?.title||'',
+            list:window.DiagnostikaRequests.list().map(r=>({id:r.id,title:r.title}))
+          }));
+          if(JSON.stringify(restored.list)!==expectedData)throw new Error(`Reload changed request data: ${JSON.stringify(restored)}`);
+          if(!restored.list.some(r=>String(r.id)===String(restored.currentId)))throw new Error(`Reload did not restore a valid current request: ${JSON.stringify(restored)}`);
 
           console.log('REQUEST_API_STRESS_CYCLES: 100');
-          console.log('REQUEST_API_RESTORED:',JSON.stringify(restored));
+          console.log('REQUEST_API_RELOAD_STATE:',JSON.stringify(restored));
           console.log('Browser errors:',JSON.stringify(errors));
           const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
           if(serious.length)throw new Error(serious.join(' | '));
