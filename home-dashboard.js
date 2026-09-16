@@ -73,8 +73,13 @@
     if(!p.length)return 'К';
     return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase();
   };
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
   const currentClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
+
+  function unavailable(message,title='Ошибка'){
+    if(window.AppDialog?.alert){window.AppDialog.alert(message,title);return;}
+    window.alert(message);
+  }
 
   function unpaidSessionCount(c){
     if(!c||!Array.isArray(c.sessions))return 0;
@@ -128,12 +133,17 @@
 
   function openCard(){
     if(window.DiagnostikaClientCard?.openExisting){window.DiagnostikaClientCard.openExisting();return;}
-    document.getElementById('clientCardModeBtn')?.click();
+    unavailable('Модуль карточки клиента не загрузился. Обновите страницу.','Карточка клиента');
   }
 
   function addClient(){
     if(window.DiagnostikaClientCard?.openNew){window.DiagnostikaClientCard.openNew();return;}
-    document.getElementById('addClientBtn')?.click();
+    unavailable('Модуль создания клиента не загрузился. Обновите страницу.','Новый клиент');
+  }
+
+  function openClientDatabase(){
+    if(typeof window.openDatabase==='function'){window.openDatabase();return;}
+    unavailable('Модуль базы клиентов не загрузился. Обновите страницу.','База клиентов');
   }
 
   function openDiagnosis(){
@@ -172,7 +182,7 @@
       const newClientDot=isNewClient(c)?`<span class="hd-new-client-dot" aria-label="Новый клиент" title="Новый клиент"></span>`:'';
       row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools">${newClientDot}${flag}<button class="hd-client-more" type="button" title="База клиентов">⋮</button></div>`;
       row.onclick=e=>{if(e.target.closest('.hd-client-more'))return;selectClient(c.id);};
-      row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();selectClient(c.id);document.getElementById('clientBaseBtn')?.click();};
+      row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();selectClient(c.id);openClientDatabase();};
       list.appendChild(row);
     });
     count.textContent=`Клиентов: ${(state?.clients||[]).length}`;
@@ -246,7 +256,7 @@
     if(e.target?.matches?.('dialog.session-edit-dialog,dialog.payment-dialog'))setTimeout(renderClients,0);
   },true);
 
-  window.DiagnostikaHomeDashboard={refresh,renderClients};
+  window.DiagnostikaHomeDashboard={refresh,renderClients,openCard,addClient,openClientDatabase};
 
   const saveBtn=document.getElementById('saveClientBtn');
   if(saveBtn) saveBtn.hidden=true;
