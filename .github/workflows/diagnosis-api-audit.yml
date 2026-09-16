@@ -1,0 +1,204 @@
+name: Diagnosis API audit
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'diagnosis-api.js'
+      - 'home-dashboard.js'
+      - 'diagnosis-navigation.js'
+      - 'diagnosis-resume.js'
+      - 'diagnosis-compact-client.js'
+      - 'request-select-labels.js'
+      - 'request-title-display.js'
+      - 'index.html'
+      - '.github/workflows/diagnosis-api-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  diagnosis-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static dependency and ownership check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check diagnosis-api.js
+          node --check home-dashboard.js
+          node --check request-select-labels.js
+          node --check diagnosis-navigation.js
+          node --check diagnosis-resume.js
+          node --check diagnosis-compact-client.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          dash=Path('home-dashboard.js').read_text(encoding='utf-8')
+          api=Path('diagnosis-api.js').read_text(encoding='utf-8')
+          html=Path('index.html').read_text(encoding='utf-8')
+
+          if 'DiagnostikaDiagnosis?.open' not in dash:
+              raise SystemExit('Dashboard does not use DiagnostikaDiagnosis.open')
+          if re.search(r"\bmode\s*=\s*['\"]diagnosis['\"]", dash):
+              raise SystemExit('Dashboard still writes diagnosis mode directly')
+          if 'renderMode()' in dash[dash.find('function openDiagnosis'):dash.find('function openPayment')]:
+              raise SystemExit('Dashboard diagnosis action still calls renderMode directly')
+
+          owners=[]
+          for f in Path('.').glob('*.js'):
+              text=f.read_text(encoding='utf-8',errors='ignore')
+              if 'window.DiagnostikaDiagnosis =' in text or 'window.DiagnostikaDiagnosis=' in text:
+                  owners.append(f.name)
+          print('DiagnostikaDiagnosis owner files:',owners)
+          if owners != ['diagnosis-api.js']:
+              raise SystemExit(f'DiagnostikaDiagnosis must have one owner, got {owners}')
+
+          order={name:html.find(name) for name in ['request-select-labels.js','diagnosis-api.js','request-title-display.js']}
+          print('Diagnosis load order:',order)
+          if any(v < 0 for v in order.values()):
+              raise SystemExit('Required diagnosis scripts missing from index.html')
+          if not (order['request-select-labels.js'] < order['diagnosis-api.js'] < order['request-title-display.js']):
+              raise SystemExit('Diagnosis API load order is unsafe')
+
+          if 'Object.freeze({open})' not in api:
+              raise SystemExit('Diagnosis API export shape changed unexpectedly')
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Stress diagnosis navigation and data integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > diagnosis-api-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('dialog',d=>d.accept().catch(()=>{}));
+
+          await page.goto(`http://127.0.0.1:8000/index.html?diagnosis-api=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
+          await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+
+          if((await page.locator('#clientSelect option').count())===0) await page.locator('#addClientBtn').click();
+          await page.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
+          await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
+          await page.locator('.diagnosis-compact-back').click();
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+
+          const apiShape=await page.evaluate(()=>({
+            exists:!!window.DiagnostikaDiagnosis,
+            open:typeof window.DiagnostikaDiagnosis?.open,
+            frozen:Object.isFrozen(window.DiagnostikaDiagnosis||{})
+          }));
+          console.log('DIAGNOSIS_API_SHAPE:',JSON.stringify(apiShape));
+          if(!apiShape.exists||apiShape.open!=='function'||!apiShape.frozen)throw new Error('Diagnosis API shape is invalid');
+
+          const setup=await page.evaluate(()=>{
+            const c=typeof client==='function'?client():null;
+            if(!c||!Array.isArray(c.requests)||!c.requests[0])throw new Error('Audit client/request unavailable');
+            const first=c.requests[0];
+            first.title='DIAG AUDIT A';
+            first.status='active';
+            if(!Array.isArray(first.situations))first.situations=[];
+            const second=JSON.parse(JSON.stringify(first));
+            second.id=crypto.randomUUID?crypto.randomUUID():'diag_req_'+Date.now();
+            second.title='DIAG AUDIT B';
+            second.createdAt=new Date().toISOString();
+            second.updatedAt=second.createdAt;
+            c.requests=[first,second];
+            c.currentRequestId=second.id;
+            c.lastDiagnosisRequestId=first.id;
+            requestId=first.id;
+            situationId=null;
+            selected=null;
+            mode='card';
+            save();
+            if(typeof renderClient==='function')renderClient();
+            if(typeof renderMode==='function')renderMode();
+            window.DiagnostikaRequests?.refresh?.();
+            window.DiagnostikaHomeDashboard?.refresh?.();
+            window.__diagApiCalls=0;
+            window.__legacyDiagnosisClicks=0;
+            const original=window.DiagnostikaDiagnosis.open;
+            window.DiagnostikaDiagnosis=Object.freeze({open:function(){window.__diagApiCalls++;return original();}});
+            document.querySelector('#diagnosisModeBtn')?.addEventListener('click',()=>window.__legacyDiagnosisClicks++,true);
+            return {clientId:c.id,firstId:first.id,secondId:second.id,requests:JSON.stringify(c.requests)};
+          });
+          await page.waitForTimeout(100);
+
+          const dashboardRequest=(await page.locator('#hdSummary .hd-summary-box').first().locator('.hd-summary-value').textContent()||'').trim();
+          console.log('DASHBOARD_REQUEST_BEFORE_OPEN:',dashboardRequest);
+          if(dashboardRequest!=='DIAG AUDIT B')throw new Error(`Dashboard request summary is stale: ${dashboardRequest}`);
+
+          const CYCLES=100;
+          for(let i=0;i<CYCLES;i++){
+            const button=page.locator('#hdHeroActions button').filter({hasText:'Диагностика'}).first();
+            await button.waitFor({state:'visible',timeout:3000});
+            await button.click();
+            await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:3000});
+            const state=await page.evaluate(()=>({mode,requestId,clientId,current:client()?.currentRequestId,last:client()?.lastDiagnosisRequestId,dashboardHidden:document.querySelector('.home-dashboard')?.hidden,workspaceVisible:!!document.querySelector('.workspace-grid')&&getComputedStyle(document.querySelector('.workspace-grid')).display!=='none'}));
+            if(state.mode!=='diagnosis')throw new Error(`Cycle ${i+1}: diagnosis mode not entered`);
+            if(state.requestId!==setup.secondId||state.current!==setup.secondId||state.last!==setup.secondId)throw new Error(`Cycle ${i+1}: wrong request selected ${JSON.stringify(state)}`);
+            if(!state.dashboardHidden||!state.workspaceVisible)throw new Error(`Cycle ${i+1}: visibility mismatch ${JSON.stringify(state)}`);
+            await page.locator('.diagnosis-compact-back').click();
+            await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+            if(await page.locator('.workspace-grid').isVisible())throw new Error(`Cycle ${i+1}: legacy workspace visible after return`);
+          }
+
+          const result=await page.evaluate((setup)=>{
+            const c=state.clients.find(x=>String(x.id)===String(setup.clientId));
+            const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');
+            const sc=stored?.clients?.find(x=>String(x.id)===String(setup.clientId));
+            return {
+              apiCalls:window.__diagApiCalls||0,
+              legacyClicks:window.__legacyDiagnosisClicks||0,
+              requestId,
+              current:c?.currentRequestId,
+              last:c?.lastDiagnosisRequestId,
+              requestsSame:JSON.stringify(c?.requests||[])===setup.requests,
+              storedRequestsSame:JSON.stringify(sc?.requests||[])===setup.requests
+            };
+          },setup);
+          console.log('DIAGNOSIS_STRESS_RESULT:',JSON.stringify({cycles:CYCLES,...result}));
+          if(result.apiCalls!==CYCLES)throw new Error(`Expected ${CYCLES} diagnosis API calls, got ${result.apiCalls}`);
+          if(result.legacyClicks!==0)throw new Error(`Legacy diagnosis button was clicked ${result.legacyClicks} time(s)`);
+          if(result.requestId!==setup.secondId||result.current!==setup.secondId||result.last!==setup.secondId)throw new Error('Diagnosis request authority changed during stress test');
+          if(!result.requestsSame||!result.storedRequestsSame)throw new Error('Diagnosis navigation mutated request data');
+
+          // With no requests, API must open the chooser instead of entering a broken diagnosis view.
+          const fallback=await page.evaluate(()=>{
+            const c=client();
+            const backup={requests:c.requests,currentRequestId:c.currentRequestId,lastDiagnosisRequestId:c.lastDiagnosisRequestId,requestId};
+            c.requests=[];c.currentRequestId=null;c.lastDiagnosisRequestId=null;requestId=null;mode='card';save();renderClient();renderMode();window.DiagnostikaHomeDashboard?.refresh?.();
+            const result=window.DiagnostikaDiagnosis.open();
+            const chooser=!!document.querySelector('#diagnosisLaunchDialog')?.open;
+            const stayedCard=mode!=='diagnosis';
+            document.querySelector('#diagnosisLaunchDialog')?.close();
+            c.requests=backup.requests;c.currentRequestId=backup.currentRequestId;c.lastDiagnosisRequestId=backup.lastDiagnosisRequestId;requestId=backup.requestId;save();renderClient();renderMode();window.DiagnostikaHomeDashboard?.refresh?.();
+            return {result,chooser,stayedCard};
+          });
+          console.log('DIAGNOSIS_EMPTY_FALLBACK:',JSON.stringify(fallback));
+          if(fallback.result!==false||!fallback.chooser||!fallback.stayedCard)throw new Error('Empty-request diagnosis fallback is unsafe');
+
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          console.log('Browser errors:',JSON.stringify(errors));
+          if(serious.length)throw new Error(serious.join(' | '));
+
+          await browser.close();
+          JS
+          node diagnosis-api-audit.mjs
