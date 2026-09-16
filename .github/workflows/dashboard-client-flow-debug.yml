@@ -1,0 +1,107 @@
+name: Dashboard client flow debug
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'home-dashboard.js'
+      - 'client-card-window.js'
+      - 'app.js'
+      - 'last-client.js'
+      - 'index.html'
+      - 'request-title-display.js'
+      - '.github/workflows/dashboard-client-flow-debug.yml'
+  workflow_dispatch:
+
+jobs:
+  debug-client-flow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Trace dashboard client state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/debug-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > dashboard-client-debug.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('dialog',d=>d.accept().catch(()=>{}));
+
+          const snapshot=async label=>{
+            const s=await page.evaluate(()=>({
+              clientId:typeof clientId==='undefined'?'<undefined>':clientId,
+              requestId:typeof requestId==='undefined'?'<undefined>':requestId,
+              mode:typeof mode==='undefined'?'<undefined>':mode,
+              clients:Array.isArray(state?.clients)?state.clients.length:-1,
+              currentClient:typeof client==='function'?client()?.id||null:null,
+              selectValue:document.querySelector('#clientSelect')?.value||'',
+              selectOptions:document.querySelectorAll('#clientSelect option').length,
+              rows:document.querySelectorAll('.hd-client-row').length,
+              more:document.querySelectorAll('.hd-client-row .hd-client-more').length,
+              search:document.querySelector('#hdClientSearch')?.value||'',
+              dashboardHidden:!!document.querySelector('.home-dashboard')?.hidden,
+              workspaceDisplay:document.querySelector('.workspace-grid')?.style?.display||'',
+              cardOpen:!!document.querySelector('#clientCardDialog')?.open,
+              heroButtons:[...document.querySelectorAll('#hdHeroActions button')].map(x=>x.textContent.trim())
+            }));
+            console.log(label+':',JSON.stringify(s));
+            return s;
+          };
+
+          await page.goto(`http://127.0.0.1:8000/index.html?client-debug=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
+          await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+          if((await page.locator('#clientSelect option').count())===0)await page.locator('#addClientBtn').click();
+          await page.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await snapshot('BEFORE_TEST_FILL');
+          await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
+          await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
+          await snapshot('AFTER_TEST_FILL');
+          await page.locator('.diagnosis-compact-back').click();
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+          await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
+          await page.locator('.hd-client-row').first().waitFor({state:'attached',timeout:3000});
+          await snapshot('BACK_ON_DASHBOARD');
+
+          for(let i=1;i<=10;i++){
+            await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
+            const opened=await page.evaluate(()=>{
+              const b=[...document.querySelectorAll('#hdHeroActions button')].find(x=>x.textContent.includes('Карточка клиента'));
+              if(!b)return false;b.click();return true;
+            });
+            if(!opened)throw new Error(`Iteration ${i}: client-card action missing before open`);
+            await page.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});
+            await snapshot(`ITER_${i}_CARD_OPEN`);
+            await page.evaluate(()=>document.getElementById('clientCardDialog')?.close());
+            await page.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
+            await snapshot(`ITER_${i}_AFTER_CLOSE_BEFORE_REFRESH`);
+            await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
+            const immediate=await snapshot(`ITER_${i}_IMMEDIATE_AFTER_REFRESH`);
+            for(const ms of [0,10,50,250]){
+              if(ms)await page.waitForTimeout(ms);
+              const timed=await snapshot(`ITER_${i}_AFTER_${ms}MS`);
+              if(timed.clients!==immediate.clients||timed.clientId!==immediate.clientId)throw new Error(`Iteration ${i}: client state changed asynchronously`);
+            }
+            const attached=await page.locator('.hd-client-row .hd-client-more').first().isVisible().catch(()=>false);
+            console.log(`ITER_${i}_MORE_VISIBLE:`,attached);
+            if(!immediate.more)throw new Error(`Iteration ${i}: more button absent immediately after synchronous refresh`);
+          }
+
+          console.log('Browser errors:',JSON.stringify(errors));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          if(serious.length)throw new Error(serious.join(' | '));
+          await browser.close();
+          JS
+          node dashboard-client-debug.mjs
