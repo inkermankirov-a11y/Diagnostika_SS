@@ -52,6 +52,7 @@
       </section>
     </aside>`;
   header.insertAdjacentElement('afterend',dashboard);
+  document.documentElement.classList.add('diagnostika-dashboard-ready');
 
   const $=s=>dashboard.querySelector(s);
   const list=$('#hdClientList');
