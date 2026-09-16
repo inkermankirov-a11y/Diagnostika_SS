@@ -123,6 +123,10 @@ jobs:
           console.log('REQUEST_API_SCRIPT_ORDER:',JSON.stringify(order));
           if(order.requestApi<0||order.dashboard<0||order.requestApi>order.dashboard)throw new Error('Request API did not load before dashboard');
 
+          // Let the existing render/repair wrappers finish their one-time normalization before taking the immutability baseline.
+          await page.evaluate(()=>window.DiagnostikaRequests.refresh());
+          await page.waitForTimeout(150);
+
           await page.evaluate(()=>{
             window.__legacyRequestEvents={changes:0};
             document.getElementById('requestSelect')?.addEventListener('change',()=>window.__legacyRequestEvents.changes++,true);
@@ -164,7 +168,7 @@ jobs:
           if(invalid.result!==false||String(invalid.before)!==String(invalid.after)||String(invalid.beforeSelect)!==String(invalid.afterSelect))throw new Error('Invalid request selection changed current request');
 
           const requestDataAfter=await page.evaluate(ids=>JSON.stringify(ids.map(id=>window.DiagnostikaRequests.list(id))),fixtures.clients.map(x=>x.clientId));
-          if(requestDataAfter!==requestDataBefore)throw new Error('Request navigation mutated request data');
+          if(requestDataAfter!==requestDataBefore)throw new Error(`Request navigation mutated request data: ${JSON.stringify({before:JSON.parse(requestDataBefore),after:JSON.parse(requestDataAfter)})}`);
 
           const chosenClient=fixtures.clients[0];
           const chosenRequest=chosenClient.requests[1];
