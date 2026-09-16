@@ -1,0 +1,169 @@
+name: Client API audit
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'client-api.js'
+      - 'home-dashboard.js'
+      - 'request-title-display.js'
+      - 'index.html'
+      - '.github/workflows/client-api-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  client-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static client boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check client-api.js
+          node --check home-dashboard.js
+          node --check request-title-display.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,sys
+          api=Path('client-api.js').read_text(encoding='utf-8')
+          dash=Path('home-dashboard.js').read_text(encoding='utf-8')
+          loader=Path('request-title-display.js').read_text(encoding='utf-8')
+          errors=[]
+          if 'window.DiagnostikaClients=Object.freeze' not in api: errors.append('client API export missing')
+          if re.search(r'\bstate\s*\?*\.?\s*clients\b|\bclientId\b',dash): errors.append('dashboard still owns client state directly')
+          if 'window.openDatabase' in dash: errors.append('dashboard still calls legacy database global directly')
+          for token in ['clientsApi()?.select?.(id)','clientsApi()?.openDatabase?.()','client-api.js?v=20260916-clientapi1','home-dashboard.js?v=20260916-clientapi1']:
+              if token not in (dash+'\n'+loader): errors.append('missing '+token)
+          print('CLIENT_BOUNDARY_STATIC_ERRORS:',errors)
+          if errors: sys.exit(1)
+          PY
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Stress client navigation and persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > client-api-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('dialog',d=>d.accept().catch(()=>{}));
+
+          async function ready(){
+            await page.locator('.home-dashboard').waitFor({state:'visible',timeout:10000});
+            await page.waitForFunction(()=>!!window.DiagnostikaClients?.select,null,{timeout:5000});
+          }
+
+          await page.goto(`http://127.0.0.1:8000/index.html?client-api=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await ready();
+          await page.evaluate(()=>{
+            localStorage.removeItem('diagnostika-web-v1');
+            localStorage.removeItem('diagnostika-last-client-id');
+          });
+          await page.reload({waitUntil:'commit'});
+          await ready();
+
+          async function addNamed(name){
+            await page.evaluate(n=>{
+              document.getElementById('addClientBtn')?.click();
+              const input=document.getElementById('clientName');
+              if(!input)throw new Error('legacy setup input missing');
+              input.value=n;
+              input.dispatchEvent(new Event('input',{bubbles:true}));
+            },name);
+            await page.waitForTimeout(30);
+          }
+
+          await addNamed('CLIENT API A');
+          await addNamed('CLIENT API B');
+          await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
+
+          const clients=await page.evaluate(()=>window.DiagnostikaClients.list().map(c=>({id:c.id,name:c.name})));
+          if(clients.length!==2)throw new Error(`Expected 2 clients, got ${clients.length}`);
+          const [a,b]=clients;
+          if(a.name!=='CLIENT API A'||b.name!=='CLIENT API B')throw new Error('Client setup names mismatch');
+
+          const scriptOrder=await page.evaluate(()=>{
+            const arr=[...document.scripts].map(s=>s.src).filter(Boolean).map(src=>new URL(src).pathname.split('/').pop());
+            return {clientApi:arr.indexOf('client-api.js'),dashboard:arr.indexOf('home-dashboard.js')};
+          });
+          console.log('CLIENT_API_SCRIPT_ORDER:',JSON.stringify(scriptOrder));
+          if(scriptOrder.clientApi<0||scriptOrder.dashboard<0||scriptOrder.clientApi>scriptOrder.dashboard)throw new Error('Client API did not load before dashboard');
+
+          await page.evaluate(()=>{
+            window.__legacyClientUiEvents={selectChanges:0,baseClicks:0};
+            document.getElementById('clientSelect')?.addEventListener('change',()=>window.__legacyClientUiEvents.selectChanges++,true);
+            document.getElementById('clientBaseBtn')?.addEventListener('click',()=>window.__legacyClientUiEvents.baseClicks++,true);
+          });
+
+          const stateBefore=await page.evaluate(()=>localStorage.getItem('diagnostika-web-v1'));
+          for(let i=0;i<100;i++){
+            const target=i%2===0?a:b;
+            const clicked=await page.evaluate(id=>{
+              const row=document.querySelector(`.hd-client-row[data-id="${CSS.escape(String(id))}"]`);
+              if(!row)return false;
+              row.click();
+              return true;
+            },target.id);
+            if(!clicked)throw new Error(`Dashboard row missing at iteration ${i}`);
+            await page.waitForTimeout(5);
+            const snap=await page.evaluate(()=>({
+              api:window.DiagnostikaClients.currentId(),
+              select:document.getElementById('clientSelect')?.value||'',
+              active:document.querySelector('.hd-client-row.active')?.dataset?.id||'',
+              hero:document.getElementById('hdHeroTitle')?.textContent?.trim()||''
+            }));
+            if(String(snap.api)!==String(target.id)||String(snap.select)!==String(target.id)||String(snap.active)!==String(target.id)||snap.hero!==target.name){
+              throw new Error(`Client selection mismatch at iteration ${i}: ${JSON.stringify(snap)}`);
+            }
+          }
+
+          const legacyEvents=await page.evaluate(()=>window.__legacyClientUiEvents);
+          console.log('LEGACY_CLIENT_UI_EVENTS:',JSON.stringify(legacyEvents));
+          if(legacyEvents.selectChanges!==0||legacyEvents.baseClicks!==0)throw new Error('Dashboard simulated legacy client UI events');
+
+          const stateAfter=await page.evaluate(()=>localStorage.getItem('diagnostika-web-v1'));
+          if(stateAfter!==stateBefore)throw new Error('Client navigation mutated persisted client data');
+
+          const invalid=await page.evaluate(()=>{
+            const before=window.DiagnostikaClients.currentId();
+            const result=window.DiagnostikaClients.select('__missing_client__');
+            return {before,result,after:window.DiagnostikaClients.currentId()};
+          });
+          console.log('INVALID_SELECT:',JSON.stringify(invalid));
+          if(invalid.result!==false||String(invalid.before)!==String(invalid.after))throw new Error('Invalid client selection changed current client');
+
+          const dbOpened=await page.evaluate(()=>window.DiagnostikaHomeDashboard?.openClientDatabase?.());
+          await page.locator('#clientDialog').waitFor({state:'visible',timeout:3000});
+          const afterDb=await page.evaluate(()=>window.__legacyClientUiEvents);
+          if(afterDb.baseClicks!==0)throw new Error('Client database API clicked legacy header button');
+          await page.evaluate(()=>document.getElementById('clientDialog')?.close());
+          await page.locator('#clientDialog').waitFor({state:'hidden',timeout:3000});
+
+          await page.evaluate(id=>window.DiagnostikaClients.select(id),b.id);
+          await page.waitForTimeout(20);
+          const remembered=await page.evaluate(()=>localStorage.getItem('diagnostika-last-client-id'));
+          if(String(remembered)!==String(b.id))throw new Error('Last-client integration did not remember API selection');
+          await page.reload({waitUntil:'commit'});
+          await ready();
+          const restored=await page.evaluate(()=>window.DiagnostikaClients.currentId());
+          if(String(restored)!==String(b.id))throw new Error('Reload did not restore last API-selected client');
+
+          console.log('CLIENT_API_STRESS_CYCLES: 100');
+          console.log('CLIENT_API_RESTORED_ID:',restored);
+          console.log('Browser errors:',JSON.stringify(errors));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          if(serious.length)throw new Error(serious.join(' | '));
+          await browser.close();
+          JS
+          node client-api-audit.mjs
