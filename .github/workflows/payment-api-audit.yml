@@ -1,0 +1,116 @@
+name: Payment API audit
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'home-dashboard.js'
+      - 'payment-system.js'
+      - 'payment-enhancements.js'
+      - 'request-title-display.js'
+      - 'index.html'
+      - '.github/workflows/payment-api-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  payment-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static dependency check
+        shell: bash
+        run: |
+          node --check home-dashboard.js
+          node --check payment-system.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          dash=Path('home-dashboard.js').read_text(encoding='utf-8')
+          required='DiagnostikaPayments?.open'
+          forbidden=['clientPaymentBox','client-payment-btn']
+          found=[x for x in forbidden if x in dash]
+          print('Payment API reference:', required in dash)
+          print('Legacy payment DOM references:', found or 'none')
+          if required not in dash or found:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify dashboard uses payment API
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/payment-api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > payment-api-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser=await chromium.launch({headless:true});
+          const context=await browser.newContext({viewport:{width:1440,height:1000}});
+          const page=await context.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('dialog',d=>d.accept().catch(()=>{}));
+
+          await page.goto(`http://127.0.0.1:8000/index.html?payment-api=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
+          await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+
+          if((await page.locator('#clientSelect option').count())===0){
+            await page.locator('#addClientBtn').click();
+          }
+          await page.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
+          await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
+          await page.locator('.diagnosis-compact-back').click();
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+          await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
+
+          await page.evaluate(()=>{
+            window.__paymentApiCalls=0;
+            window.__legacyPaymentClicks=0;
+            const api=window.DiagnostikaPayments;
+            if(!api||typeof api.open!=='function') throw new Error('DiagnostikaPayments.open is unavailable');
+            const original=api.open.bind(api);
+            api.open=function(){window.__paymentApiCalls++;return original();};
+            const legacy=document.querySelector('#clientPaymentBox .client-payment-btn');
+            if(legacy)legacy.addEventListener('click',()=>window.__legacyPaymentClicks++,true);
+          });
+
+          const opened=await page.evaluate(()=>{
+            const button=[...document.querySelectorAll('#hdHeroActions button')].find(b=>b.textContent.trim()==='Оплата');
+            if(!button)return false;
+            button.click();
+            return true;
+          });
+          if(!opened)throw new Error('Dashboard payment button missing');
+
+          const paymentDialog=page.locator('dialog.payment-dialog').first();
+          await paymentDialog.waitFor({state:'visible',timeout:3000});
+          await paymentDialog.locator('#paymentMode').waitFor({state:'visible',timeout:3000});
+          await paymentDialog.locator('#paymentCurrency').waitFor({state:'visible',timeout:3000});
+
+          const counters=await page.evaluate(()=>({api:window.__paymentApiCalls||0,legacy:window.__legacyPaymentClicks||0}));
+          console.log('PAYMENT_API_CALLS:',counters.api);
+          console.log('LEGACY_PAYMENT_BUTTON_CLICKS:',counters.legacy);
+          if(counters.api!==1)throw new Error(`Expected one payment API call, got ${counters.api}`);
+          if(counters.legacy!==0)throw new Error(`Legacy payment button was clicked ${counters.legacy} time(s)`);
+
+          await page.evaluate(()=>document.querySelector('dialog.payment-dialog')?.close());
+          await paymentDialog.waitFor({state:'hidden',timeout:3000});
+
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          console.log('Browser errors:',JSON.stringify(errors));
+          if(serious.length)throw new Error(serious.join(' | '));
+
+          await browser.close();
+          JS
+          node payment-api-audit.mjs
