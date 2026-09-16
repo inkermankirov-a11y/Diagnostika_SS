@@ -154,9 +154,8 @@
   }
 
   function openPayment(){
-    const oldPaymentButton=document.querySelector('#clientPaymentBox .client-payment-btn');
-    if(oldPaymentButton){oldPaymentButton.click();return;}
-    window.AppDialog?.alert?.('Модуль оплаты ещё не готов. Попробуйте открыть клиента повторно.','Оплата');
+    if(window.DiagnostikaPayments?.open){window.DiagnostikaPayments.open();return;}
+    unavailable('Модуль оплаты не загрузился. Обновите страницу.','Оплата');
   }
 
   function openQuickNotes(){
