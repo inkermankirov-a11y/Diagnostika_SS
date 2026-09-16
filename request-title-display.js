@@ -112,7 +112,7 @@
   }
   if(!document.querySelector('script[data-home-dashboard]')){
     const s=document.createElement('script');
-    s.src='home-dashboard.js?v=20260916-notesapi1';
+    s.src='home-dashboard.js?v=20260916-clientapi1';
     s.setAttribute('data-home-dashboard','1');
     s.onload=()=>{
       if(!document.querySelector('script[data-home-dashboard-sessions]')){
