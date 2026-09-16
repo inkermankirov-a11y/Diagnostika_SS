@@ -149,6 +149,11 @@
     window.AppDialog?.alert?.('Модуль оплаты ещё не готов. Попробуйте открыть клиента повторно.','Оплата');
   }
 
+  function openQuickNotes(){
+    if(window.DiagnostikaQuickNotes?.open){window.DiagnostikaQuickNotes.open();return;}
+    document.dispatchEvent(new CustomEvent('diagnostika:quick-notes-open'));
+  }
+
   function renderClients(){
     const q=(search.value||'').trim().toLowerCase();
     const clients=(state?.clients||[]).filter(c=>{
@@ -225,8 +230,8 @@
 
   $('#hdAddClient').onclick=addClient;
   search.addEventListener('input',renderClients);
-  $('#hdOpenNotes').onclick=()=>document.getElementById('quickNotesBtn')?.click();
-  $('#hdPlanBtn').onclick=()=>document.getElementById('quickNotesBtn')?.click();
+  $('#hdOpenNotes').onclick=openQuickNotes;
+  $('#hdPlanBtn').onclick=openQuickNotes;
 
   if(typeof renderClient==='function'){
     const prev=renderClient;
