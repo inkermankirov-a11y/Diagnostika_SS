@@ -1,6 +1,7 @@
 'use strict';
 
 (() => {
+  // Public boundary for entering diagnosis from the new UI. Legacy state changes stay encapsulated here.
   if (window.DiagnostikaDiagnosis?.open) return;
 
   function currentClient(){
