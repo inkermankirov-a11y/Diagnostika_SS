@@ -96,37 +96,56 @@
 
 // Main home screen redesign. Loaded last so it can reuse the existing application logic safely.
 (() => {
-  if(!document.querySelector('link[data-brand-icon]')){
-    const icon=document.createElement('link');
-    icon.rel='stylesheet';
-    icon.href='brand-icon.css?v=20260912-46';
-    icon.setAttribute('data-brand-icon','1');
-    document.head.appendChild(icon);
+  function loadDashboard(){
+    if(!document.querySelector('link[data-brand-icon]')){
+      const icon=document.createElement('link');
+      icon.rel='stylesheet';
+      icon.href='brand-icon.css?v=20260912-46';
+      icon.setAttribute('data-brand-icon','1');
+      document.head.appendChild(icon);
+    }
+    if(!document.querySelector('link[data-home-dashboard]')){
+      const l=document.createElement('link');
+      l.rel='stylesheet';
+      l.href='home-dashboard.css?v=20260912-53';
+      l.setAttribute('data-home-dashboard','1');
+      document.head.appendChild(l);
+    }
+    if(!document.querySelector('script[data-home-dashboard]')){
+      const s=document.createElement('script');
+      s.src='home-dashboard.js?v=20260916-clientapi1';
+      s.setAttribute('data-home-dashboard','1');
+      s.onload=()=>{
+        if(!document.querySelector('script[data-home-dashboard-sessions]')){
+          const x=document.createElement('script');
+          x.src='home-dashboard-sessions.js?v=20260916-sessioncore1';
+          x.setAttribute('data-home-dashboard-sessions','1');
+          document.body.appendChild(x);
+        }
+      };
+      document.body.appendChild(s);
+    }else if(!document.querySelector('script[data-home-dashboard-sessions]')){
+      const x=document.createElement('script');
+      x.src='home-dashboard-sessions.js?v=20260916-sessioncore1';
+      x.setAttribute('data-home-dashboard-sessions','1');
+      document.body.appendChild(x);
+    }
   }
-  if(!document.querySelector('link[data-home-dashboard]')){
-    const l=document.createElement('link');
-    l.rel='stylesheet';
-    l.href='home-dashboard.css?v=20260912-53';
-    l.setAttribute('data-home-dashboard','1');
-    document.head.appendChild(l);
+
+  if(window.DiagnostikaClients?.select){
+    loadDashboard();
+    return;
   }
-  if(!document.querySelector('script[data-home-dashboard]')){
-    const s=document.createElement('script');
-    s.src='home-dashboard.js?v=20260916-diagnosisapi1';
-    s.setAttribute('data-home-dashboard','1');
-    s.onload=()=>{
-      if(!document.querySelector('script[data-home-dashboard-sessions]')){
-        const x=document.createElement('script');
-        x.src='home-dashboard-sessions.js?v=20260916-sessioncore1';
-        x.setAttribute('data-home-dashboard-sessions','1');
-        document.body.appendChild(x);
-      }
-    };
-    document.body.appendChild(s);
-  }else if(!document.querySelector('script[data-home-dashboard-sessions]')){
-    const x=document.createElement('script');
-    x.src='home-dashboard-sessions.js?v=20260916-sessioncore1';
-    x.setAttribute('data-home-dashboard-sessions','1');
-    document.body.appendChild(x);
+
+  const existing=document.querySelector('script[data-client-api]');
+  if(existing){
+    existing.addEventListener('load',loadDashboard,{once:true});
+    return;
   }
+
+  const api=document.createElement('script');
+  api.src='client-api.js?v=20260916-clientapi1';
+  api.setAttribute('data-client-api','1');
+  api.onload=loadDashboard;
+  document.body.appendChild(api);
 })();
