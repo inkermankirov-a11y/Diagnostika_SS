@@ -37,8 +37,11 @@ jobs:
               if p and not (root/p).exists(): missing.append(p)
           scripts=[x.split('?',1)[0] for x in re.findall(r'''<script[^>]+src=["']([^"']+)["']''',html)]
           dup=sorted({x for x in scripts if scripts.count(x)>1})
-          print('Local refs:',len(refs),'Missing:',missing or 'none','Duplicate index scripts:',dup or 'none')
-          if missing or dup: sys.exit(1)
+          dash=(root/'home-dashboard.js').read_text(encoding='utf-8')
+          legacy_ids=['clientBaseBtn','clientCardModeBtn','addClientBtn']
+          legacy_refs=[x for x in legacy_ids if x in dash]
+          print('Local refs:',len(refs),'Missing:',missing or 'none','Duplicate index scripts:',dup or 'none','Dashboard legacy refs:',legacy_refs or 'none')
+          if missing or dup or legacy_refs: sys.exit(1)
           PY
           test "$failed" -eq 0
       - name: Install browser
@@ -116,6 +119,21 @@ jobs:
 
           await page.locator('.diagnosis-compact-back').click();await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
           if(await oldWorkspace.isVisible())throw new Error('Legacy workspace visible after returning from diagnosis');
+
+          await page.evaluate(()=>{
+            window.__legacyDashboardClicks=[];
+            for(const id of ['clientBaseBtn','clientCardModeBtn','addClientBtn']){
+              const el=document.getElementById(id);
+              if(el)el.addEventListener('click',()=>window.__legacyDashboardClicks.push(id),true);
+            }
+          });
+          const cardBtn=page.locator('#hdHeroActions button').filter({hasText:'Карточка клиента'}).first();
+          await cardBtn.click();await page.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});await page.locator('#ccCloseBtn').click();await page.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
+          await page.locator('#hdAddClient').click();await page.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});await page.locator('#ccCloseBtn').click();await page.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
+          await page.locator('.hd-client-row .hd-client-more').first().click();await page.locator('#clientDialog').waitFor({state:'visible',timeout:3000});await page.keyboard.press('Escape');await page.locator('#clientDialog').waitFor({state:'hidden',timeout:3000});
+          const legacyClicks=await page.evaluate(()=>window.__legacyDashboardClicks||[]);
+          if(legacyClicks.length)throw new Error(`Dashboard client actions used legacy buttons: ${legacyClicks.join(',')}`);
+
           await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
           if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1)throw new Error('Client AI clear button missing or duplicated');
           const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
