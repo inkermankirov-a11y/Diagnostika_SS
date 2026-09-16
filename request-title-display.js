@@ -39,6 +39,7 @@
   document.head.appendChild(style);
 
   function getCurrentRequest(){
+    if (window.DiagnostikaRequests?.current) return window.DiagnostikaRequests.current();
     const c = typeof client === 'function' ? client() : null;
     if (!c) return null;
     return c.requests?.find(r => r.id === requestId) || null;
@@ -113,7 +114,7 @@
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20260916-clientapi1';
+      s.src='home-dashboard.js?v=20260916-requestapi1';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
@@ -132,20 +133,39 @@
     }
   }
 
+  function loadRequestApi(){
+    if(window.DiagnostikaRequests?.select){
+      loadDashboard();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-request-api]');
+    if(existing){
+      existing.addEventListener('load',loadDashboard,{once:true});
+      return;
+    }
+
+    const api=document.createElement('script');
+    api.src='request-api.js?v=20260916-requestapi1';
+    api.setAttribute('data-request-api','1');
+    api.onload=loadDashboard;
+    document.body.appendChild(api);
+  }
+
   if(window.DiagnostikaClients?.select){
-    loadDashboard();
+    loadRequestApi();
     return;
   }
 
   const existing=document.querySelector('script[data-client-api]');
   if(existing){
-    existing.addEventListener('load',loadDashboard,{once:true});
+    existing.addEventListener('load',loadRequestApi,{once:true});
     return;
   }
 
   const api=document.createElement('script');
   api.src='client-api.js?v=20260916-clientapi1';
   api.setAttribute('data-client-api','1');
-  api.onload=loadDashboard;
+  api.onload=loadRequestApi;
   document.body.appendChild(api);
 })();
