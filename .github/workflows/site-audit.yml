@@ -95,6 +95,44 @@ jobs:
             if(ms>20000)throw new Error(`Cold load ${i} too slow`);await c.close();
           }
 
+          // Separate dependency check: exercise only the new dashboard actions and
+          // prove they do not click the legacy hidden client buttons.
+          const depContext=await browser.newContext({viewport:{width:1440,height:1000}}),dep=await depContext.newPage();await instrument(dep);
+          await dep.goto(`http://127.0.0.1:8000/index.html?dep=${Date.now()}`,{waitUntil:'commit',timeout:10000});await ready(dep);
+          if((await dep.locator('#clientSelect option').count())===0)await dep.locator('#addClientBtn').click();
+          await dep.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await dep.evaluate(()=>document.getElementById('testFillBtn')?.click());
+          await dep.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
+          await dep.locator('.diagnosis-compact-back').click();
+          await dep.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+          await dep.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
+          await dep.locator('.hd-client-row').first().waitFor({state:'attached',timeout:3000});
+          await dep.evaluate(()=>{
+            window.__legacyDashboardClicks=[];
+            for(const id of ['clientBaseBtn','clientCardModeBtn','addClientBtn']){
+              const el=document.getElementById(id);
+              if(el)el.addEventListener('click',()=>window.__legacyDashboardClicks.push(id),true);
+            }
+          });
+          const cardOpened=await dep.evaluate(()=>{const b=[...document.querySelectorAll('#hdHeroActions button')].find(x=>x.textContent.includes('Карточка клиента'));if(!b)return false;b.click();return true;});
+          if(!cardOpened)throw new Error('Dashboard client-card action missing');
+          await dep.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});
+          await dep.evaluate(()=>document.getElementById('clientCardDialog')?.close());
+          await dep.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
+          await dep.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
+          const dbOpened=await dep.evaluate(()=>{const b=document.querySelector('.hd-client-row .hd-client-more');if(!b)return false;b.click();return true;});
+          if(!dbOpened)throw new Error('Dashboard client-database action missing');
+          await dep.locator('#clientDialog').waitFor({state:'visible',timeout:3000});
+          await dep.evaluate(()=>document.getElementById('clientDialog')?.close());
+          await dep.locator('#clientDialog').waitFor({state:'hidden',timeout:3000});
+          const newOpened=await dep.evaluate(()=>{const b=document.getElementById('hdAddClient');if(!b)return false;b.click();return true;});
+          if(!newOpened)throw new Error('Dashboard new-client action missing');
+          await dep.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});
+          const legacyClicks=await dep.evaluate(()=>window.__legacyDashboardClicks||[]);
+          console.log('DASHBOARD_LEGACY_BUTTON_CLICKS:',JSON.stringify(legacyClicks));
+          if(legacyClicks.length)throw new Error(`Dashboard client actions used legacy buttons: ${legacyClicks.join(',')}`);
+          await depContext.close();
+
           const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();await instrument(page);
           const errors=[];page.on('pageerror',e=>errors.push('pageerror: '+e.message));page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});page.on('dialog',d=>d.accept().catch(()=>{}));
           const shot=async n=>page.screenshot({path:`/tmp/${n}.png`,fullPage:true});
@@ -119,26 +157,6 @@ jobs:
 
           await page.locator('.diagnosis-compact-back').click();await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
           if(await oldWorkspace.isVisible())throw new Error('Legacy workspace visible after returning from diagnosis');
-          await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
-          await page.locator('.hd-client-row').first().waitFor({state:'visible',timeout:3000});
-
-          await page.evaluate(()=>{
-            window.__legacyDashboardClicks=[];
-            for(const id of ['clientBaseBtn','clientCardModeBtn','addClientBtn']){
-              const el=document.getElementById(id);
-              if(el)el.addEventListener('click',()=>window.__legacyDashboardClicks.push(id),true);
-            }
-          });
-          const cardBtn=page.locator('#hdHeroActions button').filter({hasText:'Карточка клиента'}).first();
-          await cardBtn.click();await page.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});await page.evaluate(()=>document.getElementById('clientCardDialog')?.close());await page.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
-          await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
-          const moreClicked=await page.evaluate(()=>{const b=document.querySelector('.hd-client-row .hd-client-more');if(!b)return false;b.click();return true;});
-          if(!moreClicked)throw new Error('Dashboard client database button missing');
-          await page.locator('#clientDialog').waitFor({state:'visible',timeout:3000});await page.keyboard.press('Escape');await page.locator('#clientDialog').waitFor({state:'hidden',timeout:3000});
-          await page.locator('#hdAddClient').click();await page.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});await page.locator('#ccCloseBtn').click();await page.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
-          const legacyClicks=await page.evaluate(()=>window.__legacyDashboardClicks||[]);
-          if(legacyClicks.length)throw new Error(`Dashboard client actions used legacy buttons: ${legacyClicks.join(',')}`);
-
           await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
           if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1)throw new Error('Client AI clear button missing or duplicated');
           const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
