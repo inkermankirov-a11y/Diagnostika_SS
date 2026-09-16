@@ -2,7 +2,7 @@ name: Site audit
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, retire-old-interface ]
     paths:
       - '**.js'
       - '**.css'
@@ -99,8 +99,7 @@ jobs:
           // prove they do not click the legacy hidden client buttons.
           const depContext=await browser.newContext({viewport:{width:1440,height:1000}}),dep=await depContext.newPage();await instrument(dep);
           await dep.goto(`http://127.0.0.1:8000/index.html?dep=${Date.now()}`,{waitUntil:'commit',timeout:10000});await ready(dep);
-          if((await dep.locator('#clientSelect option').count())===0)await dep.locator('#addClientBtn').click();
-          await dep.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await dep.waitForFunction(()=>!!window.DiagnostikaClients?.current?.());
           await dep.evaluate(()=>document.getElementById('testFillBtn')?.click());
           await dep.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
           await dep.locator('.diagnosis-compact-back').click();
@@ -140,7 +139,7 @@ jobs:
           const shot=async n=>page.screenshot({path:`/tmp/${n}.png`,fullPage:true});
           await page.goto(`http://127.0.0.1:8000/index.html?audit=${Date.now()}`,{waitUntil:'commit',timeout:10000});await ready(page);await page.waitForTimeout(800);await shot('01-loaded');
 
-          const oldWorkspace=page.locator('.workspace-grid');
+          const oldWorkspace=page.locator('#diagnosisWorkspace');
           if(await oldWorkspace.isVisible())throw new Error('Legacy workspace visible on dashboard');
 
           const openSettings=async()=>{if(!(await page.locator('#settingsPanel').isVisible())){await page.locator('#settingsMenuBtn').click();await page.locator('#settingsPanel').waitFor({state:'visible'});}};
@@ -151,9 +150,8 @@ jobs:
           await page.locator('#storageBtn').click();await page.locator('.storage-dialog').waitFor({state:'visible'});await shot('05-storage');if(await page.locator('#storageClose').count())await page.locator('#storageClose').click();else await page.keyboard.press('Escape');
           await page.locator('#clientBaseBtn').click();await page.locator('#clientDialog').waitFor({state:'visible'});await shot('06-client-db');await page.keyboard.press('Escape');
 
-          if((await page.locator('#clientSelect option').count())===0)await page.locator('#addClientBtn').click();
-          await page.locator('#clientSelect option').first().waitFor({state:'attached'});await page.evaluate(()=>document.getElementById('testFillBtn')?.click());await page.waitForTimeout(500);
-          const name=(await page.locator('#clientName').inputValue()).trim();if(!name||name==='Новый клиент')throw new Error('Test client not populated');
+          await page.waitForFunction(()=>!!window.DiagnostikaClients?.current?.());await page.evaluate(()=>document.getElementById('testFillBtn')?.click());await page.waitForTimeout(500);
+          const name=(await page.evaluate(()=>window.DiagnostikaClients.current()?.name||'')).trim();if(!name||name==='Новый клиент')throw new Error('Test client not populated');
           if((await page.locator('#requestSelect option').count())<1)throw new Error('No requests');if((await page.locator('#situationList .situation-item').count())<1)throw new Error('No situations');if((await page.locator('#tree .tree-row').count())<1)throw new Error('No diagnosis tree');await shot('07-diagnosis');
           const belief=page.locator('#tree .tree-row.primary').first();await belief.click();await page.locator('#editorText').fill('Аудит: тестовое убеждение');await page.locator('#saveElementBtn').click();await page.waitForTimeout(100);if(!(await belief.textContent())?.includes('Аудит: тестовое убеждение'))throw new Error('Diagnosis edit failed');
 
@@ -161,7 +159,7 @@ jobs:
           if(await oldWorkspace.isVisible())throw new Error('Legacy workspace visible after returning from diagnosis');
           await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
           if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1)throw new Error('Client AI clear button missing or duplicated');
-          const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
           await page.locator('#hdAddSession').waitFor({state:'visible',timeout:5000});await page.locator('#hdAddSession').click();
           const sessionDialog=page.locator('dialog.session-edit-dialog');await sessionDialog.waitFor({state:'visible',timeout:5000});
           await sessionDialog.locator('.session-ai-box').waitFor({state:'visible',timeout:5000});
@@ -170,7 +168,7 @@ jobs:
           await shot('08-session-ai');
           await page.evaluate(()=>document.querySelector('dialog.session-edit-dialog')?.close());
           await sessionDialog.waitFor({state:'hidden',timeout:3000});
-          const after=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          const after=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
           if(after!==before+1)throw new Error(`Session persistence failed: before=${before}, after=${after}`);await shot('09-dashboard');
 
           const assets=await duplicateAssets(page);console.log('RUNTIME_DUPLICATE_ASSETS:',JSON.stringify(assets));

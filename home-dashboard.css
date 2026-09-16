@@ -12,7 +12,6 @@
   --hd-yellow:#fff8e8;
 }
 
-#saveClientBtn{display:none!important}
 
 .home-dashboard{display:grid;grid-template-columns:320px minmax(520px,1fr) 350px;gap:14px;padding:14px 18px 18px;background:var(--hd-bg);min-height:calc(100vh - 78px);box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
 .home-dashboard[hidden]{display:none!important}

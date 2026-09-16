@@ -2,12 +2,11 @@ name: Diagnosis API audit
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, retire-old-interface ]
     paths:
       - 'diagnosis-api.js'
       - 'home-dashboard.js'
       - 'diagnosis-navigation.js'
-      - 'diagnosis-resume.js'
       - 'diagnosis-compact-client.js'
       - 'request-select-labels.js'
       - 'request-title-display.js'
@@ -30,7 +29,6 @@ jobs:
           node --check home-dashboard.js
           node --check request-select-labels.js
           node --check diagnosis-navigation.js
-          node --check diagnosis-resume.js
           node --check diagnosis-compact-client.js
           python3 - <<'PY'
           from pathlib import Path
@@ -93,8 +91,7 @@ jobs:
           await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
           await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
 
-          if((await page.locator('#clientSelect option').count())===0) await page.locator('#addClientBtn').click();
-          await page.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await page.waitForFunction(()=>!!window.DiagnostikaClients?.current?.());
           await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
           await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
           await page.locator('.diagnosis-compact-back').click();
@@ -151,13 +148,13 @@ jobs:
             await button.waitFor({state:'visible',timeout:3000});
             await button.click();
             await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:3000});
-            const state=await page.evaluate(()=>({mode,requestId,clientId,current:client()?.currentRequestId,last:client()?.lastDiagnosisRequestId,dashboardHidden:document.querySelector('.home-dashboard')?.hidden,workspaceVisible:!!document.querySelector('.workspace-grid')&&getComputedStyle(document.querySelector('.workspace-grid')).display!=='none'}));
+            const state=await page.evaluate(()=>({mode,requestId,clientId,current:client()?.currentRequestId,last:client()?.lastDiagnosisRequestId,dashboardHidden:document.querySelector('.home-dashboard')?.hidden,workspaceVisible:!!document.querySelector('#diagnosisWorkspace')&&getComputedStyle(document.querySelector('#diagnosisWorkspace')).display!=='none'}));
             if(state.mode!=='diagnosis')throw new Error(`Cycle ${i+1}: diagnosis mode not entered`);
             if(state.requestId!==setup.secondId||state.current!==setup.secondId||state.last!==setup.secondId)throw new Error(`Cycle ${i+1}: wrong request selected ${JSON.stringify(state)}`);
             if(!state.dashboardHidden||!state.workspaceVisible)throw new Error(`Cycle ${i+1}: visibility mismatch ${JSON.stringify(state)}`);
             await page.locator('.diagnosis-compact-back').click();
             await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
-            if(await page.locator('.workspace-grid').isVisible())throw new Error(`Cycle ${i+1}: legacy workspace visible after return`);
+            if(await page.locator('#diagnosisWorkspace').isVisible())throw new Error(`Cycle ${i+1}: legacy workspace visible after return`);
           }
 
           const result=await page.evaluate((setup)=>{

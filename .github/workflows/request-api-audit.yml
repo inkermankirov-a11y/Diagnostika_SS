@@ -2,7 +2,7 @@ name: Request API audit
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, retire-old-interface ]
   workflow_dispatch:
 
 jobs:
@@ -23,15 +23,15 @@ jobs:
           import re,sys
           api=Path('request-api.js').read_text(encoding='utf-8')
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
-          loader=Path('request-title-display.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
           errors=[]
           if 'window.DiagnostikaRequests=Object.freeze' not in api: errors.append('request API export missing')
           # Ignore requestId when it is only a field/property name such as session.requestId.
           dash_without_member_fields=re.sub(r'\??\.requestId\b','',dash)
           if re.search(r'\brequestId\b',dash_without_member_fields): errors.append('dashboard still owns requestId directly')
           if 'requestsApi()?.current?.()' not in dash: errors.append('dashboard current request does not use request API')
-          if 'request-api.js?v=20260916-requestapi2' not in loader: errors.append('request API loader missing')
-          if 'home-dashboard.js?v=20260916-requestapi2' not in loader: errors.append('dashboard cache version missing')
+          if 'request-api.js?v=20260916-newui1' not in loader: errors.append('request API loader missing')
+          if 'home-dashboard.js?v=20260916-newui1' not in loader: errors.append('dashboard cache version missing')
           print('REQUEST_BOUNDARY_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY

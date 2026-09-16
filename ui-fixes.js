@@ -1,22 +1,5 @@
 'use strict';
 
-function updateSocialVisibility(){
-  const c=client();
-  const pairs=[['#vkBtn','vk'],['#tgBtn','telegram'],['#maxBtn','max']];
-  for(const [sel,key] of pairs){
-    const btn=document.querySelector(sel);
-    if(!btn) continue;
-    const filled=!!(c && String(c[key]||'').trim());
-    btn.classList.toggle('social-hidden',!filled);
-  }
-}
-
-const originalRenderClientForUi=renderClient;
-renderClient=function(){
-  originalRenderClientForUi();
-  updateSocialVisibility();
-};
-
 function renderClientDatabaseTable(){
   const dlg=document.querySelector('#clientDialog');
   const root=document.querySelector('#clientDatabaseList');
@@ -58,9 +41,6 @@ function closeDiagnosisDialogs(){
   if(a?.open)a.close();if(b?.open)b.close();
 }
 
-const backBtn=document.querySelector('#backToProgressBtn');
-if(backBtn){backBtn.onclick=()=>{closeDiagnosisDialogs();mode='card';selected=null;renderMode();renderSessions();};}
-
 let selectedSessionId=null;
 
 function sessionTimeValue(s,index){
@@ -90,53 +70,6 @@ function openSessionEditor(c,s,number){
   dlg.addEventListener('close',()=>dlg.remove(),{once:true});dlg.showModal();
 }
 
-renderSessions=function(){
-  const c=client();
-  const root=document.querySelector('#sessionsList');
-  if(!root)return;
-  root.innerHTML='';
-  if(!c)return;
-  if(!Array.isArray(c.sessions))c.sessions=[];
-  if(selectedSessionId && !c.sessions.some(s=>s.id===selectedSessionId)) selectedSessionId=null;
-  if(!c.sessions.length){root.innerHTML='<div class="sessions-empty">Сессий пока нет.</div>';return;}
-
-  const chronological=c.sessions.map((s,index)=>({s,index,time:sessionTimeValue(s,index)})).sort((a,b)=>a.time-b.time||a.index-b.index);
-  const numbers=new Map();chronological.forEach((item,i)=>numbers.set(item.s.id,i+1));
-  const display=[...chronological].reverse();
-
-  display.forEach(item=>{
-    const s=item.s;
-    const number=numbers.get(s.id);
-    const row=document.createElement('article');
-    row.className='session-card'+(selectedSessionId===s.id?' selected':'');
-    row.tabIndex=0;
-    row.setAttribute('role','button');
-    row.setAttribute('aria-pressed',selectedSessionId===s.id?'true':'false');
-
-    const head=document.createElement('div');head.className='session-card-head';
-    const title=document.createElement('div');title.className='session-card-title';title.textContent=`Сессия №${number}`;
-    const meta=document.createElement('div');meta.className='session-card-meta';
-    const date=document.createElement('span');date.className='session-card-date';date.textContent=s.date||today();
-    const req=c.requests.find(r=>r.id===s.requestId);
-    const requestLabel=document.createElement('span');requestLabel.className='session-card-request';requestLabel.textContent=req?.title||'Без связи с запросом';
-    meta.append(date,requestLabel);
-    const edit=document.createElement('button');edit.type='button';edit.className='session-card-edit';edit.title='Редактировать';edit.setAttribute('aria-label','Редактировать сессию');edit.textContent='✎';
-    edit.onclick=e=>{e.stopPropagation();selectedSessionId=s.id;renderSessions();openSessionEditor(c,s,number);};
-    head.append(title,meta,edit);
-
-    const notes=document.createElement('div');notes.className='session-card-notes'+(s.notes?'':' empty');notes.textContent=s.notes||'Заметок по сессии нет';
-    row.append(head,notes);
-
-    const selectCard=()=>{selectedSessionId=selectedSessionId===s.id?null:s.id;renderSessions();};
-    row.onclick=selectCard;
-    row.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectCard();}};
-    root.appendChild(row);
-  });
-};
-
-const addSessionBtnUi=document.querySelector('#addSessionBtn');
-if(addSessionBtnUi){addSessionBtnUi.onclick=()=>{const c=client();if(!c)return;c.sessions.push({id:uid(),date:today(),requestId:'',notes:'',createdAt:new Date().toISOString()});save();renderSessions();};}
-
 const saveHistoryBtn=document.querySelector('#saveHistoryBtn');
 if(saveHistoryBtn){
   saveHistoryBtn.onclick=()=>{
@@ -150,5 +83,4 @@ if(saveHistoryBtn){
   };
 }
 
-updateSocialVisibility();
 renderSessions();

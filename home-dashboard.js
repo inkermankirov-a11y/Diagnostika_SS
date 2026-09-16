@@ -1,9 +1,9 @@
 'use strict';
 
 (() => {
-  const oldWorkspace=document.querySelector('.workspace-grid');
+  const diagnosisWorkspace=document.getElementById('diagnosisWorkspace');
   const header=document.querySelector('.app-header');
-  if(!oldWorkspace||!header||document.querySelector('.home-dashboard')) return;
+  if(!diagnosisWorkspace||!header||document.querySelector('.home-dashboard')) return;
 
   const dashboard=document.createElement('section');
   dashboard.className='home-dashboard';
@@ -52,7 +52,6 @@
       </section>
     </aside>`;
   header.insertAdjacentElement('afterend',dashboard);
-  document.documentElement.classList.add('diagnostika-dashboard-ready');
 
   const $=s=>dashboard.querySelector(s);
   const list=$('#hdClientList');
@@ -235,7 +234,7 @@
   function syncVisibility(){
     const diagnosis=mode==='diagnosis';
     dashboard.hidden=diagnosis;
-    oldWorkspace.style.display=diagnosis?'':'none';
+    diagnosisWorkspace.hidden=!diagnosis;
   }
 
   function refresh(){renderClients();renderHero();syncVisibility();}
@@ -259,9 +258,6 @@
   },true);
 
   window.DiagnostikaHomeDashboard={refresh,renderClients,openCard,addClient,openClientDatabase};
-
-  const saveBtn=document.getElementById('saveClientBtn');
-  if(saveBtn) saveBtn.hidden=true;
 
   refresh();
 })();

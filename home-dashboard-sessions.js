@@ -38,7 +38,7 @@
   const archiveBtn=section.querySelector('#hdSessionArchive');
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const getClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
+  const getClient=()=>window.DiagnostikaClients?.current?.()||null;
   const sessionRequestId=s=>String(s?.requestId||s?.payment?.requestId||'');
 
   function createSession(c,r){
@@ -242,6 +242,7 @@
   document.addEventListener('close',e=>{
     if(e.target?.matches?.('dialog.session-edit-dialog'))setTimeout(render,0);
   },true);
+  document.addEventListener('diagnostika:sessions-changed',render);
 
   if(typeof renderClient==='function'){
     const prev=renderClient;
@@ -283,4 +284,6 @@
   document.head.appendChild(style);
 
   render();
+  window.DiagnostikaDashboardSessions=Object.freeze({refresh:render});
+  window.dispatchEvent(new Event('diagnostika:dashboard-loaded'));
 })();

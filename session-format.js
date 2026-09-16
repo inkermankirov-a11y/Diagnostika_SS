@@ -74,32 +74,4 @@
     };
   }
 
-  const originalRenderSessions=window.renderSessions;
-  if(typeof originalRenderSessions==='function'){
-    window.renderSessions=function(){
-      originalRenderSessions();
-      const c=typeof client==='function'?client():null;
-      const root=document.querySelector('#sessionsList');
-      if(!c||!root||!Array.isArray(c.sessions)) return;
-
-      const chronological=c.sessions.map((s,index)=>({s,index,time:typeof sessionTimeValue==='function'?sessionTimeValue(s,index):index}))
-        .sort((a,b)=>a.time-b.time||a.index-b.index);
-      const display=[...chronological].reverse();
-      const cards=[...root.querySelectorAll('.session-card')];
-
-      cards.forEach((card,i)=>{
-        const s=display[i]?.s;
-        const text=formatLabel(s);
-        if(!text) return;
-        const meta=card.querySelector('.session-card-meta');
-        if(!meta) return;
-        const chip=document.createElement('span');
-        chip.className='session-format-chip '+(s.sessionFormat||'');
-        chip.textContent=text;
-        chip.title='Формат проведения сессии';
-        meta.appendChild(chip);
-      });
-    };
-    window.renderSessions();
-  }
 })();

@@ -199,8 +199,6 @@
     e.target.value='';
   };
 
-  const btn = document.getElementById('clientCardModeBtn');
-  if(btn) btn.onclick = openExisting;
 
   dlg.addEventListener('click', e => { if(e.target === dlg) closeDraftAware(); });
   dlg.addEventListener('cancel',e=>{e.preventDefault();closeDraftAware();});

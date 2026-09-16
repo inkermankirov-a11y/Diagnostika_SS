@@ -297,7 +297,7 @@
     createdNote.textContent=`Создан запрос «${title}»${situations.length?` и добавлено ситуаций: ${situations.length}`:''}.`;
     createdNote.classList.add('show');
     const btn=rq('.fc-v2-create-diagnosis');btn.disabled=true;btn.textContent='Создано в Диагностике';
-    setTimeout(()=>{try{document.getElementById('diagnosisModeBtn')?.click();}catch(_){}},80);
+    setTimeout(()=>window.DiagnostikaDiagnosis?.open?.(),80);
   }
 
   function patchPendingSituationLevels(){

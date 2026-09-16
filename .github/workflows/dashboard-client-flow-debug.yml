@@ -2,7 +2,7 @@ name: Dashboard client flow debug
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, retire-old-interface ]
     paths:
       - 'home-dashboard.js'
       - 'client-card-window.js'
@@ -46,13 +46,13 @@ jobs:
               mode:typeof mode==='undefined'?'<undefined>':mode,
               clients:Array.isArray(state?.clients)?state.clients.length:-1,
               currentClient:typeof client==='function'?client()?.id||null:null,
-              selectValue:document.querySelector('#clientSelect')?.value||'',
-              selectOptions:document.querySelectorAll('#clientSelect option').length,
+              selectValue:window.DiagnostikaClients?.currentId?.()||'',
+              selectOptions:window.DiagnostikaClients?.list?.().length,
               rows:document.querySelectorAll('.hd-client-row').length,
               more:document.querySelectorAll('.hd-client-row .hd-client-more').length,
               search:document.querySelector('#hdClientSearch')?.value||'',
               dashboardHidden:!!document.querySelector('.home-dashboard')?.hidden,
-              workspaceDisplay:document.querySelector('.workspace-grid')?.style?.display||'',
+              workspaceDisplay:document.querySelector('#diagnosisWorkspace')?.style?.display||'',
               cardOpen:!!document.querySelector('#clientCardDialog')?.open,
               heroButtons:[...document.querySelectorAll('#hdHeroActions button')].map(x=>x.textContent.trim())
             }));
@@ -63,8 +63,7 @@ jobs:
           await page.goto(`http://127.0.0.1:8000/index.html?client-debug=${Date.now()}`,{waitUntil:'commit',timeout:10000});
           await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
           await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
-          if((await page.locator('#clientSelect option').count())===0)await page.locator('#addClientBtn').click();
-          await page.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await page.waitForFunction(()=>!!window.DiagnostikaClients?.current?.());
           await snapshot('BEFORE_TEST_FILL');
           await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
           await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});

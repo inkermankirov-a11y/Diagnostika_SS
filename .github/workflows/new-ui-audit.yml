@@ -1,0 +1,26 @@
+name: New UI retirement audit
+on:
+  push:
+    branches: [ main, retire-old-interface ]
+  workflow_dispatch:
+jobs:
+  new-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify new UI, failure recovery and persistence
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/new-ui-http.log 2>&1 &
+          node tests/new-ui-audit.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-ui-audit
+          path: /tmp/new-ui-*.png
+          if-no-files-found: ignore

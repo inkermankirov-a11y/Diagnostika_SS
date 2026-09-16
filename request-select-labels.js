@@ -61,24 +61,6 @@
     if(requestId&&[...select.options].some(o=>o.value===requestId))select.value=requestId;
   }
 
-  function ensureCurrentBox(){
-    const card=document.querySelector('.client-card');if(!card||card.querySelector('#currentRequestBox'))return;
-    const box=document.createElement('div');box.id='currentRequestBox';box.className='current-request-box';
-    box.innerHTML='<div class="current-request-label"></div><div class="current-request-row"><div class="current-request-text"></div><span class="current-request-status"></span></div><div class="current-request-extra"></div>';
-    const pay=card.querySelector('#clientPaymentBox'),work=card.querySelector('.client-work');
-    if(pay)pay.insertAdjacentElement('beforebegin',box);else if(work)work.insertAdjacentElement('beforebegin',box);else card.appendChild(box);
-  }
-
-  function renderCurrentBox(){
-    ensureCurrentBox();const c=cclient(),box=document.querySelector('#currentRequestBox');if(!box||!c)return;
-    const r=currentRequest(c),label=box.querySelector('.current-request-label'),text=box.querySelector('.current-request-text'),badge=box.querySelector('.current-request-status'),extra=box.querySelector('.current-request-extra');
-    label.textContent=tx('current');
-    if(!r){text.textContent=tx('none');badge.textContent='';badge.className='current-request-status';extra.textContent='';return;}
-    text.textContent=`${PREFIX[lang()]} ${requestNumber(c,r)}: ${r.title||'—'}`;
-    badge.textContent=statusLabel(r);badge.className=`current-request-status ${r.status}`;
-    const n=openCount(c);extra.textContent=n?`${tx('other')}: ${n}`:'';
-  }
-
   function ensureStatusControls(){
     const toolbar=document.querySelector('.query-toolbar');if(!toolbar||document.querySelector('#requestStatusControls'))return;
     const row=document.createElement('div');row.id='requestStatusControls';row.className='request-status-controls';
@@ -112,7 +94,7 @@
     finishBtn.style.display=completed?'none':'';finishBtn.textContent=tx('finish');
   }
 
-  function renderAll(){relabel();renderCurrentBox();renderStatusControls();if(window.DiagnostikaPayments?.refresh)window.DiagnostikaPayments.refresh();}
+  function renderAll(){relabel();renderStatusControls();if(window.DiagnostikaPayments?.refresh)window.DiagnostikaPayments.refresh();}
 
   (state.clients||[]).forEach(ensureClient);if(typeof save==='function')save();
 
@@ -130,12 +112,6 @@
 
   const diagNew=document.querySelector('#diagNewBtn');
   if(diagNew)diagNew.onclick=()=>{const c=cclient();if(!c)return;const r=newRequest();r.title='Новый запрос';r.status='active';r.createdAt=now();r.updatedAt=r.createdAt;c.requests.push(r);c.currentRequestId=r.id;c.lastDiagnosisRequestId=r.id;requestId=r.id;situationId=null;selected=null;mode='diagnosis';save();renderRequests();renderMode();document.querySelector('#diagnosisLaunchDialog')?.close();};
-
-  const diagnosisBtn=document.querySelector('#diagnosisModeBtn');
-  if(diagnosisBtn)diagnosisBtn.onclick=()=>{const c=cclient();if(!c)return alert('Сначала выбери клиента.');if(mode==='diagnosis'){document.querySelector('#diagnosisLaunchDialog')?.showModal();return;}const r=currentRequest(c);if(r){requestId=r.id;situationId=r.situations?.[0]?.id||null;selected=null;mode='diagnosis';c.lastDiagnosisRequestId=r.id;save();renderRequests();renderMode();}else document.querySelector('#diagnosisLaunchDialog')?.showModal();};
-
-  const addSession=document.querySelector('#addSessionBtn');
-  if(addSession)addSession.onclick=()=>{const c=cclient();if(!c)return;const r=currentRequest(c);c.sessions.push({id:uid(),date:today(),requestId:r?.status==='active'?r.id:'',notes:''});save();renderSessions();};
 
   const style=document.createElement('style');style.textContent=`
     .current-request-box{margin:8px 0 2px;padding:9px 10px;border:1px solid #cddbea;border-radius:8px;background:#f3f8fd}.current-request-label{font-size:11px;font-weight:800;color:#334155;margin-bottom:4px}.current-request-row{display:flex;gap:8px;align-items:center;justify-content:space-between}.current-request-text{font-size:12px;color:#334155;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.current-request-status,.request-status-badge{flex:0 0 auto;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;border:1px solid #cbd5e1}.current-request-status.active,.request-status-badge.active{background:#e8f7ee;color:#237a49;border-color:#bce3cb}.current-request-status.completed,.request-status-badge.completed{background:#eef1f4;color:#65717e;border-color:#d5dce3}.current-request-extra{font-size:10px;color:#7b8794;margin-top:4px}.request-status-controls{display:flex;align-items:center;gap:7px;margin:7px 0 10px;flex-wrap:wrap}.request-status-controls .tk-btn{padding:6px 10px!important;font-size:11px!important;min-height:30px!important}.request-current-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-current-btn:disabled{opacity:.65;cursor:default}.request-resume-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-finish-btn{margin-left:auto;background:linear-gradient(#53aa77,#2d8f59)!important;color:#fff!important}@media(max-width:640px){.current-request-row{align-items:flex-start}.current-request-text{white-space:normal}.request-finish-btn{margin-left:0}}

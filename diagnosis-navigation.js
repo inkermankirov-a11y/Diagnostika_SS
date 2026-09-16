@@ -133,15 +133,6 @@
     renderRequests();
   }
 
-  const diagnosisButton = document.querySelector('#diagnosisModeBtn');
-  if (diagnosisButton) {
-    diagnosisButton.onclick = () => {
-      const c = client();
-      if (!c) return alert('Сначала выбери клиента.');
-      launch.showModal();
-    };
-  }
-
   document.querySelector('#diagNewBtn').onclick = () => {
     const c = client();
     if (!c) return;

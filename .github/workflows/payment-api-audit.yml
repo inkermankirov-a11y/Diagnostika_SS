@@ -2,7 +2,7 @@ name: Payment API audit
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, retire-old-interface ]
     paths:
       - 'home-dashboard.js'
       - 'payment-*.js'
@@ -106,10 +106,7 @@ jobs:
           await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
           await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
 
-          if((await page.locator('#clientSelect option').count())===0){
-            await page.locator('#addClientBtn').click();
-          }
-          await page.locator('#clientSelect option').first().waitFor({state:'attached',timeout:3000});
+          await page.waitForFunction(()=>!!window.DiagnostikaClients?.current?.());
           await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
           await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
           await page.locator('.diagnosis-compact-back').click();

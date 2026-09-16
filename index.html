@@ -6,29 +6,28 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="diagnostika-build" content="20260916-requestapi2">
+  <meta name="diagnostika-build" content="20260916-newui1">
   <title>Психологическая диагностика</title>
   <style>
     #diagnostikaRepairStatus{position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:2147483000;padding:9px 14px;border:1px solid #cbd5e1;border-radius:9px;background:rgba(255,255,255,.96);box-shadow:0 4px 18px rgba(15,23,42,.14);color:#334155;font:700 13px/1.3 "Segoe UI",Arial,sans-serif;opacity:0;pointer-events:none;animation:diagnostikaRepairStatusShow .01s 1.5s forwards}@keyframes diagnostikaRepairStatusShow{to{opacity:1}}
-    html:not(.diagnostika-dashboard-ready):not(.diagnostika-dashboard-fallback) .workspace-grid{visibility:hidden!important}
+    [hidden],#diagnosisWorkspace[hidden],.home-dashboard[hidden]{display:none!important}
+    html:not(.diagnostika-dashboard-ready) #diagnosisWorkspace,html:not(.diagnostika-dashboard-ready) .home-dashboard{display:none!important}
+    #appStartupStatus{margin:24px auto;padding:24px;max-width:640px;background:#fff;border:1px solid #d7dbe0;border-radius:12px}
   </style>
-  <script>
-    setTimeout(()=>{const root=document.documentElement;if(!root.classList.contains('diagnostika-dashboard-ready'))root.classList.add('diagnostika-dashboard-fallback');},4500);
-  </script>
-  <link rel="stylesheet" href="styles.css?v=20260911-8">
+  <script src="app-startup.js?v=20260916-newui1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260916-newui1">
   <link rel="stylesheet" href="ui-fixes.css?v=20260911-8">
   <link rel="stylesheet" href="session-attachments.css?v=20260911-8">
   <link rel="stylesheet" href="session-format.css?v=20260911-8">
   <link rel="stylesheet" href="storage-manager.css?v=20260911-8">
   <link rel="stylesheet" href="help-tooltips.css?v=20260911-8">
-  <link rel="stylesheet" href="last-session-display.css?v=20260911-8">
   <link rel="stylesheet" href="client-db-enhancements.css?v=20260911-8">
   <link rel="stylesheet" href="client-card-window.css?v=20260912-52">
   <link rel="stylesheet" href="modal-and-history-fixes.css?v=20260914-unfreeze1">
   <link rel="stylesheet" href="session-interactions.css?v=20260911-8">
   <link rel="stylesheet" href="button-theme.css?v=20260911-8">
   <link rel="stylesheet" href="deep-belief-hints-fix.css?v=20260911-8">
-  <link rel="stylesheet" href="mobile-responsive.css?v=20260911-8">
+  <link rel="stylesheet" href="mobile-responsive.css?v=20260916-newui1">
 </head>
 <body>
 <div id="diagnostikaRepairStatus">Психологическая диагностика — Мы ремонтируем сайт</div>
@@ -44,42 +43,15 @@
     </div>
   </header>
 
-  <main class="workspace-grid">
+  <section id="appStartupStatus" role="status" aria-live="polite">
+    <h2>Загрузка приложения…</h2>
+    <p>Подготавливаем рабочее пространство.</p>
+    <button id="appReloadBtn" type="button" hidden>Повторить загрузку</button>
+    <noscript>Для работы приложения включите JavaScript. Данные браузера удалять не нужно.</noscript>
+  </section>
+  <main id="diagnosisWorkspace" class="diagnosis-workspace" aria-label="Диагностика" hidden>
     <aside class="left-panel panel-frame">
-      <section class="client-card inner-frame">
-        <div class="section-title">КЛИЕНТ</div>
-        <div class="client-select-line">
-          <select id="clientSelect"></select>
-          <button id="addClientBtn" class="combo-drop" title="Добавить клиента">+</button>
-        </div>
-        <div class="profile-row">
-          <div class="photo-column">
-            <div id="photoFrame" class="photo-frame">
-              <img id="clientPhoto" alt="Фото клиента">
-              <span id="photoPlaceholder">Фото</span>
-              <input id="photoInput" type="file" accept="image/*" hidden>
-            </div>
-            <div class="social-icons">
-              <button id="vkBtn" class="social-icon vk" title="VK">B</button>
-              <button id="tgBtn" class="social-icon tg" title="Telegram">➤</button>
-              <button id="maxBtn" class="social-icon max" title="MAX">◉</button>
-            </div>
-          </div>
-          <div class="profile-fields">
-            <label class="mini-label">ФИО<input id="clientName" class="entry"></label>
-            <div class="field-pair">
-              <label class="mini-label">Город<input id="clientCity" class="entry"></label>
-              <label class="mini-label">Возраст<input id="clientAge" class="entry readonly" readonly></label>
-            </div>
-            <button id="saveClientBtn" class="tk-btn">Сохранить данные</button>
-            <div class="profile-actions"><button id="backToProgressBtn" class="tk-btn back-btn hidden">← Назад к карте прогресса</button></div>
-          </div>
-        </div>
-        <div class="client-work">
-          <div class="work-label">РАБОТА С КЛИЕНТОМ</div>
-          <div class="work-buttons"><button id="clientCardModeBtn" class="mode-btn active">Карточка клиента</button><button id="diagnosisModeBtn" class="mode-btn">Диагностика</button></div>
-        </div>
-      </section>
+      <section id="diagnosisClientHeader" class="inner-frame"></section>
       <section id="diagnosticsLeft" class="diagnostics-left hidden">
         <div class="separator"></div>
         <div class="queries-block">
@@ -91,9 +63,6 @@
         <div class="left-footer-actions"><div class="situation-buttons"><button id="addSituationBtn" class="tk-btn">+ Добавить</button><button id="editSituationBtn" class="tk-btn">Изменить</button><button id="deleteSituationBtn" class="tk-btn">Удалить</button></div><button id="hintBtn" class="tk-btn hint-btn">Подсказки — убеждения 1</button></div>
       </section>
     </aside>
-    <section id="clientHome" class="client-home panel-frame span-two">
-      <h2>КАРТА КЛИЕНТА</h2><div id="clientHomeName" class="client-home-name">Выберите клиента</div><div id="clientLastSession" class="client-last-session">Последняя сессия: —</div><p class="client-home-muted">Здесь будет история работы и прогресс клиента.</p><div class="sessions-divider"></div><div class="sessions-head"><strong>СЕССИИ</strong><button id="addSessionBtn" class="tk-btn">+ Добавить сессию</button></div><div id="sessionsList" class="sessions-list"></div>
-    </section>
     <section id="centerPanel" class="center-panel panel-frame hidden"><div class="center-actions"><button id="addBeliefBtn" class="tk-btn">+ Убеждение 1</button><button id="addFeelingBtn" class="tk-btn">+ Вторичные чувства</button><button id="addDeepBtn" class="tk-btn">+ Убеждение 2</button><button id="deleteElementBtn" class="tk-btn push-right">Удалить</button></div><div id="situationTitle" class="situation-title">Выберите ситуацию</div><div id="situationInfo" class="situation-info"></div><div id="tree" class="tree-view"></div></section>
     <aside id="rightPanel" class="right-panel panel-frame hidden">
       <div class="section-title right-title">РЕДАКТОР</div>
@@ -105,33 +74,31 @@
 </div>
 <dialog id="clientDialog" class="client-dialog"><form method="dialog" class="dialog-card"><div class="dialog-title">БАЗА КЛИЕНТОВ</div><div id="clientDatabaseList" class="client-database-list"></div><div class="dialog-actions"><button id="dialogAddClientBtn" type="button" class="tk-btn">+ Новый клиент</button><button value="cancel" class="tk-btn">Закрыть</button></div></form></dialog>
 <script src="i18n-observer-guard.js?v=20260914-early1"></script>
-<script src="app.js?v=20260911-8"></script>
+<script src="app.js?v=20260916-newui1"></script>
 <script src="delete-client.js?v=20260912-32"></script>
 <script src="test-data.js?v=20260911-8"></script>
-<script src="diagnosis-navigation.js?v=20260911-8"></script>
-<script src="ui-fixes.js?v=20260911-8"></script>
-<script src="client-card-window.js?v=20260912-51"></script>
+<script src="diagnosis-navigation.js?v=20260916-newui1"></script>
+<script src="ui-fixes.js?v=20260916-newui1"></script>
+<script src="client-card-window.js?v=20260916-newui1"></script>
 <script src="request-ai-n8n.js?v=20260913-122"></script>
 <script src="free-consultation-request-builder.js?v=20260913-100"></script>
-<script src="free-consultation-v2.js?v=20260913-118"></script>
+<script src="free-consultation-v2.js?v=20260916-newui1"></script>
 <script src="ai-settings-button.js?v=20260913-142"></script>
 <script src="ai-processing-indicator.js?v=20260914-audit1"></script>
 <script src="stability-fixes.js?v=20260916-audit1"></script>
 <script src="questionnaire-compact-lock.js?v=20260914-1"></script>
-<script src="session-attachments.js?v=20260911-8"></script>
+<script src="session-attachments.js?v=20260916-newui1"></script>
 <script src="last-client.js?v=20260911-8"></script>
 <script src="app-dialogs.js?v=20260911-8"></script>
 <script src="storage-manager.js?v=20260911-8"></script>
 <script src="google-drive-lazy-loader.js?v=20260914-3"></script>
 <script src="help-tooltips.js?v=20260911-8"></script>
-<script src="last-session-display.js?v=20260911-8"></script>
-<script src="session-format.js?v=20260911-8"></script>
+<script src="session-format.js?v=20260916-newui1"></script>
 <script src="client-db-enhancements.js?v=20260912-32"></script>
 <script src="client-trash.js?v=20260912-32"></script>
 <script src="modal-and-history-fixes.js?v=20260914-repair1"></script>
-<script src="session-interactions.js?v=20260911-8"></script>
+<script src="session-interactions.js?v=20260916-newui1"></script>
 <script src="export-txt-classic.js?v=20260911-8"></script>
-<script src="diagnosis-resume.js?v=20260911-8"></script>
 <script src="situation-create.js?v=20260911-8"></script>
 <script src="diagnosis-add-focus.js?v=20260911-8"></script>
 <script src="belief-hints.js?v=20260911-8"></script>
@@ -154,20 +121,20 @@
 <script src="currency-safe-style.js?v=20260912-25"></script>
 <script src="quick-notes.js?v=20260916-notesapi1"></script>
 <script src="client-ai-chat.js?v=20260914-1"></script>
-<script src="client-transfer.js?v=20260914-audit1"></script>
-<script src="request-select-labels.js?v=20260911-8"></script>
+<script src="client-transfer.js?v=20260916-newui1"></script>
+<script src="request-select-labels.js?v=20260916-newui1"></script>
 <script src="diagnosis-api.js?v=20260916-diagnosisapi1"></script>
-<script src="payment-system.js?v=20260912-64"></script>
+<script src="payment-system.js?v=20260916-newui1"></script>
 <script src="dialog-backdrop-close.js?v=20260911-8"></script>
-<script src="session-active-request.js?v=20260911-8"></script>
-<script src="request-date-unsaved.js?v=20260911-8"></script>
+<script src="session-active-request.js?v=20260916-newui1"></script>
+<script src="request-date-unsaved.js?v=20260916-newui1"></script>
 <script src="session-payment-status.js?v=20260911-8"></script>
 <script src="payment-enhancements.js?v=20260911-8"></script>
 <script src="payment-session-fix.js?v=20260911-8"></script>
 <script src="session-payment-editor.js?v=20260912-55"></script>
 <script src="session-ledger-current-request.js?v=20260916-audit1"></script>
-<script src="diagnosis-compact-client.js?v=20260911-8"></script>
-<script src="request-title-display.js?v=20260916-requestapi2"></script>
+<script src="diagnosis-compact-client.js?v=20260916-newui1"></script>
+<script src="request-title-display.js?v=20260916-newui1"></script>
 <script src="payment-save-guard.js?v=20260912-43"></script>
 <script src="session-payment-ui-sync.js?v=20260912-57"></script>
 <script src="client-payment-flag-rule.js?v=20260913-108"></script>
@@ -181,6 +148,7 @@
 <script src="calendar-session-planning.js?v=20260913-99"></script>
 <script src="calendar-google-link.js?v=20260914-boot1"></script>
 <script src="session-ai-chat.js?v=20260915-sessionai1"></script>
+<script src="app-loader.js?v=20260916-newui1"></script>
 <script>window.addEventListener('load',()=>setTimeout(()=>document.getElementById('diagnostikaRepairStatus')?.remove(),250),{once:true});</script>
 </body>
 </html>

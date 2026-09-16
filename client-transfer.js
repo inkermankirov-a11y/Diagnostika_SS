@@ -209,14 +209,14 @@
   }
 
   function updateClientSpecialistInfo(){
-    const home=document.querySelector('#clientHome');
+    const home=document.querySelector('.hd-main-inner');
     if(!home) return;
     let info=home.querySelector('#clientSpecialistInfo');
     if(!info){
       info=document.createElement('div');
       info.id='clientSpecialistInfo';
       info.className='client-specialist-info';
-      const anchor=document.querySelector('#clientLastSession');
+      const anchor=document.querySelector('#hdHeroSub');
       if(anchor) anchor.insertAdjacentElement('afterend',info); else home.prepend(info);
     }
     const c=(state.clients||[]).find(x=>x.id===clientId);
@@ -255,6 +255,7 @@
     updateClientSpecialistInfo();
   }
   initialize();
+  window.addEventListener('diagnostika:dashboard-loaded',updateClientSpecialistInfo);
   [100,300,800,1600].forEach(ms=>setTimeout(initialize,ms));
 
   window.addEventListener('diagnostika-language-changed',()=>setTimeout(refreshLabels,0));

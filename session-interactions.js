@@ -74,46 +74,4 @@
     actions.insertBefore(deleteBtn, actions.firstChild);
   };
 
-  // Карточка целиком открывает редактор. Значок карандаша больше не нужен.
-  const previousRenderSessions = renderSessions;
-  renderSessions = function() {
-    previousRenderSessions();
-
-    const c = client();
-    const root = document.querySelector('#sessionsList');
-    if (!c || !root || !Array.isArray(c.sessions)) return;
-
-    const chronological = c.sessions
-      .map((s, index) => ({s, index, time: typeof sessionTimeValue === 'function' ? sessionTimeValue(s, index) : index}))
-      .sort((a, b) => a.time - b.time || a.index - b.index);
-    const numbers = new Map();
-    chronological.forEach((item, i) => numbers.set(item.s, i + 1));
-    const display = [...chronological].reverse();
-    const cards = [...root.querySelectorAll('.session-card')];
-
-    cards.forEach((card, i) => {
-      const s = display[i]?.s;
-      if (!s) return;
-      const edit = card.querySelector('.session-card-edit');
-      if (edit) edit.remove();
-      card.classList.add('session-card-openable');
-      card.title = 'Открыть сессию';
-
-      const openCard = e => {
-        if (e?.target?.closest('button,a,input,select,textarea,label')) return;
-        if (typeof selectedSessionId !== 'undefined') selectedSessionId = s.id;
-        openSessionEditor(c, s, numbers.get(s));
-      };
-
-      card.onclick = openCard;
-      card.onkeydown = e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openCard(e);
-        }
-      };
-    });
-  };
-
-  renderSessions();
 })();

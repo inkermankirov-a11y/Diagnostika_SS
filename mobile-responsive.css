@@ -10,7 +10,7 @@
   .language-switcher{flex:0 0 auto}
   .language-btn{width:52px!important;min-width:52px!important;height:40px!important}
 
-  .workspace-grid{display:block!important;min-width:0!important}
+  .diagnosis-workspace{display:block!important;min-width:0!important}
   .left-panel,.center-panel,.right-panel,.client-home{width:100%!important;min-width:0!important;max-width:100%!important;margin:0 0 8px!important;overflow:visible!important}
   .span-two{grid-column:auto!important}
 
