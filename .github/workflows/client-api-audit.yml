@@ -72,6 +72,8 @@ jobs:
           });
           await page.reload({waitUntil:'commit'});
           await ready();
+          const baselineCount=await page.evaluate(()=>window.DiagnostikaClients.list().length);
+          console.log('CLIENT_API_BASELINE_COUNT:',baselineCount);
 
           async function addNamed(name){
             await page.evaluate(n=>{
@@ -89,9 +91,11 @@ jobs:
           await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
 
           const clients=await page.evaluate(()=>window.DiagnostikaClients.list().map(c=>({id:c.id,name:c.name})));
-          if(clients.length!==2)throw new Error(`Expected 2 clients, got ${clients.length}`);
-          const [a,b]=clients;
-          if(a.name!=='CLIENT API A'||b.name!=='CLIENT API B')throw new Error('Client setup names mismatch');
+          if(clients.length!==baselineCount+2)throw new Error(`Expected ${baselineCount+2} clients after fixtures, got ${clients.length}`);
+          const matchesA=clients.filter(c=>c.name==='CLIENT API A');
+          const matchesB=clients.filter(c=>c.name==='CLIENT API B');
+          if(matchesA.length!==1||matchesB.length!==1)throw new Error(`Fixture clients missing or duplicated: A=${matchesA.length}, B=${matchesB.length}`);
+          const a=matchesA[0],b=matchesB[0];
 
           const scriptOrder=await page.evaluate(()=>{
             const arr=[...document.scripts].map(s=>s.src).filter(Boolean).map(src=>new URL(src).pathname.split('/').pop());
@@ -143,7 +147,7 @@ jobs:
           console.log('INVALID_SELECT:',JSON.stringify(invalid));
           if(invalid.result!==false||String(invalid.before)!==String(invalid.after))throw new Error('Invalid client selection changed current client');
 
-          const dbOpened=await page.evaluate(()=>window.DiagnostikaHomeDashboard?.openClientDatabase?.());
+          await page.evaluate(()=>window.DiagnostikaHomeDashboard?.openClientDatabase?.());
           await page.locator('#clientDialog').waitFor({state:'visible',timeout:3000});
           const afterDb=await page.evaluate(()=>window.__legacyClientUiEvents);
           if(afterDb.baseClicks!==0)throw new Error('Client database API clicked legacy header button');
