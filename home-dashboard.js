@@ -73,7 +73,7 @@
     if(!p.length)return 'К';
     return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase();
   };
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const currentClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
 
   function unavailable(message,title='Ошибка'){
