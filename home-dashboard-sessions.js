@@ -41,6 +41,18 @@
   const getClient=()=>state?.clients?.find(c=>c.id===clientId)||null;
   const sessionRequestId=s=>String(s?.requestId||s?.payment?.requestId||'');
 
+  function createSession(c,r){
+    if(!c||!r)return null;
+    if(!Array.isArray(c.sessions))c.sessions=[];
+    const makeId=()=>typeof uid==='function'?uid():(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
+    const makeToday=()=>typeof today==='function'?today():new Date().toISOString().slice(0,10);
+    const s={id:makeId(),date:makeToday(),requestId:r.id,notes:''};
+    c.sessions.push(s);
+    try{if(typeof save==='function')save();}catch(_){}
+    try{if(typeof renderSessions==='function')renderSessions();}catch(_){}
+    return s;
+  }
+
   function currentRequest(c){
     if(!c)return null;
     try{
@@ -213,19 +225,12 @@
   add.addEventListener('click',()=>{
     const c=getClient(),r=currentRequest(c);
     if(!c||!r)return;
-    const beforeIds=new Set((c.sessions||[]).map(s=>s.id));
-    const oldAdd=document.getElementById('addSessionBtn');
-    if(oldAdd)oldAdd.click();
-    setTimeout(()=>{
-      const updated=getClient();if(!updated)return;
-      const fresh=(updated.sessions||[]).find(s=>!beforeIds.has(s.id));
-      if(fresh){
-        if(!sessionRequestId(fresh)){fresh.requestId=r.id;try{if(typeof save==='function')save();}catch(_){}}
-        const numbered=numberedSessions(updated).find(x=>x.s===fresh||x.s.id===fresh.id);
-        render();
-        if(numbered)openEditor(updated,fresh,numbered.number);
-      }else render();
-    },0);
+    const fresh=createSession(c,r);
+    if(!fresh){render();return;}
+    const updated=getClient()||c;
+    const numbered=numberedSessions(updated).find(x=>x.s===fresh||x.s.id===fresh.id);
+    render();
+    if(numbered)openEditor(updated,fresh,numbered.number);
   });
 
   document.addEventListener('click',e=>{
