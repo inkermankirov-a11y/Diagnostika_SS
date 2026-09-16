@@ -1,0 +1,141 @@
+name: Request API audit
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  request-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static request boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check request-api.js
+          node --check home-dashboard.js
+          node --check request-title-display.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,sys
+          api=Path('request-api.js').read_text(encoding='utf-8')
+          dash=Path('home-dashboard.js').read_text(encoding='utf-8')
+          loader=Path('request-title-display.js').read_text(encoding='utf-8')
+          errors=[]
+          if 'window.DiagnostikaRequests=Object.freeze' not in api: errors.append('request API export missing')
+          if re.search(r'\brequestId\b',dash): errors.append('dashboard still owns requestId directly')
+          if 'requestsApi()?.current?.()' not in dash: errors.append('dashboard current request does not use request API')
+          if 'request-api.js?v=20260916-requestapi1' not in loader: errors.append('request API loader missing')
+          if 'home-dashboard.js?v=20260916-requestapi1' not in loader: errors.append('dashboard cache version missing')
+          print('REQUEST_BOUNDARY_STATIC_ERRORS:',errors)
+          if errors: sys.exit(1)
+          PY
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Stress request navigation and persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > request-api-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('dialog',d=>d.accept().catch(()=>{}));
+
+          async function ready(){
+            await page.locator('.home-dashboard').waitFor({state:'visible',timeout:10000});
+            await page.waitForFunction(()=>!!window.DiagnostikaRequests?.select && !!window.DiagnostikaClients?.current,null,{timeout:5000});
+          }
+
+          await page.goto(`http://127.0.0.1:8000/index.html?request-api=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await ready();
+          await page.evaluate(()=>{
+            localStorage.removeItem('diagnostika-web-v1');
+            localStorage.removeItem('diagnostika-last-client-id');
+          });
+          await page.reload({waitUntil:'commit'});
+          await ready();
+
+          await page.evaluate(()=>{
+            const c=window.DiagnostikaClients.current();
+            if(!c)throw new Error('No current client');
+            const mk=title=>({id:crypto.randomUUID(),title,situations:[]});
+            c.name='REQUEST API CLIENT';
+            c.requests=[mk('REQUEST API A'),mk('REQUEST API B')];
+            if(typeof save==='function')save();
+            if(typeof renderClient==='function')renderClient();
+            window.DiagnostikaHomeDashboard?.refresh?.();
+          });
+
+          const requests=await page.evaluate(()=>window.DiagnostikaRequests.list().map(r=>({id:r.id,title:r.title})));
+          if(requests.length!==2)throw new Error(`Expected 2 requests, got ${requests.length}`);
+          const [a,b]=requests;
+
+          const order=await page.evaluate(()=>{
+            const arr=[...document.scripts].map(s=>s.src).filter(Boolean).map(src=>new URL(src).pathname.split('/').pop());
+            return {requestApi:arr.indexOf('request-api.js'),dashboard:arr.indexOf('home-dashboard.js')};
+          });
+          console.log('REQUEST_API_SCRIPT_ORDER:',JSON.stringify(order));
+          if(order.requestApi<0||order.dashboard<0||order.requestApi>order.dashboard)throw new Error('Request API did not load before dashboard');
+
+          await page.evaluate(()=>{
+            window.__legacyRequestEvents={changes:0};
+            document.getElementById('requestSelect')?.addEventListener('change',()=>window.__legacyRequestEvents.changes++,true);
+          });
+
+          const stateBefore=await page.evaluate(()=>localStorage.getItem('diagnostika-web-v1'));
+          for(let i=0;i<100;i++){
+            const target=i%2===0?a:b;
+            const ok=await page.evaluate(id=>window.DiagnostikaRequests.select(id),target.id);
+            if(!ok)throw new Error(`API select failed at iteration ${i}`);
+            await page.waitForTimeout(5);
+            const snap=await page.evaluate(()=>({
+              api:window.DiagnostikaRequests.currentId(),
+              current:window.DiagnostikaRequests.current()?.title||'',
+              select:document.getElementById('requestSelect')?.value||''
+            }));
+            if(String(snap.api)!==String(target.id)||snap.current!==target.title||String(snap.select)!==String(target.id)){
+              throw new Error(`Request selection mismatch at iteration ${i}: ${JSON.stringify(snap)}`);
+            }
+          }
+
+          const legacy=await page.evaluate(()=>window.__legacyRequestEvents);
+          console.log('LEGACY_REQUEST_UI_EVENTS:',JSON.stringify(legacy));
+          if(legacy.changes!==0)throw new Error('Request API simulated legacy request select change events');
+
+          const invalid=await page.evaluate(()=>{
+            const before=window.DiagnostikaRequests.currentId();
+            const result=window.DiagnostikaRequests.select('__missing_request__');
+            return {before,result,after:window.DiagnostikaRequests.currentId()};
+          });
+          console.log('INVALID_REQUEST_SELECT:',JSON.stringify(invalid));
+          if(invalid.result!==false||String(invalid.before)!==String(invalid.after))throw new Error('Invalid request selection changed current request');
+
+          const stateAfter=await page.evaluate(()=>localStorage.getItem('diagnostika-web-v1'));
+          if(stateAfter!==stateBefore)throw new Error('Request navigation mutated persisted request data');
+
+          await page.evaluate(id=>window.DiagnostikaRequests.select(id),b.id);
+          await page.reload({waitUntil:'commit'});
+          await ready();
+          const restored=await page.evaluate(()=>({id:window.DiagnostikaRequests.currentId(),title:window.DiagnostikaRequests.current()?.title||''}));
+          if(String(restored.id)!==String(b.id)||restored.title!=='REQUEST API B')throw new Error(`Reload did not restore request selection: ${JSON.stringify(restored)}`);
+
+          console.log('REQUEST_API_STRESS_CYCLES: 100');
+          console.log('REQUEST_API_RESTORED:',JSON.stringify(restored));
+          console.log('Browser errors:',JSON.stringify(errors));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          if(serious.length)throw new Error(serious.join(' | '));
+          await browser.close();
+          JS
+          node request-api-audit.mjs
