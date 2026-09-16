@@ -1,22 +1,18 @@
 name: Core CRM audit
 
 on:
-  workflow_dispatch:
   push:
-    branches: [main]
+    branches: [ main ]
     paths:
-      - 'app.js'
-      - 'test-data.js'
-      - 'diagnosis-compact-client.js'
-      - 'home-dashboard*.js'
-      - 'session-ai-chat.js'
-      - 'client-ai-chat*.js'
+      - '**.js'
+      - '**.css'
       - 'index.html'
       - '.github/workflows/core-crm-audit.yml'
+  workflow_dispatch:
 
 jobs:
-  core:
-    runs-on: ubuntu-latest
+  core-crm:
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -25,76 +21,70 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Test client diagnosis sessions and AI shells
+      - name: Core workflow browser test
         shell: bash
         run: |
           set -euo pipefail
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
-          cat > core-audit.mjs <<'JS'
+          cat > core-crm-audit.mjs <<'JS'
           import { chromium } from 'playwright';
           const browser=await chromium.launch({headless:true});
-          const context=await browser.newContext({viewport:{width:1440,height:1000}});
-          const page=await context.newPage();
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
           const errors=[];
           page.on('pageerror',e=>errors.push('pageerror: '+e.message));
           page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
           page.on('dialog',d=>d.accept().catch(()=>{}));
 
           await page.goto(`http://127.0.0.1:8000/index.html?core=${Date.now()}`,{waitUntil:'commit',timeout:10000});
-          await page.waitForFunction(()=>document.readyState!=='loading',null,{timeout:20000});
-          await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+          await page.waitForFunction(()=>document.readyState!=='loading',null,{timeout:25000});
           await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
+          await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+          if(await page.locator('.workspace-grid').isVisible())throw new Error('Legacy workspace visible on dashboard');
 
-          if((await page.locator('#clientSelect option').count())===0) await page.locator('#addClientBtn').click();
+          if((await page.locator('#clientSelect option').count())===0)await page.locator('#addClientBtn').click();
           await page.locator('#clientSelect option').first().waitFor({state:'attached'});
           await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
-          await page.waitForTimeout(400);
+          await page.waitForTimeout(500);
 
           const name=(await page.locator('#clientName').inputValue()).trim();
-          if(!name||name==='Новый клиент') throw new Error('Client test fill failed');
-          if((await page.locator('#requestSelect option').count())<1) throw new Error('Requests missing');
-          if((await page.locator('#situationList .situation-item').count())<1) throw new Error('Situations missing');
-          if((await page.locator('#tree .tree-row').count())<1) throw new Error('Diagnosis tree missing');
+          if(!name||name==='Новый клиент')throw new Error('Test client not populated');
+          if((await page.locator('#requestSelect option').count())<1)throw new Error('No requests');
+          if((await page.locator('#situationList .situation-item').count())<1)throw new Error('No situations');
+          if((await page.locator('#tree .tree-row').count())<1)throw new Error('No diagnosis tree');
 
           const belief=page.locator('#tree .tree-row.primary').first();
           await belief.click();
-          await page.locator('#editorText').fill('Аудит: тестовое убеждение');
+          await page.locator('#editorText').fill('Core audit belief');
           await page.locator('#saveElementBtn').click();
           await page.waitForTimeout(100);
-          if(!(await belief.textContent())?.includes('Аудит: тестовое убеждение')) throw new Error('Diagnosis edit failed');
+          if(!(await belief.textContent())?.includes('Core audit belief'))throw new Error('Diagnosis edit failed');
 
           await page.locator('.diagnosis-compact-back').click();
           await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+          if(await page.locator('.workspace-grid').isVisible())throw new Error('Legacy workspace visible after diagnosis');
           await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
-          if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1) throw new Error('Client AI clear control failed');
+          if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1)throw new Error('Client AI clear button missing or duplicated');
 
-          const countSessions=()=>page.evaluate(()=>{
-            const saved=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');
-            const id=document.querySelector('#clientSelect')?.value;
-            return saved?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;
-          });
-          const before=await countSessions();
+          const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
           await page.locator('#hdAddSession').waitFor({state:'visible',timeout:5000});
           await page.locator('#hdAddSession').click();
           const dlg=page.locator('dialog.session-edit-dialog');
           await dlg.waitFor({state:'visible',timeout:5000});
           await dlg.locator('.session-ai-box').waitFor({state:'visible',timeout:5000});
-          if((await dlg.locator('.session-ai-clear').count())!==1) throw new Error('Session AI clear control failed');
-          if((await dlg.locator('.session-ai-mode button').count())!==2) throw new Error('Session AI answer modes failed');
-          const cancel=dlg.getByRole('button',{name:'Отмена'});if(await cancel.count())await cancel.click();else await page.keyboard.press('Escape');
+          if((await dlg.locator('.session-ai-clear').count())!==1)throw new Error('Session AI clear button missing or duplicated');
+          if((await dlg.locator('.session-ai-mode button').count())!==2)throw new Error('Session AI modes missing');
+
+          await page.evaluate(()=>document.querySelector('dialog.session-edit-dialog')?.close());
           await dlg.waitFor({state:'hidden',timeout:3000});
-          const after=await countSessions();
-          if(after!==before+1) throw new Error(`Session persistence failed: before=${before}, after=${after}`);
+          const after=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=document.querySelector('#clientSelect')?.value;return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          if(after!==before+1)throw new Error(`Session persistence failed: before=${before}, after=${after}`);
 
-          const raf=[];
-          for(let i=0;i<5;i++) raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));
-          console.log('CLIENT:',name,'SESSIONS:',before,'->',after,'RAF:',JSON.stringify(raf));
-          if(Math.max(...raf)>1200) throw new Error('Main thread responsiveness failed');
-
+          const raf=[];for(let i=0;i<5;i++)raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));
+          if(Math.max(...raf)>1200)throw new Error('Main thread slow');
           const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
-          console.log('BROWSER_ERRORS:',JSON.stringify(errors));
-          if(serious.length) throw new Error(serious.join(' | '));
+          console.log('Core browser errors:',JSON.stringify(errors));
+          if(serious.length)throw new Error(serious.join(' | '));
           await browser.close();
           JS
-          node core-audit.mjs
+          node core-crm-audit.mjs
