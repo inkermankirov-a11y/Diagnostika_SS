@@ -5,8 +5,8 @@ on:
     branches: [ main ]
     paths:
       - 'home-dashboard.js'
-      - 'payment-system.js'
-      - 'payment-enhancements.js'
+      - 'payment-*.js'
+      - 'request-select-labels.js'
       - 'request-title-display.js'
       - 'index.html'
       - '.github/workflows/payment-api-audit.yml'
@@ -15,26 +15,51 @@ on:
 jobs:
   payment-api:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
 
-      - name: Static dependency check
+      - name: Static dependency and load-order check
         shell: bash
         run: |
+          set -euo pipefail
           node --check home-dashboard.js
-          node --check payment-system.js
+          node --check request-select-labels.js
+          node --check request-title-display.js
+          for f in payment-*.js; do node --check "$f"; done
           python3 - <<'PY'
           from pathlib import Path
           import sys
+
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
+          html=Path('index.html').read_text(encoding='utf-8')
+          payment=Path('payment-system.js').read_text(encoding='utf-8')
+
           required='DiagnostikaPayments?.open'
           forbidden=['clientPaymentBox','client-payment-btn']
           found=[x for x in forbidden if x in dash]
           print('Payment API reference:', required in dash)
-          print('Legacy payment DOM references:', found or 'none')
+          print('Legacy payment DOM references in dashboard:', found or 'none')
           if required not in dash or found:
               sys.exit(1)
+
+          order={name:html.find(name) for name in ['request-select-labels.js','payment-system.js','request-title-display.js']}
+          print('Relevant script positions:',order)
+          if any(v < 0 for v in order.values()):
+              raise SystemExit('Required payment/request script is missing from index.html')
+          if not (order['request-select-labels.js'] < order['payment-system.js'] < order['request-title-display.js']):
+              raise SystemExit('Unsafe script order: request API and payment API must exist before dashboard loader')
+
+          owners=[]
+          for f in Path('.').glob('*.js'):
+              text=f.read_text(encoding='utf-8',errors='ignore')
+              if 'window.DiagnostikaPayments=' in text:
+                  owners.append(f.name)
+          print('DiagnostikaPayments owner files:',owners)
+          if owners != ['payment-system.js']:
+              raise SystemExit(f'DiagnostikaPayments must have one owner, got {owners}')
+          if 'open:openPayment' not in payment:
+              raise SystemExit('Payment API no longer exports openPayment')
           PY
 
       - name: Install browser
@@ -43,7 +68,7 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Verify dashboard uses payment API
+      - name: Stress and data-integrity audit
         shell: bash
         run: |
           set -euo pipefail
@@ -60,7 +85,24 @@ jobs:
           page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
           page.on('dialog',d=>d.accept().catch(()=>{}));
 
-          await page.goto(`http://127.0.0.1:8000/index.html?payment-api=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          const openDashboardPayment=async()=>{
+            const opened=await page.evaluate(()=>{
+              const button=[...document.querySelectorAll('#hdHeroActions button')].find(b=>b.textContent.trim()==='Оплата');
+              if(!button)return false;
+              button.click();
+              return true;
+            });
+            if(!opened)throw new Error('Dashboard payment button missing');
+            const dialog=page.locator('dialog.payment-dialog:has(#paymentMode)').first();
+            await dialog.waitFor({state:'visible',timeout:3000});
+            return dialog;
+          };
+          const closePayment=async dialog=>{
+            await page.evaluate(()=>document.querySelector('dialog.payment-dialog:has(#paymentMode)')?.close());
+            await dialog.waitFor({state:'hidden',timeout:3000});
+          };
+
+          await page.goto(`http://127.0.0.1:8000/index.html?payment-audit=${Date.now()}`,{waitUntil:'commit',timeout:10000});
           await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
           await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
 
@@ -74,38 +116,135 @@ jobs:
           await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
           await page.evaluate(()=>window.DiagnostikaHomeDashboard?.refresh?.());
 
+          const apiShape=await page.evaluate(()=>({
+            exists:!!window.DiagnostikaPayments,
+            open:typeof window.DiagnostikaPayments?.open,
+            refresh:typeof window.DiagnostikaPayments?.refresh,
+            summary:typeof window.DiagnostikaPayments?.summary,
+            paymentOfRequest:typeof window.DiagnostikaPayments?.paymentOfRequest,
+            dialogCount:document.querySelectorAll('dialog.payment-dialog:has(#paymentMode)').length
+          }));
+          console.log('PAYMENT_API_SHAPE:',JSON.stringify(apiShape));
+          if(!apiShape.exists||apiShape.open!=='function'||apiShape.refresh!=='function'||apiShape.summary!=='function'||apiShape.paymentOfRequest!=='function')throw new Error('Payment API shape is incomplete');
+          if(apiShape.dialogCount!==1)throw new Error(`Expected exactly one primary payment dialog, got ${apiShape.dialogCount}`);
+
           await page.evaluate(()=>{
             window.__paymentApiCalls=0;
             window.__legacyPaymentClicks=0;
             const api=window.DiagnostikaPayments;
-            if(!api||typeof api.open!=='function') throw new Error('DiagnostikaPayments.open is unavailable');
             const original=api.open.bind(api);
             api.open=function(){window.__paymentApiCalls++;return original();};
             const legacy=document.querySelector('#clientPaymentBox .client-payment-btn');
             if(legacy)legacy.addEventListener('click',()=>window.__legacyPaymentClicks++,true);
           });
 
-          const opened=await page.evaluate(()=>{
-            const button=[...document.querySelectorAll('#hdHeroActions button')].find(b=>b.textContent.trim()==='Оплата');
-            if(!button)return false;
-            button.click();
-            return true;
+          // Repeated open/close cycles catch duplicate handlers, duplicate dialogs and stale DOM dependencies.
+          const CYCLES=50;
+          for(let i=0;i<CYCLES;i++){
+            const dialog=await openDashboardPayment();
+            if((await page.locator('dialog.payment-dialog:has(#paymentMode)').count())!==1)throw new Error(`Primary payment dialog duplicated on cycle ${i+1}`);
+            await dialog.locator('#paymentMode').waitFor({state:'visible',timeout:2000});
+            await dialog.locator('#paymentCurrency').waitFor({state:'visible',timeout:2000});
+            await closePayment(dialog);
+          }
+          const repeated=await page.evaluate(()=>({api:window.__paymentApiCalls||0,legacy:window.__legacyPaymentClicks||0}));
+          console.log('REPEATED_OPEN_CLOSE:',JSON.stringify({cycles:CYCLES,...repeated}));
+          if(repeated.api!==CYCLES)throw new Error(`Expected ${CYCLES} payment API calls, got ${repeated.api}`);
+          if(repeated.legacy!==0)throw new Error(`Legacy payment button was clicked ${repeated.legacy} time(s)`);
+
+          // Force a stale global requestId while currentRequestId points to another request.
+          // Payment must follow the authoritative current-request API, not stale dashboard/global state.
+          const ids=await page.evaluate(()=>{
+            const c=typeof client==='function'?client():null;
+            if(!c||!Array.isArray(c.requests)||!c.requests[0])throw new Error('Audit client/request is unavailable');
+            const first=c.requests[0];
+            first.title='AUDIT REQUEST A';
+            first.status='active';
+            first.payment={mode:'',total:0,payments:[],currency:'RUB'};
+            const second=JSON.parse(JSON.stringify(first));
+            second.id=crypto.randomUUID?crypto.randomUUID():'audit_req_'+Date.now();
+            second.title='AUDIT REQUEST B';
+            second.createdAt=new Date().toISOString();
+            second.updatedAt=second.createdAt;
+            second.payment={mode:'',total:0,payments:[],currency:'RUB'};
+            c.requests=[first,second];
+            c.currentRequestId=second.id;
+            c.lastDiagnosisRequestId=second.id;
+            c.sessions=[];
+            requestId=first.id;
+            situationId=null;
+            selected=null;
+            save();
+            if(typeof renderClient==='function')renderClient();
+            window.DiagnostikaRequests?.refresh?.();
+            window.DiagnostikaHomeDashboard?.refresh?.();
+            return {clientId:c.id,firstId:first.id,secondId:second.id};
           });
-          if(!opened)throw new Error('Dashboard payment button missing');
+          await page.waitForTimeout(100);
 
-          const paymentDialog=page.locator('dialog.payment-dialog').first();
-          await paymentDialog.waitFor({state:'visible',timeout:3000});
-          await paymentDialog.locator('#paymentMode').waitFor({state:'visible',timeout:3000});
-          await paymentDialog.locator('#paymentCurrency').waitFor({state:'visible',timeout:3000});
+          const dashboardRequest=await page.locator('#hdSummary .hd-summary-box').first().locator('.hd-summary-value').textContent().catch(()=>null);
+          console.log('DASHBOARD_CURRENT_REQUEST_TEXT:',dashboardRequest);
+          if((dashboardRequest||'').trim()!=='AUDIT REQUEST B')throw new Error(`Dashboard current-request summary is stale: ${dashboardRequest}`);
 
-          const counters=await page.evaluate(()=>({api:window.__paymentApiCalls||0,legacy:window.__legacyPaymentClicks||0}));
-          console.log('PAYMENT_API_CALLS:',counters.api);
-          console.log('LEGACY_PAYMENT_BUTTON_CLICKS:',counters.legacy);
-          if(counters.api!==1)throw new Error(`Expected one payment API call, got ${counters.api}`);
-          if(counters.legacy!==0)throw new Error(`Legacy payment button was clicked ${counters.legacy} time(s)`);
+          let dialog=await openDashboardPayment();
+          const requestSub=(await dialog.locator('#paymentRequestSub').textContent()||'').trim();
+          console.log('PAYMENT_REQUEST_SUB:',requestSub);
+          if(!requestSub.includes('Запрос 2')||!requestSub.includes('AUDIT REQUEST B'))throw new Error(`Payment opened wrong request: ${requestSub}`);
 
-          await page.evaluate(()=>document.querySelector('dialog.payment-dialog')?.close());
-          await paymentDialog.waitFor({state:'hidden',timeout:3000});
+          await dialog.locator('#paymentMode').selectOption('parts');
+          await dialog.locator('#paymentTotal').fill('12345');
+          await dialog.locator('#paymentCurrency').selectOption('EUR');
+          await dialog.locator('#paymentAmount').fill('5000');
+          await dialog.locator('#paymentNote').fill('AUDIT PAYMENT');
+          await dialog.locator('#paymentAddBtn').click();
+          await page.waitForTimeout(100);
+
+          const integrity=await page.evaluate(({firstId,secondId,clientId})=>{
+            const c=state.clients.find(x=>String(x.id)===String(clientId));
+            const a=c?.requests?.find(r=>r.id===firstId);
+            const b=c?.requests?.find(r=>r.id===secondId);
+            const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');
+            const sc=stored?.clients?.find(x=>String(x.id)===String(clientId));
+            const sb=sc?.requests?.find(r=>r.id===secondId);
+            return {
+              first:{mode:a?.payment?.mode||'',total:Number(a?.payment?.total)||0,count:a?.payment?.payments?.length||0,currency:a?.payment?.currency||''},
+              second:{mode:b?.payment?.mode||'',total:Number(b?.payment?.total)||0,count:b?.payment?.payments?.length||0,amount:Number(b?.payment?.payments?.[0]?.amount)||0,note:b?.payment?.payments?.[0]?.note||'',currency:b?.payment?.currency||''},
+              storedSecond:{mode:sb?.payment?.mode||'',total:Number(sb?.payment?.total)||0,count:sb?.payment?.payments?.length||0,amount:Number(sb?.payment?.payments?.[0]?.amount)||0,note:sb?.payment?.payments?.[0]?.note||'',currency:sb?.payment?.currency||''}
+            };
+          },ids);
+          console.log('PAYMENT_DATA_INTEGRITY:',JSON.stringify(integrity));
+          if(integrity.first.mode!==''||integrity.first.total!==0||integrity.first.count!==0)throw new Error('Payment data leaked into non-current request');
+          for(const row of [integrity.second,integrity.storedSecond]){
+            if(row.mode!=='parts'||row.total!==12345||row.count!==1||row.amount!==5000||row.note!=='AUDIT PAYMENT'||row.currency!=='EUR')throw new Error(`Payment persistence mismatch: ${JSON.stringify(row)}`);
+          }
+
+          await closePayment(dialog);
+          dialog=await openDashboardPayment();
+          const reopened={
+            mode:await dialog.locator('#paymentMode').inputValue(),
+            total:await dialog.locator('#paymentTotal').inputValue(),
+            currency:await dialog.locator('#paymentCurrency').inputValue(),
+            rows:await dialog.locator('#paymentList .payment-row').count(),
+            historyAmount:await dialog.locator('#paymentList .payment-row .pr-amount').first().inputValue().catch(()=>''),
+            historyNote:await dialog.locator('#paymentList .payment-row .pr-note').first().inputValue().catch(()=>''),
+          };
+          console.log('PAYMENT_REOPENED_STATE:',JSON.stringify(reopened));
+          if(reopened.mode!=='parts'||Number(reopened.total)!==12345||reopened.currency!=='EUR'||reopened.rows!==1||Number(reopened.historyAmount)!==5000||reopened.historyNote!=='AUDIT PAYMENT')throw new Error('Payment dialog did not reproduce saved state');
+          await closePayment(dialog);
+
+          // A rapid repeated click must not create another dialog or browser exception.
+          await page.evaluate(()=>{
+            const button=[...document.querySelectorAll('#hdHeroActions button')].find(b=>b.textContent.trim()==='Оплата');
+            button?.click();button?.click();
+          });
+          dialog=page.locator('dialog.payment-dialog:has(#paymentMode)').first();
+          await dialog.waitFor({state:'visible',timeout:3000});
+          if((await page.locator('dialog.payment-dialog:has(#paymentMode)').count())!==1)throw new Error('Rapid click duplicated primary payment dialog');
+          await closePayment(dialog);
+
+          const finalCounters=await page.evaluate(()=>({api:window.__paymentApiCalls||0,legacy:window.__legacyPaymentClicks||0}));
+          console.log('FINAL_COUNTERS:',JSON.stringify(finalCounters));
+          if(finalCounters.legacy!==0)throw new Error(`Legacy payment button was clicked ${finalCounters.legacy} time(s)`);
 
           const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
           console.log('Browser errors:',JSON.stringify(errors));
