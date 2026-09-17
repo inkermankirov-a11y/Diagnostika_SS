@@ -30,6 +30,35 @@
   window.DiagnostikaCoreReady=true;
   window.dispatchEvent(new Event('diagnostika:core-ready'));
 
+  function ensureClientsModule(){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-clients-module]')) return;
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/clients/index.js?v=20260918-clients2a';
+      moduleScript.setAttribute('data-clients-module','1');
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.clients){
+      loadModule();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-clients-service]');
+    if(existing){
+      existing.addEventListener('load',loadModule,{once:true});
+      return;
+    }
+
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2a';
+    serviceScript.setAttribute('data-clients-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
+  ensureClientsModule();
+
   function loadDashboard(){
     if(!document.querySelector('link[data-brand-icon]')){
       const icon=document.createElement('link');
