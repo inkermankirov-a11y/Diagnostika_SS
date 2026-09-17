@@ -99,6 +99,27 @@ assert.equal(afterSelect.remembered,'clients-2a-b');
 const persistedAfter=await page.evaluate(()=>localStorage.getItem('diagnostika-web-v1'));
 assert.equal(persistedAfter,persistedBefore,'Selecting a client must not mutate persisted client data');
 
+const stress=await page.evaluate(()=>{
+  const service=window.DiagnostikaPlatform.services.clients;
+  for(let i=0;i<100;i++){
+    const expected=i%2===0?'clients-2a-a':'clients-2a-b';
+    if(service.select(expected)!==true) return {ok:false,iteration:i,expected,current:service.currentId()};
+    if(String(service.currentId())!==expected) return {ok:false,iteration:i,expected,current:service.currentId()};
+  }
+  return {
+    ok:true,
+    current:service.currentId(),
+    eventCount:window.__clients2aEvents.length,
+    remembered:localStorage.getItem('diagnostika-last-client-id'),
+    persisted:localStorage.getItem('diagnostika-web-v1')
+  };
+});
+assert.equal(stress.ok,true,JSON.stringify(stress));
+assert.equal(stress.current,'clients-2a-b');
+assert.equal(stress.eventCount,101);
+assert.equal(stress.remembered,'clients-2a-b');
+assert.equal(stress.persisted,persistedBefore,'100 client switches mutated persisted client data');
+
 const invalid=await page.evaluate(()=>{
   const before=window.DiagnostikaClients.currentId();
   const eventCount=window.__clients2aEvents.length;
@@ -111,7 +132,7 @@ assert.equal(invalid.eventCount,invalid.afterEventCount);
 
 const serious=pageErrors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
-console.log('CLIENT_MODULE_2A_AUDIT_SUCCESS',JSON.stringify({architecture,afterSelect,invalid}));
+console.log('CLIENT_MODULE_2A_AUDIT_SUCCESS',JSON.stringify({architecture,afterSelect,stress,invalid}));
 
 await context.close();
 await browser.close();
