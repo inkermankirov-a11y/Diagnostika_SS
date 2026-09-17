@@ -73,7 +73,6 @@
     if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
     const amount=canonicalAmount(s,req);
 
-    // Если оплаченная старая сессия имела ноль, восстанавливаем сумму один раз.
     if(s.payment.paid&&num(s.payment.amount)<=0&&amount>0){
       s.payment.amount=amount;
       s.payment.requestId=req.id;
@@ -81,45 +80,39 @@
       if(typeof save==='function')save();
     }
 
-    // Новое поле рядом с кнопкой оплаты.
     const wrap=dlg.querySelector('.session-editor-payment-amount-wrap');
     const modern=dlg.querySelector('.session-editor-payment-amount');
-    if(wrap)wrap.hidden=false;
-    if(modern&&document.activeElement!==modern)modern.value=String(amount);
+    if(wrap&&wrap.hidden)wrap.hidden=false;
+    if(modern&&document.activeElement!==modern){const next=String(amount);if(modern.value!==next)modern.value=next;}
 
-    // Старое поле оплаты внутри редактора сессии. Именно оно оставалось равным 0.
     const legacy=dlg.querySelector('.session-payment-field input[type="number"]');
-    if(legacy&&document.activeElement!==legacy)legacy.value=String(amount);
+    if(legacy&&document.activeElement!==legacy){const next=String(amount);if(legacy.value!==next)legacy.value=next;}
 
-    // Кнопка и старый checkbox также синхронизируются с реальным объектом сессии.
     const paid=!!s.payment.paid;
     const btn=dlg.querySelector('.session-editor-payment-state');
     if(btn){
-      btn.classList.toggle('paid',paid);
-      btn.classList.toggle('unpaid',!paid);
-      btn.textContent=paid?'✓ Оплачено':'Не оплачено';
-      btn.title=paid?`Оплачено ${amount} ₽`:`Не оплачено${amount?` · ${amount} ₽`:''}`;
+      if(btn.classList.contains('paid')!==paid)btn.classList.toggle('paid',paid);
+      if(btn.classList.contains('unpaid')===paid)btn.classList.toggle('unpaid',!paid);
+      const text=paid?'✓ Оплачено':'Не оплачено';if(btn.textContent!==text)btn.textContent=text;
+      const title=paid?`Оплачено ${amount} ₽`:`Не оплачено${amount?` · ${amount} ₽`:''}`;if(btn.title!==title)btn.title=title;
     }
     const checkbox=dlg.querySelector('.session-payment-field input[type="checkbox"],.session-payment-paid input[type="checkbox"]');
-    if(checkbox)checkbox.checked=paid;
+    if(checkbox&&checkbox.checked!==paid)checkbox.checked=paid;
   }
 
-  function syncAll(){
-    document.querySelectorAll('dialog.session-edit-dialog').forEach(syncDialog);
-  }
+  function syncAll(){document.querySelectorAll('dialog.session-edit-dialog').forEach(syncDialog);}
 
-  // Синхронизация после открытия/перерисовки модального окна и после смены запроса.
-  const observer=new MutationObserver(()=>setTimeout(syncAll,0));
+  const observer=new MutationObserver(mutations=>{
+    const addedDialog=mutations.some(m=>Array.from(m.addedNodes||[]).some(node=>{
+      if(!(node instanceof Element))return false;
+      return node.matches?.('dialog.session-edit-dialog')||node.querySelector?.('dialog.session-edit-dialog');
+    }));
+    if(addedDialog)setTimeout(syncAll,0);
+  });
   observer.observe(document.body,{childList:true,subtree:true});
-  document.addEventListener('change',e=>{
-    if(e.target?.closest?.('dialog.session-edit-dialog'))setTimeout(syncAll,0);
-  },true);
-  document.addEventListener('click',e=>{
-    if(e.target?.closest?.('.session-card,.session-editor-payment-state'))setTimeout(syncAll,0);
-  },true);
+  document.addEventListener('change',e=>{if(e.target?.closest?.('dialog.session-edit-dialog'))setTimeout(syncAll,0);},true);
+  document.addEventListener('click',e=>{if(e.target?.closest?.('.session-card,.session-editor-payment-state'))setTimeout(syncAll,0);},true);
 
   setTimeout(syncAll,0);
-  setTimeout(syncAll,200);
-  setTimeout(syncAll,700);
   window.DiagnostikaSessionPaymentUiSync={refresh:syncAll};
 })();
