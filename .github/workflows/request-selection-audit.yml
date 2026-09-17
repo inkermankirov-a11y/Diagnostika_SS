@@ -25,7 +25,7 @@ jobs:
           set -euo pipefail
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-selection-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
-          cat > /tmp/request-selection-audit.mjs <<'JS'
+          cat > request-selection-audit.mjs <<'JS'
           import { chromium } from 'playwright';
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage({viewport:{width:1200,height:900}});
@@ -92,4 +92,4 @@ jobs:
           if(serious.length)throw new Error(serious.join(' | '));
           await browser.close();
           JS
-          node /tmp/request-selection-audit.mjs
+          node request-selection-audit.mjs
