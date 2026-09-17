@@ -48,6 +48,7 @@ await dlg.waitFor({state:'visible',timeout:5000});
 if(phase==='settings'){
   await dlg.locator('#paymentMode').selectOption('parts');
   await dlg.locator('#paymentTotal').fill('12000');
+  await dlg.locator('#paymentTotal').blur();
   await dlg.locator('#paymentCurrency').selectOption('EUR');
   await page.waitForTimeout(50);
   const events=await page.evaluate(()=>window.__paymentRequestEvents);
