@@ -2,11 +2,12 @@ name: Client API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface ]
+    branches: [ main, retire-old-interface, feature-core-0.2a ]
     paths:
       - 'client-api.js'
       - 'home-dashboard.js'
       - 'request-title-display.js'
+      - 'app-loader.js'
       - 'index.html'
       - '.github/workflows/client-api-audit.yml'
   workflow_dispatch:
@@ -34,8 +35,10 @@ jobs:
           if 'window.DiagnostikaClients=Object.freeze' not in api: errors.append('client API export missing')
           if re.search(r'\bstate\s*\?*\.?\s*clients\b|\bclientId\b',dash): errors.append('dashboard still owns client state directly')
           if 'window.openDatabase' in dash: errors.append('dashboard still calls legacy database global directly')
-          for token in ['clientsApi()?.select?.(id)','clientsApi()?.openDatabase?.()','client-api.js?v=20260916-clientapi1','home-dashboard.js?v=20260916-newui1']:
-              if token not in (dash+'\n'+loader): errors.append('missing '+token)
+          for token in ['clientsApi()?.select?.(id)','clientsApi()?.openDatabase?.()']:
+              if token not in dash: errors.append('missing '+token)
+          if 'client-api.js?v=' not in loader: errors.append('client API loader missing')
+          if 'home-dashboard.js?v=' not in loader: errors.append('dashboard loader missing')
           print('CLIENT_BOUNDARY_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY
