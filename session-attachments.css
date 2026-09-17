@@ -26,10 +26,10 @@
 .session-media-drop{border:1px dashed #b9c6d4;background:#fff;border-radius:8px;padding:14px;text-align:center;color:#7a8897;font-size:12px;cursor:pointer;transition:border-color .14s ease,background-color .14s ease,color .14s ease}
 .session-media-drop:hover,.session-media-drop.dragover{border-color:#7fa0c2;background:#f2f7fc;color:#506b87}
 .session-media-drop.busy{cursor:wait;opacity:.75}
-.session-media-list-editor{margin-top:10px;min-height:22px}
+.session-media-list-editor{margin-top:10px}
 .session-media-empty{font-size:12px;color:#9aa4ae;padding:3px 1px}
 .session-media-local-hint{margin-top:8px;font-size:10px;color:#8b97a4}
-.session-edit-dialog{width:min(700px,94vw);inset:4vh 0 auto 0!important;margin:0 auto!important;max-height:92vh;overflow:auto}
+.session-edit-dialog{width:min(700px,94vw)}
 
 .session-youtube-editor{margin-top:12px;padding:12px 13px;border:1px solid #ead6d6;background:#fffafa;border-radius:10px}
 .session-youtube-editor label{display:block;font-size:12px;font-weight:800;color:#6b3434;margin-bottom:6px}
