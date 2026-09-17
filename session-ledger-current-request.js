@@ -55,20 +55,18 @@
 
     const requestIndex=(c.requests||[]).findIndex(x=>String(x.id)===String(r.id));
     const requestLabel=`Запрос ${requestIndex>=0?requestIndex+1:'—'}: ${r.title||'Без названия'}`;
-    ledger.innerHTML=`<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ — ${requestLabel}</div>`;
+    let html=`<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ — ${requestLabel}</div>`;
 
     if(!sessions.length){
-      ledger.insertAdjacentHTML('beforeend','<div class="session-payment-ledger-empty">По текущему запросу оплаченных сессий пока нет.</div>');
-      return;
+      html+='<div class="session-payment-ledger-empty">По текущему запросу оплаченных сессий пока нет.</div>';
+    }else{
+      sessions.forEach(s=>{
+        const sp=sessionPayment(s);
+        html+=`<div class="session-payment-ledger-row"><span>${fmtDate(sp.paidAt||s.date||'')}</span><span class="ok">✓ Сессия №${globalSessionNumber(c,s)} от ${fmtDate(sp.sessionDate||s.date||'')}</span><strong>${money(sp.amount)} ₽</strong></div>`;
+      });
     }
 
-    sessions.forEach(s=>{
-      const sp=sessionPayment(s);
-      const row=document.createElement('div');
-      row.className='session-payment-ledger-row';
-      row.innerHTML=`<span>${fmtDate(sp.paidAt||s.date||'')}</span><span class="ok">✓ Сессия №${globalSessionNumber(c,s)} от ${fmtDate(sp.sessionDate||s.date||'')}</span><strong>${money(sp.amount)} ₽</strong>`;
-      ledger.appendChild(row);
-    });
+    if(ledger.innerHTML!==html)ledger.innerHTML=html;
   }
 
   let queued=false;
@@ -79,11 +77,13 @@
   };
 
   const observer=new MutationObserver(mutations=>{
-    if(mutations.some(m=>m.target?.closest?.('#sessionPaymentLedger')||[...m.addedNodes].some(n=>n?.nodeType===1&&(n.id==='sessionPaymentLedger'||n.querySelector?.('#sessionPaymentLedger')))))queue();
+    const ledgerAdded=mutations.some(m=>[...m.addedNodes].some(n=>n?.nodeType===1&&(n.id==='sessionPaymentLedger'||n.querySelector?.('#sessionPaymentLedger'))));
+    if(ledgerAdded)queue();
   });
   observer.observe(document.body,{childList:true,subtree:true});
 
-  document.addEventListener('click',e=>{if(e.target?.closest?.('.payment-dialog,.session-editor-payment-state'))setTimeout(render,0);},true);
+  document.addEventListener('click',e=>{if(e.target?.closest?.('.payment-dialog,.session-editor-payment-state,.session-payment-toggle-stable'))setTimeout(render,0);},true);
   document.addEventListener('change',e=>{if(e.target?.closest?.('.payment-dialog'))setTimeout(render,0);},true);
+  document.addEventListener('input',e=>{if(e.target?.closest?.('.payment-dialog'))setTimeout(render,0);},true);
   setTimeout(render,0);
 })();
