@@ -52,6 +52,7 @@
   document.body.appendChild(dlg);
 
   const q = id => document.getElementById(id);
+  const emit=(type,detail)=>window.DiagnostikaLegacyEvents?.emit?.(type,detail);
   const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccClientNotes'];
   let draftMode=false;
   let draft=null;
@@ -132,14 +133,20 @@
   function saveCard(){
     if(draftMode){
       if(!draft) return;
-      collectInto(draft);
-      state.clients.push(draft);
-      clientId=draft.id;
+      const savedClient=draft;
+      const previousClientId=typeof clientId!=='undefined'?clientId:null;
+      collectInto(savedClient);
+      state.clients.push(savedClient);
+      clientId=savedClient.id;
       requestId=null;
       situationId=null;
       selected=null;
       if(typeof save==='function') save();
       if(typeof renderClient==='function') renderClient();
+      emit('client:created',{clientId:savedClient.id,source:'client-card'});
+      if(String(previousClientId??'')!==String(savedClient.id)){
+        emit('client:selected',{clientId:savedClient.id,previousClientId:previousClientId??null,source:'client-card-create'});
+      }
       draftMode=false;draft=null;dirty=false;
       dlg.close();
       return;
@@ -149,6 +156,7 @@
     collectInto(c);
     if(typeof save==='function') save();
     if(typeof renderClient==='function') renderClient();
+    emit('client:updated',{clientId:c.id,source:'client-card'});
     dirty=false;
     dlg.close();
   }
