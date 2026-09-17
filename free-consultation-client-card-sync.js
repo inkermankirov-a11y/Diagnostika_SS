@@ -49,7 +49,7 @@
   }
 
   function addConsultationField(grid,className,label,placeholder,beforeSelector){
-    let existing=grid.querySelector(`.${className}`);
+    const existing=grid.querySelector(`.${className}`);
     if(existing) return existing;
     const wrap=document.createElement('label');
     wrap.className='fc-field fc-card-sync-field';
@@ -84,8 +84,8 @@
       '.fc-pain'
     );
     const attempts=addConsultationField(
-      grid,'fc-attempts','Предыдущие попытки решения',
-      'Что уже пробовал клиент, что сработало и что не сработало — всё в одном поле...',
+      grid,'fc-attempts','Что пробовал / что сработало / что не сработало',
+      'Все предыдущие попытки решения в одном поле: что клиент делал, что помогало хотя бы частично и что не помогло...',
       '.fc-desired'
     );
 
@@ -197,6 +197,14 @@
         desiredOutcome:text(ai?.desiredResult)
       };
 
+      // Старый обработчик кнопки «Сохранить основной запрос» писал развёрнутый
+      // запрос в mainRequest. Это известное старое автозначение, его можно безопасно
+      // заменить выбранным коротким запросом, не трогая произвольный ручной текст.
+      if(next.mainRequest && text(c.mainRequest)===text(ai?.mainRequest) && text(c.mainRequest)!==next.mainRequest){
+        c.mainRequest=next.mainRequest;
+        changed=true;
+      }
+
       for(const [key,value] of Object.entries(next)) changed=safeAutoField(c,key,value,previous)||changed;
 
       fc.cardSync={
@@ -231,14 +239,12 @@
         ?`История клиента / контекст:\n${context}\n\nБоль клиента:\n${rawPain}`
         :rawPain;
       const attempts=text(fc.attempts);
-      const result=await original({
+      return original({
         ...(payload||{}),
         pain:painForAi,
         tried:attempts||payload?.tried||'',
         didntHelp:''
       });
-      if(c) syncClient(c,result);
-      return result;
     };
     wrapped.__fcCardSyncWrapped=true;
     api.generate=wrapped;
@@ -298,6 +304,7 @@
   document.addEventListener('click',event=>{
     if(event.target?.closest?.('.cc-free-consult-btn')) setTimeout(loadConsultationFields,0);
     if(event.target?.closest?.('.fc-save,.fc-ai')) persistConsultationFields(true);
+    if(event.target?.closest?.('.fc-v2-save-main,.fc-result-save-main')) setTimeout(syncCurrent,0);
   },true);
 
   window.addEventListener('diagnostika:questionnairesImported',()=>setTimeout(repairImportedQuestionnaireSources,0));
