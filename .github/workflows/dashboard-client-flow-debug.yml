@@ -6,6 +6,8 @@ on:
     paths:
       - 'home-dashboard.js'
       - 'client-card-window.js'
+      - 'client-list-cleanup.js'
+      - 'client-payment-flag-rule.js'
       - 'app.js'
       - 'last-client.js'
       - 'index.html'
