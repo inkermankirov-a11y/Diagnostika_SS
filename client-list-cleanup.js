@@ -7,8 +7,7 @@
     scheduled=false;
     let changed=false;
 
-    document.querySelectorAll('.hd-client-more').forEach(el=>{el.remove();changed=true;});
-
+    // .hd-client-more belongs to the new dashboard and must not be removed here.
     document.querySelectorAll('.hd-unpaid-flag').forEach(flag=>{
       const title=(flag.getAttribute('title')||'').toLowerCase();
       const aria=(flag.getAttribute('aria-label')||'').toLowerCase();
