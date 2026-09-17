@@ -39,9 +39,8 @@
       const paid=paidSessions.reduce((a,s)=>a+num(sessionPayment(s).amount),0);
       const total=sessions.reduce((a,s)=>a+num(sessionPayment(s).amount),0);
       if(!sessions.length)return{status:'none',label:'Не указано',paid,total,count:'0/0'};
-      if(!paidSessions.length)return{status:'unpaid',label:'Нет',paid,total,count:`0/${sessions.length}`};
       if(paidSessions.length===sessions.length)return{status:'paid',label:'Оплачено',paid,total,count:`${sessions.length}/${sessions.length}`};
-      return{status:'partial',label:'Частично',paid,total,count:`${paidSessions.length}/${sessions.length}`};
+      return{status:'unpaid',label:'Не оплачено',paid,total,count:`${paidSessions.length}/${sessions.length}`};
     }
     const total=num(p.total),paid=p.payments.reduce((a,x)=>a+num(x.amount),0);
     if(!p.mode&&!total&&!paid)return{status:'none',label:'Не указано',paid,total};
@@ -87,8 +86,9 @@
   document.body.appendChild(allDlg);
 
   function renderSummary(c,r){
-    const s=summary(c,r),sym=symbolFor(c,r);
-    q('#paymentSummary').innerHTML=`<span class="pay-chip ${s.status}">${s.label}</span><span><strong>Оплачено:</strong> ${money(s.paid)} ${sym}</span>${s.total?`<span><strong>Стоимость:</strong> ${money(s.total)} ${sym}</span><span><strong>Остаток:</strong> ${money(Math.max(0,s.total-s.paid))} ${sym}</span>`:''}${s.count?`<span><strong>Сессии:</strong> ${s.count}</span>`:''}`;
+    const s=summary(c,r),sym=symbolFor(c,r),root=q('#paymentSummary');
+    const html=`<span class="pay-chip ${s.status}">${s.label}</span><span><strong>Оплачено:</strong> ${money(s.paid)} ${sym}</span>${s.total?`<span><strong>Стоимость:</strong> ${money(s.total)} ${sym}</span><span><strong>Остаток:</strong> ${money(Math.max(0,s.total-s.paid))} ${sym}</span>`:''}${s.count?`<span><strong>Сессии:</strong> ${s.count}</span>`:''}`;
+    if(root.innerHTML!==html)root.innerHTML=html;
   }
 
   function renderPaymentList(c,r){
