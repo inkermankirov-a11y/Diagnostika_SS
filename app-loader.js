@@ -20,9 +20,7 @@
         && typeof save==='function'
         && typeof client==='function'
         && typeof renderClient==='function'
-        && typeof renderMode==='function'
-        && typeof document.getElementById('requestSelect')?.onchange==='function'
-        && typeof document.getElementById('hintBtn')?.onclick==='function';
+        && typeof renderMode==='function';
     }catch(_){
       return false;
     }
