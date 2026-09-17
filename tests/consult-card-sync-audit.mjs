@@ -83,7 +83,6 @@ const result=await page.evaluate(()=>{
 await page.evaluate(()=>window.DiagnostikaClientCard.openExisting());
 await page.waitForSelector('#clientCardDialog[open] #ccWorked');
 const cardWorked=await page.locator('#ccWorked').inputValue();
-await page.locator('#ccCloseBtn').click();
 
 await page.locator('#ccFreeConsultBtn').click();
 await page.waitForSelector('#freeConsultationDialog[open] .fc-worked');
