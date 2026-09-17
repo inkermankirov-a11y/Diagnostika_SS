@@ -6,6 +6,7 @@
   if (window.DiagnostikaRequests?.select && window.DiagnostikaRequests?.get && Object.isFrozen(window.DiagnostikaRequests)) return;
 
   const legacy=window.DiagnostikaRequests||{};
+  const emit=(type,detail)=>window.DiagnostikaLegacyEvents?.emit?.(type,detail);
 
   function resolveClient(clientRef){
     if(clientRef&&typeof clientRef==='object'&&Array.isArray(clientRef.requests))return clientRef;
@@ -59,6 +60,8 @@
     if (!target) return false;
     if(target.status==='completed')return false;
 
+    const previousRequestId=c.currentRequestId||null;
+    const previousSelectedId=typeof requestId!=='undefined'?requestId:null;
     c.currentRequestId=target.id;
     c.lastDiagnosisRequestId=target.id;
     syncLegacySelection(target);
@@ -66,6 +69,13 @@
     if(typeof save==='function')save();
     if (typeof renderRequests === 'function') renderRequests();
     refresh();
+
+    if(String(previousSelectedId??'')!==String(target.id)){
+      emit('request:selected',{clientId:c.id,requestId:target.id,previousRequestId:previousSelectedId??null,source:'request-api'});
+    }
+    if(String(previousRequestId??'')!==String(target.id)){
+      emit('request:activated',{clientId:c.id,requestId:target.id,previousRequestId:previousRequestId??null,source:'request-api'});
+    }
     return true;
   }
 
