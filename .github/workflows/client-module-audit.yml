@@ -7,6 +7,7 @@ on:
       - 'modules/clients/**'
       - 'client-api.js'
       - 'app-loader.js'
+      - 'index.html'
       - 'tests/client-module-audit.mjs'
       - '.github/workflows/client-module-audit.yml'
   workflow_dispatch:
@@ -33,6 +34,7 @@ jobs:
           module=Path('modules/clients/index.js').read_text(encoding='utf-8')
           api=Path('client-api.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
+          index=Path('index.html').read_text(encoding='utf-8')
           errors=[]
           for token in ["created: 'client:created'","selected: 'client:selected'","updated: 'client:updated'","deleted: 'client:deleted'","restored: 'client:restored'"]:
               if token not in service: errors.append('service contract missing '+token)
@@ -41,6 +43,9 @@ jobs:
           if 'moduleAware:true' not in api: errors.append('module-aware compatibility facade missing')
           if 'modules/clients/client-service.js?v=' not in loader: errors.append('client service loader missing')
           if 'modules/clients/index.js?v=' not in loader: errors.append('clients module loader missing')
+          if 'client-api.js?v=20260918-clients2a' not in loader: errors.append('client API cache version is stale')
+          if 'app-loader.js?v=20260918-clients2a' not in index: errors.append('app loader cache version is stale')
+          if 'diagnostika-build" content="20260918-clients2a' not in index: errors.append('build marker is stale')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY
