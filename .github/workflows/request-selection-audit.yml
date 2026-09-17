@@ -56,6 +56,16 @@ jobs:
           });
 
           await page.locator('#diagnosticsLeft').waitFor({state:'visible',timeout:3000});
+          await page.evaluate(()=>{
+            const c=client();
+            let value=c.currentRequestId;
+            window.__requestCurrentWrites=[];
+            Object.defineProperty(c,'currentRequestId',{
+              configurable:true,enumerable:true,
+              get(){return value;},
+              set(next){window.__requestCurrentWrites.push({from:value,to:next,stack:new Error('currentRequestId write').stack});value=next;}
+            });
+          });
           await page.selectOption('#requestSelect',ids.second);
           await page.waitForTimeout(100);
 
@@ -68,7 +78,8 @@ jobs:
               viewed:requestId,
               select:document.querySelector('#requestSelect')?.value||'',
               disabled:!!btn?.disabled,
-              text:btn?.textContent?.trim()||''
+              text:btn?.textContent?.trim()||'',
+              writes:window.__requestCurrentWrites||[]
             };
           });
           console.log('VIEW_ONLY_STATE:',JSON.stringify(viewed));
