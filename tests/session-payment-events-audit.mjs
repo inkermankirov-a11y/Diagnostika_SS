@@ -47,25 +47,33 @@ assert.equal(opened,true,'Session editor could not be opened');
 const dlg=page.locator('dialog.session-edit-dialog').last();
 await dlg.waitFor({state:'visible',timeout:5000});
 
-// The current UI may expose either the modern payment state button or the legacy checkbox.
-const modern=dlg.locator('.session-editor-payment-state');
-const legacy=dlg.locator('.session-payment-field input[type="checkbox"]').first();
-if(await modern.count()){
-  await modern.waitFor({state:'visible',timeout:5000});
-  await modern.click();
-}else{
-  await legacy.waitFor({state:'visible',timeout:5000});
-  await legacy.check();
-}
-await dlg.locator('.session-edit-actions .primary').click();
-await page.waitForTimeout(120);
+// Current authoritative control replaces the legacy session-editor-payment-state button.
+await page.evaluate(()=>window.DiagnostikaSessionPaymentButtonAuthority?.refresh?.());
+const paymentToggle=dlg.locator('.session-payment-toggle-stable');
+await paymentToggle.waitFor({state:'visible',timeout:5000});
 
-const stateNow=await page.evaluate(()=>{
+await paymentToggle.click();
+await page.waitForFunction(()=>{
+  const s=client()?.sessions?.find(x=>x.id==='pay-session-1');
+  return s?.payment?.paid===true;
+},null,{timeout:5000});
+
+let stateNow=await page.evaluate(()=>{
   const s=client()?.sessions?.find(x=>x.id==='pay-session-1');
   return {paid:s?.payment?.paid===true,amount:Number(s?.payment?.amount)||0};
 });
-assert.equal(stateNow.paid,true,'Session payment was not persisted as paid');
-assert(stateNow.amount>0,'Session payment amount is zero');
+assert.equal(stateNow.paid,true,'Authoritative payment toggle did not persist paid state');
+assert(stateNow.amount>0,'Session payment amount is zero after toggle');
+
+// Normal session save must not roll the authoritative payment state back.
+await dlg.locator('.session-edit-actions .primary').click();
+await page.waitForTimeout(120);
+stateNow=await page.evaluate(()=>{
+  const s=client()?.sessions?.find(x=>x.id==='pay-session-1');
+  return {paid:s?.payment?.paid===true,amount:Number(s?.payment?.amount)||0};
+});
+assert.equal(stateNow.paid,true,'Session save rolled paid state back');
+assert(stateNow.amount>0,'Session payment amount is zero after session save');
 
 const events=await page.evaluate(()=>window.__sessionPaymentEvents);
 const event=events.find(x=>x.sessionId==='pay-session-1'&&x.paid===true);
