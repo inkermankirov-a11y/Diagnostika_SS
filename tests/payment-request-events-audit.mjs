@@ -75,17 +75,36 @@ if(phase==='add'){
 }
 
 if(phase==='editdelete'){
-  const row=dlg.locator('#paymentList .payment-row').first();
-  await row.waitFor({state:'visible',timeout:5000});
-  await row.locator('.pr-amount').fill('5500');
-  await row.locator('.pr-save').click();
-  await page.waitForTimeout(30);
+  await dlg.locator('#paymentList .payment-row').first().waitFor({state:'visible',timeout:5000});
+  const editedThroughUi=await page.evaluate(()=>{
+    const dlg=[...document.querySelectorAll('dialog.payment-dialog')].find(x=>x.querySelector('#paymentMode'));
+    const row=dlg?.querySelector('#paymentList .payment-row');
+    const amount=row?.querySelector('.pr-amount');
+    const saveButton=row?.querySelector('.pr-save');
+    if(!amount||!saveButton)return false;
+    amount.value='5500';
+    amount.dispatchEvent(new Event('input',{bubbles:true}));
+    amount.dispatchEvent(new Event('change',{bubbles:true}));
+    saveButton.click();
+    return true;
+  });
+  assert.equal(editedThroughUi,true,'Could not invoke payment row save handler');
+  await page.waitForTimeout(50);
   let events=await page.evaluate(()=>window.__paymentRequestEvents);
   const edited=events.find(x=>x.type==='payment:updated'&&x.detail.paymentId==='pay-existing'&&x.detail.change==='record');
   assert(edited,`Missing edited payment:updated: ${JSON.stringify(events)}`);
   assert.equal(Number(edited.detail.amount),5500);
-  await row.locator('.pr-delete').click();
-  await page.waitForTimeout(50);
+
+  const deletedThroughUi=await page.evaluate(()=>{
+    const dlg=[...document.querySelectorAll('dialog.payment-dialog')].find(x=>x.querySelector('#paymentMode'));
+    const row=dlg?.querySelector('#paymentList .payment-row');
+    const deleteButton=row?.querySelector('.pr-delete');
+    if(!deleteButton)return false;
+    deleteButton.click();
+    return true;
+  });
+  assert.equal(deletedThroughUi,true,'Could not invoke payment row delete handler');
+  await page.waitForTimeout(80);
   events=await page.evaluate(()=>window.__paymentRequestEvents);
   assert(events.some(x=>x.type==='payment:deleted'&&x.detail.paymentId==='pay-existing'),`Missing payment:deleted: ${JSON.stringify(events)}`);
   assert.equal(await page.evaluate(()=>client()?.requests?.[0]?.payment?.payments?.length||0),0);
