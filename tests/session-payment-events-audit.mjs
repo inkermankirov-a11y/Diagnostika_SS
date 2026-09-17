@@ -40,6 +40,7 @@ const opened=await page.evaluate(()=>{
   const c=typeof client==='function'?client():null;
   const s=c?.sessions?.find(x=>x.id==='pay-session-1');
   if(!c||!s||typeof openSessionEditor!=='function')return false;
+  try{selectedSessionId=s.id;}catch(_){}
   openSessionEditor(c,s,1);
   return true;
 });
@@ -47,8 +48,11 @@ assert.equal(opened,true,'Session editor could not be opened');
 const dlg=page.locator('dialog.session-edit-dialog').last();
 await dlg.waitFor({state:'visible',timeout:5000});
 
-// Current authoritative control replaces the legacy session-editor-payment-state button.
-await page.evaluate(()=>window.DiagnostikaSessionPaymentButtonAuthority?.refresh?.());
+await page.evaluate(()=>{
+  window.DiagnostikaSessionPaymentRepair?.refresh?.();
+  window.DiagnostikaSessionPaymentUiSync?.refresh?.();
+  window.DiagnostikaSessionPaymentButtonAuthority?.refresh?.();
+});
 const paymentToggle=dlg.locator('.session-payment-toggle-stable');
 await paymentToggle.waitFor({state:'visible',timeout:5000});
 
@@ -65,7 +69,6 @@ let stateNow=await page.evaluate(()=>{
 assert.equal(stateNow.paid,true,'Authoritative payment toggle did not persist paid state');
 assert(stateNow.amount>0,'Session payment amount is zero after toggle');
 
-// Normal session save must not roll the authoritative payment state back.
 await dlg.locator('.session-edit-actions .primary').click();
 await page.waitForTimeout(120);
 stateNow=await page.evaluate(()=>{
