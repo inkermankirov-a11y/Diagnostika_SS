@@ -4,17 +4,18 @@
   if (window.DiagnostikaPlatform?.ready) return;
 
   const platform = window.DiagnostikaPlatform || {
-    version: '0.1.0',
+    version: '0.2.0',
     status: 'loading',
     bootstrappedAt: null
   };
   window.DiagnostikaPlatform = platform;
 
   const parts = [
-    ['events', 'core/event-bus.js?v=20260917-core01'],
-    ['modules', 'core/module-registry.js?v=20260917-core01'],
-    ['store', 'core/store-bridge.js?v=20260917-core01'],
-    ['access', 'core/access-control.js?v=20260917-core01']
+    ['events', 'core/event-bus.js?v=20260917-core02a'],
+    ['modules', 'core/module-registry.js?v=20260917-core02a'],
+    ['store', 'core/store-bridge.js?v=20260917-core02a'],
+    ['access', 'core/access-control.js?v=20260917-core02a'],
+    ['legacyEvents', 'core/legacy-event-bridge.js?v=20260917-core02a']
   ];
 
   function loadPart(name, src) {
@@ -57,7 +58,7 @@
 
   platform.ready = boot().catch(error => {
     platform.status = 'error';
-    console.error('[DiagnostikaPlatform] CORE 0.1 failed to initialize', error);
+    console.error('[DiagnostikaPlatform] CORE 0.2 failed to initialize', error);
     window.dispatchEvent(new CustomEvent('diagnostika:platform-core-error', { detail: { error } }));
     return platform;
   });
