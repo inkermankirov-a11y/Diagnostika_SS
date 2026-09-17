@@ -140,12 +140,6 @@
     if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
   },true);
   document.addEventListener('change',e=>{
-    if(e.target?.id==='requestSelect'){
-      try{
-        const c=typeof client==='function'?client():null;
-        if(c&&e.target.value){c.currentRequestId=e.target.value;if(typeof save==='function')save();}
-      }catch(_){}
-    }
     if(e.target?.closest?.('.payment-dialog,dialog.session-edit-dialog')||e.target?.id==='requestSelect'){
       setTimeout(syncFlags,0);setTimeout(syncFlags,80);
     }
