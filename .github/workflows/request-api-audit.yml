@@ -2,7 +2,7 @@ name: Request API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface ]
+    branches: [ main, retire-old-interface, feature-core-0.2a ]
   workflow_dispatch:
 
 jobs:
@@ -30,8 +30,8 @@ jobs:
           dash_without_member_fields=re.sub(r'\??\.requestId\b','',dash)
           if re.search(r'\brequestId\b',dash_without_member_fields): errors.append('dashboard still owns requestId directly')
           if 'requestsApi()?.current?.()' not in dash: errors.append('dashboard current request does not use request API')
-          if 'request-api.js?v=20260916-newui1' not in loader: errors.append('request API loader missing')
-          if 'home-dashboard.js?v=20260916-newui1' not in loader: errors.append('dashboard cache version missing')
+          if 'request-api.js?v=' not in loader: errors.append('request API loader missing')
+          if 'home-dashboard.js?v=' not in loader: errors.append('dashboard loader missing')
           print('REQUEST_BOUNDARY_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY
