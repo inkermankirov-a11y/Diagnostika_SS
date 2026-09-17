@@ -123,7 +123,7 @@
       }
     }
     const shouldAttention=unpaid.length>0;
-    box.classList.toggle('payment-attention',shouldAttention);
+    if(box.classList.contains('payment-attention')!==shouldAttention)box.classList.toggle('payment-attention',shouldAttention);
     if(shouldAttention){
       const summary=box.querySelector('.client-payment-summary');
       const text=`Не оплачено · ${unpaid.length} ${unpaid.length===1?'сессия':'сессии'}`;
@@ -144,7 +144,13 @@
   const oldRenderClient=window.renderClient;
   if(typeof oldRenderClient==='function')window.renderClient=function(){const v=oldRenderClient.apply(this,arguments);scheduleRefresh();return v;};
 
-  const observer=new MutationObserver(()=>scheduleRefresh());
+  const observer=new MutationObserver(mutations=>{
+    const relevant=mutations.some(m=>Array.from(m.addedNodes||[]).some(node=>{
+      if(!(node instanceof Element))return false;
+      return node.matches?.('.session-card,.payment-dialog')||node.querySelector?.('.session-card,.payment-dialog');
+    }));
+    if(relevant)scheduleRefresh();
+  });
   observer.observe(document.body,{childList:true,subtree:true});
   scheduleRefresh();
 
