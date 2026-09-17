@@ -4,7 +4,7 @@
   if (window.__fcClientCardSyncReady) return;
   window.__fcClientCardSyncReady = true;
 
-  const SYNC_VERSION = 2;
+  const SYNC_VERSION = 3;
   const NOTES_START = '=== БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ / ИИ ===';
   const NOTES_END = '=== КОНЕЦ АВТО-БЛОКА ===';
 
@@ -28,8 +28,29 @@
     return c.freeConsultation;
   }
 
+  function buildLegacyAttempts(fc){
+    const lines=[];
+    const add=(label,value)=>{ value=text(value); if(value) lines.push(`${label}:\n${value}`); };
+    add('Что уже пробовал',fc?.tried);
+    add('Что сработало',fc?.worked);
+    add('Что не сработало',fc?.didntHelp);
+    return lines.join('\n\n').trim();
+  }
+
+  function migrateConsultationFields(fc){
+    if(!fc) return false;
+    let changed=false;
+    if(!text(fc.attempts)){
+      const legacy=buildLegacyAttempts(fc);
+      if(legacy){ fc.attempts=legacy; changed=true; }
+    }
+    if(fc.context===undefined){ fc.context=''; changed=true; }
+    return changed;
+  }
+
   function addConsultationField(grid,className,label,placeholder,beforeSelector){
-    if(grid.querySelector(`.${className}`)) return grid.querySelector(`.${className}`);
+    let existing=grid.querySelector(`.${className}`);
+    if(existing) return existing;
     const wrap=document.createElement('label');
     wrap.className='fc-field fc-card-sync-field';
     wrap.innerHTML=`<span>${label}</span><textarea class="${className}" placeholder="${placeholder}"></textarea>`;
@@ -38,97 +59,78 @@
     return wrap.querySelector('textarea');
   }
 
+  function removeLegacyConsultationFields(grid){
+    ['.fc-tried','.fc-worked','.fc-didnt-help'].forEach(selector=>{
+      const el=grid.querySelector(selector);
+      el?.closest('.fc-field')?.remove();
+    });
+  }
+
+  function cleanupLegacyClientCardFields(){
+    document.getElementById('ccWorked')?.closest('label')?.remove();
+    document.getElementById('ccDidntHelp')?.closest('label')?.remove();
+  }
+
   function attachConsultationFields(){
     const dlg=document.getElementById('freeConsultationDialog');
     const grid=dlg?.querySelector('.fc-grid');
     if(!grid) return false;
 
-    const tried=addConsultationField(
-      grid,'fc-tried','Что уже пробовал',
-      'Терапия, разговоры, курсы, самостоятельные попытки, конкретные действия...',
-      '.fc-desired'
+    removeLegacyConsultationFields(grid);
+
+    const context=addConsultationField(
+      grid,'fc-context','История клиента / контекст',
+      'Свободный рассказ клиента: предыстория, события, отношения, жизненный фон и важные детали до формулировки конкретной проблемы...',
+      '.fc-pain'
     );
-    const worked=addConsultationField(
-      grid,'fc-worked','Что сработало',
-      'Что помогало хотя бы частично или давало заметный положительный эффект...',
-      '.fc-didnt-help, .fc-desired'
-    );
-    const didnt=addConsultationField(
-      grid,'fc-didnt-help','Что не сработало',
-      'Что не помогло, дало временный эффект или почему попытка не решила проблему...',
+    const attempts=addConsultationField(
+      grid,'fc-attempts','Предыдущие попытки решения',
+      'Что уже пробовал клиент, что сработало и что не сработало — всё в одном поле...',
       '.fc-desired'
     );
 
-    [tried,worked,didnt].filter(Boolean).forEach(el=>{
+    [context,attempts].filter(Boolean).forEach(el=>{
       if(el.dataset.fcCardSyncBound==='1') return;
       el.dataset.fcCardSyncBound='1';
-      el.addEventListener('input',()=>persistConsultationExtras(false));
+      el.addEventListener('input',()=>persistConsultationFields(false));
     });
     return true;
   }
 
-  function loadConsultationExtras(){
+  function loadConsultationFields(){
     if(!attachConsultationFields()) return;
     const c=getClient(); if(!c) return;
     const fc=ensureFreeConsultation(c);
+    const migrated=migrateConsultationFields(fc);
     const dlg=document.getElementById('freeConsultationDialog');
-    const map={'.fc-tried':fc.tried||'', '.fc-worked':fc.worked||'', '.fc-didnt-help':fc.didntHelp||''};
-    for(const [selector,value] of Object.entries(map)){
-      const el=dlg?.querySelector(selector);
-      if(el) el.value=value;
-    }
+    const context=dlg?.querySelector('.fc-context');
+    const attempts=dlg?.querySelector('.fc-attempts');
+    if(context) context.value=fc.context||'';
+    if(attempts) attempts.value=fc.attempts||'';
+    if(migrated) saveState();
   }
 
-  function persistConsultationExtras(saveNow=true){
+  function persistConsultationFields(saveNow=true){
     const c=getClient(); if(!c) return null;
     const fc=ensureFreeConsultation(c);
+    migrateConsultationFields(fc);
     const dlg=document.getElementById('freeConsultationDialog');
     if(!dlg?.open) return fc;
     attachConsultationFields();
-    const tried=dlg.querySelector('.fc-tried');
-    const worked=dlg.querySelector('.fc-worked');
-    const didnt=dlg.querySelector('.fc-didnt-help');
-    if(tried) fc.tried=tried.value||'';
-    if(worked) fc.worked=worked.value||'';
-    if(didnt) fc.didntHelp=didnt.value||'';
+    const context=dlg.querySelector('.fc-context');
+    const attempts=dlg.querySelector('.fc-attempts');
+    if(context) fc.context=context.value||'';
+    if(attempts) fc.attempts=attempts.value||'';
     fc.updatedAt=new Date().toISOString();
     if(saveNow) saveState();
     return fc;
   }
 
-  function attachClientCardWorkedField(){
-    const root=document.querySelector('#clientCardDialog .cc-long-fields');
-    if(!root) return false;
-    let worked=document.getElementById('ccWorked');
-    if(!worked){
-      const label=document.createElement('label');
-      label.innerHTML='Что сработало<textarea id="ccWorked"></textarea>';
-      const tried=document.getElementById('ccTried')?.closest('label');
-      if(tried) tried.insertAdjacentElement('afterend',label); else root.appendChild(label);
-      worked=label.querySelector('#ccWorked');
-    }
-    if(worked.dataset.fcCardSaveBound!=='1'){
-      worked.dataset.fcCardSaveBound='1';
-      const saveBtn=document.getElementById('ccSaveBtn');
-      saveBtn?.addEventListener('click',()=>{
-        const value=worked.value;
-        setTimeout(()=>{
-          const c=getClient();
-          if(!c) return;
-          c.worked=value;
-          saveState();
-        },0);
-      });
-    }
-    return true;
-  }
-
-  function loadClientCardWorked(){
-    if(!attachClientCardWorkedField()) return;
-    const worked=document.getElementById('ccWorked');
-    if(!worked) return;
-    const draft=window.DiagnostikaClientCard?.isDraft?.();
-    worked.value=draft?'':(getClient()?.worked||'');
+  function selectedShortRequest(ai){
+    const selected=text(ai?.selectedShortRequest?.title||ai?.selectedShortRequest);
+    if(selected) return selected;
+    const first=Array.isArray(ai?.shortRequests)?ai.shortRequests[0]:null;
+    return text(typeof first==='string'?first:first?.title);
   }
 
   function safeAutoField(c,key,next,previousValues){
@@ -142,53 +144,21 @@
     return false;
   }
 
-  function buildNotes(fc,ai){
-    const lines=[];
-    const add=(label,value)=>{ value=text(value); if(value) lines.push(`${label}: ${value}`); };
-    add('Где проявляется',fc.manifestations);
-    add('Как мешает жить',fc.impact);
-    add('Почему обратился сейчас',fc.whyNow);
-    add('Как изменится жизнь после решения',fc.lifeAfter);
-    add('Обоснование ИИ',ai?.rationale);
-
-    const shorts=Array.isArray(ai?.shortRequests)?ai.shortRequests:[];
-    if(shorts.length){
-      lines.push('Варианты короткого запроса:');
-      shorts.forEach((item,index)=>{
-        const title=text(typeof item==='string'?item:item?.title);
-        if(!title) return;
-        const priority=Number(item?.priority);
-        lines.push(`${index+1}. ${title}${Number.isFinite(priority)?` — ${priority}%`:''}`);
-      });
-    }
-
-    const questions=Array.isArray(ai?.clarifyingQuestions)?ai.clarifyingQuestions.map(text).filter(Boolean):[];
-    if(questions.length){
-      lines.push('Уточняющие вопросы ИИ:');
-      questions.forEach((value,index)=>lines.push(`${index+1}. ${value}`));
-    }
-
-    const situations=Array.isArray(ai?.situations)?ai.situations.map(text).filter(Boolean):[];
-    if(situations.length){
-      lines.push('Ситуации из анализа:');
-      situations.forEach((value,index)=>lines.push(`${index+1}. ${value}`));
-    }
-    return lines.join('\n').trim();
+  function stripLegacyAutoBlock(value){
+    const original=String(value||'');
+    const re=new RegExp(`${escRegExp(NOTES_START)}[\\s\\S]*?${escRegExp(NOTES_END)}`,'g');
+    const cleaned=original.replace(re,'').replace(/\n{3,}/g,'\n\n').trim();
+    return {value:cleaned,changed:cleaned!==original};
   }
 
-  function mergeAutoNotes(current,body){
-    const block=body?`${NOTES_START}\n${body}\n${NOTES_END}`:'';
-    let notes=String(current||'');
-    const re=new RegExp(`${escRegExp(NOTES_START)}[\\s\\S]*?${escRegExp(NOTES_END)}`,'g');
-    const hadBlock=re.test(notes);
-    re.lastIndex=0;
-    if(hadBlock){
-      notes=notes.replace(re,block).replace(/\n{3,}/g,'\n\n').trim();
-      return {notes,block,changed:notes!==String(current||'')};
+  function cleanLegacyAutoNotes(c){
+    let changed=false;
+    for(const key of ['clientNotes','notes']){
+      if(typeof c?.[key]!=='string' || !c[key].includes(NOTES_START)) continue;
+      const cleaned=stripLegacyAutoBlock(c[key]);
+      if(cleaned.changed){ c[key]=cleaned.value; changed=true; }
     }
-    if(!block) return {notes,block,changed:false};
-    notes=notes.trim()?`${notes.trim()}\n\n${block}`:block;
-    return {notes,block,changed:notes!==String(current||'')};
+    return changed;
   }
 
   function refreshOpenCard(c){
@@ -196,13 +166,11 @@
     if(!dlg?.open || window.DiagnostikaClientCard?.isDraft?.()) return;
     const current=getClient();
     if(!current || String(current.id)!==String(c.id)) return;
-    attachClientCardWorkedField();
+    cleanupLegacyClientCardFields();
     const map={
       ccInitialProblem:c.initialProblem||'',
       ccMainRequest:c.mainRequest||'',
       ccTried:c.tried||'',
-      ccWorked:c.worked||'',
-      ccDidntHelp:c.didntHelp||'',
       ccDesiredOutcome:c.desiredOutcome||'',
       ccClientNotes:c.clientNotes||c.notes||''
     };
@@ -215,35 +183,30 @@
   function syncClient(c,aiOverride=null){
     if(!c) return false;
     const fc=ensureFreeConsultation(c);
+    const migrated=migrateConsultationFields(fc);
     const ai=aiOverride||fc.aiResult||null;
-    if(!ai && !text(fc.pain) && !text(fc.tried) && !text(fc.worked) && !text(fc.didntHelp) && !text(fc.desired)) return false;
+    let changed=migrated || cleanLegacyAutoNotes(c);
 
-    const sync=fc.cardSync&&typeof fc.cardSync==='object'?fc.cardSync:{};
-    const previous=sync.values&&typeof sync.values==='object'?sync.values:{};
-    const next={
-      initialProblem:text(fc.pain),
-      mainRequest:text(ai?.mainRequest),
-      tried:text(fc.tried),
-      worked:text(fc.worked),
-      didntHelp:text(fc.didntHelp),
-      desiredOutcome:text(ai?.desiredResult)||text(fc.desired)
-    };
+    if(ai){
+      const sync=fc.cardSync&&typeof fc.cardSync==='object'?fc.cardSync:{};
+      const previous=sync.values&&typeof sync.values==='object'?sync.values:{};
+      const next={
+        initialProblem:text(ai?.mainRequest),
+        mainRequest:selectedShortRequest(ai),
+        tried:text(fc.attempts),
+        desiredOutcome:text(ai?.desiredResult)
+      };
 
-    let changed=false;
-    for(const [key,value] of Object.entries(next)) changed=safeAutoField(c,key,value,previous)||changed;
+      for(const [key,value] of Object.entries(next)) changed=safeAutoField(c,key,value,previous)||changed;
 
-    const notesBody=buildNotes(fc,ai);
-    const merged=mergeAutoNotes(c.clientNotes||c.notes||'',notesBody);
-    if(merged.changed){ c.clientNotes=merged.notes; changed=true; }
+      fc.cardSync={
+        version:SYNC_VERSION,
+        syncedAt:new Date().toISOString(),
+        values:next
+      };
+    }
 
-    fc.cardSync={
-      version:SYNC_VERSION,
-      syncedAt:new Date().toISOString(),
-      values:next,
-      notesBlock:merged.block
-    };
-
-    saveState();
+    if(changed) saveState();
     refreshOpenCard(c);
     try{ window.DiagnostikaHomeDashboard?.refresh?.(); }catch(_){}
     window.dispatchEvent(new CustomEvent('diagnostika:free-consultation-card-synced',{detail:{clientId:c.id,changed}}));
@@ -251,7 +214,7 @@
   }
 
   function syncCurrent(){
-    persistConsultationExtras(false);
+    persistConsultationFields(false);
     return syncClient(getClient());
   }
 
@@ -261,12 +224,18 @@
     const original=api.generate.bind(api);
     const wrapped=async payload=>{
       const c=getClient();
-      const fc=persistConsultationExtras(true)||ensureFreeConsultation(c)||{};
+      const fc=persistConsultationFields(true)||ensureFreeConsultation(c)||{};
+      const rawPain=text(payload?.pain||fc.pain);
+      const context=text(fc.context);
+      const painForAi=context
+        ?`История клиента / контекст:\n${context}\n\nБоль клиента:\n${rawPain}`
+        :rawPain;
+      const attempts=text(fc.attempts);
       const result=await original({
         ...(payload||{}),
-        tried:fc.tried||payload?.tried||'',
-        worked:fc.worked||payload?.worked||'',
-        didntHelp:fc.didntHelp||payload?.didntHelp||''
+        pain:painForAi,
+        tried:attempts||payload?.tried||'',
+        didntHelp:''
       });
       if(c) syncClient(c,result);
       return result;
@@ -281,8 +250,8 @@
     if(!api || api.__fcCardSyncWrapped) return false;
     const oldExisting=api.openExisting?.bind(api);
     const oldNew=api.openNew?.bind(api);
-    if(oldExisting) api.openExisting=function(){ syncCurrent(); const out=oldExisting(); setTimeout(loadClientCardWorked,0); return out; };
-    if(oldNew) api.openNew=function(){ const out=oldNew(); setTimeout(loadClientCardWorked,0); return out; };
+    if(oldExisting) api.openExisting=function(){ syncCurrent(); cleanupLegacyClientCardFields(); return oldExisting(); };
+    if(oldNew) api.openNew=function(){ cleanupLegacyClientCardFields(); return oldNew(); };
     api.__fcCardSyncWrapped=true;
     return true;
   }
@@ -310,7 +279,7 @@
 
   function bind(){
     attachConsultationFields();
-    attachClientCardWorkedField();
+    cleanupLegacyClientCardFields();
     wrapAiGenerator();
     wrapClientCardOpen();
     repairImportedQuestionnaireSources();
@@ -318,16 +287,17 @@
 
   const fcDlg=document.getElementById('freeConsultationDialog');
   if(fcDlg){
-    new MutationObserver(()=>{ if(fcDlg.open){ attachConsultationFields(); loadConsultationExtras(); } }).observe(fcDlg,{attributes:true,attributeFilter:['open']});
-  }
-  const cardDlg=document.getElementById('clientCardDialog');
-  if(cardDlg){
-    new MutationObserver(()=>{ if(cardDlg.open) setTimeout(loadClientCardWorked,0); }).observe(cardDlg,{attributes:true,attributeFilter:['open']});
+    new MutationObserver(()=>{
+      if(fcDlg.open){
+        attachConsultationFields();
+        loadConsultationFields();
+      }
+    }).observe(fcDlg,{attributes:true,attributeFilter:['open']});
   }
 
   document.addEventListener('click',event=>{
-    if(event.target?.closest?.('.cc-free-consult-btn')) setTimeout(loadConsultationExtras,0);
-    if(event.target?.closest?.('.fc-save,.fc-ai')) persistConsultationExtras(true);
+    if(event.target?.closest?.('.cc-free-consult-btn')) setTimeout(loadConsultationFields,0);
+    if(event.target?.closest?.('.fc-save,.fc-ai')) persistConsultationFields(true);
   },true);
 
   window.addEventListener('diagnostika:questionnairesImported',()=>setTimeout(repairImportedQuestionnaireSources,0));
@@ -336,7 +306,7 @@
   window.DiagnostikaFreeConsultationSync={
     syncCurrent,
     syncClient,
-    refresh(){ bind(); loadConsultationExtras(); loadClientCardWorked(); },
+    refresh(){ bind(); loadConsultationFields(); },
     repairQuestionnaireSources:repairImportedQuestionnaireSources
   };
 
