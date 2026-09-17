@@ -32,16 +32,8 @@
   function sessionFromDialog(dlg,c=currentClient()){
     if(!dlg||!c)return null;
     const id=dlg.dataset.sessionId;
-    if(id){
-      const found=(c.sessions||[]).find(s=>String(s.id)===String(id));
-      if(found)return found;
-    }
-    try{
-      if(typeof selectedSessionId!=='undefined'&&selectedSessionId){
-        const found=(c.sessions||[]).find(s=>String(s.id)===String(selectedSessionId));
-        if(found)return found;
-      }
-    }catch(_){}
+    if(id){const found=(c.sessions||[]).find(s=>String(s.id)===String(id));if(found)return found;}
+    try{if(typeof selectedSessionId!=='undefined'&&selectedSessionId){const found=(c.sessions||[]).find(s=>String(s.id)===String(selectedSessionId));if(found)return found;}}catch(_){}
     const title=dlg.querySelector('.session-edit-title,h1,h2,h3')?.textContent||'';
     const m=title.match(/Сессия\s*№\s*(\d+)/i);
     return m?sessionByNumber(c,Number(m[1])):null;
@@ -60,30 +52,21 @@
   }
 
   function amountFor(dlg,s,r){
-    return Math.max(0,
-      num(dlg?.querySelector('.session-editor-payment-amount')?.value)||
-      num(s?.payment?.amount)||
-      effectivePrice(r)
-    );
+    return Math.max(0,num(dlg?.querySelector('.session-editor-payment-amount')?.value)||num(s?.payment?.amount)||effectivePrice(r));
   }
 
   function paint(btn,s,dlg,r){
-    const sp=paymentOf(s);
-    const paid=sp.paid===true;
-    const amount=amountFor(dlg,s,r);
-    btn.classList.toggle('paid',paid);
-    btn.classList.toggle('unpaid',!paid);
-    btn.textContent=paid?'✓ Оплачено':'Не оплачено';
-    btn.title=paid?`Оплачено${amount?` ${amount.toLocaleString('ru-RU')} ₽`:''}. Нажмите, чтобы снять оплату.`:'Нажмите, чтобы отметить оплату.';
-    btn.setAttribute('aria-pressed',paid?'true':'false');
+    const sp=paymentOf(s),paid=sp.paid===true,amount=amountFor(dlg,s,r);
+    if(btn.classList.contains('paid')!==paid)btn.classList.toggle('paid',paid);
+    if(btn.classList.contains('unpaid')===paid)btn.classList.toggle('unpaid',!paid);
+    const text=paid?'✓ Оплачено':'Не оплачено';if(btn.textContent!==text)btn.textContent=text;
+    const title=paid?`Оплачено${amount?` ${amount.toLocaleString('ru-RU')} ₽`:''}. Нажмите, чтобы снять оплату.`:'Нажмите, чтобы отметить оплату.';if(btn.title!==title)btn.title=title;
+    const aria=paid?'true':'false';if(btn.getAttribute('aria-pressed')!==aria)btn.setAttribute('aria-pressed',aria);
     const legacy=dlg?.querySelector('.session-payment-field input[type="checkbox"],.session-payment-paid input[type="checkbox"]');
-    if(legacy)legacy.checked=paid;
+    if(legacy&&legacy.checked!==paid)legacy.checked=paid;
   }
 
-  function saveState(){
-    try{if(typeof save==='function')save();}catch(_){}
-  }
-
+  function saveState(){try{if(typeof save==='function')save();}catch(_){} }
   function refreshOutside(){
     try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
     try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
@@ -94,86 +77,42 @@
 
   function install(dlg){
     if(!dlg?.matches?.('dialog.session-edit-dialog'))return;
-    const c=currentClient(),s=sessionFromDialog(dlg,c);
-    if(!c||!s)return;
-
+    const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
     let btn=dlg.querySelector('.session-payment-toggle-stable');
     if(!btn){
-      const old=dlg.querySelector('.session-editor-payment-state');
-      if(!old)return;
-
-      btn=old.cloneNode(true);
-      btn.classList.remove('session-editor-payment-state');
-      btn.classList.add('session-payment-toggle-stable');
-      btn.type='button';
-      old.replaceWith(btn);
-
+      const old=dlg.querySelector('.session-editor-payment-state');if(!old)return;
+      btn=old.cloneNode(true);btn.classList.remove('session-editor-payment-state');btn.classList.add('session-payment-toggle-stable');btn.type='button';old.replaceWith(btn);
       btn.addEventListener('click',e=>{
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-
-        const clientNow=currentClient();
-        const sessionNow=sessionFromDialog(dlg,clientNow);
-        if(!clientNow||!sessionNow)return;
-        const requestNow=requestForSession(clientNow,sessionNow,dlg);
-        const sp=paymentOf(sessionNow);
-        const next=sp.paid!==true;
-        const amount=amountFor(dlg,sessionNow,requestNow);
-
-        sp.paid=next;
-        dlg.dataset.saveGuardPaymentDraft=next?'1':'0';
-        dlg.dataset.saveGuardSessionDirty='1';
-
+        e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+        const clientNow=currentClient(),sessionNow=sessionFromDialog(dlg,clientNow);if(!clientNow||!sessionNow)return;
+        const requestNow=requestForSession(clientNow,sessionNow,dlg),sp=paymentOf(sessionNow),next=sp.paid!==true,amount=amountFor(dlg,sessionNow,requestNow);
+        sp.paid=next;dlg.dataset.saveGuardPaymentDraft=next?'1':'0';dlg.dataset.saveGuardSessionDirty='1';
         if(amount>0)sp.amount=amount;
-        if(requestNow?.id){
-          sessionNow.requestId=requestNow.id;
-          sp.requestId=requestNow.id;
-        }
+        if(requestNow?.id){sessionNow.requestId=requestNow.id;sp.requestId=requestNow.id;}
         sp.manualAmount=false;
-
         if(next){
-          sp.paidAt=today();
-          sp.sessionDate=dlg.querySelector('.session-edit-grid input[type="date"]')?.value||sessionNow.date||today();
-          if(requestNow){
-            sp.baseAmount=num(requestNow.payment?.sessionAmount)||amount;
-            sp.discountSnapshot=Math.min(100,Math.max(0,num(requestNow.payment?.sessionDiscount)));
-            sp.priceSnapshot=true;
-          }
-        }else{
-          delete sp.paidAt;
-          delete sp.sessionDate;
-          delete sp.baseAmount;
-          delete sp.discountSnapshot;
-          delete sp.priceSnapshot;
-        }
-
-        saveState();
-        paint(btn,sessionNow,dlg,requestNow);
-        refreshOutside();
-
-        setTimeout(()=>paint(btn,sessionNow,dlg,requestNow),50);
-        setTimeout(()=>paint(btn,sessionNow,dlg,requestNow),300);
+          sp.paidAt=today();sp.sessionDate=dlg.querySelector('.session-edit-grid input[type="date"]')?.value||sessionNow.date||today();
+          if(requestNow){sp.baseAmount=num(requestNow.payment?.sessionAmount)||amount;sp.discountSnapshot=Math.min(100,Math.max(0,num(requestNow.payment?.sessionDiscount)));sp.priceSnapshot=true;}
+        }else{delete sp.paidAt;delete sp.sessionDate;delete sp.baseAmount;delete sp.discountSnapshot;delete sp.priceSnapshot;}
+        saveState();paint(btn,sessionNow,dlg,requestNow);refreshOutside();
       },true);
     }
-
-    const legacy=dlg.querySelector('.session-payment-field');
-    if(legacy)legacy.style.display='none';
-
-    const paid=paymentOf(s).paid===true;
-    dlg.dataset.saveGuardPaymentDraft=paid?'1':'0';
+    const legacy=dlg.querySelector('.session-payment-field');if(legacy&&legacy.style.display!=='none')legacy.style.display='none';
+    const paid=paymentOf(s).paid===true,draft=paid?'1':'0';if(dlg.dataset.saveGuardPaymentDraft!==draft)dlg.dataset.saveGuardPaymentDraft=draft;
     paint(btn,s,dlg,requestForSession(c,s,dlg));
   }
 
-  function refresh(){
-    document.querySelectorAll('dialog.session-edit-dialog').forEach(install);
-  }
+  function refresh(){document.querySelectorAll('dialog.session-edit-dialog').forEach(install);}
 
-  const observer=new MutationObserver(()=>requestAnimationFrame(refresh));
+  const observer=new MutationObserver(mutations=>{
+    const addedDialog=mutations.some(m=>Array.from(m.addedNodes||[]).some(node=>{
+      if(!(node instanceof Element))return false;
+      return node.matches?.('dialog.session-edit-dialog')||node.querySelector?.('dialog.session-edit-dialog');
+    }));
+    if(addedDialog)requestAnimationFrame(refresh);
+  });
   observer.observe(document.body,{childList:true,subtree:true});
-  document.addEventListener('change',e=>{
-    if(e.target?.closest?.('dialog.session-edit-dialog'))setTimeout(refresh,0);
-  },true);
+  document.addEventListener('change',e=>{if(e.target?.closest?.('dialog.session-edit-dialog'))setTimeout(refresh,0);},true);
 
   setTimeout(refresh,0);
   window.DiagnostikaSessionPaymentButtonAuthority={refresh};
