@@ -79,7 +79,7 @@
     }
 
     const api=document.createElement('script');
-    api.src='request-api.js?v=20260916-newui1';
+    api.src='request-api.js?v=20260917-core02a';
     api.setAttribute('data-request-api','1');
     api.onload=loadDashboard;
     document.body.appendChild(api);
@@ -97,7 +97,7 @@
   }
 
   const api=document.createElement('script');
-  api.src='client-api.js?v=20260916-clientapi1';
+  api.src='client-api.js?v=20260917-core02a';
   api.setAttribute('data-client-api','1');
   api.onload=loadRequestApi;
   document.body.appendChild(api);
