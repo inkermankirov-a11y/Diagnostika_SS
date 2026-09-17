@@ -9,7 +9,6 @@
   }
   loadOnce('session-payment-data-repair.js?v=20260912-56','data-session-payment-data-repair');
   loadOnce('session-payment-mode-rule.js?v=20260912-59','data-session-payment-mode-rule');
-  loadOnce('client-ai-full-context.js?v=20260917-clientaifull1','data-client-ai-full-context');
 })();
 
 // Main home screen redesign. Loaded last so it can reuse the existing application logic safely.
