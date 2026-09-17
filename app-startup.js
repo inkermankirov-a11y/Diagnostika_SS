@@ -4,19 +4,8 @@
   const retry = document.getElementById('appReloadBtn');
   retry?.addEventListener('click', () => location.reload());
 
-  function coreReady() {
-    const requestSelect = document.getElementById('requestSelect');
-    const hintBtn = document.getElementById('hintBtn');
-    return typeof window.client === 'function'
-      && typeof window.save === 'function'
-      && typeof window.renderClient === 'function'
-      && typeof window.renderMode === 'function'
-      && typeof requestSelect?.onchange === 'function'
-      && typeof hintBtn?.onclick === 'function';
-  }
-
   function ready() {
-    return !!(coreReady() && window.DiagnostikaHomeDashboard && window.DiagnostikaDashboardSessions);
+    return !!(window.DiagnostikaCoreReady && window.DiagnostikaHomeDashboard && window.DiagnostikaDashboardSessions);
   }
 
   function update() {
@@ -27,6 +16,7 @@
     return true;
   }
 
+  window.addEventListener('diagnostika:core-ready', update);
   window.addEventListener('diagnostika:dashboard-loaded', update);
   if (update()) return;
   setTimeout(() => {
