@@ -15,6 +15,7 @@
   function cclient(){return typeof client==='function'?client():null;}
   function reqById(c,id){return c?.requests?.find(r=>r.id===id)||null;}
   function now(){return new Date().toISOString();}
+  function emit(type,detail){window.DiagnostikaLegacyEvents?.emit?.(type,detail);}
   function dateText(raw){if(!raw)return'';const d=new Date(raw);if(Number.isNaN(d.getTime()))return'';return d.toLocaleDateString(lang()==='ru'?'ru-RU':lang()==='de'?'de-DE':lang()==='fr'?'fr-FR':lang()==='it'?'it-IT':'en-GB');}
 
   function normalizeStatus(r){
@@ -38,11 +39,15 @@
     if(!c)return null;
     const target=reqById(c,id);if(!target)return null;
     if(target.status==='completed'&&!resumeCompleted)return null;
+    const previousRequestId=c.currentRequestId||null;
     if(target.status==='completed')target.status='active';
     c.currentRequestId=target.id;
     c.lastDiagnosisRequestId=target.id;
     target.updatedAt=now();
     if(typeof save==='function')save();
+    if(String(previousRequestId??'')!==String(target.id)){
+      emit('request:activated',{clientId:c.id,requestId:target.id,previousRequestId:previousRequestId??null,source:'request-cycle'});
+    }
     return target;
   }
 
@@ -74,12 +79,18 @@
     row.querySelector('.request-resume-btn').onclick=()=>{
       const c=cclient(),r=reqById(c,requestId);if(!c||!r)return;
       r.status='active';delete r.completedAt;r.updatedAt=now();setCurrent(c,r.id,{resumeCompleted:true});save();renderAll();
+      emit('request:resumed',{clientId:c.id,requestId:r.id,source:'request-cycle'});
     };
     row.querySelector('.request-finish-btn').onclick=()=>{
       const c=cclient(),r=reqById(c,requestId);if(!c||!r)return;
+      const finishedId=r.id;
+      const wasCurrent=c.currentRequestId===r.id;
       r.status='completed';r.completedAt=now();r.updatedAt=r.completedAt;
-      if(c.currentRequestId===r.id){const next=c.requests.find(x=>x.id!==r.id&&normalizeStatus(x)==='active');c.currentRequestId=next?.id||null;}
+      let next=null;
+      if(wasCurrent){next=c.requests.find(x=>x.id!==r.id&&normalizeStatus(x)==='active')||null;c.currentRequestId=next?.id||null;}
       save();renderAll();
+      emit('request:completed',{clientId:c.id,requestId:finishedId,source:'request-cycle'});
+      if(next){emit('request:activated',{clientId:c.id,requestId:next.id,previousRequestId:finishedId,source:'request-cycle-auto-next'});}
     };
   }
 
@@ -103,15 +114,15 @@
 
   const select=document.querySelector('#requestSelect');
   if(select){
-    select.onchange=e=>{requestId=e.target.value;situationId=null;selected=null;if(typeof renderRequests==='function')renderRequests();};
+    select.onchange=e=>{const previousRequestId=requestId||null;requestId=e.target.value;situationId=null;selected=null;if(typeof renderRequests==='function')renderRequests();if(String(previousRequestId??'')!==String(requestId??'')){const c=cclient();emit('request:selected',{clientId:c?.id||null,requestId:requestId||null,previousRequestId,source:'request-select'});}};
     new MutationObserver(relabel).observe(select,{childList:true});
   }
 
   const addRequest=document.querySelector('#addRequestBtn');
-  if(addRequest)addRequest.onclick=()=>{const c=cclient();if(!c)return;const r=newRequest();r.title='Новый запрос';r.status='active';r.createdAt=now();r.updatedAt=r.createdAt;c.requests.push(r);c.currentRequestId=r.id;c.lastDiagnosisRequestId=r.id;requestId=r.id;situationId=null;selected=null;save();renderRequests();};
+  if(addRequest)addRequest.onclick=()=>{const c=cclient();if(!c)return;const previousRequestId=c.currentRequestId||null;const r=newRequest();r.title='Новый запрос';r.status='active';r.createdAt=now();r.updatedAt=r.createdAt;c.requests.push(r);c.currentRequestId=r.id;c.lastDiagnosisRequestId=r.id;requestId=r.id;situationId=null;selected=null;save();renderRequests();emit('request:created',{clientId:c.id,requestId:r.id,source:'request-create'});emit('request:selected',{clientId:c.id,requestId:r.id,previousRequestId,source:'request-create'});emit('request:activated',{clientId:c.id,requestId:r.id,previousRequestId,source:'request-create'});};
 
   const diagNew=document.querySelector('#diagNewBtn');
-  if(diagNew)diagNew.onclick=()=>{const c=cclient();if(!c)return;const r=newRequest();r.title='Новый запрос';r.status='active';r.createdAt=now();r.updatedAt=r.createdAt;c.requests.push(r);c.currentRequestId=r.id;c.lastDiagnosisRequestId=r.id;requestId=r.id;situationId=null;selected=null;mode='diagnosis';save();renderRequests();renderMode();document.querySelector('#diagnosisLaunchDialog')?.close();};
+  if(diagNew)diagNew.onclick=()=>{const c=cclient();if(!c)return;const previousRequestId=c.currentRequestId||null;const r=newRequest();r.title='Новый запрос';r.status='active';r.createdAt=now();r.updatedAt=r.createdAt;c.requests.push(r);c.currentRequestId=r.id;c.lastDiagnosisRequestId=r.id;requestId=r.id;situationId=null;selected=null;mode='diagnosis';save();renderRequests();renderMode();document.querySelector('#diagnosisLaunchDialog')?.close();emit('request:created',{clientId:c.id,requestId:r.id,source:'diagnosis-create'});emit('request:selected',{clientId:c.id,requestId:r.id,previousRequestId,source:'diagnosis-create'});emit('request:activated',{clientId:c.id,requestId:r.id,previousRequestId,source:'diagnosis-create'});};
 
   const style=document.createElement('style');style.textContent=`
     .current-request-box{margin:8px 0 2px;padding:9px 10px;border:1px solid #cddbea;border-radius:8px;background:#f3f8fd}.current-request-label{font-size:11px;font-weight:800;color:#334155;margin-bottom:4px}.current-request-row{display:flex;gap:8px;align-items:center;justify-content:space-between}.current-request-text{font-size:12px;color:#334155;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.current-request-status,.request-status-badge{flex:0 0 auto;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;border:1px solid #cbd5e1}.current-request-status.active,.request-status-badge.active{background:#e8f7ee;color:#237a49;border-color:#bce3cb}.current-request-status.completed,.request-status-badge.completed{background:#eef1f4;color:#65717e;border-color:#d5dce3}.current-request-extra{font-size:10px;color:#7b8794;margin-top:4px}.request-status-controls{display:flex;align-items:center;gap:7px;margin:7px 0 10px;flex-wrap:wrap}.request-status-controls .tk-btn{padding:6px 10px!important;font-size:11px!important;min-height:30px!important}.request-current-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-current-btn:disabled{opacity:.65;cursor:default}.request-resume-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-finish-btn{margin-left:auto;background:linear-gradient(#53aa77,#2d8f59)!important;color:#fff!important}@media(max-width:640px){.current-request-row{align-items:flex-start}.current-request-text{white-space:normal}.request-finish-btn{margin-left:0}}
