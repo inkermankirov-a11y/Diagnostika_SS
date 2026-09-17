@@ -31,7 +31,6 @@ await page.evaluate(()=>{
   }
 });
 
-window;
 const opened=await page.evaluate(()=>{
   const button=[...document.querySelectorAll('#hdHeroActions button')].find(b=>b.textContent.trim()==='Оплата');
   if(!button)return false;
