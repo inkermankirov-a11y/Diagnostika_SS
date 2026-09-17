@@ -1,0 +1,21 @@
+name: Consultation card sync audit
+on:
+  push:
+    branches: [ audit-consult-card-sync ]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check sync module syntax
+        run: node --check free-consultation-client-card-sync.js
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify consultation to client card sync
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/consult-sync-http.log 2>&1 &
+          node tests/consult-card-sync-audit.mjs
