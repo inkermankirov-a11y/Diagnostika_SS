@@ -1,0 +1,19 @@
+name: CORE events audit
+on:
+  push:
+    branches: [ main, feature-core-0.2a ]
+  workflow_dispatch:
+jobs:
+  core-events:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify CORE business events
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/core-events-http.log 2>&1 &
+          node tests/core-events-audit.mjs
