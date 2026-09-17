@@ -13,8 +13,10 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Verify CORE business events
+      - name: Start audit server
         run: |
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/core-events-http.log 2>&1 &
-          node tests/core-events-audit.mjs
-          node tests/payment-events-audit.mjs
+      - name: Verify existing CORE business events
+        run: node tests/core-events-audit.mjs
+      - name: Verify CORE payment events
+        run: node tests/payment-events-audit.mjs
