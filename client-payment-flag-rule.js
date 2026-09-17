@@ -11,7 +11,6 @@
     .payment-dialog .payment-row-actions .pr-delete{position:static!important;inset:auto!important;float:none!important;margin:0!important;transform:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;height:32px!important;min-height:32px!important;box-sizing:border-box!important;padding:5px 9px!important;font-size:11px!important;line-height:1!important}
     .payment-dialog .payment-row-actions .pr-save{min-width:76px!important}
     .payment-dialog .payment-row-actions .pr-delete{min-width:70px!important}
-    .hd-client-more{display:none!important}
     @media(max-width:760px){
       .payment-dialog .payment-row{grid-template-columns:1fr 1fr!important}
       .payment-dialog .payment-row-actions{grid-column:1/-1!important;width:100%!important;min-width:0!important;justify-content:flex-end!important}
@@ -103,8 +102,6 @@
 
   function syncFlags(){
     if(typeof state==='undefined'||!Array.isArray(state?.clients))return;
-
-    document.querySelectorAll('.hd-client-more').forEach(btn=>btn.remove());
 
     document.querySelectorAll('.hd-client-row[data-id]').forEach(row=>{
       const c=state.clients.find(x=>String(x.id)===String(row.dataset.id));
