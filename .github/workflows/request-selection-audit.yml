@@ -1,0 +1,95 @@
+name: Request selection audit
+
+on:
+  push:
+    branches: [ main, fix-request-selection-not-active ]
+  workflow_dispatch:
+
+jobs:
+  request-selection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static syntax check
+        run: |
+          node --check request-select-labels.js
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify viewing does not activate request
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-selection-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > /tmp/request-selection-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1200,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
+          await page.goto(`http://127.0.0.1:8000/index.html?request-selection=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:10000});
+
+          const ids=await page.evaluate(()=>{
+            const c=typeof client==='function'?client():null;
+            if(!c)throw new Error('No current client');
+            const stamp=new Date().toISOString();
+            const mk=title=>({id:crypto.randomUUID(),title,status:'active',createdAt:stamp,updatedAt:stamp,situations:[]});
+            const first=mk('Первый активный запрос');
+            const second=mk('Второй просматриваемый запрос');
+            c.requests=[first,second];
+            c.currentRequestId=first.id;
+            c.lastDiagnosisRequestId=first.id;
+            requestId=first.id;
+            situationId=null;
+            selected=null;
+            mode='diagnosis';
+            save();
+            renderRequests();
+            renderMode();
+            return {first:first.id,second:second.id};
+          });
+
+          await page.locator('#diagnosticsLeft').waitFor({state:'visible',timeout:3000});
+          await page.selectOption('#requestSelect',ids.second);
+          await page.waitForTimeout(100);
+
+          const viewed=await page.evaluate(()=>{
+            const c=client();
+            const btn=document.querySelector('.request-current-btn');
+            return {
+              current:c.currentRequestId,
+              lastDiagnosis:c.lastDiagnosisRequestId,
+              viewed:requestId,
+              select:document.querySelector('#requestSelect')?.value||'',
+              disabled:!!btn?.disabled,
+              text:btn?.textContent?.trim()||''
+            };
+          });
+          console.log('VIEW_ONLY_STATE:',JSON.stringify(viewed));
+          if(String(viewed.current)!==String(ids.first))throw new Error(`Selecting request changed active request: ${JSON.stringify(viewed)}`);
+          if(String(viewed.lastDiagnosis)!==String(ids.first))throw new Error(`Selecting request changed last diagnosis authority: ${JSON.stringify(viewed)}`);
+          if(String(viewed.viewed)!==String(ids.second)||String(viewed.select)!==String(ids.second))throw new Error(`Second request was not opened for viewing: ${JSON.stringify(viewed)}`);
+          if(viewed.disabled||viewed.text.includes('✓'))throw new Error(`Activate button is not available for viewed inactive request: ${JSON.stringify(viewed)}`);
+
+          await page.locator('.request-current-btn').click();
+          await page.waitForTimeout(50);
+          const activated=await page.evaluate(()=>{
+            const c=client();
+            const btn=document.querySelector('.request-current-btn');
+            return {current:c.currentRequestId,lastDiagnosis:c.lastDiagnosisRequestId,disabled:!!btn?.disabled,text:btn?.textContent?.trim()||''};
+          });
+          console.log('ACTIVATED_STATE:',JSON.stringify(activated));
+          if(String(activated.current)!==String(ids.second)||String(activated.lastDiagnosis)!==String(ids.second))throw new Error(`Activate button did not switch active request: ${JSON.stringify(activated)}`);
+          if(!activated.disabled||!activated.text.includes('✓'))throw new Error(`Activated request button state is wrong: ${JSON.stringify(activated)}`);
+
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          if(serious.length)throw new Error(serious.join(' | '));
+          await browser.close();
+          JS
+          node /tmp/request-selection-audit.mjs
