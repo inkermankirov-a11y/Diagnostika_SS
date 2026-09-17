@@ -18,6 +18,8 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/core-events-http.log 2>&1 &
       - name: Verify existing CORE business events
         run: node tests/core-events-audit.mjs
+      - name: Verify payment persistence bridge
+        run: node tests/payment-event-bridge-smoke.mjs
       - name: Verify request payment events
         run: node tests/payment-request-events-audit.mjs
       - name: Verify session payment event
