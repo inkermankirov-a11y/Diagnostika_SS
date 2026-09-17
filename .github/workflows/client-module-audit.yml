@@ -1,0 +1,57 @@
+name: Client module audit
+
+on:
+  push:
+    branches: [ main, feature-clients-2a ]
+    paths:
+      - 'modules/clients/**'
+      - 'client-api.js'
+      - 'app-loader.js'
+      - 'tests/client-module-audit.mjs'
+      - '.github/workflows/client-module-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  client-module:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static client module check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/clients/client-service.js
+          node --check modules/clients/index.js
+          node --check client-api.js
+          node --check app-loader.js
+          node --check tests/client-module-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          service=Path('modules/clients/client-service.js').read_text(encoding='utf-8')
+          module=Path('modules/clients/index.js').read_text(encoding='utf-8')
+          api=Path('client-api.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          errors=[]
+          for token in ["created: 'client:created'","selected: 'client:selected'","updated: 'client:updated'","deleted: 'client:deleted'","restored: 'client:restored'"]:
+              if token not in service: errors.append('service contract missing '+token)
+          if "id: MODULE_ID" not in module or "const MODULE_ID = 'clients'" not in module: errors.append('clients module registration missing')
+          if "roles: ['specialist', 'admin']" not in module: errors.append('clients module roles missing')
+          if 'moduleAware:true' not in api: errors.append('module-aware compatibility facade missing')
+          if 'modules/clients/client-service.js?v=' not in loader: errors.append('client service loader missing')
+          if 'modules/clients/index.js?v=' not in loader: errors.append('clients module loader missing')
+          print('CLIENT_MODULE_STATIC_ERRORS:',errors)
+          if errors: sys.exit(1)
+          PY
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify client module in browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-module-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/client-module-audit.mjs
