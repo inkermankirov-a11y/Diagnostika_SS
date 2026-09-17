@@ -109,8 +109,18 @@
       const tools=row.querySelector('.hd-client-tools');
       if(!tools)return;
 
-      tools.querySelectorAll('.hd-unpaid-flag').forEach(flag=>flag.remove());
-      if(!clientHasDebt(c))return;
+      const flags=Array.from(tools.querySelectorAll('.hd-unpaid-flag'));
+      const hasDebt=clientHasDebt(c);
+
+      if(!hasDebt){
+        flags.forEach(flag=>flag.remove());
+        return;
+      }
+
+      if(flags.length){
+        flags.slice(1).forEach(flag=>flag.remove());
+        return;
+      }
 
       const flag=document.createElement('span');
       flag.className='hd-unpaid-flag';
