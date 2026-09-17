@@ -9,6 +9,8 @@ on:
       - 'client-list-cleanup.js'
       - 'client-payment-flag-rule.js'
       - 'app.js'
+      - 'app-loader.js'
+      - 'app-startup.js'
       - 'last-client.js'
       - 'index.html'
       - 'request-title-display.js'
