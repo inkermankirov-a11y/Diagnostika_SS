@@ -1,6 +1,12 @@
 'use strict';
 
 (() => {
+  const stabilityStyle = document.createElement('style');
+  stabilityStyle.textContent = `
+    dialog.session-edit-dialog.session-opening{visibility:hidden!important}
+  `;
+  document.head.appendChild(stabilityStyle);
+
   function tripleConfirm(kind, name) {
     if (!confirm(`Удалить ${kind} «${name}»?`)) return false;
     if (!confirm(`Подтверди ещё раз: ${kind} «${name}» действительно нужно удалить?`)) return false;
@@ -44,7 +50,8 @@
     renderClient();
   };
 
-  // Добавляем удаление внутрь редактора сессии.
+  // Добавляем удаление внутрь редактора сессии и не показываем диалог,
+  // пока синхронные/отложенные расширения не закончат первый проход.
   const previousOpenSessionEditor = openSessionEditor;
   openSessionEditor = function(c, s, number) {
     previousOpenSessionEditor(c, s, number);
@@ -52,6 +59,14 @@
     const dialogs = [...document.querySelectorAll('dialog.session-edit-dialog')];
     const dlg = dialogs[dialogs.length - 1];
     if (!dlg) return;
+
+    dlg.classList.add('session-opening');
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        if (dlg.isConnected) dlg.classList.remove('session-opening');
+      });
+    }, 60);
+
     const actions = dlg.querySelector('.session-edit-actions');
     if (!actions || actions.querySelector('.session-delete-btn')) return;
 
