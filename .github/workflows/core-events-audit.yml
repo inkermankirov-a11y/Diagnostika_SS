@@ -20,7 +20,11 @@ jobs:
         run: node tests/core-events-audit.mjs
       - name: Verify payment persistence bridge
         run: node tests/payment-event-bridge-smoke.mjs
-      - name: Verify request payment events
-        run: node tests/payment-request-events-audit.mjs
+      - name: Verify request payment settings event
+        run: PAYMENT_PHASE=settings node tests/payment-request-events-audit.mjs
+      - name: Verify request payment add event
+        run: PAYMENT_PHASE=add node tests/payment-request-events-audit.mjs
+      - name: Verify request payment edit and delete events
+        run: PAYMENT_PHASE=editdelete node tests/payment-request-events-audit.mjs
       - name: Verify session payment event
         run: node tests/session-payment-events-audit.mjs
