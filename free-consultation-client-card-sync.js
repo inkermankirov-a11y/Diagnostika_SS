@@ -81,12 +81,13 @@
 
   function persistConsultationExtras(saveNow=true){
     const c=getClient(); if(!c) return null;
-    attachConsultationFields();
     const fc=ensureFreeConsultation(c);
     const dlg=document.getElementById('freeConsultationDialog');
-    const tried=dlg?.querySelector('.fc-tried');
-    const worked=dlg?.querySelector('.fc-worked');
-    const didnt=dlg?.querySelector('.fc-didnt-help');
+    if(!dlg?.open) return fc;
+    attachConsultationFields();
+    const tried=dlg.querySelector('.fc-tried');
+    const worked=dlg.querySelector('.fc-worked');
+    const didnt=dlg.querySelector('.fc-didnt-help');
     if(tried) fc.tried=tried.value||'';
     if(worked) fc.worked=worked.value||'';
     if(didnt) fc.didntHelp=didnt.value||'';
