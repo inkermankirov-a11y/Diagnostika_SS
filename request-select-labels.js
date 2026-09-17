@@ -103,24 +103,7 @@
 
   const select=document.querySelector('#requestSelect');
   if(select){
-    select.onchange=e=>{
-      const c=cclient();
-      const activeId=c?.currentRequestId??null;
-      const lastDiagnosisId=c?.lastDiagnosisRequestId??null;
-      const restoreActive=()=>{
-        if(!c||cclient()?.id!==c.id)return;
-        let changed=false;
-        if((c.currentRequestId??null)!==activeId){c.currentRequestId=activeId;changed=true;}
-        if((c.lastDiagnosisRequestId??null)!==lastDiagnosisId){c.lastDiagnosisRequestId=lastDiagnosisId;changed=true;}
-        if(changed&&typeof save==='function')save();
-      };
-      requestId=e.target.value;
-      situationId=null;
-      selected=null;
-      if(typeof renderRequests==='function')renderRequests();
-      restoreActive();
-      setTimeout(()=>{restoreActive();renderStatusControls();},0);
-    };
+    select.onchange=e=>{requestId=e.target.value;situationId=null;selected=null;if(typeof renderRequests==='function')renderRequests();};
     new MutationObserver(relabel).observe(select,{childList:true});
   }
 
