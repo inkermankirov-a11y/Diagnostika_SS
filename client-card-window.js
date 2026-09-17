@@ -39,7 +39,6 @@
           <label>Исходный запрос<textarea id="ccInitialProblem"></textarea></label>
           <label>Ключевой запрос<textarea id="ccMainRequest"></textarea></label>
           <label>Предыдущие попытки решения<textarea id="ccTried"></textarea></label>
-          <label>Что не сработало<textarea id="ccDidntHelp"></textarea></label>
           <label>Желаемый результат<textarea id="ccDesiredOutcome"></textarea></label>
           <label>Рабочие заметки<textarea id="ccClientNotes"></textarea></label>
         </div>
@@ -53,7 +52,7 @@
   document.body.appendChild(dlg);
 
   const q = id => document.getElementById(id);
-  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDidntHelp','ccDesiredOutcome','ccClientNotes'];
+  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccClientNotes'];
   let draftMode=false;
   let draft=null;
   let dirty=false;
@@ -98,7 +97,6 @@
     q('ccInitialProblem').value = c.initialProblem || '';
     q('ccMainRequest').value = c.mainRequest || '';
     q('ccTried').value = c.tried || '';
-    q('ccDidntHelp').value = c.didntHelp || '';
     q('ccDesiredOutcome').value = c.desiredOutcome || '';
     q('ccClientNotes').value = c.clientNotes || c.notes || '';
     setPhoto(c.photoData||'');
@@ -120,7 +118,6 @@
     c.initialProblem = q('ccInitialProblem').value;
     c.mainRequest = q('ccMainRequest').value;
     c.tried = q('ccTried').value;
-    c.didntHelp = q('ccDidntHelp').value;
     c.desiredOutcome = q('ccDesiredOutcome').value;
     c.clientNotes = q('ccClientNotes').value;
     c.photoData = photoData || '';
