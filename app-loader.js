@@ -13,6 +13,25 @@
 
 // Main home screen redesign. Loaded last so it can reuse the existing application logic safely.
 (() => {
+  function coreAvailable(){
+    try{
+      return typeof state!=='undefined'
+        && Array.isArray(state?.clients)
+        && typeof save==='function'
+        && typeof client==='function'
+        && typeof renderClient==='function'
+        && typeof renderMode==='function'
+        && typeof document.getElementById('requestSelect')?.onchange==='function'
+        && typeof document.getElementById('hintBtn')?.onclick==='function';
+    }catch(_){
+      return false;
+    }
+  }
+
+  if(!coreAvailable()) return;
+  window.DiagnostikaCoreReady=true;
+  window.dispatchEvent(new Event('diagnostika:core-ready'));
+
   function loadDashboard(){
     if(!document.querySelector('link[data-brand-icon]')){
       const icon=document.createElement('link');
