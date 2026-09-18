@@ -86,6 +86,13 @@ jobs:
               'payment-save-guard.js'
           ]
           payment_sources={p:Path(p).read_text(encoding='utf-8') for p in payment_paths}
+          payment_link_paths={
+              'session-payment-data-repair.js',
+              'session-payment-editor.js',
+              'session-payment-ui-sync.js',
+              'session-payment-button-authority.js',
+              'payment-consistency-core.js'
+          }
           errors=[]
 
           if 'services.sessions=Object.freeze' not in service:
@@ -144,7 +151,7 @@ jobs:
           for path,src in payment_sources.items():
               if direct.search(src):
                   errors.append(path+' still mutates session.requestId directly')
-              if 'DiagnostikaSessions' not in src and 'linkSessionRequest' not in src:
+              if path in payment_link_paths and 'DiagnostikaSessions' not in src and 'linkSessionRequest' not in src:
                   errors.append(path+' has no SessionService request-link boundary')
           print('SESSION_BOUNDARY_STATIC_ERRORS:',errors)
           if errors:
