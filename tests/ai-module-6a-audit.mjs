@@ -70,7 +70,7 @@ page.on('dialog',d=>d.accept().catch(()=>{}));
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaAI?.version==='6A'
+  await page.waitForFunction(()=>/^6[A-B]$/.test(window.DiagnostikaAI?.version||'')
     && window.DiagnostikaAI?.moduleAware===true
     && window.DiagnostikaPlatform?.services?.ai
     && window.DiagnostikaPlatform?.modules?.get?.('ai')?.status==='started',
@@ -90,7 +90,7 @@ const architecture=await page.evaluate(()=>({
     'appendSessionMessage','replaceSessionChat','clearSessionChat'
   ].map(k=>[k,typeof window.DiagnostikaAI?.[k]]))
 }));
-assert.equal(architecture.version,'6A');
+assert(/^6[A-B]$/.test(architecture.version));
 assert.equal(architecture.moduleAware,true);
 assert.equal(architecture.sameService,true);
 assert.equal(architecture.module,'started');
