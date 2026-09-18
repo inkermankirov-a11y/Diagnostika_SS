@@ -2,7 +2,7 @@ name: Dashboard client flow debug
 
 on:
   push:
-    branches: [ main, retire-old-interface, 'feature-payment-*' ]
+    branches: [main, retire-old-interface, 'feature-payment-*', 'feature-ai-*' ]
     paths:
       - 'home-dashboard.js'
       - 'client-card-window.js'
