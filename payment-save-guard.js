@@ -261,7 +261,13 @@
     document.querySelectorAll('dialog.payment-dialog').forEach(dlg=>{if(dlg.open)ensurePaymentSnapshot(dlg);});
   }
 
-  const observer=new MutationObserver(()=>setTimeout(refresh,0));
+  const dialogNode=node=>node?.nodeType===1&&(
+    node.matches?.('dialog.session-edit-dialog,dialog.payment-dialog')
+    ||node.querySelector?.('dialog.session-edit-dialog,dialog.payment-dialog')
+  );
+  const observer=new MutationObserver(records=>{
+    if(records.some(record=>Array.from(record.addedNodes||[]).some(dialogNode)))setTimeout(refresh,0);
+  });
   observer.observe(document.body,{childList:true,subtree:true});
   setTimeout(refresh,0);
 })();
