@@ -2,13 +2,16 @@ name: Diagnosis API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface ]
+    branches: [ main, retire-old-interface, feature-requests-3c ]
     paths:
       - 'diagnosis-api.js'
       - 'home-dashboard.js'
       - 'diagnosis-navigation.js'
       - 'diagnosis-compact-client.js'
+      - 'free-consultation-request-builder.js'
+      - 'free-consultation-v2.js'
       - 'request-select-labels.js'
+      - 'tests/request-diagnosis-3c-audit.mjs'
       - 'request-title-display.js'
       - 'index.html'
       - '.github/workflows/diagnosis-api-audit.yml'
@@ -30,12 +33,20 @@ jobs:
           node --check request-select-labels.js
           node --check diagnosis-navigation.js
           node --check diagnosis-compact-client.js
+          node --check free-consultation-request-builder.js
+          node --check free-consultation-v2.js
+          node --check tests/request-diagnosis-3c-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re
 
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
           api=Path('diagnosis-api.js').read_text(encoding='utf-8')
+          nav=Path('diagnosis-navigation.js').read_text(encoding='utf-8')
+          compact=Path('diagnosis-compact-client.js').read_text(encoding='utf-8')
+          fc1=Path('free-consultation-request-builder.js').read_text(encoding='utf-8')
+          fc2=Path('free-consultation-v2.js').read_text(encoding='utf-8')
+          request_ui=Path('request-select-labels.js').read_text(encoding='utf-8')
           html=Path('index.html').read_text(encoding='utf-8')
 
           if 'DiagnostikaDiagnosis?.open' not in dash:
@@ -63,6 +74,34 @@ jobs:
 
           if 'Object.freeze({open})' not in api:
               raise SystemExit('Diagnosis API export shape changed unexpectedly')
+
+          owned_files={
+              'diagnosis-navigation.js':nav,
+              'diagnosis-api.js':api,
+              'diagnosis-compact-client.js':compact,
+              'free-consultation-request-builder.js':fc1,
+              'free-consultation-v2.js':fc2,
+          }
+          forbidden=[
+              r'\.requests\.push\s*\(',
+              r'\.currentRequestId\s*=',
+              r'\.lastDiagnosisRequestId\s*=',
+              r'\brequestId\s*=',
+          ]
+          for name,text in owned_files.items():
+              for pattern in forbidden:
+                  if re.search(pattern,text):
+                      raise SystemExit(f'{name} still owns request authority: {pattern}')
+          if '.view(' not in nav or '.create(' not in nav or '.remove(' not in nav:
+              raise SystemExit('Diagnosis navigation is not RequestService-backed')
+          if '.view(' not in api:
+              raise SystemExit('Diagnosis API does not use RequestService.view')
+          if '.create(' not in fc1 or '.create(' not in fc2:
+              raise SystemExit('Free Consultation request creation is not RequestService-backed')
+          if 'new MutationObserver' in request_ui:
+              raise SystemExit('Request UI still has MutationObserver after 3C')
+          if '#diagNewBtn' in request_ui:
+              raise SystemExit('Request UI still knows Diagnosis HTML')
           PY
 
       - name: Install browser
@@ -199,4 +238,12 @@ jobs:
           await browser.close();
           JS
           node diagnosis-api-audit.mjs
+      - name: Verify Requests 3C diagnosis and consultation lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/requests-3c-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/request-diagnosis-3c-audit.mjs
+
 # acceptance-ci-trigger: 20260918
