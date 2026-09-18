@@ -27,7 +27,19 @@
   }
 
   function resolveClient(clientRef){
-    if(clientRef&&typeof clientRef==='object')return clientRef;
+    if(clientRef&&typeof clientRef==='object'){
+      const id=clientRef.id;
+      if(id!==undefined&&id!==null&&id!==''){
+        const viaService=clientsService()?.findById?.(id);
+        if(viaService)return viaService;
+        try{
+          const rows=platform.store?.clients?.()||[];
+          const canonical=rows.find(c=>c&&String(c.id)===String(id));
+          if(canonical)return canonical;
+        }catch(_){}
+      }
+      return clientRef;
+    }
     if(clientRef!==undefined&&clientRef!==null&&clientRef!==''){
       const viaService=clientsService()?.findById?.(clientRef);
       if(viaService)return viaService;
