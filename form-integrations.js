@@ -254,7 +254,11 @@
       localStorage.removeItem('diagnostika-yandex-form-mode-v1');
     }catch(_){}
     attachSettingsButton();
-    setTimeout(()=>checkInbox({silent:true}).catch(()=>{}),2500);
-    setInterval(()=>checkInbox({silent:true}).catch(()=>{}),120000);
+    const host=String(location?.hostname||'').toLowerCase();
+    const allowBackgroundInboxPolling=!['127.0.0.1','localhost','::1'].includes(host);
+    if(allowBackgroundInboxPolling){
+      setTimeout(()=>checkInbox({silent:true}).catch(()=>{}),2500);
+      setInterval(()=>checkInbox({silent:true}).catch(()=>{}),120000);
+    }
   })();
 })();
