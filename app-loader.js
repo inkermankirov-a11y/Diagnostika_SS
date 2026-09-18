@@ -95,23 +95,56 @@
     }
   }
 
-  function loadRequestApi(){
-    if(window.DiagnostikaRequests?.select){
-      loadDashboard();
+  function ensureRequestsFoundation(next){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-requests-module]')){
+        next();
+        return;
+      }
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/requests/index.js?v=20260918-requests3a';
+      moduleScript.setAttribute('data-requests-module','1');
+      moduleScript.onload=next;
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.requests){
+      loadModule();
       return;
     }
 
-    const existing=document.querySelector('script[data-request-api]');
+    const existing=document.querySelector('script[data-requests-service]');
     if(existing){
-      existing.addEventListener('load',loadDashboard,{once:true});
+      existing.addEventListener('load',loadModule,{once:true});
       return;
     }
 
-    const api=document.createElement('script');
-    api.src='request-api.js?v=20260917-core02a';
-    api.setAttribute('data-request-api','1');
-    api.onload=loadDashboard;
-    document.body.appendChild(api);
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/requests/request-service.js?v=20260918-requests3a';
+    serviceScript.setAttribute('data-requests-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
+  function loadRequestApi(){
+    ensureRequestsFoundation(()=>{
+      if(window.DiagnostikaRequests?.moduleAware===true){
+        loadDashboard();
+        return;
+      }
+
+      const existing=document.querySelector('script[data-request-api]');
+      if(existing){
+        existing.addEventListener('load',loadDashboard,{once:true});
+        return;
+      }
+
+      const api=document.createElement('script');
+      api.src='request-api.js?v=20260918-requests3a';
+      api.setAttribute('data-request-api','1');
+      api.onload=loadDashboard;
+      document.body.appendChild(api);
+    });
   }
 
   if(window.DiagnostikaClients?.select){
