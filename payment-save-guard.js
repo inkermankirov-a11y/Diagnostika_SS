@@ -4,6 +4,13 @@
   const clone=v=>{try{return JSON.parse(JSON.stringify(v??null));}catch(_){return null;}};
   const todayLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
   const currentClient=()=>typeof client==='function'?client():null;
+  const linkSessionRequest=(c,s,requestId,source)=>{
+    if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
+    const api=window.DiagnostikaSessions?.moduleAware===true
+      ? window.DiagnostikaSessions
+      : window.DiagnostikaPlatform?.services?.sessions||null;
+    return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
+  };
 
   function requestFromPaymentDialog(dlg,c=currentClient()){
     if(!c)return null;
@@ -96,7 +103,7 @@
     s.payment.amount=amount;
     s.payment.manualAmount=amountFromField>0;
     s.payment.receiptUrl='';
-    if(reqId){s.payment.requestId=reqId;s.requestId=reqId;}
+    if(reqId){s.payment.requestId=reqId;linkSessionRequest(c,s,reqId,'payment-save-guard-link');}
     if(paid){
       s.payment.paidAt=todayLocal();
       s.payment.sessionDate=dlg.querySelector('.session-edit-grid input[type="date"]')?.value||s.date||todayLocal();
