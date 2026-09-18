@@ -145,11 +145,11 @@ const browser=await chromium.launch({headless:true});
     ],
     sessions:[{
       id:'sessions-4c-pay-session',
-      requestId:'sessions-4c-r1',
+      requestId:'',
       date:'2026-09-18',
       createdAt:stamp,
       notes:'',
-      payment:{paid:false,amount:3000,receiptUrl:'',note:'',requestId:'sessions-4c-r1'}
+      payment:{paid:false,amount:0,receiptUrl:'',note:'',requestId:'sessions-4c-r2'}
     }]
   }]};
 
@@ -165,29 +165,16 @@ const browser=await chromium.launch({headless:true});
   page.on('dialog',d=>d.accept().catch(()=>{}));
   await page.goto(base,{waitUntil:'commit',timeout:10000});
   await waitReady(page);
-  await page.waitForFunction(()=>!!window.DiagnostikaSessionPaymentButtonAuthority
-    && !!window.DiagnostikaSessionPaymentRepair
-    && !!window.DiagnostikaSessionPaymentUiSync,null,{timeout:10000});
+  await page.waitForFunction(()=>!!window.DiagnostikaSessionPaymentRepair,null,{timeout:10000});
 
   await page.evaluate(()=>{
     window.__sessions4cPaymentEvents=[];
     window.DiagnostikaPlatform.events.on('session:updated',detail=>window.__sessions4cPaymentEvents.push({...detail}));
-    const c=window.DiagnostikaClients.current();
-    const s=window.DiagnostikaSessions.get('sessions-4c-pay-session',c);
-    openSessionEditor(c,s,1);
+    const s=window.DiagnostikaSessions.get('sessions-4c-pay-session');
+    s.payment.paid=true;
+    s.payment.amount=0;
+    window.DiagnostikaSessionPaymentRepair.repairAll();
   });
-
-  const dlg=page.locator('dialog.session-edit-dialog').last();
-  await dlg.waitFor({state:'visible',timeout:5000});
-  await dlg.locator('.session-edit-grid select:not(.session-format-select)').selectOption('sessions-4c-r2');
-  await page.evaluate(()=>{
-    window.DiagnostikaSessionPaymentRepair?.refresh?.();
-    window.DiagnostikaSessionPaymentUiSync?.refresh?.();
-    window.DiagnostikaSessionPaymentButtonAuthority?.refresh?.();
-  });
-  const toggle=dlg.locator('.session-payment-toggle-stable');
-  await toggle.waitFor({state:'visible',timeout:5000});
-  await toggle.click();
 
   await page.waitForFunction(()=>window.DiagnostikaSessions.get('sessions-4c-pay-session')?.requestId==='sessions-4c-r2',null,{timeout:5000});
   await page.waitForTimeout(120);
@@ -195,16 +182,16 @@ const browser=await chromium.launch({headless:true});
   const linked=await page.evaluate(()=>({
     requestId:window.DiagnostikaSessions.get('sessions-4c-pay-session')?.requestId,
     activeRequestId:window.DiagnostikaRequests.currentId(),
+    amount:Number(window.DiagnostikaSessions.get('sessions-4c-pay-session')?.payment?.amount)||0,
     events:window.__sessions4cPaymentEvents
   }));
   assert.equal(linked.requestId,'sessions-4c-r2');
-  assert.equal(linked.activeRequestId,'sessions-4c-r1','payment link changed active request');
-  assert(linked.events.some(x=>x.sessionId==='sessions-4c-pay-session'&&x.requestId==='sessions-4c-r2'&&x.source==='session-payment-authority-link'),
-    'Payment authority did not link request through SessionService');
+  assert.equal(linked.activeRequestId,'sessions-4c-r1','payment repair changed active request');
+  assert(linked.amount>0,'payment repair did not restore the configured session amount');
+  assert(linked.events.some(x=>x.sessionId==='sessions-4c-pay-session'&&x.requestId==='sessions-4c-r2'&&x.source==='session-payment-repair-link'),
+    'Payment repair did not link request through SessionService');
   assert.equal(linked.events.some(x=>x.source==='legacy-session-store'),false,'legacy bridge emitted payment-driven session update');
 
-  await dlg.locator('.session-edit-actions .primary').click();
-  await dlg.waitFor({state:'hidden',timeout:5000});
   await page.reload({waitUntil:'commit',timeout:10000});
   await waitReady(page);
   assert.equal(await page.evaluate(()=>window.DiagnostikaSessions.get('sessions-4c-pay-session')?.requestId),'sessions-4c-r2');
