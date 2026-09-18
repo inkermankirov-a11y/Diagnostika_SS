@@ -74,9 +74,9 @@ jobs:
               if token not in loader:
                   errors.append('session loader missing/stale: '+token)
           if 'name="diagnostika-build" content="20260918-sessions4b"' not in index:
-              errors.append('Sessions 4A build marker missing')
+              errors.append('Sessions 4B build marker missing')
           if 'app-loader.js?v=20260918-sessions4b' not in index:
-              errors.append('Sessions 4A app-loader cache marker missing')
+              errors.append('Sessions 4B app-loader cache marker missing')
           if 'c.sessions.push(' in dashboard:
               errors.append('dashboard still creates sessions directly')
           if "addEventListener('diagnostika:sessions-changed'" in dashboard:
