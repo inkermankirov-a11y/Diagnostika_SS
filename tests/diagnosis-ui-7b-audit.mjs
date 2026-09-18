@@ -96,6 +96,12 @@ const preClick=await page.evaluate(()=>({
 console.log('DIAGNOSIS_7B_PRECLICK',JSON.stringify(preClick));
 
 await page.locator('#addSituationBtn').click();
+await page.locator('.situation-create-dialog').waitFor({state:'visible',timeout:3000});
+await page.locator('#newSituationName').fill('Created through DiagnosisService');
+await page.locator('#newSituationLevel').fill('6');
+await page.locator('.situation-create-dialog .save').click();
+await page.locator('.situation-create-dialog').waitFor({state:'detached',timeout:3000});
+
 const added=await page.evaluate(()=>{
   const c=window.DiagnostikaClients.current();
   const r=window.DiagnostikaRequests.get('diag-7b-r1',c);
