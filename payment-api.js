@@ -32,5 +32,5 @@
     updateSession(sessionRef,changes={},options={}){return invoke('updateSession',[sessionRef,changes,options],null);}
   };
 
-  window.DiagnostikaPayments=Object.freeze(facade);
+  window.DiagnostikaPayments=facade;
 })();
