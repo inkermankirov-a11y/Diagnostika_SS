@@ -115,10 +115,31 @@ jobs:
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           CLIENT_WRITE_PHASE=legacy node tests/client-write-audit.mjs
 
-      - name: Verify client trash lifecycle
+      - name: Verify trash non-current delete and restore
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-trash-http.log 2>&1 &
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-trash-noncurrent-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
-          node tests/client-trash-audit.mjs
+          CLIENT_TRASH_PHASE=noncurrent node tests/client-trash-audit.mjs
+      - name: Verify trash current client delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-trash-current-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          CLIENT_TRASH_PHASE=current node tests/client-trash-audit.mjs
+      - name: Verify trash and database UI lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-trash-ui-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          CLIENT_TRASH_PHASE=ui node tests/client-trash-audit.mjs
+      - name: Verify last client replacement and reload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-trash-last-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          CLIENT_TRASH_PHASE=last node tests/client-trash-audit.mjs
