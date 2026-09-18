@@ -13,17 +13,17 @@ assert.equal(sessionSource.includes('c.aiChat'),false,'Session AI compatibility 
 assert(clientSource.includes("source:'client-ai-chat-user'"),'Client user message is not routed through AIService');
 assert(clientSource.includes("source:'client-ai-chat-assistant'"),'Client assistant message is not routed through AIService');
 assert(sessionSource.includes("source:'session-ai-client-clear'"),'Client chat clear is not routed through AIService');
-assert(sessionSource.includes('s.aiChat'),'Session aiChat should remain for AI 6C');
-assert(apiSource.includes("version:'6B'"),'AI facade version is not 6B');
+assert.equal(sessionSource.includes('s.aiChat'),false,'Session AI UI still accesses session.aiChat directly');
+assert(apiSource.includes("version:'6C'"),'AI facade version is not 6C');
 for(const token of [
-  'modules/ai/ai-service.js?v=20260918-ai6b',
-  'modules/ai/index.js?v=20260918-ai6b',
-  'ai-api.js?v=20260918-ai6b'
+  'modules/ai/ai-service.js?v=20260919-ai6c',
+  'modules/ai/index.js?v=20260919-ai6c',
+  'ai-api.js?v=20260919-ai6c'
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
-  'client-ai-chat.js?v=20260918-ai6b',
-  'session-ai-chat.js?v=20260918-ai6b',
-  'app-loader.js?v=20260918-ai6b'
+  'client-ai-chat.js?v=20260919-ai6c',
+  'session-ai-chat.js?v=20260919-ai6c',
+  'app-loader.js?v=20260919-ai6c'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
@@ -80,7 +80,7 @@ await page.route('https://lugovoyn8n.ru/**',async route=>{
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaAI?.version==='6B'
+  await page.waitForFunction(()=>window.DiagnostikaAI?.version==='6C'
     && window.DiagnostikaPlatform?.services?.ai
     && typeof window.DiagnostikaClientAIChat?.send==='function',
     null,{timeout:15000});
