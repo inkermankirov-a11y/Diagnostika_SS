@@ -121,6 +121,8 @@ assert.deepEqual(
   'Adding a situation changed request authority'
 );
 
+const editPre=await page.evaluate(()=>String(document.getElementById('editSituationBtn')?.onclick||''));
+console.log('DIAGNOSIS_7B_EDIT_HANDLER',editPre);
 await page.locator('#editSituationBtn').click();
 const edited=await page.evaluate(id=>{
   const c=window.DiagnostikaClients.current();
@@ -153,6 +155,7 @@ assert.deepEqual(
   {name:persistedBeforeReload.name,level:persistedBeforeReload.level,result:persistedBeforeReload.result},
   {name:'Edited through DiagnosisService',level:9,result:'Desired result through service'}
 );
+console.log('DIAGNOSIS_7B_EVENTS',JSON.stringify(persistedBeforeReload.events));
 for(const source of ['diagnosis-ui-situation-add','diagnosis-ui-situation-edit','diagnosis-ui-situation-result']){
   assert(persistedBeforeReload.events.some(x=>x.detail?.source===source),'Missing diagnosis event source '+source);
 }
