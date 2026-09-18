@@ -82,43 +82,49 @@
 
   function commitSessionPayment(dlg){
     ensureSessionSnapshot(dlg);
-    const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
-    const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
+    const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return false;
+    const current=paymentWriter()?.session?.(s.id,c)||(s.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
+    const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||current?.requestId||'';
     const req=c.requests?.find(r=>r.id===reqId)||null;
     const amountFromField=Math.max(0,Number(legacyAmountInput(dlg)?.value)||0);
-    const amount=amountFromField||effectiveSessionPrice(req)||(Number(s.payment?.amount)||0);
+    const amount=amountFromField||effectiveSessionPrice(req)||(Number(current?.amount)||0);
     const paid=dlg.dataset.saveGuardPaymentDraft==='1';
 
     const checkbox=legacyPaidCheckbox(dlg);
     if(checkbox) checkbox.checked=paid;
 
-    if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
-    s.payment.paid=paid;
-    s.payment.amount=amount;
-    s.payment.manualAmount=amountFromField>0;
-    s.payment.receiptUrl='';
-    if(reqId)s.payment.requestId=reqId;
+    const next={...current,paid,amount,manualAmount:amountFromField>0,receiptUrl:''};
+    if(reqId)next.requestId=reqId;
     if(paid){
-      s.payment.paidAt=todayLocal();
-      s.payment.sessionDate=dlg.querySelector('.session-edit-grid input[type="date"]')?.value||s.date||todayLocal();
-      s.payment.priceSnapshot=true;
-      s.payment.baseAmount=Math.max(0,Number(req?.payment?.sessionAmount)||amount);
-      s.payment.discountSnapshot=Math.min(100,Math.max(0,Number(req?.payment?.sessionDiscount)||0));
+      next.paidAt=todayLocal();
+      next.sessionDate=dlg.querySelector('.session-edit-grid input[type="date"]')?.value||s.date||todayLocal();
+      next.priceSnapshot=true;
+      next.baseAmount=Math.max(0,Number(req?.payment?.sessionAmount)||amount);
+      next.discountSnapshot=Math.min(100,Math.max(0,Number(req?.payment?.sessionDiscount)||0));
     }else{
-      delete s.payment.paidAt;delete s.payment.sessionDate;delete s.payment.priceSnapshot;delete s.payment.baseAmount;delete s.payment.discountSnapshot;
+      delete next.paidAt;delete next.sessionDate;delete next.priceSnapshot;delete next.baseAmount;delete next.discountSnapshot;
     }
-    if(typeof save==='function')save();
+    const updated=paymentWriter()?.replaceSession?.(
+      s.id,next,{client:c,source:'payment-save-guard-session-commit'}
+    );
+    if(!updated)return false;
     dlg.dataset.saveGuardSessionDirty='0';
-    dlg.__saveGuardSessionSnapshot={payment:clone(s.payment)};
+    dlg.__saveGuardSessionSnapshot={payment:clone(updated)};
+    return true;
   }
 
   function discardSessionDraft(dlg){
     const c=currentClient(),s=sessionFromDialog(dlg,c),snap=dlg?.__saveGuardSessionSnapshot;
-    if(!s||!snap)return;
-    if(snap.payment===null)delete s.payment;else s.payment=clone(snap.payment);
-    dlg.dataset.saveGuardPaymentDraft=s.payment?.paid?'1':'0';
+    if(!c||!s||!snap)return false;
+    const restored=paymentWriter()?.replaceSession?.(
+      s.id,
+      clone(snap.payment),
+      {client:c,source:'payment-save-guard-session-restore'}
+    );
+    if(snap.payment!==null&&!restored)return false;
+    dlg.dataset.saveGuardPaymentDraft=(restored?.paid===true)?'1':'0';
     paintSessionPayment(dlg);
-    if(typeof save==='function')save();
+    return true;
   }
 
   function ensurePaymentSnapshot(dlg){
@@ -178,7 +184,7 @@
     const sessionSave=target?.closest?.('dialog.session-edit-dialog .session-edit-actions .primary');
     if(sessionSave){
       const dlg=sessionSave.closest('dialog.session-edit-dialog');
-      if(dlg){paintSessionPayment(dlg);commitSessionPayment(dlg);}
+      if(dlg){paintSessionPayment(dlg);if(!commitSessionPayment(dlg))return;}
       return;
     }
 
