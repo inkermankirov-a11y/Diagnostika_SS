@@ -306,6 +306,38 @@
     return removed;
   }
 
+
+  function replaceSession(sessionRef,nextPayment,options={}){
+    const c=resolveClient(options.client??options.clientId);
+    const s=resolveSession(sessionRef,c);
+    if(!c||!s)return null;
+    if(nextPayment!==null&&(!nextPayment||typeof nextPayment!=='object'))return null;
+    const before=clone(s.payment);
+    if(nextPayment===null){
+      delete s.payment;
+    }else{
+      s.payment=clone(nextPayment)||{};
+      ensureSessionPayment(s);
+    }
+    syncBridge();
+    if(!persist()){
+      if(before===undefined)delete s.payment;else s.payment=before;
+      syncBridge();
+      return null;
+    }
+    emit(EVENTS.sessionUpdated,{
+      clientId:c.id,
+      requestId:s.requestId||s.payment?.requestId||null,
+      sessionId:s.id,
+      before,
+      after:clone(s.payment??null),
+      paid:s.payment?.paid===true,
+      amount:num(s.payment?.amount),
+      source:options.source||'payment-service-session-replace'
+    });
+    return s.payment??null;
+  }
+
   function updateSession(sessionRef,changes={},options={}){
     const c=resolveClient(options.client??options.clientId);
     const s=resolveSession(sessionRef,c);
@@ -344,6 +376,7 @@
     addPayment,
     updatePayment,
     removePayment,
+    replaceSession,
     updateSession
   });
 })();
