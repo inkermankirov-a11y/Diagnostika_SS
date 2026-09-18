@@ -3,6 +3,7 @@
 (() => {
   const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
   const currentClient=()=>typeof client==='function'?client():null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const allClients=()=>{
     try{if(typeof state!=='undefined'&&Array.isArray(state.clients))return state.clients;}catch(_){}
     try{return window.DiagnostikaPlatform?.store?.clients?.()||[];}catch(_){return [];}
@@ -14,10 +15,7 @@
       : window.DiagnostikaPlatform?.services?.sessions||null;
     return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
   };
-  const sessionPay=s=>{
-    if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
-    return s.payment;
-  };
+  const sessionPay=(c,s)=>paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
   const requestForSession=(c,s)=>{
     const id=s?.requestId||s?.payment?.requestId||'';
     return (c?.requests||[]).find(r=>r.id===id)||null;
@@ -49,22 +47,23 @@
         sessions.forEach(s=>{
           const linkedId=s?.requestId||s?.payment?.requestId||'';
           if(linkedId!==r.id)return;
-          const sp=sessionPay(s);
+          const sp=sessionPay(c,s);
           const saved=Math.max(0,num(sp.amount));
           if(sp.paid&&(saved<=0||suspicious(saved,configured))){
             const restored=snapshotPrice(sp)||configured;
             if(restored>0&&restored!==saved){
-              sp.amount=restored;
-              sp.manualAmount=false;
-              if(!sp.requestId)sp.requestId=r.id;
-              if(!s.requestId)linkSessionRequest(c,s,r.id,'session-payment-repair-link');
-              changed=true;
+              if(!s.requestId&&!linkSessionRequest(c,s,r.id,'session-payment-repair-link'))return;
+              const updated=paymentWriter()?.updateSession?.(
+                s.id,
+                {amount:restored,manualAmount:false,...(!sp.requestId?{requestId:r.id}:{})},
+                {client:c,source:'session-payment-data-repair'}
+              );
+              if(updated)changed=true;
             }
           }
         });
       });
     });
-    if(changed&&typeof save==='function')save();
     return changed;
   }
 
@@ -83,11 +82,16 @@
     const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
     const req=(c.requests||[]).find(r=>r.id===reqId)||requestForSession(c,s);
     if(req?.payment?.mode!=='session')return;
-    const sp=sessionPay(s);
+    const sp=sessionPay(c,s);
     const configured=effectivePrice(req);
     if(sp.paid&&(num(sp.amount)<=0||suspicious(num(sp.amount),configured))){
       const restored=snapshotPrice(sp)||configured;
-      if(restored>0){sp.amount=restored;if(typeof save==='function')save();}
+      if(restored>0){
+        const updated=paymentWriter()?.updateSession?.(
+          s.id,{amount:restored},{client:c,source:'session-payment-dialog-repair'}
+        );
+        if(!updated)return;
+      }
     }
     const wrap=dlg.querySelector('.session-editor-payment-amount-wrap');
     const input=dlg.querySelector('.session-editor-payment-amount');
@@ -121,12 +125,16 @@
     if(req?.payment?.mode!=='session')return;
     const editorAmount=Math.max(0,num(dlg.querySelector('.session-editor-payment-amount')?.value));
     const legacyAmount=Math.max(0,num(dlg.querySelector('.session-payment-field input[type="number"]')?.value));
-    const desired=editorAmount||legacyAmount||Math.max(0,num(s.payment?.amount))||effectivePrice(req);
+    const current=sessionPay(c,s);
+    const desired=editorAmount||legacyAmount||Math.max(0,num(current?.amount))||effectivePrice(req);
     setTimeout(()=>{
-      if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
-      if(desired>0)s.payment.amount=desired;
-      if(reqId){s.payment.requestId=reqId;linkSessionRequest(c,s,reqId,'session-payment-save-link');}
-      if(typeof save==='function')save();
+      if(reqId&&!linkSessionRequest(c,s,reqId,'session-payment-save-link'))return;
+      const patch={};
+      if(desired>0)patch.amount=desired;
+      if(reqId)patch.requestId=reqId;
+      if(Object.keys(patch).length&&!paymentWriter()?.updateSession?.(
+        s.id,patch,{client:c,source:'session-payment-save-repair'}
+      ))return;
       refresh({paymentUi:true});
     },0);
   },true);
