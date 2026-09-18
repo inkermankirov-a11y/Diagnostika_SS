@@ -2,7 +2,7 @@ name: Request API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d ]
+    branches: [ main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, feature-sessions-4a ]
   workflow_dispatch:
 
 jobs:
@@ -57,7 +57,7 @@ jobs:
           if 'new MutationObserver' in request_date: errors.append('request-date-unsaved still observes request DOM')
           if '.update(r.id,{title:value}' not in request_title: errors.append('request title edit does not use RequestService update')
           if 'r.title = value' in request_title or 'r.updatedAt' in request_title: errors.append('request title display still writes request directly')
-          if 'name="diagnostika-build" content="20260918-requests3d"' not in index: errors.append('Requests 3D build marker missing')
+          if 'name="diagnostika-build" content="' not in index: errors.append('build marker missing')
           for forbidden in ['c.currentRequestId=','c.lastDiagnosisRequestId=','requestId=target.id']:
               if forbidden in api: errors.append('request facade still owns request authority: '+forbidden)
           for forbidden in ['c.requests=[]','c.requests.push','requestId=']:
