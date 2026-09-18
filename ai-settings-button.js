@@ -177,7 +177,7 @@
 
     const storage=loadOnce('integration-folder-storage.js?v=20260913-142','data-integration-folder-storage','__diagnostikaIntegrationStorageReady');
     const loadCore=()=>{
-      const core=loadOnce('form-integrations.js?v=20260913-142','data-form-integrations','__diagnostikaFormIntegrationsReady');
+      const core=loadOnce('form-integrations.js?v=20260918-ai6a','data-form-integrations','__diagnostikaFormIntegrationsReady');
       const loadHelpers=()=>{
         loadOnce('form-integrations-copy-fix.js?v=20260913-142','data-form-integrations-copy-fix','__formIntegrationsCopyFixReady');
         loadOnce('form-integrations-inbox-fix.js?v=20260913-142','data-form-integrations-inbox-fix','__formIntegrationsInboxFixReady');
