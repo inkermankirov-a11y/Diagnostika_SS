@@ -17,6 +17,15 @@
   const instinctNames=['Бей / атаковать','Беги / убежать','Замри / спрятаться'];
   const results=['Спокойно говорить о своих потребностях и не бояться реакции','Сохранять уверенность, даже если другой человек недоволен','Спокойно действовать и не избегать контакта','Чувствовать свою ценность независимо от чужой оценки','Свободно проявляться и выдерживать возможный отказ'];
 
+  function requestsApi(){
+    if(window.DiagnostikaRequests?.moduleAware===true)return window.DiagnostikaRequests;
+    return window.DiagnostikaPlatform?.services?.requests||null;
+  }
+
+  function currentClient(){
+    return window.DiagnostikaClients?.current?.()||(typeof client==='function'?client():null);
+  }
+
   function instinct(){return{id:uid(),name:pick(instinctNames),level:n(5,10),comment:'Тестовый инстинкт'}}
   function deep(){return{id:uid(),text:pick(beliefs2),level:n(6,10),comment:'Тестовое глубинное убеждение',instincts:[instinct()]}}
   function feeling(){return{id:uid(),text:pick(feelings),level:n(4,9),comment:'Тестовое вторичное чувство',deep:[deep(),deep()]}}
@@ -24,10 +33,12 @@
   function situationObj(){return{id:uid(),name:pick(situations),level:n(5,10),comment:'Тестовая ситуация',result:pick(results),beliefs:[belief(),belief()]}}
 
   btn.onclick=()=>{
-    const c=client();
+    const c=currentClient();
+    const api=requestsApi();
     if(!c)return alert('Сначала выберите клиента.');
+    if(!api?.list||!api?.create||!api?.remove||!api?.activate)return alert('Модуль запросов ещё загружается.');
 
-    const hasData=(c.name&&c.name!=='Новый клиент')||c.city||c.requests?.length||c.sessions?.length;
+    const hasData=(c.name&&c.name!=='Новый клиент')||c.city||api.list(c).length||c.sessions?.length;
     if(hasData&&!confirm('ТЕСТ перезапишет данные текущего клиента и его диагностику. Продолжить?'))return;
 
     c.name=pick(names);
@@ -39,27 +50,51 @@
     c.max='https://max.ru/';
     c.photoData='';
 
-    c.requests=[];
+    for(const existing of api.list(c).slice()){
+      if(!api.remove(existing.id,{client:c,source:'test-data-reset',render:false})){
+        return alert('Не удалось очистить старые тестовые запросы.');
+      }
+    }
+
+    const created=[];
     const reqCount=n(1,2);
     for(let i=0;i<reqCount;i++){
-      const r={id:uid(),title:pick(requests),situations:[]};
+      const requestSituations=[];
       const sitCount=n(2,3);
-      for(let j=0;j<sitCount;j++)r.situations.push(situationObj());
-      c.requests.push(r);
+      for(let j=0;j<sitCount;j++)requestSituations.push(situationObj());
+      const r=api.create({
+        id:uid(),
+        title:pick(requests),
+        situations:requestSituations,
+        source:'test-data'
+      },{
+        client:c,
+        activate:false,
+        view:false,
+        source:'test-data-create',
+        render:false
+      });
+      if(!r)return alert('Не удалось создать тестовый запрос.');
+      created.push(r);
+    }
+
+    const first=created[0]||null;
+    if(!first||!api.activate(first.id,{client:c,source:'test-data-activate',render:false})){
+      return alert('Не удалось активировать тестовый запрос.');
     }
 
     c.sessions=[
-      {id:uid(),date:today(),requestId:c.requests[0]?.id||'',notes:'Тестовая сессия: первичная диагностика, выявление ключевых ситуаций и убеждений.'},
-      {id:uid(),date:today(),requestId:c.requests[0]?.id||'',notes:'Тестовая сессия: работа с эмоциональной реакцией и глубинным убеждением.'}
+      {id:uid(),date:today(),requestId:first.id,notes:'Тестовая сессия: первичная диагностика, выявление ключевых ситуаций и убеждений.'},
+      {id:uid(),date:today(),requestId:first.id,notes:'Тестовая сессия: работа с эмоциональной реакцией и глубинным убеждением.'}
     ];
 
-    requestId=c.requests[0]?.id||null;
-    situationId=c.requests[0]?.situations?.[0]?.id||null;
+    situationId=first.situations?.[0]?.id||null;
     selected=null;
+    mode='diagnosis';
     save();
     renderClient();
-    mode='diagnosis';
     renderMode();
+    api.refresh?.();
     alert('Тестовые данные заполнены.');
   };
 })();
