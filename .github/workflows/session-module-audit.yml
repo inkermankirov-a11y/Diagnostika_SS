@@ -40,7 +40,7 @@ jobs:
           node --check session-format.js
           python3 - <<'PY'
           from pathlib import Path
-          import sys
+          import sys,re
 
           service=Path('modules/sessions/session-service.js').read_text(encoding='utf-8')
           module=Path('modules/sessions/index.js').read_text(encoding='utf-8')
@@ -96,7 +96,7 @@ jobs:
               errors.append('active-request bridge still mutates requestId directly')
           if "source:'session-active-request'" not in active:
               errors.append('active-request SessionService source missing')
-          if 's.sessionFormat=' in format_ui or "typeof save==='function'" in format_ui:
+          if re.search(r's\.sessionFormat\s*=(?!=)',format_ui) or "typeof save==='function'" in format_ui:
               errors.append('session format still owns session persistence')
           print('SESSION_BOUNDARY_STATIC_ERRORS:',errors)
           if errors:
