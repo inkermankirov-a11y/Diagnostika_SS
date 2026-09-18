@@ -117,10 +117,10 @@
     const history=chatOf(c).slice(0,-1).slice(-16).map(m=>({role:m.role,text:m.text}));
     let payload={accessKey:getAccessKey(),clientId:String(c.id||''),clientName:c.name||'',message,clientContext:buildContext(c),chatHistory:history};
     try{
-      const enrich=window.DiagnostikaClientAIFullContext?.enrichPayload;
-      if(typeof enrich==='function')payload=enrich(payload)||payload;
       const prepare=window.DiagnostikaClientAIChatView?.preparePayload;
       if(typeof prepare==='function')payload=prepare(payload)||payload;
+      const enrich=window.DiagnostikaClientAIFullContext?.enrichPayload;
+      if(typeof enrich==='function')payload=enrich(payload)||payload;
     }catch(err){
       console.warn('Client AI payload preparation failed',err);
     }
