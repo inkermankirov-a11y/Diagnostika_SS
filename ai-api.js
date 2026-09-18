@@ -15,7 +15,7 @@
 
   window.DiagnostikaAI={
     ...legacy,
-    version:'6A',
+    version:'6B',
     moduleAware:true,
     events:Object.freeze({
       clientUpdated:'ai-client-chat:updated',
