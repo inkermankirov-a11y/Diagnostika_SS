@@ -17,7 +17,13 @@
   }
   function persist(){try{if(typeof save==='function')save();}catch(err){console.warn('Client data save failed',err);}}
   function notesOf(c){if(!c)return[];if(!Array.isArray(c.quickNotes))c.quickNotes=[];return c.quickNotes;}
-  function chatOf(c){if(!c)return[];if(!Array.isArray(c.aiChat))c.aiChat=[];return c.aiChat;}
+  function chatOf(c){
+    if(!c)return[];
+    try{
+      const chat=window.DiagnostikaAI?.clientChat?.(c.id);
+      return Array.isArray(chat)?chat:[];
+    }catch(_){return[];}
+  }
   function fmt(ts){try{return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(ts));}catch(_){return'';}}
 
   const style=document.createElement('style');
@@ -152,11 +158,51 @@
   }
   function setStatus(text,kind=''){if(!widget)return;const s=widget.querySelector('.hd-ai-status');s.textContent=text||'';s.className=`hd-ai-status ${kind}`.trim();}
   async function send(raw){
-    const message=String(raw||'').trim();const c=currentClient();if(!message||!c||sending)return;
-    const input=widget.querySelector('.hd-ai-input');input.value='';const history=chatOf(c);history.push({id:uid('chat'),role:'user',text:message,createdAt:Date.now()});persist();sending=true;renderChat();setStatus('AI анализирует данные выбранного клиента…','busy');
-    try{const answer=await askAi(c,message);history.push({id:uid('chat'),role:'assistant',text:answer,createdAt:Date.now()});persist();setStatus('');}
-    catch(err){console.warn('Client AI chat failed',err);setStatus(err?.message||'Не удалось получить ответ AI.','error');}
-    finally{sending=false;renderChat();window.dispatchEvent(new CustomEvent('diagnostika-client-ai-chat-changed',{detail:{clientId:c.id}}));}
+    const message=String(raw||'').trim();
+    const c=currentClient();
+    if(!message||!c||sending)return;
+    const api=window.DiagnostikaAI;
+    if(!api?.moduleAware||typeof api.appendClientMessage!=='function'){
+      setStatus('AI-модуль ещё не готов. Обновите страницу.','error');
+      return;
+    }
+
+    const input=widget.querySelector('.hd-ai-input');
+    input.value='';
+    const userMessage=api.appendClientMessage(c.id,{
+      id:uid('chat'),
+      role:'user',
+      text:message,
+      createdAt:Date.now()
+    },{client:c,source:'client-ai-chat-user'});
+    if(!userMessage){
+      setStatus('Не удалось сохранить сообщение клиента.','error');
+      return;
+    }
+
+    sending=true;
+    renderChat();
+    setStatus('AI анализирует данные выбранного клиента…','busy');
+    try{
+      const answer=await askAi(c,message);
+      const assistantMessage=api.appendClientMessage(c.id,{
+        id:uid('chat'),
+        role:'assistant',
+        text:answer,
+        createdAt:Date.now()
+      },{client:c,source:'client-ai-chat-assistant'});
+      if(!assistantMessage)throw new Error('Не удалось сохранить ответ AI.');
+      setStatus('');
+    }
+    catch(err){
+      console.warn('Client AI chat failed',err);
+      setStatus(err?.message||'Не удалось получить ответ AI.','error');
+    }
+    finally{
+      sending=false;
+      renderChat();
+      window.dispatchEvent(new CustomEvent('diagnostika-client-ai-chat-changed',{detail:{clientId:c.id}}));
+    }
   }
 
   function refresh(){renderNotesPreview();renderChat();}
@@ -165,9 +211,28 @@
     const hd=window.DiagnostikaHomeDashboard;
     if(hd?.refresh&&!hd.refresh.__clientWidgetsWrapped){const prev=hd.refresh;const wrapped=function(){const out=prev.apply(this,arguments);setTimeout(refresh,0);return out;};wrapped.__clientWidgetsWrapped=true;hd.refresh=wrapped;}
   }
+  let aiEventsHooked=false;
+  function hookAIEvents(){
+    if(aiEventsHooked)return true;
+    const events=window.DiagnostikaPlatform?.events;
+    if(!events?.on)return false;
+    events.on('ai-client-chat:updated',detail=>{
+      const c=currentClient();
+      if(!c||String(detail?.clientId)!==String(c.id))return;
+      setTimeout(refresh,0);
+    });
+    aiEventsHooked=true;
+    return true;
+  }
   function init(){
-    const a=hookQuickNotes();const b=buildWidget()||!!widget;hookDashboard();refresh();
-    if(a&&b)return;initAttempts++;if(initAttempts<40)setTimeout(init,250);
+    const a=hookQuickNotes();
+    const b=buildWidget()||!!widget;
+    hookDashboard();
+    const e=hookAIEvents();
+    refresh();
+    if(a&&b&&e)return;
+    initAttempts++;
+    if(initAttempts<40)setTimeout(init,250);
   }
   document.addEventListener('click',e=>{if(e.target?.closest?.('.hd-client-row'))setTimeout(refresh,0);},true);
   window.addEventListener('diagnostika-client-notes-changed',()=>setTimeout(refresh,0));
