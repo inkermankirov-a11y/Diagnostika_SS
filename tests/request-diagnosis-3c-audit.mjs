@@ -155,7 +155,12 @@ assert.equal(created.title,'Новый запрос');
 
 assert.equal(await page.evaluate(()=>window.DiagnostikaDiagnosis.open()),true);
 await page.locator('#diagnosisLaunchDialog').waitFor({state:'visible',timeout:3000});
-await page.locator('#diagDeleteBtn').click();
+assert.equal(await page.evaluate(()=>{
+  const button=document.querySelector('#diagDeleteBtn');
+  if(!button)return false;
+  button.click();
+  return true;
+}),true,'Diagnosis delete chooser button is missing');
 await page.locator('#requestHistoryDialog').waitFor({state:'visible',timeout:3000});
 await page.evaluate(id=>{
   const row=[...document.querySelectorAll('#requestHistoryBody .request-history-row')]
