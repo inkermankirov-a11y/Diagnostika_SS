@@ -2,7 +2,7 @@ name: Site audit
 
 on:
   push:
-    branches: [ main, retire-old-interface ]
+    branches: [ main, retire-old-interface, feature-requests-3a ]
     paths:
       - '**.js'
       - '**.css'
@@ -77,9 +77,9 @@ jobs:
             await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
           }
           const duplicateAssets=async page=>page.evaluate(()=>{
-            const names=[...document.scripts].map(s=>s.src).filter(Boolean).map(src=>new URL(src).pathname.split('/').pop());
+            const names=[...document.scripts].map(s=>s.src).filter(Boolean).map(src=>new URL(src).pathname);
             const scripts=[...new Set(names.filter((n,i)=>names.indexOf(n)!==i))].sort();
-            const cssNames=[...document.styleSheets].map(s=>s.href).filter(Boolean).map(src=>new URL(src).pathname.split('/').pop());
+            const cssNames=[...document.styleSheets].map(s=>s.href).filter(Boolean).map(src=>new URL(src).pathname);
             const css=[...new Set(cssNames.filter((n,i)=>cssNames.indexOf(n)!==i))].sort();
             return {scripts,css};
           });
