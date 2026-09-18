@@ -21,16 +21,44 @@
   const blankPayment=()=>({mode:'',total:0,payments:[],currency:'RUB'});
   function paymentOfRequest(c,r){
     if(!r)return blankPayment();
-    if(!r.payment||typeof r.payment!=='object'){
-      if(c?.payment&&typeof c.payment==='object'&&!c._legacyPaymentMigratedToRequestId){
-        r.payment=JSON.parse(JSON.stringify(c.payment));
-        c._legacyPaymentMigratedToRequestId=r.id;
-      }else r.payment=blankPayment();
+    const writer=paymentWriter();
+    const existing=writer?.request?.(r.id,c)||(r.payment&&typeof r.payment==='object'?r.payment:null);
+    if(!existing){
+      const legacy=c?.payment&&typeof c.payment==='object'&&!c._legacyPaymentMigratedToRequestId
+        ? JSON.parse(JSON.stringify(c.payment))
+        : blankPayment();
+      const created=writer?.replaceRequest?.(
+        r.id,
+        legacy,
+        {client:c,source:'payment-legacy-request-init'}
+      );
+      if(created){
+        if(c?.payment&&typeof c.payment==='object'&&!c._legacyPaymentMigratedToRequestId){
+          window.DiagnostikaClients?.update?.(
+            c.id,
+            {_legacyPaymentMigratedToRequestId:r.id},
+            {source:'payment-legacy-request-marker',render:false}
+          );
+        }
+        return created;
+      }
+      return legacy;
     }
-    if(!Array.isArray(r.payment.payments))r.payment.payments=[];
-    if(!r.payment.mode)r.payment.mode='';
-    if(!r.payment.currency)r.payment.currency=c?.currency||'RUB';
-    return r.payment;
+    const normalized={
+      ...existing,
+      payments:Array.isArray(existing.payments)?existing.payments:[],
+      mode:existing.mode||'',
+      currency:existing.currency||c?.currency||'RUB'
+    };
+    const needsNormalization=!Array.isArray(existing.payments)||!existing.mode||!existing.currency;
+    if(needsNormalization){
+      return writer?.replaceRequest?.(
+        r.id,
+        normalized,
+        {client:c,source:'payment-request-normalize'}
+      )||normalized;
+    }
+    return existing;
   }
   const symbolFor=(c,r)=>SYMBOLS[paymentOfRequest(c,r).currency||c?.currency||'RUB']||'₽';
   function sessionPayment(s){if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};return s.payment;}
