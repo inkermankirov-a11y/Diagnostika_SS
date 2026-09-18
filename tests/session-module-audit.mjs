@@ -14,7 +14,7 @@ assert.equal(serviceSource.includes('querySelector('),false,'SessionService must
 assert.equal(serviceSource.includes('openSessionEditor'),false,'SessionService must not own the editor UI');
 assert.match(moduleSource,/MODULE_ID='sessions'/);
 assert.match(apiSource,/moduleAware:true/);
-assert.match(apiSource,/version:'4A'/);
+assert.match(apiSource,/version:'4B'/);
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const payment=()=>({mode:'',total:0,payments:[],currency:'RUB',sessionAmount:0,sessionDiscount:0});
@@ -74,7 +74,7 @@ assert.equal(architecture.module.status,'started');
 assert.deepEqual(architecture.module.roles,['specialist','admin']);
 assert.equal(architecture.sameService,true);
 assert.equal(architecture.facadeFrozen,true);
-assert.equal(architecture.facadeVersion,'4A');
+assert.equal(architecture.facadeVersion,'4B');
 assert.equal(architecture.moduleAware,true);
 for(const [name,type] of Object.entries(architecture.methods))assert.equal(type,'function',name+' API missing');
 
