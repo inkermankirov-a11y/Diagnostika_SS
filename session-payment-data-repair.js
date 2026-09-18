@@ -3,6 +3,13 @@
 (() => {
   const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
   const currentClient=()=>typeof client==='function'?client():null;
+  const linkSessionRequest=(c,s,requestId,source)=>{
+    if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
+    const api=window.DiagnostikaSessions?.moduleAware===true
+      ? window.DiagnostikaSessions
+      : window.DiagnostikaPlatform?.services?.sessions||null;
+    return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
+  };
   const sessionPay=s=>{
     if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
     return s.payment;
@@ -45,7 +52,7 @@
               sp.amount=restored;
               sp.manualAmount=false;
               if(!sp.requestId)sp.requestId=r.id;
-              if(!s.requestId)s.requestId=r.id;
+              if(!s.requestId)linkSessionRequest(c,s,r.id,'session-payment-repair-link');
               changed=true;
             }
           }
@@ -109,7 +116,7 @@
     setTimeout(()=>{
       if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
       if(desired>0)s.payment.amount=desired;
-      if(reqId){s.payment.requestId=reqId;s.requestId=reqId;}
+      if(reqId){s.payment.requestId=reqId;linkSessionRequest(c,s,reqId,'session-payment-save-link');}
       if(typeof save==='function')save();
       refresh();
     },0);
