@@ -169,7 +169,6 @@ assert(payload.clientContext.contextInstruction.length>20,'Full context instruct
 assert(String(payload.message||'').includes('Используй весь переданный контекст клиента.'),'Full-context instruction was not applied to message');
 
 const viewUrl=new URL('client-ai-chat-view.js',base).href;
-const beforeViewFetch=await page.evaluate(()=>window.fetch);
 await page.addScriptTag({url:viewUrl});
 await page.waitForFunction(()=>typeof window.DiagnostikaClientAIChatView?.preparePayload==='function',null,{timeout:5000});
 const viewCheck=await page.evaluate(()=>{
