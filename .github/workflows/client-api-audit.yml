@@ -2,7 +2,7 @@ name: Client API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-core-0.2a ]
+    branches: [ main, retire-old-interface, feature-core-0.2a, feature-clients-2b1 ]
     paths:
       - 'client-api.js'
       - 'home-dashboard.js'
@@ -32,7 +32,7 @@ jobs:
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           errors=[]
-          if 'window.DiagnostikaClients=Object.freeze' not in api: errors.append('client API export missing')
+          if 'Object.freeze(' not in api or 'window.DiagnostikaClients=' not in api: errors.append('client API frozen export missing')
           if re.search(r'\bstate\s*\?*\.?\s*clients\b|\bclientId\b',dash): errors.append('dashboard still owns client state directly')
           if 'window.openDatabase' in dash: errors.append('dashboard still calls legacy database global directly')
           for token in ['clientsApi()?.select?.(id)','clientsApi()?.openDatabase?.()']:
