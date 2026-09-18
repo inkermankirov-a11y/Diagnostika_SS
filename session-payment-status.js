@@ -5,13 +5,8 @@
   const currentClient=()=>typeof client==='function'?client():null;
   const currentRequest=c=>window.DiagnostikaRequests?.current?.(c)||c?.requests?.find(r=>r.id===c?.currentRequestId)||null;
   const requestForSession=(c,s)=>c?.requests?.find(r=>r.id===s?.requestId)||null;
-  const paymentOf=r=>{
-    if(!r)return null;
-    if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[]};
-    if(!Array.isArray(r.payment.payments))r.payment.payments=[];
-    if(!Number.isFinite(Number(r.payment.sessionAmount)))r.payment.sessionAmount=0;
-    return r.payment;
-  };
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
+  const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{mode:'',total:0,payments:[],sessionAmount:0});
   const sessionPay=s=>{
     if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
     return s.payment;
@@ -44,9 +39,13 @@
     total.insertAdjacentElement('afterend',field);
     const input=field.querySelector('#sessionPrice');
     input.addEventListener('input',()=>{
-      const c=currentClient(),r=currentRequest(c);if(!r)return;
-      paymentOf(r).sessionAmount=Number(input.value)||0;
-      if(typeof save==='function')save();
+      const c=currentClient(),r=currentRequest(c);if(!c||!r)return;
+      const updated=paymentWriter()?.updateRequest?.(
+        r.id,
+        {sessionAmount:Number(input.value)||0},
+        {client:c,source:'session-price-field'}
+      );
+      if(!updated)return;
       refreshAll();
     });
   }
@@ -55,7 +54,7 @@
     ensureSessionPriceField();
     const dlg=document.querySelector('.payment-dialog'),field=dlg?.querySelector('#sessionPriceField'),input=dlg?.querySelector('#sessionPrice');
     if(!field||!input)return;
-    const c=currentClient(),r=currentRequest(c),p=paymentOf(r);
+    const c=currentClient(),r=currentRequest(c),p=paymentOf(c,r);
     const isSession=p?.mode==='session';
     if(field.hidden===isSession)field.hidden=!isSession;
     if(isSession&&document.activeElement!==input){
@@ -74,7 +73,7 @@
       const chronological=(c.sessions||[]).map((s,index)=>({s,index,time:new Date(s.date||s.createdAt||0).getTime()||index})).sort((a,b)=>a.time-b.time||a.index-b.index);
       const s=chronological[Number(m[1])-1]?.s;
       if(!s){existing?.remove();return;}
-      const r=requestForSession(c,s),p=paymentOf(r);
+      const r=requestForSession(c,s),p=paymentOf(c,r);
       if(!r||p?.mode!=='session'){existing?.remove();return;}
       const sp=sessionPay(s);
       if(!sp.amount&&p.sessionAmount)sp.amount=Number(p.sessionAmount)||0;
@@ -116,7 +115,7 @@
     if(!box)return;
     let unpaid=[];
     if(r){
-      const p=paymentOf(r);
+      const p=paymentOf(c,r);
       if(p?.mode==='session'){
         const sessions=(c.sessions||[]).filter(s=>s.requestId===r.id);
         unpaid=sessions.filter(s=>!sessionPay(s).paid);
