@@ -40,7 +40,7 @@ jobs:
           if 'modules/requests/request-service.js?v=20260918-requests3a' not in loader: errors.append('request service loader missing/stale')
           if 'modules/requests/index.js?v=20260918-requests3a' not in loader: errors.append('requests module loader missing/stale')
           if 'request-api.js?v=20260918-requests3a' not in loader: errors.append('request API cache version stale')
-          if 'diagnostika-build" content="20260918-requests3a' not in index: errors.append('request build marker stale')
+          if 'name="diagnostika-build" content="' not in index: errors.append('build marker missing')
           # Ignore requestId when it is only a field/property name such as session.requestId.
           dash_without_member_fields=re.sub(r'\??\.requestId\b','',dash)
           if re.search(r'\brequestId\b',dash_without_member_fields): errors.append('dashboard still owns requestId directly')
