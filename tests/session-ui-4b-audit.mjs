@@ -27,7 +27,7 @@ assert.equal(activeSource.includes('s.requestId ='),false,'active-request bridge
 assert.match(activeSource,/api\?\.update\?\.\(s\.id/);
 assert.match(activeSource,/source:'session-active-request'/);
 
-assert.equal(formatSource.includes('s.sessionFormat='),false,'session format still mutates session directly');
+assert.equal(/s\\.sessionFormat\\s*=(?!=)/.test(formatSource),false,'session format still mutates session directly');
 assert.equal(formatSource.includes("typeof save==='function'"),false,'session format still owns persistence');
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
