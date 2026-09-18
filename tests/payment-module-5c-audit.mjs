@@ -113,6 +113,7 @@ await page.evaluate(()=>{
   const c=state.clients.find(x=>x.id==='payment-5c-client');
   const s=c.sessions.find(x=>x.id==='payment-5c-s1');
   if(typeof openSessionEditor!=='function')throw new Error('openSessionEditor unavailable');
+  if(typeof selectedSessionId!=='undefined')selectedSessionId=s.id;
   openSessionEditor(c,s,1);
 });
 
