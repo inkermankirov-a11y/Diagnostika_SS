@@ -189,23 +189,75 @@
     document.body.appendChild(serviceScript);
   }
 
-  function loadPaymentApi(){
-    ensurePaymentsFoundation(()=>{
-      if(window.DiagnostikaPayments?.moduleAware===true){
+  function ensureAIFoundation(next){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-ai-module]')){
+        next();
+        return;
+      }
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/ai/index.js?v=20260918-ai6a';
+      moduleScript.setAttribute('data-ai-module','1');
+      moduleScript.onload=next;
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.ai){
+      loadModule();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-ai-service]');
+    if(existing){
+      existing.addEventListener('load',loadModule,{once:true});
+      return;
+    }
+
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/ai/ai-service.js?v=20260918-ai6a';
+    serviceScript.setAttribute('data-ai-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
+  function loadAIApi(){
+    ensureAIFoundation(()=>{
+      if(window.DiagnostikaAI?.moduleAware===true){
         loadDashboard();
         return;
       }
 
-      const existing=document.querySelector('script[data-payment-api]');
+      const existing=document.querySelector('script[data-ai-api]');
       if(existing){
         existing.addEventListener('load',loadDashboard,{once:true});
         return;
       }
 
       const api=document.createElement('script');
+      api.src='ai-api.js?v=20260918-ai6a';
+      api.setAttribute('data-ai-api','1');
+      api.onload=loadDashboard;
+      document.body.appendChild(api);
+    });
+  }
+
+  function loadPaymentApi(){
+    ensurePaymentsFoundation(()=>{
+      if(window.DiagnostikaPayments?.moduleAware===true){
+        loadAIApi();
+        return;
+      }
+
+      const existing=document.querySelector('script[data-payment-api]');
+      if(existing){
+        existing.addEventListener('load',loadAIApi,{once:true});
+        return;
+      }
+
+      const api=document.createElement('script');
       api.src='payment-api.js?v=20260918-payment5d';
       api.setAttribute('data-payment-api','1');
-      api.onload=loadDashboard;
+      api.onload=loadAIApi;
       document.body.appendChild(api);
     });
   }
