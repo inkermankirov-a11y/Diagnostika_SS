@@ -23,9 +23,8 @@
     return r.payment;
   }
 
-  function sessionPayment(s){
-    if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
-    return s.payment;
+  function sessionPayment(s,c=currentClient()){
+    return paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
   }
 
   function requestForSession(c,s){
@@ -203,13 +202,12 @@
     }
 
     if(item.kind==='session'&&item.session){
-      const sp=sessionPayment(item.session);
-      sp.paid=false;
-      delete sp.paidAt;
-      delete sp.sessionDate;
-      sp.note='';
-      sp.receiptUrl='';
-      return true;
+      const c=currentClient(),sp=sessionPayment(item.session,c);
+      const next={...sp,paid:false,note:'',receiptUrl:''};
+      delete next.paidAt;delete next.sessionDate;
+      return !!paymentWriter()?.replaceSession?.(
+        item.session.id,next,{client:c,source:'payment-consistency-session-delete'}
+      );
     }
 
     return false;
@@ -253,19 +251,24 @@
         );
         if(!updated)return;
       }else{
-        const sp=sessionPayment(item.session);
-        sp.paid=true;
-        sp.amount=value;
-        sp.paidAt=newDate;
-        sp.note=newNote;
-        sp.receiptUrl=newReceipt;
-        if(item.request?.id){
-          linkSessionRequest(currentClient(),item.session,item.request.id,'payment-consistency-session-link');
-          sp.requestId=item.request.id;
-        }
+        const c=currentClient(),sp=sessionPayment(item.session,c);
+        if(item.request?.id&&!linkSessionRequest(c,item.session,item.request.id,'payment-consistency-session-link'))return;
+        const updated=paymentWriter()?.updateSession?.(
+          item.session.id,
+          {
+            paid:true,
+            amount:value,
+            paidAt:newDate,
+            note:newNote,
+            receiptUrl:newReceipt,
+            ...(item.request?.id?{requestId:item.request.id}:{})
+          },
+          {client:c,source:'payment-consistency-session-edit'}
+        );
+        if(!updated)return;
       }
 
-      refreshEverywhere(item.kind!=='request');
+      refreshEverywhere(false);
       dlg.close();
       setTimeout(renderAll,0);
     };
@@ -274,7 +277,7 @@
       const yes=await confirmDelete();
       if(!yes)return;
       if(!removePayment(item))return;
-      refreshEverywhere(item.kind!=='request');
+      refreshEverywhere(false);
       dlg.close();
       setTimeout(renderAll,0);
     };
