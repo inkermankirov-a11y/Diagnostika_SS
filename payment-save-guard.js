@@ -271,7 +271,7 @@
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const currentClient=()=>typeof client==='function'?client():null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
-  const sessionPayment=s=>{if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0};return s.payment;};
+  const sessionPayment=(s,c=currentClient())=>paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0});
   const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||(c?.requests?.indexOf(r)+1||0);
 
   function rowsFor(c){
