@@ -32,6 +32,10 @@ const page=await context.newPage();
 const pageErrors=[];
 page.on('pageerror',e=>pageErrors.push(e.message));
 page.on('console',m=>{if(m.type()==='error')pageErrors.push(m.text())});
+page.on('response',response=>{
+  if(response.status()>=400)console.log('CLIENT_WRITE_HTTP_ERROR',response.status(),response.url());
+});
+page.on('requestfailed',request=>console.log('CLIENT_WRITE_REQUEST_FAILED',request.url(),request.failure()?.errorText||''));
 page.on('dialog',d=>d.accept().catch(()=>{}));
 
 await page.goto(base,{waitUntil:'commit',timeout:10000});
