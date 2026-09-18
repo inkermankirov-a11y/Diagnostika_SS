@@ -33,6 +33,7 @@ jobs:
           node --check request-select-labels.js
           node --check request-title-display.js
           for f in payment-*.js; do node --check "$f"; done
+          for f in session-payment-*.js; do node --check "$f"; done
           node --check modules/payments/payment-service.js
           node --check modules/payments/index.js
           node --check payment-api.js
