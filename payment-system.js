@@ -67,15 +67,15 @@
     return existing;
   }
   const symbolFor=(c,r)=>SYMBOLS[paymentOfRequest(c,r).currency||c?.currency||'RUB']||'₽';
-  function sessionPayment(s){if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};return s.payment;}
+  function sessionPayment(c,s){return paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});}
   const sessionsFor=(c,r)=>(c?.sessions||[]).filter(s=>(s.requestId||s.payment?.requestId)===r?.id);
 
   function summary(c,r=currentRequest(c)){
     if(!c||!r)return{status:'none',label:'Не указано',paid:0,total:0};
     const p=paymentOfRequest(c,r);
     if(p.mode==='session'){
-      const sessions=sessionsFor(c,r),paidSessions=sessions.filter(s=>sessionPayment(s).paid);
-      const paid=paidSessions.reduce((a,s)=>a+num(sessionPayment(s).amount),0);
+      const sessions=sessionsFor(c,r),paidSessions=sessions.filter(s=>sessionPayment(c,s).paid);
+      const paid=paidSessions.reduce((a,s)=>a+num(sessionPayment(c,s).amount),0);
       const total=sessions.reduce((a,s)=>a+num(sessionPayment(s).amount),0);
       if(!sessions.length)return{status:'none',label:'Не указано',paid,total,count:'0/0'};
       if(paidSessions.length===sessions.length)return{status:'paid',label:'Оплачено',paid,total,count:`${sessions.length}/${sessions.length}`};
@@ -182,7 +182,7 @@
     (c?.requests||[]).forEach(r=>{
       const p=paymentOfRequest(c,r),sym=symbolFor(c,r),rn=requestNumber(c,r);
       if(p.mode==='session'){
-        sessionsFor(c,r).forEach(s=>{const sp=sessionPayment(s);if(sp.paid)rows.push({date:sp.paidAt||s.date||'',amount:num(sp.amount),sym,title:`Сессия · ${r.title||'Без названия'}`,sub:`Запрос ${rn}`,session:s,request:r});});
+        sessionsFor(c,r).forEach(s=>{const sp=sessionPayment(c,s);if(sp.paid)rows.push({date:sp.paidAt||s.date||'',amount:num(sp.amount),sym,title:`Сессия · ${r.title||'Без названия'}`,sub:`Запрос ${rn}`,session:s,request:r});});
       }else p.payments.forEach(pay=>rows.push({date:pay.date||'',amount:num(pay.amount),sym,title:pay.note||`Платёж по запросу ${rn}`,sub:r.title||'Без названия',pay,request:r}));
     });
     return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
@@ -200,7 +200,7 @@
   function refreshDatabasePaymentColumn(){const table=document.querySelector('#clientDatabaseList table');if(!table)return;const headRow=table.querySelector('thead tr');if(!headRow)return;if(!headRow.querySelector('.db-payment-head')){const th=document.createElement('th');th.className='db-payment-head';th.textContent='Оплата';const actions=headRow.querySelector('.db-col-actions')||headRow.lastElementChild;headRow.insertBefore(th,actions);}[...table.querySelectorAll('tbody tr')].forEach((tr,i)=>{const c=state.clients[i];if(!c)return;let cell=tr.querySelector('.db-payment-cell');if(!cell){cell=document.createElement('td');cell.className='db-payment-cell';const actions=tr.querySelector('.db-col-actions')||tr.lastElementChild;tr.insertBefore(cell,actions);}const r=currentRequest(c),s=summary(c,r);cell.innerHTML='';const chip=document.createElement('span');chip.className=`pay-chip ${s.status}`;chip.textContent=s.label;chip.title=r?`Запрос ${requestNumber(c,r)}: ${r.title||''}`:'Нет текущего запроса';cell.appendChild(chip);});}
 
   const previousOpenSessionEditor=window.openSessionEditor;
-  if(typeof previousOpenSessionEditor==='function')window.openSessionEditor=function(c,s,number){previousOpenSessionEditor(c,s,number);const r=c?.requests?.find(x=>x.id===(s.requestId||s.payment?.requestId));if(!r||paymentOfRequest(c,r).mode!=='session')return;const dialogs=[...document.querySelectorAll('dialog.session-edit-dialog')],sd=dialogs[dialogs.length-1],grid=sd?.querySelector('.session-edit-grid');if(!sd||!grid||grid.querySelector('.session-payment-field'))return;const p=sessionPayment(s),field=document.createElement('div');field.className='session-payment-field';field.innerHTML='<label class="session-payment-paid"><input type="checkbox" class="sp-paid"> Оплачено</label><label>Сумма<input type="number" class="sp-amount" min="0" step="1"></label><label>Ссылка на чек<input type="url" class="sp-receipt" placeholder="https://..."></label>';field.querySelector('.sp-paid').checked=!!p.paid;field.querySelector('.sp-amount').value=p.amount||'';field.querySelector('.sp-receipt').value=p.receiptUrl||'';grid.appendChild(field);const saveBtn=sd.querySelector('.session-edit-actions .primary');if(saveBtn){const old=saveBtn.onclick;saveBtn.onclick=e=>{p.paid=field.querySelector('.sp-paid').checked;p.amount=num(field.querySelector('.sp-amount').value);p.receiptUrl=field.querySelector('.sp-receipt').value.trim();p.requestId=r.id;if(p.paid&&!p.paidAt)p.paidAt=todayLocal();if(!p.paid)delete p.paidAt;save();if(typeof old==='function')old.call(saveBtn,e);refresh();window.DiagnostikaHomeDashboard?.refresh?.();};}};
+  if(typeof previousOpenSessionEditor==='function')window.openSessionEditor=function(c,s,number){previousOpenSessionEditor(c,s,number);const r=c?.requests?.find(x=>x.id===(s.requestId||s.payment?.requestId));if(!r||paymentOfRequest(c,r).mode!=='session')return;const dialogs=[...document.querySelectorAll('dialog.session-edit-dialog')],sd=dialogs[dialogs.length-1],grid=sd?.querySelector('.session-edit-grid');if(!sd||!grid||grid.querySelector('.session-payment-field'))return;const p=sessionPayment(c,s),field=document.createElement('div');field.className='session-payment-field';field.innerHTML='<label class="session-payment-paid"><input type="checkbox" class="sp-paid"> Оплачено</label><label>Сумма<input type="number" class="sp-amount" min="0" step="1"></label><label>Ссылка на чек<input type="url" class="sp-receipt" placeholder="https://..."></label>';field.querySelector('.sp-paid').checked=!!p.paid;field.querySelector('.sp-amount').value=p.amount||'';field.querySelector('.sp-receipt').value=p.receiptUrl||'';grid.appendChild(field);const saveBtn=sd.querySelector('.session-edit-actions .primary');if(saveBtn){const old=saveBtn.onclick;saveBtn.onclick=e=>{const paid=field.querySelector('.sp-paid').checked,next={...sessionPayment(c,s),paid,amount:num(field.querySelector('.sp-amount').value),receiptUrl:field.querySelector('.sp-receipt').value.trim(),requestId:r.id};if(paid&&!next.paidAt)next.paidAt=todayLocal();if(!paid)delete next.paidAt;const updated=paymentWriter()?.replaceSession?.(s.id,next,{client:c,source:'payment-system-session-save'});if(!updated&&next)return;if(typeof old==='function')old.call(saveBtn,e);refresh();window.DiagnostikaHomeDashboard?.refresh?.();};}};
 
   const oldRenderClient=window.renderClient;if(typeof oldRenderClient==='function')window.renderClient=function(){const v=oldRenderClient.apply(this,arguments);setTimeout(refresh,0);return v;};
   if(typeof window.renderClientDatabaseTable==='function'){const oldDb=window.renderClientDatabaseTable;window.renderClientDatabaseTable=function(){const v=oldDb.apply(this,arguments);setTimeout(refreshDatabasePaymentColumn,0);return v;};}
