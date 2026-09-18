@@ -80,7 +80,16 @@
     const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
     let btn=dlg.querySelector('.session-payment-toggle-stable');
     if(!btn){
-      const old=dlg.querySelector('.session-editor-payment-state');if(!old)return;
+      const old=dlg.querySelector('.session-editor-payment-state');
+      if(!old){
+        const retry=Math.max(0,Number(dlg.dataset.paymentAuthorityRetry)||0);
+        if(retry<12){
+          dlg.dataset.paymentAuthorityRetry=String(retry+1);
+          setTimeout(()=>install(dlg),25);
+        }
+        return;
+      }
+      delete dlg.dataset.paymentAuthorityRetry;
       btn=old.cloneNode(true);btn.classList.remove('session-editor-payment-state');btn.classList.add('session-payment-toggle-stable');btn.type='button';old.replaceWith(btn);
       btn.addEventListener('click',e=>{
         e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
