@@ -98,10 +98,14 @@
     if(legacy&&document.activeElement!==legacy&&shown>0)legacy.value=String(shown);
   }
 
-  function refresh(){
-    repairAllSessionPayments();
+  function refresh({paymentUi=false}={}){
+    const repaired=repairAllSessionPayments();
     document.querySelectorAll('dialog.session-edit-dialog').forEach(syncDialog);
-    try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
+    // Request-payment rows may contain unsaved input drafts. Do not rebuild that UI
+    // merely because an unrelated DOM mutation occurred.
+    if(repaired||paymentUi){
+      try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
+    }
     try{window.DiagnostikaSessionPayments?.refresh?.();}catch(_){}
   }
 
@@ -123,18 +127,30 @@
       if(desired>0)s.payment.amount=desired;
       if(reqId){s.payment.requestId=reqId;linkSessionRequest(c,s,reqId,'session-payment-save-link');}
       if(typeof save==='function')save();
-      refresh();
+      refresh({paymentUi:true});
     },0);
   },true);
 
   document.addEventListener('change',e=>{
-    if(e.target?.matches?.('dialog.session-edit-dialog .session-edit-grid select'))setTimeout(refresh,0);
+    if(e.target?.matches?.('dialog.session-edit-dialog .session-edit-grid select')){
+      setTimeout(()=>refresh({paymentUi:true}),0);
+    }
   },true);
 
-  const observer=new MutationObserver(()=>setTimeout(refresh,0));
+  const isSessionUiNode=node=>{
+    if(node?.nodeType!==1)return false;
+    return node.matches?.('dialog.session-edit-dialog,.session-card')
+      ||!!node.querySelector?.('dialog.session-edit-dialog,.session-card');
+  };
+  const observer=new MutationObserver(mutations=>{
+    const relevant=mutations.some(m=>
+      [...m.addedNodes,...m.removedNodes].some(isSessionUiNode)
+    );
+    if(relevant)setTimeout(refresh,0);
+  });
   observer.observe(document.body,{childList:true,subtree:true});
-  setTimeout(refresh,0);
-  setTimeout(refresh,600);
+  setTimeout(()=>refresh({paymentUi:true}),0);
+  setTimeout(()=>refresh({paymentUi:true}),600);
 
   window.DiagnostikaSessionPaymentRepair={refresh,repairAll:repairAllSessionPayments};
 })();
