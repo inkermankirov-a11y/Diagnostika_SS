@@ -4,7 +4,6 @@
   if (window.__diagnostikaClientAiFullContextReady) return;
   window.__diagnostikaClientAiFullContextReady = true;
 
-  const ENDPOINT='diagnostika-client-chat-v1';
   const MAX_TEXT=7000;
   const text=value=>String(value??'').trim();
   const clip=(value,max=MAX_TEXT)=>{
@@ -180,23 +179,6 @@
     const instruction='Используй весь переданный контекст клиента. Отделяй факты и заметки специалиста от своих гипотез; не выдумывай отсутствующие данные. ';
     return {...payload,clientContext:context,message:instruction+String(payload.message||'')};
   }
-
-  const nativeFetch=window.fetch.bind(window);
-  window.fetch=async function(input,init){
-    try{
-      const url=typeof input==='string'?input:String(input?.url||'');
-      if(url.includes(ENDPOINT)&&init?.method?.toUpperCase()==='POST'&&typeof init.body==='string'){
-        const parsed=JSON.parse(init.body);
-        if(parsed&&parsed.clientContext&&!parsed.sessionId){
-          const enriched=enrichPayload(parsed);
-          init={...init,body:JSON.stringify(enriched)};
-        }
-      }
-    }catch(err){
-      console.warn('Client AI full-context enrichment skipped',err);
-    }
-    return nativeFetch(input,init);
-  };
 
   const EXTRA_PROMPTS=[
     ['Динамика клиента','Проанализируй динамику клиента по времени: что изменилось от анкеты и бесплатной консультации к диагностике и последним сессиям, что повторяется, а что стало лучше или хуже.'],
