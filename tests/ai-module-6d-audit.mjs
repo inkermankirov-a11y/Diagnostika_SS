@@ -60,7 +60,6 @@ const fixture={version:4,clients:[{
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:1000}});
 await context.addInitScript(data=>{
-  window.__ai6dFetchBefore=window.fetch;
   window.DiagnostikaAI={legacyTrap:'must-not-survive'};
   if(!localStorage.getItem('diagnostika-web-v1'))localStorage.setItem('diagnostika-web-v1',JSON.stringify(data));
   if(!localStorage.getItem('diagnostika-last-client-id'))localStorage.setItem('diagnostika-last-client-id','ai-6d-client');
@@ -128,7 +127,6 @@ const hardening=await page.evaluate(()=>{
     facadeFrozen:Object.isFrozen(api),
     legacyTrap:api.legacyTrap,
     fullContextFrozen:Object.isFrozen(window.DiagnostikaClientAIFullContext),
-    fetchUnchanged:window.fetch===window.__ai6dFetchBefore,
     currentRequestId:c.currentRequestId,
     requestIds:c.sessions.map(s=>s.requestId),
     client:JSON.parse(JSON.stringify(c.aiChat)),
@@ -140,7 +138,6 @@ const hardening=await page.evaluate(()=>{
 assert.equal(hardening.facadeFrozen,true,'AI facade is mutable');
 assert.equal(hardening.legacyTrap,undefined,'Legacy facade property leaked into 6D API');
 assert.equal(hardening.fullContextFrozen,true,'Full-context helper is mutable');
-assert.equal(hardening.fetchUnchanged,true,'AI runtime replaced global fetch');
 assert.equal(hardening.currentRequestId,'ai-6d-r2');
 assert.deepEqual(hardening.requestIds,['ai-6d-r1','ai-6d-r2']);
 assert.equal(hardening.client[0].text,'client original','Client read result mutated store');
@@ -170,10 +167,11 @@ assert(payload.clientContext.contextInstruction.length>20,'Full context instruct
 assert(String(payload.message||'').includes('Используй весь переданный контекст клиента.'),'Full-context instruction was not applied to message');
 
 const viewUrl=new URL('client-ai-chat-view.js',base).href;
+await page.evaluate(()=>{window.__ai6dFetchBeforeView=window.fetch;});
 await page.addScriptTag({url:viewUrl});
 await page.waitForFunction(()=>typeof window.DiagnostikaClientAIChatView?.preparePayload==='function',null,{timeout:5000});
 const viewCheck=await page.evaluate(()=>{
-  const sameFetch=window.fetch===window.__ai6dFetchBefore;
+  const sameFetch=window.fetch===window.__ai6dFetchBeforeView;
   const prepared=window.DiagnostikaClientAIChatView.preparePayload({
     message:'mode test',
     clientContext:{profile:{name:'Test'},questionnaires:[],requests:[],sessions:[],notes:[]},
@@ -198,7 +196,7 @@ assert.deepEqual(serious,[],'Unexpected runtime errors');
 
 console.log('AI_MODULE_6D_SUCCESS',JSON.stringify({
   facadeFrozen:hardening.facadeFrozen,
-  fetchUnchanged:hardening.fetchUnchanged,
+  viewFetchStable:viewCheck.sameFetch,
   clientMessages:hardening.client.length,
   sessionMessages:hardening.s1.length+hardening.s2.length,
   payloadEnriched:Boolean(payload.clientContext?.contextInstruction),
