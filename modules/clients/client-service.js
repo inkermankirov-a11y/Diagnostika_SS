@@ -367,7 +367,8 @@
     if (findById(id)) return null;
 
     const clients = list();
-    const restored = clone(trash.deletedClients[index]) || {};
+    const archived = clone(trash.deletedClients[index]) || {};
+    const restored = clone(archived) || {};
     delete restored.deletedAt;
 
     trash.deletedClients.splice(index, 1);
@@ -376,7 +377,7 @@
 
     if (!persist()) {
       clients.pop();
-      trash.deletedClients.splice(index, 0, { ...restored, deletedAt: new Date().toISOString() });
+      trash.deletedClients.splice(index, 0, archived);
       return null;
     }
 
