@@ -2,7 +2,7 @@ name: Request API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-core-0.2a ]
+    branches: [ main, retire-old-interface, feature-core-0.2a, feature-requests-3a ]
   workflow_dispatch:
 
 jobs:
@@ -16,16 +16,31 @@ jobs:
         run: |
           set -euo pipefail
           node --check request-api.js
+          node --check modules/requests/request-service.js
+          node --check modules/requests/index.js
+          node --check tests/request-module-audit.mjs
           node --check home-dashboard.js
           node --check request-title-display.js
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
           api=Path('request-api.js').read_text(encoding='utf-8')
+          service=Path('modules/requests/request-service.js').read_text(encoding='utf-8')
+          module=Path('modules/requests/index.js').read_text(encoding='utf-8')
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
+          index=Path('index.html').read_text(encoding='utf-8')
           errors=[]
           if 'window.DiagnostikaRequests=Object.freeze' not in api: errors.append('request API export missing')
+          if "moduleAware:true" not in api or "version:'3A'" not in api: errors.append('request facade is not module-aware 3A')
+          if 'services.requests=Object.freeze' not in service: errors.append('RequestService export missing')
+          for token in ['function view(','function activate(','function create(','function update(','function complete(','function resume(','function remove(']:
+              if token not in service: errors.append('RequestService method missing '+token)
+          if "MODULE_ID='requests'" not in module: errors.append('requests module registration missing')
+          if 'modules/requests/request-service.js?v=20260918-requests3a' not in loader: errors.append('request service loader missing/stale')
+          if 'modules/requests/index.js?v=20260918-requests3a' not in loader: errors.append('requests module loader missing/stale')
+          if 'request-api.js?v=20260918-requests3a' not in loader: errors.append('request API cache version stale')
+          if 'diagnostika-build" content="20260918-requests3a' not in index: errors.append('request build marker stale')
           # Ignore requestId when it is only a field/property name such as session.requestId.
           dash_without_member_fields=re.sub(r'\??\.requestId\b','',dash)
           if re.search(r'\brequestId\b',dash_without_member_fields): errors.append('dashboard still owns requestId directly')
@@ -40,6 +55,13 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
+      - name: Verify RequestService 3A module
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-module-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/request-module-audit.mjs
       - name: Stress request navigation and persistence
         shell: bash
         run: |
