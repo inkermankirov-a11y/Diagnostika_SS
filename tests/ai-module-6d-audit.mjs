@@ -92,6 +92,7 @@ async function ready(){
     && typeof window.DiagnostikaClientAIChat?.send==='function'
     && typeof window.DiagnostikaClientAIFullContext?.enrichPayload==='function',
     null,{timeout:15000});
+  await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:10000});
 }
 
 await page.goto(base,{waitUntil:'commit',timeout:10000});
