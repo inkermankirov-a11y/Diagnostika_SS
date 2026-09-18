@@ -31,8 +31,32 @@
   function ensureInitialAuthority(){
     const api=requestsApi(),c=cclient();
     if(!api||!c||api.activeId(c))return;
-    const first=api.list(c).find(r=>statusOf(r)==='active')||null;
-    if(first)api.activate(first.id,{client:c,source:'request-ui-bootstrap',render:false});
+    const currentView=api.viewed?.(c)||null;
+    const first=(currentView&&statusOf(currentView)==='active')
+      ? currentView
+      : api.list(c).find(r=>statusOf(r)==='active')||null;
+    if(!first)return;
+
+    let previousSituationId=null;
+    let previousSelected=null;
+    let preserveDiagnosisContext=false;
+    try{
+      preserveDiagnosisContext=typeof mode!=='undefined'
+        && mode==='diagnosis'
+        && String(api.viewedId?.(c)??'')===String(first.id);
+      if(preserveDiagnosisContext){
+        previousSituationId=typeof situationId!=='undefined'?situationId:null;
+        previousSelected=typeof selected!=='undefined'?selected:null;
+      }
+    }catch(_){}
+
+    const activated=api.activate(first.id,{client:c,source:'request-ui-bootstrap',render:false});
+    if(activated&&preserveDiagnosisContext){
+      try{
+        situationId=previousSituationId;
+        selected=previousSelected;
+      }catch(_){}
+    }
   }
 
   function requestNumber(c,r){
