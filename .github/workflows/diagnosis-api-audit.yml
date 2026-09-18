@@ -11,6 +11,7 @@ on:
       - 'free-consultation-request-builder.js'
       - 'free-consultation-v2.js'
       - 'request-select-labels.js'
+      - 'request-api.js'
       - 'tests/request-diagnosis-3c-audit.mjs'
       - 'request-title-display.js'
       - 'index.html'
