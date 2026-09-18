@@ -1,48 +1,56 @@
 'use strict';
 
 (() => {
-  // Public boundary for entering diagnosis from the new UI. Legacy state changes stay encapsulated here.
   if (window.DiagnostikaDiagnosis?.open) return;
 
   function currentClient(){
-    return typeof client === 'function' ? client() : null;
+    return window.DiagnostikaClients?.current?.()
+      || (typeof client === 'function' ? client() : null);
+  }
+
+  function requestsApi(){
+    return window.DiagnostikaRequests?.moduleAware===true
+      ? window.DiagnostikaRequests
+      : window.DiagnostikaPlatform?.services?.requests||null;
   }
 
   function showChooser(){
-    const launch = document.querySelector('#diagnosisLaunchDialog');
-    if (launch && !launch.open) launch.showModal();
+    const launch=document.querySelector('#diagnosisLaunchDialog');
+    if(launch&&!launch.open)launch.showModal();
   }
 
   function open(){
-    const c = currentClient();
-    if (!c) {
-      if (window.AppDialog?.alert) window.AppDialog.alert('Сначала выберите клиента.','Диагностика');
+    const c=currentClient();
+    const api=requestsApi();
+    if(!c){
+      if(window.AppDialog?.alert)window.AppDialog.alert('Сначала выберите клиента.','Диагностика');
       else window.alert('Сначала выберите клиента.');
       return false;
     }
 
-    if (typeof mode !== 'undefined' && mode === 'diagnosis') {
+    if(typeof mode!=='undefined'&&mode==='diagnosis'){
       showChooser();
       return true;
     }
 
-    const r = window.DiagnostikaRequests?.current?.(c) || null;
-    if (!r) {
+    const r=api?.active?.(c)||null;
+    if(!api||!r){
       showChooser();
       return false;
     }
 
-    requestId = r.id;
-    situationId = r.situations?.[0]?.id || null;
-    selected = null;
-    mode = 'diagnosis';
-    c.lastDiagnosisRequestId = r.id;
+    if(!api.view(r.id,{client:c,source:'diagnosis-api-open',render:false}))return false;
 
-    if (typeof save === 'function') save();
-    if (typeof renderRequests === 'function') renderRequests();
-    if (typeof renderMode === 'function') renderMode();
+    try{
+      situationId=r.situations?.[0]?.id||null;
+      selected=null;
+      mode='diagnosis';
+    }catch(_){return false;}
+
+    if(typeof renderRequests==='function')renderRequests();
+    if(typeof renderMode==='function')renderMode();
     return true;
   }
 
-  window.DiagnostikaDiagnosis = Object.freeze({open});
+  window.DiagnostikaDiagnosis=Object.freeze({open});
 })();
