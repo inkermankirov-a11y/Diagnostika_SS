@@ -156,11 +156,11 @@ assert.equal(created.title,'Новый запрос');
 assert.equal(await page.evaluate(()=>window.DiagnostikaDiagnosis.open()),true);
 await page.locator('#diagnosisLaunchDialog').waitFor({state:'visible',timeout:3000});
 assert.equal(await page.evaluate(()=>{
-  const button=document.querySelector('#diagDeleteBtn');
+  const button=document.querySelector('#diagPreviousBtn');
   if(!button)return false;
   button.click();
   return true;
-}),true,'Diagnosis delete chooser button is missing');
+}),true,'Diagnosis history chooser button is missing');
 await page.locator('#requestHistoryDialog').waitFor({state:'visible',timeout:3000});
 await page.evaluate(id=>{
   const row=[...document.querySelectorAll('#requestHistoryBody .request-history-row')]
