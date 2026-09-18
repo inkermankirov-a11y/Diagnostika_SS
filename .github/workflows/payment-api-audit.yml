@@ -10,6 +10,7 @@ on:
       - 'app-loader.js'
       - 'tests/payment-module-5a-audit.mjs'
       - 'tests/payment-module-5c-audit.mjs'
+      - 'tests/payment-module-5d-audit.mjs'
       - 'payment-*.js'
       - 'request-select-labels.js'
       - 'request-title-display.js'
@@ -40,6 +41,7 @@ jobs:
           node --check app-loader.js
           node --check tests/payment-module-5a-audit.mjs
           node --check tests/payment-module-5c-audit.mjs
+          node --check tests/payment-module-5d-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys,re
@@ -418,4 +420,5 @@ jobs:
           node payment-api-audit.mjs
           node tests/payment-module-5a-audit.mjs
           node tests/payment-module-5c-audit.mjs
-# acceptance-ci-trigger: 20260918-payment5c
+          node tests/payment-module-5d-audit.mjs
+# acceptance-ci-trigger: 20260918-payment5d
