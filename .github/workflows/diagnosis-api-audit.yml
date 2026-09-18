@@ -157,13 +157,16 @@ jobs:
             second.createdAt=new Date().toISOString();
             second.updatedAt=second.createdAt;
             c.requests=[first,second];
-            c.currentRequestId=second.id;
+            c.currentRequestId=first.id;
             c.lastDiagnosisRequestId=first.id;
             requestId=first.id;
             situationId=null;
             selected=null;
             mode='card';
             save();
+            if(!window.DiagnostikaRequests?.activate?.(second.id,{client:c,source:'diagnosis-audit-fixture',render:false})){
+              throw new Error('Cannot activate diagnosis audit request through RequestService');
+            }
             if(typeof renderClient==='function')renderClient();
             if(typeof renderMode==='function')renderMode();
             window.DiagnostikaRequests?.refresh?.();
