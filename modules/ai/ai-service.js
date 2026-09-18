@@ -120,13 +120,13 @@
 
   function clientChat(clientRef){
     const c=resolveClient(clientRef);
-    return c&&Array.isArray(c.aiChat)?c.aiChat:null;
+    return c&&Array.isArray(c.aiChat)?clone(c.aiChat):null;
   }
 
   function sessionChat(sessionRef,clientRef){
     const c=resolveClient(clientRef);
     const s=resolveSession(sessionRef,c);
-    return s&&Array.isArray(s.aiChat)?s.aiChat:null;
+    return s&&Array.isArray(s.aiChat)?clone(s.aiChat):null;
   }
 
   function replaceClientChat(clientRef,nextChat,options={}){
@@ -145,7 +145,7 @@
       after:clone(c.aiChat),
       source:options.source||'ai-service-client-replace'
     });
-    return c.aiChat;
+    return clone(c.aiChat);
   }
 
   function appendClientMessage(clientRef,data={},options={}){
@@ -175,7 +175,7 @@
       after:clone(c.aiChat),
       source:options.source||'ai-service-client-message-add'
     });
-    return message;
+    return clone(message);
   }
 
   function clearClientChat(clientRef,options={}){
@@ -204,7 +204,7 @@
       after:clone(s.aiChat),
       source:options.source||'ai-service-session-replace'
     });
-    return s.aiChat;
+    return clone(s.aiChat);
   }
 
   function appendSessionMessage(sessionRef,data={},options={}){
@@ -239,7 +239,7 @@
       after:clone(s.aiChat),
       source:options.source||'ai-service-session-message-add'
     });
-    return message;
+    return clone(message);
   }
 
   function clearSessionChat(sessionRef,options={}){
