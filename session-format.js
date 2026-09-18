@@ -61,16 +61,8 @@
       field.append(label,select,other);
       grid.appendChild(field);
 
-      const saveBtn=dlg.querySelector('.session-edit-actions .primary');
-      if(saveBtn){
-        const oldSave=saveBtn.onclick;
-        saveBtn.onclick=e=>{
-          s.sessionFormat=select.value;
-          s.sessionFormatOther=select.value==='other'?other.value.trim():'';
-          if(typeof save==='function') save();
-          if(typeof oldSave==='function') oldSave.call(saveBtn,e);
-        };
-      }
+      // Формат сохраняется основным редактором сессии единым
+      // SessionService.update(); здесь остаётся только UI.
     };
   }
 
