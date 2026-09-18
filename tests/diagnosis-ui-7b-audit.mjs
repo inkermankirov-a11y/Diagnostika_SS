@@ -83,6 +83,17 @@ const before=await page.evaluate(()=>{
   };
 });
 await page.locator('#addSituationBtn').waitFor({state:'visible',timeout:5000});
+const preClick=await page.evaluate(()=>({
+  apiVersion:window.DiagnostikaDiagnosis?.version||null,
+  moduleAware:window.DiagnostikaDiagnosis?.moduleAware===true,
+  service:!!window.DiagnostikaPlatform?.services?.diagnosis,
+  requestService:!!window.DiagnostikaPlatform?.services?.requests,
+  clientId:client()?.id||null,
+  requestId:request()?.id||null,
+  globalRequestId:typeof requestId!=='undefined'?requestId:null,
+  handler:String(document.getElementById('addSituationBtn')?.onclick||'')
+}));
+console.log('DIAGNOSIS_7B_PRECLICK',JSON.stringify(preClick));
 
 await page.locator('#addSituationBtn').click();
 const added=await page.evaluate(()=>{
