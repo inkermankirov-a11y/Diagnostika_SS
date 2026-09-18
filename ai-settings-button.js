@@ -182,7 +182,7 @@
         loadOnce('form-integrations-copy-fix.js?v=20260913-142','data-form-integrations-copy-fix','__formIntegrationsCopyFixReady');
         loadOnce('form-integrations-inbox-fix.js?v=20260913-142','data-form-integrations-inbox-fix','__formIntegrationsInboxFixReady');
         loadOnce('form-integrations-lock.js?v=20260913-142','data-form-integrations-lock','__formIntegrationsLockReady');
-        const questionnaires=loadOnce('client-questionnaires.js?v=20260913-142','data-client-questionnaires','__diagnostikaClientQuestionnairesReady');
+        const questionnaires=loadOnce('client-questionnaires.js?v=20260918-clients2c2','data-client-questionnaires','__diagnostikaClientQuestionnairesReady');
         const loadManualTemplate=()=>loadOnce('manual-questionnaire-template.js?v=20260913-142','data-manual-questionnaire-template','__diagnostikaManualQuestionnaireTemplateReady');
         if(questionnaires) questionnaires.addEventListener('load',loadManualTemplate,{once:true}); else loadManualTemplate();
       };
