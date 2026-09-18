@@ -4,14 +4,8 @@
   const currentClient=()=>typeof client==='function'?client():null;
   const currentRequest=c=>window.DiagnostikaRequests?.current?.(c)||c?.requests?.find(r=>r.id===c?.currentRequestId)||null;
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
-  const paymentOf=r=>{
-    if(!r)return null;
-    if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[]};
-    if(!Array.isArray(r.payment.payments))r.payment.payments=[];
-    if(!Number.isFinite(Number(r.payment.sessionAmount)))r.payment.sessionAmount=0;
-    if(!Number.isFinite(Number(r.payment.sessionDiscount)))r.payment.sessionDiscount=0;
-    return r.payment;
-  };
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
+  const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{mode:'',total:0,payments:[],sessionAmount:0,sessionDiscount:0});
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(v)||0);
 
   function requestShownInDialog(c,dlg){
@@ -44,19 +38,24 @@
   }
 
   function persistSessionSettings(dlg){
-    const c=currentClient(),r=requestShownInDialog(c,dlg);if(!r)return;
-    const p=paymentOf(r),mode=dlg.querySelector('#paymentMode')?.value||'';
-    p.mode=mode;
+    const c=currentClient(),r=requestShownInDialog(c,dlg);if(!c||!r)return;
+    const mode=dlg.querySelector('#paymentMode')?.value||'';
+    const changes={mode};
     if(mode==='session'){
       const base=dlg.querySelector('#sessionBasePrice')||dlg.querySelector('#sessionPrice');
       const discount=dlg.querySelector('#sessionDiscount');
-      if(base)p.sessionAmount=Math.max(0,num(base.value));
-      if(discount)p.sessionDiscount=Math.min(100,Math.max(0,num(discount.value)));
-      p.total=0;
+      if(base)changes.sessionAmount=Math.max(0,num(base.value));
+      if(discount)changes.sessionDiscount=Math.min(100,Math.max(0,num(discount.value)));
+      changes.total=0;
     }else{
-      p.total=Math.max(0,num(dlg.querySelector('#paymentTotal')?.value));
+      changes.total=Math.max(0,num(dlg.querySelector('#paymentTotal')?.value));
     }
-    if(typeof save==='function')save();
+    const p=paymentWriter()?.updateRequest?.(
+      r.id,
+      changes,
+      {client:c,source:'payment-session-settings'}
+    );
+    if(!p)return;
     try{window.DiagnostikaPayments?.refresh?.();}catch(e){}
     try{window.DiagnostikaSessionPayments?.refresh?.();}catch(e){}
     try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(e){}
@@ -95,7 +94,7 @@
     ensureSaveButton(dlg);
 
     if(isSession){
-      const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(r);
+      const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(c,r);
       if(!p)return;
       const base=dlg.querySelector('#sessionBasePrice');
       const discount=dlg.querySelector('#sessionDiscount');
