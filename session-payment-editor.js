@@ -269,5 +269,13 @@
   function refresh(){document.querySelectorAll('.session-edit-dialog').forEach(enhanceDialog);renderPaymentLedger();}
   document.addEventListener('input',e=>{if(e.target?.id==='sessionBasePrice'||e.target?.id==='sessionDiscount')setTimeout(renderPaymentLedger,0);});
   document.addEventListener('change',e=>{if(e.target?.id==='paymentMode'||e.target?.id==='sessionBasePrice'||e.target?.id==='sessionDiscount')setTimeout(refresh,0);});
-  const observer=new MutationObserver(()=>setTimeout(refresh,0));observer.observe(document.body,{childList:true,subtree:true});setTimeout(refresh,0);
+  const sessionDialogNode=node=>node?.nodeType===1&&(
+    node.matches?.('dialog.session-edit-dialog')
+    ||node.querySelector?.('dialog.session-edit-dialog')
+  );
+  const observer=new MutationObserver(records=>{
+    if(records.some(record=>Array.from(record.addedNodes||[]).some(sessionDialogNode)))setTimeout(refresh,0);
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
+  setTimeout(refresh,0);
 })();
