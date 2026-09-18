@@ -149,9 +149,6 @@
         if(!api)return;
         api.view(e.target.value,{source:'request-ui-view'});
       };
-      // Compatibility bridge until 3C: Diagnosis / Free Consultation still rebuild
-      // this select through legacy renderRequests() without RequestService events.
-      new MutationObserver(()=>setTimeout(()=>renderAll({payment:false}),0)).observe(select,{childList:true});
     }
 
     const addRequest=document.querySelector('#addRequestBtn');
@@ -173,16 +170,7 @@
       api.update(r.id,{title:e.target.value},{source:'request-ui-title-input'});
     };
 
-    const diagNew=document.querySelector('#diagNewBtn');
-    if(diagNew)diagNew.onclick=()=>{
-      const api=requestsApi();
-      if(!api)return;
-      const created=api.create({title:'Новый запрос'},{source:'diagnosis-create'});
-      if(!created)return;
-      try{mode='diagnosis';}catch(_){}
-      try{if(typeof renderMode==='function')renderMode();}catch(_){}
-      document.querySelector('#diagnosisLaunchDialog')?.close();
-    };
+
   }
 
   function bindEvents(){
@@ -207,9 +195,9 @@
   }
 
   function installStyle(){
-    if(document.querySelector('style[data-request-ui-3b]'))return;
+    if(document.querySelector('style[data-request-ui-3c]'))return;
     const style=document.createElement('style');
-    style.dataset.requestUi3b='1';
+    style.dataset.requestUi3c='1';
     style.textContent='.current-request-box{margin:8px 0 2px;padding:9px 10px;border:1px solid #cddbea;border-radius:8px;background:#f3f8fd}.current-request-label{font-size:11px;font-weight:800;color:#334155;margin-bottom:4px}.current-request-row{display:flex;gap:8px;align-items:center;justify-content:space-between}.current-request-text{font-size:12px;color:#334155;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.current-request-status,.request-status-badge{flex:0 0 auto;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;border:1px solid #cbd5e1}.current-request-status.active,.request-status-badge.active{background:#e8f7ee;color:#237a49;border-color:#bce3cb}.current-request-status.completed,.request-status-badge.completed{background:#eef1f4;color:#65717e;border-color:#d5dce3}.current-request-extra{font-size:10px;color:#7b8794;margin-top:4px}.request-status-controls{display:flex;align-items:center;gap:7px;margin:7px 0 10px;flex-wrap:wrap}.request-status-controls .tk-btn{padding:6px 10px!important;font-size:11px!important;min-height:30px!important}.request-current-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-current-btn:disabled{opacity:.65;cursor:default}.request-resume-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-finish-btn{margin-left:auto;background:linear-gradient(#53aa77,#2d8f59)!important;color:#fff!important}@media(max-width:640px){.current-request-row{align-items:flex-start}.current-request-text{white-space:normal}.request-finish-btn{margin-left:0}}';
     document.head.appendChild(style);
   }
@@ -221,7 +209,7 @@
     bindEvents();
     bindLanguage();
     installStyle();
-    window.DiagnostikaRequestsUI=Object.freeze({version:'3B',ready:true,refresh:renderAll});
+    window.DiagnostikaRequestsUI=Object.freeze({version:'3C',ready:true,refresh:renderAll});
     renderAll();
   }
 
