@@ -25,7 +25,7 @@ const handlers=await page.evaluate(()=>({
   title:String(document.querySelector('#requestTitle')?.oninput||'')
 }));
 assert.match(handlers.select,/\.view\(/,'requestSelect is still owned by legacy app.js');
-assert.match(handlers.add,/\.create\(/,'addRequestBtn is still owned by legacy app.js');
+assert.ok(handlers.add.includes("requestsApi()?.create")&&handlers.add.includes("request-ui-create"),'addRequestBtn is still owned by legacy app.js');
 assert.match(handlers.del,/\.remove\(/,'deleteRequestBtn is still owned by legacy app.js');
 assert.match(handlers.title,/\.update\(/,'requestTitle is still owned by legacy app.js');
 
