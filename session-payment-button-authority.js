@@ -109,7 +109,7 @@
       if(!(node instanceof Element))return false;
       return node.matches?.('dialog.session-edit-dialog')||node.querySelector?.('dialog.session-edit-dialog');
     }));
-    if(addedDialog)requestAnimationFrame(refresh);
+    if(addedDialog)setTimeout(refresh,0);
   });
   observer.observe(document.body,{childList:true,subtree:true});
   document.addEventListener('change',e=>{if(e.target?.closest?.('dialog.session-edit-dialog'))setTimeout(refresh,0);},true);
