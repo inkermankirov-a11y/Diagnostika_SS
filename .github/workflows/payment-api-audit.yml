@@ -318,6 +318,9 @@ jobs:
             const r=c?.requests?.find(x=>x.id===secondId);
             return {amount:Number(r?.payment?.payments?.[0]?.amount)||0,note:r?.payment?.payments?.[0]?.note||''};
           },ids);
+          const editCalls=await page.evaluate(()=>window.__paymentServiceCalls||[]);
+          console.log('PAYMENT_5B_EDIT_STATE:',JSON.stringify(editedState));
+          console.log('PAYMENT_5B_EDIT_CALLS:',JSON.stringify(editCalls));
           if(editedState.amount!==5500||editedState.note!=='AUDIT PAYMENT EDITED')throw new Error('Payment 5B edit did not persist through service');
           await editRow.locator('.pr-delete').click();
           await page.waitForTimeout(80);
