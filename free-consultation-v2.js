@@ -342,14 +342,21 @@
       edit.dataset.fcPendingPatched='1';
       edit.onclick=()=>{
         let s=null;try{s=typeof situation==='function'?situation():null;}catch(_){}
-        if(!s)return;
-        const n=prompt('Название ситуации',s.name||'');if(n!==null)s.name=n;
+        const c=typeof client==='function'?client():null;
+        const r=typeof request==='function'?request():null;
+        const api=window.DiagnostikaDiagnosis;
+        if(!c||!r||!s||!api?.moduleAware)return;
+        const changes={};
+        const n=prompt('Название ситуации',s.name||'');if(n!==null)changes.name=n;
         const current=s.levelPending?'':s.level;
         const l=prompt('Дискомфорт 1–10',current);
         if(l!==null&&String(l).trim()!==''){
-          const num=Math.max(1,Math.min(10,Number(l)||1));s.level=num;s.levelPending=false;
+          changes.level=Math.max(1,Math.min(10,Number(l)||1));
+          changes.levelPending=false;
         }
-        saveState();
+        if(!Object.keys(changes).length)return;
+        if(!api.updateSituation(s.id,changes,{client:c,requestId:r.id,source:'diagnosis-ui-situation-edit',render:false}))return;
+        selected=null;
         try{if(typeof renderSituationList==='function')renderSituationList();}catch(_){}
       };
     }
