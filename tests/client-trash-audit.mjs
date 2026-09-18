@@ -92,7 +92,7 @@ if(phase==='noncurrent'){
   assert.deepEqual(snap.trash,[]);
 }
 
-if(phase==='current'){
+if(phase.startsWith('current')){
   assert.equal(await page.evaluate(()=>window.DiagnostikaClients.select('client-b',{source:'audit-select-beta'})),true);
   await page.evaluate(()=>{ window.__clientTrashEvents=[]; });
   assert.equal(await page.evaluate(()=>window.deleteCurrentClient()),true);
@@ -103,11 +103,17 @@ if(phase==='current'){
     events:window.__clientTrashEvents.map(x=>({type:x.type,detail:{...x.detail}})),
     remembered:localStorage.getItem('diagnostika-last-client-id')
   }));
-  assert.deepEqual(snap.active,['client-a','client-c']);
-  assert.equal(snap.current,'client-c');
-  assert.deepEqual(snap.trash,['client-b']);
-  assert.equal(snap.remembered,'client-c');
-  assert(snap.events.some(x=>x.type==='client:selected'&&x.detail.reason==='client-deleted'&&x.detail.clientId==='client-c'&&x.detail.previousClientId==='client-b'));
+  if(phase==='current-state'){
+    assert.deepEqual(snap.active,['client-a','client-c']);
+    assert.equal(snap.current,'client-c');
+    assert.deepEqual(snap.trash,['client-b']);
+  }
+  if(phase==='current-remember'){
+    assert.equal(snap.remembered,'client-c');
+  }
+  if(phase==='current-event'){
+    assert(snap.events.some(x=>x.type==='client:selected'&&x.detail.reason==='client-deleted'&&x.detail.clientId==='client-c'&&x.detail.previousClientId==='client-b'));
+  }
 }
 
 if(phase==='ui'){
