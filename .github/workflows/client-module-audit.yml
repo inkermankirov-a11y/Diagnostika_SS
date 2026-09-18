@@ -10,6 +10,7 @@ on:
       - 'delete-client.js'
       - 'client-trash.js'
       - 'client-db-enhancements.js'
+      - 'session-interactions.js'
       - 'app-loader.js'
       - 'index.html'
       - 'tests/client-module-audit.mjs'
@@ -35,6 +36,7 @@ jobs:
           node --check delete-client.js
           node --check client-trash.js
           node --check client-db-enhancements.js
+          node --check session-interactions.js
           node --check app-loader.js
           node --check tests/client-module-audit.mjs
           node --check tests/client-write-audit.mjs
@@ -49,6 +51,7 @@ jobs:
           delete_client=Path('delete-client.js').read_text(encoding='utf-8')
           trash=Path('client-trash.js').read_text(encoding='utf-8')
           db=Path('client-db-enhancements.js').read_text(encoding='utf-8')
+          session_interactions=Path('session-interactions.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           index=Path('index.html').read_text(encoding='utf-8')
           errors=[]
@@ -70,6 +73,8 @@ jobs:
           if 'state.clients' in delete_client or 'deletedClients' in delete_client: errors.append('delete compatibility layer still owns client data')
           if 'clientId=' in db.replace('===','').replace('!==',''): errors.append('enhanced database still assigns clientId directly')
           if "clientsApi()?.select?.(c.id,{source:'client-database-open'})" not in db: errors.append('enhanced database does not select through client facade')
+          if 'state.clients.splice' in session_interactions: errors.append('session interactions still hard-deletes clients')
+          if "api?.remove?.(c.id, { source: 'session-interactions-client-delete' })" not in session_interactions: errors.append('protected client delete does not use client service')
           if 'modules/clients/client-service.js?v=20260918-clients2b2' not in loader: errors.append('client service cache version is stale')
           if 'modules/clients/index.js?v=20260918-clients2b2' not in loader: errors.append('clients module cache version is stale')
           if 'client-api.js?v=20260918-clients2b2' not in loader: errors.append('client API cache version is stale')
@@ -77,6 +82,7 @@ jobs:
           if 'delete-client.js?v=20260918-clients2b2' not in index: errors.append('delete-client cache version is stale')
           if 'client-db-enhancements.js?v=20260918-clients2b2' not in index: errors.append('client DB cache version is stale')
           if 'client-trash.js?v=20260918-clients2b2' not in index: errors.append('client trash cache version is stale')
+          if 'session-interactions.js?v=20260918-clients2b2' not in index: errors.append('session interactions cache version is stale')
           if 'app-loader.js?v=20260918-clients2b2' not in index: errors.append('app loader cache version is stale')
           if 'diagnostika-build" content="20260918-clients2b2' not in index: errors.append('build marker is stale')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
