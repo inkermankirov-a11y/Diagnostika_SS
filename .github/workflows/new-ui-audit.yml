@@ -1,7 +1,7 @@
 name: New UI retirement audit
 on:
   push:
-    branches: [ main, retire-old-interface ]
+    branches: [ main, retire-old-interface, feature-sessions-4b ]
   workflow_dispatch:
 jobs:
   new-ui:
