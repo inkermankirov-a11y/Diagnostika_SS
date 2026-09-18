@@ -237,13 +237,32 @@ function openSessionEditor(c,s,number){
   saveBtn.onclick=()=>{
     const youtube=normalizeYoutubeUrl(youtubeInput.value);
     if(youtube===null) return alert('Проверь ссылку: сейчас принимаются ссылки YouTube и youtu.be.');
-    s.date=dateInput.value||today();
-    s.requestId=link.value;
-    s.notes=ta.value;
-    s.youtubeUrl=youtube;
-    save();
+
+    const api=window.DiagnostikaSessions?.moduleAware===true
+      ? window.DiagnostikaSessions
+      : window.DiagnostikaPlatform?.services?.sessions||null;
+    if(!api?.update)return alert('Модуль сессий ещё загружается.');
+
+    const formatSelect=dlg.querySelector('.session-format-select');
+    const formatOther=dlg.querySelector('.session-format-other');
+    const changes={
+      date:dateInput.value||today(),
+      requestId:link.value,
+      notes:ta.value,
+      youtubeUrl:youtube
+    };
+    if(formatSelect){
+      changes.sessionFormat=formatSelect.value;
+      changes.sessionFormatOther=formatSelect.value==='other'?(formatOther?.value||'').trim():'';
+    }
+
+    const updated=api.update(s.id,changes,{
+      client:c,
+      source:'session-editor-save'
+    });
+    if(!updated)return alert('Не удалось сохранить сессию.');
+
     dlg.close();
-    renderSessions();
   };
   actions.append(cancel,saveBtn);
   wrap.append(h,grid,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
