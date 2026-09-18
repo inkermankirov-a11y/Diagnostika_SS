@@ -2,7 +2,7 @@ name: Core CRM audit
 
 on:
   push:
-    branches: [ main, retire-old-interface ]
+    branches: [ main, retire-old-interface, 'feature-payment-*' ]
     paths:
       - '**.js'
       - '**.css'
