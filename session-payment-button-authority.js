@@ -4,6 +4,13 @@
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const today=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
   const currentClient=()=>typeof client==='function'?client():null;
+  const linkSessionRequest=(c,s,requestId,source)=>{
+    if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
+    const api=window.DiagnostikaSessions?.moduleAware===true
+      ? window.DiagnostikaSessions
+      : window.DiagnostikaPlatform?.services?.sessions||null;
+    return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
+  };
 
   const style=document.createElement('style');
   style.textContent=`
@@ -97,7 +104,7 @@
         const requestNow=requestForSession(clientNow,sessionNow,dlg),sp=paymentOf(sessionNow),next=sp.paid!==true,amount=amountFor(dlg,sessionNow,requestNow);
         sp.paid=next;dlg.dataset.saveGuardPaymentDraft=next?'1':'0';dlg.dataset.saveGuardSessionDirty='1';
         if(amount>0)sp.amount=amount;
-        if(requestNow?.id){sessionNow.requestId=requestNow.id;sp.requestId=requestNow.id;}
+        if(requestNow?.id){linkSessionRequest(clientNow,sessionNow,requestNow.id,'session-payment-authority-link');sp.requestId=requestNow.id;}
         sp.manualAmount=false;
         if(next){
           sp.paidAt=today();sp.sessionDate=dlg.querySelector('.session-edit-grid input[type="date"]')?.value||sessionNow.date||today();
