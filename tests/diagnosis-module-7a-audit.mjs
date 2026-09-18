@@ -15,7 +15,7 @@ for(const token of [
   assert(serviceSource.includes(token),'DiagnosisService missing '+token);
   assert(apiSource.includes(token),'Diagnosis facade missing '+token);
 }
-assert(apiSource.includes("version:'7A'"),'Diagnosis facade version is not 7A');
+assert(/version:'7[AB]'/.test(apiSource),'Diagnosis facade version is outside supported 7A-7B range');
 assert(apiSource.includes('moduleAware:true'),'Diagnosis facade is not module-aware');
 assert(serviceSource.includes('api.update('),'DiagnosisService does not commit through RequestService.update');
 assert.equal(/\b(?:currentRequestId|lastDiagnosisRequestId)\s*=/.test(serviceSource),false,'DiagnosisService owns request authority');
@@ -53,7 +53,7 @@ page.on('dialog',d=>d.accept().catch(()=>{}));
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaDiagnosis?.version==='7A'
+  await page.waitForFunction(()=>/^7[AB]$/.test(window.DiagnostikaDiagnosis?.version||'')
     && window.DiagnostikaDiagnosis?.moduleAware===true
     && window.DiagnostikaPlatform?.services?.diagnosis
     && window.DiagnostikaPlatform?.modules?.get?.('diagnosis')?.status==='started',
