@@ -81,7 +81,7 @@ jobs:
                   raise SystemExit('Payment 5A loader missing '+token)
           if 'open:openPayment' not in payment:
               raise SystemExit('Payment API no longer exports openPayment')
-          primary=payment[payment.find("q('#paymentMode')"):payment.find('function allRows')]
+          primary=payment[payment.find('function renderPaymentList'):payment.find('function allRows')]
           required_5b=[
               'payment-dialog-mode','payment-dialog-currency','payment-dialog-total',
               'payment-dialog-add','payment-dialog-edit','payment-dialog-delete',
