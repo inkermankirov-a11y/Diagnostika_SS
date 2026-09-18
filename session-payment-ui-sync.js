@@ -3,6 +3,13 @@
 (() => {
   const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
   const currentClient=()=>typeof client==='function'?client():null;
+  const linkSessionRequest=(c,s,requestId,source)=>{
+    if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
+    const api=window.DiagnostikaSessions?.moduleAware===true
+      ? window.DiagnostikaSessions
+      : window.DiagnostikaPlatform?.services?.sessions||null;
+    return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
+  };
 
   function effectivePrice(req){
     const p=req?.payment||{};
@@ -76,7 +83,7 @@
     if(s.payment.paid&&num(s.payment.amount)<=0&&amount>0){
       s.payment.amount=amount;
       s.payment.requestId=req.id;
-      s.requestId=req.id;
+      linkSessionRequest(c,s,req.id,'session-payment-ui-sync-link');
       if(typeof save==='function')save();
     }
 
