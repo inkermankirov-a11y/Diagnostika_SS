@@ -85,9 +85,9 @@ jobs:
 
           client_chat=Path('client-ai-chat.js').read_text(encoding='utf-8')
           session_chat=Path('session-ai-chat.js').read_text(encoding='utf-8')
-          if re.search(r'window\\.fetch\\s*=',full_context):
+          if re.search(r'window\.fetch\s*=',full_context):
               raise SystemExit('AI 6D full-context helper still patches global fetch')
-          if re.search(r'window\\.fetch\\s*=',chat_view):
+          if re.search(r'window\.fetch\s*=',chat_view):
               raise SystemExit('AI 6D chat view still patches global fetch')
           for token in ['DiagnostikaClientAIFullContext?.enrichPayload','DiagnostikaClientAIChatView?.preparePayload']:
               if token not in client_chat:
