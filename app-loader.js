@@ -166,14 +166,14 @@
 
       const existing=document.querySelector('script[data-session-api]');
       if(existing){
-        existing.addEventListener('load',loadSessionsApi,{once:true});
+        existing.addEventListener('load',loadDashboard,{once:true});
         return;
       }
 
       const api=document.createElement('script');
       api.src='session-api.js?v=20260918-sessions4a';
       api.setAttribute('data-session-api','1');
-      api.onload=loadSessionsApi;
+      api.onload=loadDashboard;
       document.body.appendChild(api);
     });
   }
@@ -187,14 +187,14 @@
 
       const existing=document.querySelector('script[data-request-api]');
       if(existing){
-        existing.addEventListener('load',loadDashboard,{once:true});
+        existing.addEventListener('load',loadSessionsApi,{once:true});
         return;
       }
 
       const api=document.createElement('script');
       api.src='request-api.js?v=20260918-requests3d';
       api.setAttribute('data-request-api','1');
-      api.onload=loadDashboard;
+      api.onload=loadSessionsApi;
       document.body.appendChild(api);
     });
   }
