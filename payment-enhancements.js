@@ -59,24 +59,16 @@
       const grid=dlg.querySelector('.payment-grid');
       if(grid)grid.insertAdjacentElement('afterend',wrap);
       const base=wrap.querySelector('#sessionBasePrice'),discount=wrap.querySelector('#sessionDiscount');
-      const persist=()=>{
-        const c=currentClient(),r=requestShownInDialog(c,dlg);if(!c||!r)return;
-        const p=paymentWriter()?.updateRequest?.(
-          r.id,
-          {
-            sessionAmount:Math.max(0,Number(base.value)||0),
-            sessionDiscount:Math.min(100,Math.max(0,Number(discount.value)||0))
-          },
-          {client:c,source:'payment-session-price'}
-        );
-        if(!p)return;
-        const effective=sessionPrice(p);
+      const preview=()=>{
+        const draft={
+          sessionAmount:Math.max(0,Number(base.value)||0),
+          sessionDiscount:Math.min(100,Math.max(0,Number(discount.value)||0))
+        };
+        const effective=sessionPrice(draft);
         const final=wrap.querySelector('#sessionFinalPrice');
-        if(final)final.innerHTML=p.sessionDiscount>0?`Цена после скидки: <strong>${money(effective)} ₽</strong> <span style="color:#728092">(базовая ${money(p.sessionAmount)} ₽, скидка ${p.sessionDiscount}%)</span>`:`Итог за сессию: <strong>${money(effective)} ₽</strong>`;
-        if(typeof renderSessions==='function')renderSessions();
+        if(final)final.innerHTML=draft.sessionDiscount>0?`Цена после скидки: <strong>${money(effective)} ₽</strong> <span style="color:#728092">(базовая ${money(draft.sessionAmount)} ₽, скидка ${draft.sessionDiscount}%)</span>`:`Итог за сессию: <strong>${money(effective)} ₽</strong>`;
       };
-      base.addEventListener('input',persist);discount.addEventListener('input',persist);
-      base.addEventListener('change',persist);discount.addEventListener('change',persist);
+      base.addEventListener('input',preview);discount.addEventListener('input',preview);
     }
   }
 
@@ -151,5 +143,13 @@
   }
 
   function refresh(){syncSessionSettings();ensurePreviousSummary();hideLegacySessionPriceAndReceipts();replacePaymentButtons();enhanceMainSummary();}
-  const observer=new MutationObserver(()=>setTimeout(refresh,0));observer.observe(document.body,{childList:true,subtree:true});setTimeout(refresh,0);
+  const relevantNode=node=>node?.nodeType===1&&(
+    node.matches?.('dialog.session-edit-dialog,.session-card,.payment-dialog,#clientPaymentBox')
+    ||node.querySelector?.('dialog.session-edit-dialog,.session-card,.payment-dialog,#clientPaymentBox')
+  );
+  const observer=new MutationObserver(records=>{
+    if(records.some(record=>Array.from(record.addedNodes||[]).some(relevantNode)))setTimeout(refresh,0);
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
+  setTimeout(refresh,0);
 })();
