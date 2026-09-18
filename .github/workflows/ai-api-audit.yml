@@ -1,0 +1,90 @@
+name: AI API audit
+
+on:
+  push:
+    branches: [ main, 'feature-ai-*' ]
+    paths:
+      - 'modules/ai/**'
+      - 'ai-api.js'
+      - 'app-loader.js'
+      - 'client-ai-*.js'
+      - 'session-ai-chat.js'
+      - 'request-ai-n8n.js'
+      - 'tests/ai-module-6a-audit.mjs'
+      - '.github/workflows/ai-api-audit.yml'
+      - 'index.html'
+  workflow_dispatch:
+
+jobs:
+  ai-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static AI foundation check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/ai/ai-service.js
+          node --check modules/ai/index.js
+          node --check ai-api.js
+          node --check app-loader.js
+          node --check client-ai-chat.js
+          node --check client-ai-full-context.js
+          node --check client-ai-chat-view.js
+          node --check session-ai-chat.js
+          node --check request-ai-n8n.js
+          node --check tests/ai-module-6a-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          service=Path('modules/ai/ai-service.js').read_text(encoding='utf-8')
+          api=Path('ai-api.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+
+          required=[
+              'clientChat','sessionChat','appendClientMessage','replaceClientChat','clearClientChat',
+              'appendSessionMessage','replaceSessionChat','clearSessionChat'
+          ]
+          missing=[x for x in required if x not in service or x not in api]
+          if missing:
+              raise SystemExit('AI 6A service/facade methods missing: '+', '.join(missing))
+          if "version:'6A'" not in api or 'moduleAware:true' not in api:
+              raise SystemExit('AI 6A facade marker missing')
+          if 'services.ai=Object.freeze' not in service:
+              raise SystemExit('AIService frozen export missing')
+          if 'fetch(' in service:
+              raise SystemExit('AI 6A service must not own transport yet')
+          for token in [
+              'modules/ai/ai-service.js?v=20260918-ai6a',
+              'modules/ai/index.js?v=20260918-ai6a',
+              'ai-api.js?v=20260918-ai6a'
+          ]:
+              if token not in loader:
+                  raise SystemExit('AI loader missing/stale '+token)
+
+          # 6A inventory: these direct writers are intentionally left for 6B/6C.
+          legacy_client=Path('client-ai-chat.js').read_text(encoding='utf-8')
+          legacy_session=Path('session-ai-chat.js').read_text(encoding='utf-8')
+          if 'c.aiChat' not in legacy_client:
+              raise SystemExit('6A inventory changed: client aiChat legacy writer was expected')
+          if 's.aiChat' not in legacy_session or 'c.aiChat' not in legacy_session:
+              raise SystemExit('6A inventory changed: session/client legacy writers were expected in session AI')
+          print('AI 6A ownership foundation OK; legacy chat writers remain scoped for 6B/6C.')
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: AI ownership and persistence audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/ai-api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/ai-module-6a-audit.mjs
