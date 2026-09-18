@@ -2,7 +2,7 @@ name: Client module audit
 
 on:
   push:
-    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance, feature-requests-3a, feature-sessions-4b, feature-sessions-4c ]
+    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance, feature-requests-3a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*' ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
