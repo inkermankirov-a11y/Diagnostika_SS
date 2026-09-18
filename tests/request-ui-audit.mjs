@@ -9,8 +9,8 @@ const fixture={version:4,clients:[{
   currentRequestId:'requests-3b-r1',
   lastDiagnosisRequestId:'requests-3b-r1',
   requests:[
-    {id:'requests-3b-r1',title:'Первый запрос',status:'active',createdAt:'2026-09-18T10:00:00.000Z',updatedAt:'2026-09-18T10:00:00.000Z',situations:[]},
-    {id:'requests-3b-r2',title:'Второй запрос',status:'active',createdAt:'2026-09-18T11:00:00.000Z',updatedAt:'2026-09-18T11:00:00.000Z',situations:[]}
+    {id:'requests-3b-r1',title:'Первый запрос',status:'active',createdAt:'2026-09-18T10:00:00.000Z',updatedAt:'2026-09-18T10:00:00.000Z',situations:[],payment:{mode:'',total:0,payments:[],currency:'RUB',sessionAmount:0,sessionDiscount:0}},
+    {id:'requests-3b-r2',title:'Второй запрос',status:'active',createdAt:'2026-09-18T11:00:00.000Z',updatedAt:'2026-09-18T11:00:00.000Z',situations:[],payment:{mode:'',total:0,payments:[],currency:'RUB',sessionAmount:0,sessionDiscount:0}}
   ]
 }]};
 
@@ -157,7 +157,7 @@ const secondClient=await page.evaluate(()=>{
   const c=newClient();
   c.id='requests-3b-client-2';
   c.name='Requests 3B Client 2';
-  c.requests=[{id:'requests-3b-c2-r1',title:'Запрос второго клиента',status:'active',createdAt:'2026-09-18T12:00:00.000Z',updatedAt:'2026-09-18T12:00:00.000Z',situations:[]}];
+  c.requests=[{id:'requests-3b-c2-r1',title:'Запрос второго клиента',status:'active',createdAt:'2026-09-18T12:00:00.000Z',updatedAt:'2026-09-18T12:00:00.000Z',situations:[],payment:{mode:'',total:0,payments:[],currency:'RUB',sessionAmount:0,sessionDiscount:0}}];
   c.currentRequestId=c.requests[0].id;
   c.lastDiagnosisRequestId=c.requests[0].id;
   state.clients.push(c);
