@@ -13,6 +13,7 @@ on:
       - 'form-integrations.js'
       - 'tests/ai-module-6a-audit.mjs'
       - 'tests/ai-module-6b-audit.mjs'
+      - 'tests/ai-module-6c-audit.mjs'
       - '.github/workflows/ai-api-audit.yml'
       - 'index.html'
   workflow_dispatch:
@@ -39,6 +40,7 @@ jobs:
           node --check request-ai-n8n.js
           node --check tests/ai-module-6a-audit.mjs
           node --check tests/ai-module-6b-audit.mjs
+          node --check tests/ai-module-6c-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -55,16 +57,16 @@ jobs:
           missing=[x for x in required if x not in service or x not in api]
           if missing:
               raise SystemExit('AI 6A service/facade methods missing: '+', '.join(missing))
-          if "version:'6B'" not in api or 'moduleAware:true' not in api:
-              raise SystemExit('AI 6B facade marker missing')
+          if "version:'6C'" not in api or 'moduleAware:true' not in api:
+              raise SystemExit('AI 6C facade marker missing')
           if 'services.ai=Object.freeze' not in service:
               raise SystemExit('AIService frozen export missing')
           if 'fetch(' in service:
               raise SystemExit('AI 6A service must not own transport yet')
           for token in [
-              'modules/ai/ai-service.js?v=20260918-ai6b',
-              'modules/ai/index.js?v=20260918-ai6b',
-              'ai-api.js?v=20260918-ai6b'
+              'modules/ai/ai-service.js?v=20260919-ai6c',
+              'modules/ai/index.js?v=20260919-ai6c',
+              'ai-api.js?v=20260919-ai6c'
           ]:
               if token not in loader:
                   raise SystemExit('AI loader missing/stale '+token)
@@ -75,8 +77,10 @@ jobs:
               raise SystemExit('AI 6B regression: client AI UI accesses client.aiChat directly')
           if 'c.aiChat' in session_chat:
               raise SystemExit('AI 6B regression: session compatibility UI accesses client.aiChat directly')
-          if 's.aiChat' not in session_chat:
-              raise SystemExit('AI 6B scope changed: session aiChat should remain for 6C')
+          if 's.aiChat' in session_chat:
+              raise SystemExit('AI 6C regression: session AI UI accesses session.aiChat directly')
+          if 'persist()' in session_chat:
+              raise SystemExit('AI 6C regression: session AI UI persists chat directly')
           for token in ["source:'client-ai-chat-user'","source:'client-ai-chat-assistant'"]:
               if token not in client_chat:
                   raise SystemExit('AI 6B client writer missing '+token)
@@ -85,7 +89,10 @@ jobs:
           for token in ["'127.0.0.1'","'localhost'","'::1'","allowBackgroundInboxPolling"]:
               if token not in forms:
                   raise SystemExit('Localhost background n8n polling guard missing: '+token)
-          print('AI 6B client chat ownership boundary OK; session aiChat remains scoped for 6C.')
+          for token in ["source:'session-ai-chat-user'","source:'session-ai-chat-assistant'","source:'session-ai-chat-clear'"]:
+              if token not in session_chat:
+                  raise SystemExit('AI 6C session writer missing '+token)
+          print('AI 6C client/session chat ownership boundaries OK.')
           PY
 
       - name: Install browser
@@ -102,3 +109,4 @@ jobs:
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/ai-module-6a-audit.mjs
           node tests/ai-module-6b-audit.mjs
+          node tests/ai-module-6c-audit.mjs
