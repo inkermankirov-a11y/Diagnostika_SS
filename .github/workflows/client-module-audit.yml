@@ -40,7 +40,8 @@ jobs:
           node --check app-loader.js
           node --check tests/client-module-audit.mjs
           node --check tests/client-write-audit.mjs
-          node --check tests/client-trash-audit.mjs\n          node --check tests/client-legacy-boundary-audit.mjs
+          node --check tests/client-trash-audit.mjs
+          node --check tests/client-legacy-boundary-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
