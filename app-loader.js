@@ -126,6 +126,37 @@
     document.body.appendChild(serviceScript);
   }
 
+  function ensureDiagnosisFoundation(next){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-diagnosis-module]')){
+        next();
+        return;
+      }
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/diagnosis/index.js?v=20260919-diagnosis7a';
+      moduleScript.setAttribute('data-diagnosis-module','1');
+      moduleScript.onload=next;
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.diagnosis){
+      loadModule();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-diagnosis-service]');
+    if(existing){
+      existing.addEventListener('load',loadModule,{once:true});
+      return;
+    }
+
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7a';
+    serviceScript.setAttribute('data-diagnosis-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
   function ensureSessionsFoundation(next){
     const loadModule=()=>{
       if(document.querySelector('script[data-sessions-module]')){
@@ -283,23 +314,44 @@
     });
   }
 
-  function loadRequestApi(){
-    ensureRequestsFoundation(()=>{
-      if(window.DiagnostikaRequests?.moduleAware===true){
+  function loadDiagnosisApi(){
+    ensureDiagnosisFoundation(()=>{
+      if(window.DiagnostikaDiagnosis?.moduleAware===true){
         loadSessionsApi();
         return;
       }
 
-      const existing=document.querySelector('script[data-request-api]');
+      const existing=document.querySelector('script[data-diagnosis-api]');
       if(existing){
         existing.addEventListener('load',loadSessionsApi,{once:true});
         return;
       }
 
       const api=document.createElement('script');
+      api.src='diagnosis-api.js?v=20260919-diagnosis7a';
+      api.setAttribute('data-diagnosis-api','1');
+      api.onload=loadSessionsApi;
+      document.body.appendChild(api);
+    });
+  }
+
+  function loadRequestApi(){
+    ensureRequestsFoundation(()=>{
+      if(window.DiagnostikaRequests?.moduleAware===true){
+        loadDiagnosisApi();
+        return;
+      }
+
+      const existing=document.querySelector('script[data-request-api]');
+      if(existing){
+        existing.addEventListener('load',loadDiagnosisApi,{once:true});
+        return;
+      }
+
+      const api=document.createElement('script');
       api.src='request-api.js?v=20260918-requests3d';
       api.setAttribute('data-request-api','1');
-      api.onload=loadSessionsApi;
+      api.onload=loadDiagnosisApi;
       document.body.appendChild(api);
     });
   }
