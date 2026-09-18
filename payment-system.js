@@ -76,7 +76,7 @@
     if(p.mode==='session'){
       const sessions=sessionsFor(c,r),paidSessions=sessions.filter(s=>sessionPayment(c,s).paid);
       const paid=paidSessions.reduce((a,s)=>a+num(sessionPayment(c,s).amount),0);
-      const total=sessions.reduce((a,s)=>a+num(sessionPayment(s).amount),0);
+      const total=sessions.reduce((a,s)=>a+num(sessionPayment(c,s).amount),0);
       if(!sessions.length)return{status:'none',label:'Не указано',paid,total,count:'0/0'};
       if(paidSessions.length===sessions.length)return{status:'paid',label:'Оплачено',paid,total,count:`${sessions.length}/${sessions.length}`};
       return{status:'unpaid',label:'Не оплачено',paid,total,count:`${paidSessions.length}/${sessions.length}`};
