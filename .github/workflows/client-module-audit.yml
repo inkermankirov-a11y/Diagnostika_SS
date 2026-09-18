@@ -117,7 +117,7 @@ jobs:
               if token in consultation_sync: errors.append('free consultation direct profile mutation remains '+token)
           if 'client-questionnaires.js?v=20260918-clients2c2' not in ai_settings: errors.append('questionnaire loader cache version is stale')
           if 'free-consultation-client-card-sync.js?v=20260918-clients2c2' not in index: errors.append('free consultation sync cache version is stale')
-          if 'ai-settings-button.js?v=20260918-clients2c2' not in index: errors.append('AI settings loader cache version is stale')
+          if 'ai-settings-button.js?v=20260918-ai6a' not in index: errors.append('AI settings loader cache version is stale')
           if 'renderClient=' in home_dashboard.replace('===','').replace('!==',''): errors.append('home dashboard still replaces renderClient')
           for token in ["'client:created'","'client:selected'","'client:updated'","'client:deleted'","'client:restored'","'client:purged'",'events.on(type,()=>setTimeout(refresh,0))']:
               if token not in home_dashboard: errors.append('home dashboard client event boundary missing '+token)
