@@ -7,10 +7,7 @@
   const requestForSession=(c,s)=>c?.requests?.find(r=>r.id===s?.requestId)||null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{mode:'',total:0,payments:[],sessionAmount:0});
-  const sessionPay=s=>{
-    if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
-    return s.payment;
-  };
+  const sessionPay=(c,s)=>paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
 
   const style=document.createElement('style');
   style.textContent=`
@@ -75,8 +72,8 @@
       if(!s){existing?.remove();return;}
       const r=requestForSession(c,s),p=paymentOf(c,r);
       if(!r||p?.mode!=='session'){existing?.remove();return;}
-      const sp=sessionPay(s);
-      if(!sp.amount&&p.sessionAmount)sp.amount=Number(p.sessionAmount)||0;
+      const sp=sessionPay(c,s);
+      const shownAmount=Number(sp.amount)||Number(p.sessionAmount)||0;
 
       let btn=existing;
       if(!btn){
@@ -89,21 +86,24 @@
 
       const cls='session-pay-status '+(sp.paid?'paid':'unpaid');
       if(btn.className!==cls)btn.className=cls;
-      const text=sp.paid?`✓ Оплачено ${money(sp.amount||p.sessionAmount)} ₽`:'Не оплачено';
+      const text=sp.paid?`✓ Оплачено ${money(shownAmount)} ₽`:'Не оплачено';
       if(btn.textContent!==text)btn.textContent=text;
       const tip=sp.paid?'Нажми, чтобы отменить отметку оплаты':'Нажми, чтобы отметить оплату';
       if(btn.title!==tip)btn.title=tip;
       btn.onclick=async e=>{
         e.stopPropagation();e.preventDefault();
+        let nextPaid=!sp.paid;
         if(sp.paid){
           const ok=window.AppDialog?.confirm?await window.AppDialog.confirm('Снять отметку об оплате этой сессии?','Оплата сессии','Да','Нет'):confirm('Снять отметку об оплате этой сессии?');
           if(!ok)return;
-          sp.paid=false;
-        }else{
-          sp.paid=true;
-          if(!sp.amount)sp.amount=Number(p.sessionAmount)||0;
+          nextPaid=false;
         }
-        if(typeof save==='function')save();
+        const updated=paymentWriter()?.updateSession?.(
+          s.id,
+          {paid:nextPaid,amount:nextPaid?shownAmount:(Number(sp.amount)||0)},
+          {client:c,source:'session-payment-status-toggle'}
+        );
+        if(!updated)return;
         if(typeof renderSessions==='function')renderSessions();
         scheduleRefresh();
       };
@@ -118,7 +118,7 @@
       const p=paymentOf(c,r);
       if(p?.mode==='session'){
         const sessions=(c.sessions||[]).filter(s=>s.requestId===r.id);
-        unpaid=sessions.filter(s=>!sessionPay(s).paid);
+        unpaid=sessions.filter(s=>!sessionPay(c,s).paid);
       }
     }
     const shouldAttention=unpaid.length>0;
