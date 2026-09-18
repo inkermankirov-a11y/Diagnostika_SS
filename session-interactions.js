@@ -63,12 +63,17 @@
       if (!tripleConfirm('сессию', `№${number}`)) return;
 
       await deleteSessionMedia(s.id);
-      const index = c.sessions.indexOf(s);
-      if (index >= 0) c.sessions.splice(index, 1);
+      const api = window.DiagnostikaSessions?.moduleAware === true
+        ? window.DiagnostikaSessions
+        : window.DiagnostikaPlatform?.services?.sessions || null;
+      if (!api?.remove) return alert('Модуль сессий ещё загружается.');
+      const removed = api.remove(s.id, {
+        client: c,
+        source: 'session-editor-delete'
+      });
+      if (!removed) return alert('Не удалось удалить сессию.');
       if (typeof selectedSessionId !== 'undefined' && selectedSessionId === s.id) selectedSessionId = null;
-      save();
       dlg.close();
-      renderSessions();
     };
 
     actions.insertBefore(deleteBtn, actions.firstChild);
