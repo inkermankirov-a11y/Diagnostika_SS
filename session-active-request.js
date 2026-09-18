@@ -15,8 +15,14 @@
       if(c && s && !s.requestId){
         const active = currentActiveRequest(c);
         if(active){
-          s.requestId = active.id;
-          if(typeof save === 'function') save();
+          const api=window.DiagnostikaSessions?.moduleAware===true
+            ? window.DiagnostikaSessions
+            : window.DiagnostikaPlatform?.services?.sessions||null;
+          api?.update?.(s.id,{requestId:active.id},{
+            client:c,
+            source:'session-active-request',
+            render:false
+          });
         }
       }
       return previousOpenSessionEditor.call(this, c, s, number);
