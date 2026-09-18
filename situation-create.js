@@ -58,13 +58,14 @@
         nameInput.style.borderColor='#dc2626';
         return;
       }
-      const s=typeof newSituation==='function'?newSituation():{id:typeof uid==='function'?uid():String(Date.now()),beliefs:[]};
-      s.name=name;
-      s.level=typeof lvl==='function'?lvl(levelInput.value):Math.max(1,Math.min(10,Number(levelInput.value)||5));
-      r.situations.push(s);
+      const c=typeof client==='function'?client():null;
+      const api=window.DiagnostikaDiagnosis;
+      if(!c||!api?.moduleAware)return;
+      const level=typeof lvl==='function'?lvl(levelInput.value):Math.max(1,Math.min(10,Number(levelInput.value)||5));
+      const s=api.addSituation({name,level},{client:c,requestId:r.id,source:'diagnosis-ui-situation-add',render:false});
+      if(!s)return;
       situationId=s.id;
       selected=null;
-      if(typeof save==='function') save();
       if(typeof renderSituationList==='function') renderSituationList();
       dlg.close();
     };
