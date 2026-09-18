@@ -15,11 +15,11 @@ for(const token of [
   assert(serviceSource.includes(token),`AIService missing ${token}`);
   assert(apiSource.includes(token),`AI facade missing ${token}`);
 }
-assert(/version:'6[A-C]'/.test(apiSource),'AI facade version is outside supported 6A-6C range');
+assert(/version:'6[A-D]'/.test(apiSource),'AI facade version is outside supported 6A-6D range');
 assert(apiSource.includes('moduleAware:true'),'AI facade is not module-aware');
-assert(/modules\/ai\/ai-service\.js\?v=2026091[89]-ai6[abc]/.test(loaderSource),'AI service is not loaded by app-loader');
-assert(/modules\/ai\/index\.js\?v=2026091[89]-ai6[abc]/.test(loaderSource),'AI module is not loaded by app-loader');
-assert(/ai-api\.js\?v=2026091[89]-ai6[abc]/.test(loaderSource),'AI facade is not loaded by app-loader');
+assert(/modules\/ai\/ai-service\.js\?v=2026091[89]-ai6[abcd]/.test(loaderSource),'AI service is not loaded by app-loader');
+assert(/modules\/ai\/index\.js\?v=2026091[89]-ai6[abcd]/.test(loaderSource),'AI module is not loaded by app-loader');
+assert(/ai-api\.js\?v=2026091[89]-ai6[abcd]/.test(loaderSource),'AI facade is not loaded by app-loader');
 assert.equal(serviceSource.includes('fetch('),false,'AI 6A service must not own n8n transport yet');
 
 // Foundation audit remains valid after 6C: legacy UI must no longer own session aiChat directly.
@@ -69,7 +69,7 @@ page.on('dialog',d=>d.accept().catch(()=>{}));
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>/^6[A-C]$/.test(window.DiagnostikaAI?.version||'')
+  await page.waitForFunction(()=>/^6[A-D]$/.test(window.DiagnostikaAI?.version||'')
     && window.DiagnostikaAI?.moduleAware===true
     && window.DiagnostikaPlatform?.services?.ai
     && window.DiagnostikaPlatform?.modules?.get?.('ai')?.status==='started',
@@ -89,7 +89,7 @@ const architecture=await page.evaluate(()=>({
     'appendSessionMessage','replaceSessionChat','clearSessionChat'
   ].map(k=>[k,typeof window.DiagnostikaAI?.[k]]))
 }));
-assert(/^6[A-C]$/.test(architecture.version));
+assert(/^6[A-D]$/.test(architecture.version));
 assert.equal(architecture.moduleAware,true);
 assert.equal(architecture.sameService,true);
 assert.equal(architecture.module,'started');
