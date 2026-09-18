@@ -179,12 +179,19 @@ const browser=await chromium.launch({headless:true});
   await page.waitForFunction(()=>window.DiagnostikaSessions.get('sessions-4c-pay-session')?.requestId==='sessions-4c-r2',null,{timeout:5000});
   await page.waitForTimeout(120);
 
-  const linked=await page.evaluate(()=>({
-    requestId:window.DiagnostikaSessions.get('sessions-4c-pay-session')?.requestId,
-    activeRequestId:window.DiagnostikaRequests.currentId(),
-    amount:Number(window.DiagnostikaSessions.get('sessions-4c-pay-session')?.payment?.amount)||0,
-    events:window.__sessions4cPaymentEvents
-  }));
+  const linked=await page.evaluate(()=>{
+    const live=window.DiagnostikaSessions.get('sessions-4c-pay-session');
+    const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');
+    const storedSession=stored?.clients?.find(c=>c.id==='sessions-4c-pay-client')?.sessions?.find(s=>s.id==='sessions-4c-pay-session');
+    return {
+      requestId:live?.requestId,
+      storedRequestId:storedSession?.requestId,
+      sameAsClientSession:live===window.DiagnostikaClients.current()?.sessions?.find(s=>s.id==='sessions-4c-pay-session'),
+      activeRequestId:window.DiagnostikaRequests.currentId(),
+      amount:Number(live?.payment?.amount)||0,
+      events:window.__sessions4cPaymentEvents
+    };
+  });
   console.log('SESSION_4C_PAYMENT_LINK_STATE',JSON.stringify(linked));
   assert.equal(linked.requestId,'sessions-4c-r2');
   assert.equal(linked.activeRequestId,'sessions-4c-r1','payment repair changed active request');
