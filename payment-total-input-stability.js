@@ -29,15 +29,14 @@
       ||null;
   }
 
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
+
   function paymentOf(c,r){
     try{
-      const p=window.DiagnostikaPayments?.paymentOfRequest?.(c,r);
+      const p=paymentWriter()?.request?.(r?.id,c);
       if(p)return p;
     }catch(_){}
-    if(!r)return null;
-    if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[],currency:c?.currency||'RUB'};
-    if(!Array.isArray(r.payment.payments))r.payment.payments=[];
-    return r.payment;
+    return r?.payment&&typeof r.payment==='object'?r.payment:null;
   }
 
   function fullRefresh(){
@@ -67,10 +66,9 @@
       field.value=format(raw);
       try{field.setSelectionRange(field.value.length,field.value.length);}catch(_){}
 
-      const c=currentClient(),r=currentRequest(c);if(!c||!r)return;
-      const p=paymentOf(c,r);if(!p)return;
-      p.total=raw?Number(raw):0;
-      // Deliberately no save(), no global refresh and no rerender while typing.
+      // Keep the draft in the field only. PaymentService owns persisted request.payment.
+      field.dataset.paymentTotalDraft=raw;
+      // Deliberately no persistence, global refresh or rerender while typing.
     };
 
     const commit=e=>{
@@ -78,9 +76,13 @@
       const raw=digits(field.value);
       field.value=format(raw);
       const c=currentClient(),r=currentRequest(c);if(!c||!r)return;
-      const p=paymentOf(c,r);if(!p)return;
-      p.total=raw?Number(raw):0;
-      try{if(typeof save==='function')save();}catch(_){}
+      const updated=paymentWriter()?.updateRequest?.(
+        r.id,
+        {total:raw?Number(raw):0},
+        {client:c,source:'payment-dialog-total'}
+      );
+      if(!updated)return;
+      delete field.dataset.paymentTotalDraft;
       fullRefresh();
     };
 
