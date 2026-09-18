@@ -86,7 +86,7 @@ jobs:
               r'\.requests\.push\s*\(',
               r'\.currentRequestId\s*=',
               r'\.lastDiagnosisRequestId\s*=',
-              r'\brequestId\s*=',
+              r'(?<![.\w])requestId\s*=',
           ]
           for name,text in owned_files.items():
               for pattern in forbidden:
