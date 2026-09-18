@@ -5,6 +5,13 @@
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
   const currentClient=()=>typeof client==='function'?client():null;
+  const linkSessionRequest=(c,s,requestId,source)=>{
+    if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
+    const api=window.DiagnostikaSessions?.moduleAware===true
+      ? window.DiagnostikaSessions
+      : window.DiagnostikaPlatform?.services?.sessions||null;
+    return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
+  };
 
   function requestNumber(c,r){
     try{return window.DiagnostikaRequests?.requestNumber?.(c,r)||((c?.requests||[]).findIndex(x=>String(x?.id)===String(r?.id))+1)||0;}catch(_){return 0;}
@@ -250,7 +257,7 @@
         sp.note=newNote;
         sp.receiptUrl=newReceipt;
         if(item.request?.id){
-          item.session.requestId=item.request.id;
+          linkSessionRequest(currentClient(),item.session,item.request.id,'payment-consistency-session-link');
           sp.requestId=item.request.id;
         }
       }
