@@ -2,7 +2,7 @@ name: Client module audit
 
 on:
   push:
-    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d ]
+    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
@@ -27,6 +27,7 @@ on:
       - 'tests/client-legacy-boundary-audit.mjs'
       - 'tests/client-profile-boundary-audit.mjs'
       - 'tests/client-final-boundary-audit.mjs'
+      - 'tests/client-acceptance-audit.mjs'
       - '.github/workflows/client-module-audit.yml'
   workflow_dispatch:
 
@@ -59,6 +60,7 @@ jobs:
           node --check tests/client-profile-boundary-audit.mjs
           node --check home-dashboard.js
           node --check tests/client-final-boundary-audit.mjs
+          node --check tests/client-acceptance-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -222,3 +224,11 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-final-boundary-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/client-final-boundary-audit.mjs
+
+      - name: Verify Clients 2 acceptance lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-acceptance-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/client-acceptance-audit.mjs
