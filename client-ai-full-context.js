@@ -214,9 +214,9 @@
   setTimeout(refresh,600);
   setTimeout(refresh,1500);
 
-  window.DiagnostikaClientAIFullContext={
+  window.DiagnostikaClientAIFullContext=Object.freeze({
     buildFullContext,
     enrichPayload,
     refresh
-  };
+  });
 })();
