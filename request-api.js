@@ -101,54 +101,13 @@
   }
 
   function view(id,options={}){
-    const moduleService=service();
-    if(moduleService?.view)return moduleService.view(id,options);
-    const target=get(id,options.client??options.clientId);
-    if(!target)return false;
-    const previousRequestId=viewedId();
-    try{
-      requestId=target.id;
-      situationId=null;
-      selected=null;
-      if(options.render!==false&&typeof renderRequests==='function')renderRequests();
-    }catch(_){return false;}
-    if(String(previousRequestId??'')!==String(target.id)){
-      window.DiagnostikaLegacyEvents?.emit?.(EVENT_NAMES.selected,{
-        clientId:resolveClient()?.id||null,
-        requestId:target.id,
-        previousRequestId:previousRequestId??null,
-        source:options.source||'request-api-fallback-view'
-      });
-    }
-    return true;
+    const fn=service()?.view;
+    return typeof fn==='function'?fn(id,options):false;
   }
 
   function activate(id,options={}){
-    const moduleService=service();
-    if(moduleService?.activate)return moduleService.activate(id,options);
-    const c=resolveClient(options.client??options.clientId);
-    const target=get(id,c);
-    if(!c||!target||target.status==='completed')return false;
-    const previousActiveId=c.currentRequestId||null;
-    const previousViewedId=viewedId(c);
-    c.currentRequestId=target.id;
-    c.lastDiagnosisRequestId=target.id;
-    try{requestId=target.id;situationId=null;selected=null;}catch(_){return false;}
-    try{if(typeof save==='function')save();}catch(_){return false;}
-    if(options.render!==false&&typeof renderRequests==='function')renderRequests();
-    if(String(previousViewedId??'')!==String(target.id)){
-      window.DiagnostikaLegacyEvents?.emit?.(EVENT_NAMES.selected,{
-        clientId:c.id,requestId:target.id,previousRequestId:previousViewedId??null,
-        source:options.source||'request-api-fallback-activate'
-      });
-    }
-    if(String(previousActiveId??'')!==String(target.id)){
-      window.DiagnostikaLegacyEvents?.emit?.(EVENT_NAMES.activated,{
-        clientId:c.id,requestId:target.id,previousRequestId:previousActiveId??null,
-        source:options.source||'request-api-fallback-activate'
-      });
-    }
-    return true;
+    const fn=service()?.activate;
+    return typeof fn==='function'?fn(id,options):false;
   }
 
   function select(id,options={}){
@@ -191,17 +150,28 @@
     return index>=0?index+1:0;
   }
 
+  function syncActiveView(source){
+    const moduleService=service();
+    const c=resolveClient();
+    if(!moduleService?.view||!c)return false;
+
+    const currentView=viewed(c);
+    if(currentView)return true;
+
+    const activeRequest=active(c);
+    if(!activeRequest)return false;
+
+    return moduleService.view(activeRequest.id,{
+      client:c,
+      render:false,
+      source:source||'request-api-active-sync'
+    });
+  }
+
   if(typeof window.renderClient==='function'&&!window.renderClient.__requestApiBoundaryPatched){
     const previous=window.renderClient;
     const wrapped=function(){
-      const selected=active();
-      if(selected){
-        try{
-          requestId=selected.id;
-          situationId=null;
-          selected=null;
-        }catch(_){}
-      }
+      syncActiveView('request-api-render-client-sync');
       const result=previous.apply(this,arguments);
       setTimeout(refresh,0);
       return result;
@@ -210,11 +180,7 @@
     window.renderClient=wrapped;
   }
 
-  const selected=active();
-  if(selected){
-    try{requestId=selected.id;situationId=null;selected=null;}catch(_){}
-    if(typeof renderRequests==='function')renderRequests();
-  }
+  if(syncActiveView('request-api-initial-sync')&&typeof renderRequests==='function')renderRequests();
 
   window.DiagnostikaRequests=Object.freeze({
     ...legacy,
