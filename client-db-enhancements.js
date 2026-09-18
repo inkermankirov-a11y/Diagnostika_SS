@@ -1,6 +1,11 @@
 'use strict';
 
 (() => {
+  const clientsApi=()=>window.DiagnostikaClients
+    || window.DiagnostikaPlatform?.clients
+    || window.DiagnostikaPlatform?.services?.clients
+    || null;
+
   const FORMAT_INFO={
     'google-meet':{label:'Google Meet',icon:'G',cls:'meet'},
     'yandex-telemost':{label:'Яндекс Телемост',icon:'Я',cls:'yandex'},
@@ -51,7 +56,8 @@
     if(!dlg||!root) return;
     root.innerHTML='';
 
-    if(!state.clients.length){
+    const clients=clientsApi()?.list?.()||[];
+    if(!clients.length){
       const empty=document.createElement('div');
       empty.className='db-empty';
       empty.textContent='Клиентов пока нет.';
@@ -64,7 +70,7 @@
     table.innerHTML='<thead><tr><th class="db-col-num">№</th><th>ФИО</th><th class="db-col-city">Город</th><th class="db-col-last">Последняя сессия</th><th class="db-col-format">Связь</th><th class="db-col-actions">Действия</th></tr></thead>';
     const tbody=document.createElement('tbody');
 
-    state.clients.forEach((c,index)=>{
+    clients.forEach((c,index)=>{
       const tr=document.createElement('tr');
       const last=latestSession(c);
       const lastWithFormat=latestSessionWithFormat(c);
@@ -82,7 +88,10 @@
 
       const openBtn=document.createElement('button');
       openBtn.type='button';openBtn.className='db-open-btn';openBtn.textContent='Открыть';
-      openBtn.onclick=()=>{clientId=c.id;requestId=null;situationId=null;selected=null;dlg.close();renderClient();};
+      openBtn.onclick=()=>{
+        const opened=clientsApi()?.select?.(c.id,{source:'client-database-open'});
+        if(opened) dlg.close();
+      };
 
       const delBtn=document.createElement('button');
       delBtn.type='button';delBtn.className='db-delete-btn db-delete-btn-compact';delBtn.textContent='Удалить';
