@@ -102,7 +102,7 @@
         return;
       }
       const moduleScript=document.createElement('script');
-      moduleScript.src='modules/requests/index.js?v=20260918-requests3b';
+      moduleScript.src='modules/requests/index.js?v=20260918-requests3d';
       moduleScript.setAttribute('data-requests-module','1');
       moduleScript.onload=next;
       document.body.appendChild(moduleScript);
@@ -120,7 +120,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/requests/request-service.js?v=20260918-requests3b';
+    serviceScript.src='modules/requests/request-service.js?v=20260918-requests3d';
     serviceScript.setAttribute('data-requests-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -140,7 +140,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='request-api.js?v=20260918-requests3b';
+      api.src='request-api.js?v=20260918-requests3d';
       api.setAttribute('data-request-api','1');
       api.onload=loadDashboard;
       document.body.appendChild(api);
