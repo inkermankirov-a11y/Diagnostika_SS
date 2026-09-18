@@ -196,3 +196,4 @@ jobs:
             /tmp/09-dashboard.png
             /tmp/browser-errors.txt
           if-no-files-found: ignore
+# acceptance-ci-trigger: 20260918

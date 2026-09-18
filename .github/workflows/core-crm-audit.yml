@@ -87,3 +87,4 @@ jobs:
           await browser.close();
           JS
           node core-crm-audit.mjs
+# acceptance-ci-trigger: 20260918
