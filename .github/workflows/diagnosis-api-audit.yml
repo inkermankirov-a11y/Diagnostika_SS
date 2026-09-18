@@ -6,6 +6,8 @@ on:
     paths:
       - 'diagnosis-api.js'
       - 'app.js'
+      - 'situation-unknown-level.js'
+      - 'situation-create.js'
       - 'modules/diagnosis/**'
       - 'app-loader.js'
       - 'home-dashboard.js'
@@ -36,6 +38,8 @@ jobs:
           set -euo pipefail
           node --check diagnosis-api.js
           node --check app.js
+          node --check situation-unknown-level.js
+          node --check situation-create.js
           node --check modules/diagnosis/diagnosis-service.js
           node --check modules/diagnosis/index.js
           node --check home-dashboard.js
@@ -54,6 +58,8 @@ jobs:
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
           api=Path('diagnosis-api.js').read_text(encoding='utf-8')
           app=Path('app.js').read_text(encoding='utf-8')
+          create_ui=Path('situation-create.js').read_text(encoding='utf-8')
+          unknown_ui=Path('situation-unknown-level.js').read_text(encoding='utf-8')
           nav=Path('diagnosis-navigation.js').read_text(encoding='utf-8')
           compact=Path('diagnosis-compact-client.js').read_text(encoding='utf-8')
           fc1=Path('free-consultation-request-builder.js').read_text(encoding='utf-8')
@@ -103,12 +109,16 @@ jobs:
               raise SystemExit('DiagnosisService persists directly instead of RequestService')
           if 'api.update(' not in service:
               raise SystemExit('DiagnosisService does not commit through RequestService.update')
+          ui_sources=app+'\n'+create_ui+'\n'+unknown_ui
           for token in ["source:'diagnosis-ui-situation-add'","source:'diagnosis-ui-situation-edit'","source:'diagnosis-ui-situation-delete'","source:'diagnosis-ui-situation-result'"]:
-              if token not in app:
+              if token not in ui_sources:
                   raise SystemExit('Diagnosis 7B situation UI source missing '+token)
+          for token in ['r.situations.push(s)','r.situations=r.situations.filter',"s.result=$('#situationResult').value",'if(n!==null)s.name=n','if(l!==null)s.level=lvl(l)',"typeof save==='function'"]:
+              if token in create_ui or token in unknown_ui:
+                  raise SystemExit('Diagnosis 7B late situation UI still mutates/persists directly: '+token)
           for token in ['r.situations.push(s)','r.situations=r.situations.filter',"s.result=$('#situationResult').value",'if(n!==null)s.name=n','if(l!==null)s.level=lvl(l)']:
               if token in app:
-                  raise SystemExit('Diagnosis 7B situation UI still mutates state directly: '+token)
+                  raise SystemExit('Diagnosis 7B app situation UI still mutates state directly: '+token)
 
           owned_files={
               'diagnosis-navigation.js':nav,
