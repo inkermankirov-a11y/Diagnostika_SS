@@ -58,10 +58,11 @@ const setup=await page.evaluate(()=>{
   return {
     clientId:c.id,
     r1:r1.id,
-    r2:r2.id,
-    baseline:JSON.stringify(api.list(c))
+    r2:r2.id
   };
 });
+await page.waitForTimeout(200);
+setup.baseline=await page.evaluate(()=>JSON.stringify(window.DiagnostikaRequests.list()));
 
 assert.equal(await page.evaluate(()=>window.DiagnostikaDiagnosis.open()),true);
 await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
