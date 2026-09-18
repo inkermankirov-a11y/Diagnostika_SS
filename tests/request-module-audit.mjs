@@ -7,7 +7,11 @@ const apiSource=fs.readFileSync('request-api.js','utf8');
 assert.match(serviceSource,/services\.requests=Object\.freeze/);
 assert.match(serviceSource,/function view\(/);
 assert.match(serviceSource,/function activate\(/);
-assert.equal(/function activate[\s\S]*?target\.updatedAt=now\(\)/.test(serviceSource),false,'activate() must not mutate request data during navigation');
+const activateStart=serviceSource.indexOf('  function activate(');
+const activateEnd=serviceSource.indexOf('  function select(',activateStart);
+assert(activateStart>=0&&activateEnd>activateStart,'activate() boundary not found');
+const activateSource=serviceSource.slice(activateStart,activateEnd);
+assert.equal(activateSource.includes('target.updatedAt=now()'),false,'activate() must not mutate request data during navigation');
 assert.match(apiSource,/moduleAware:true/);
 assert.match(apiSource,/version:'3A'/);
 
