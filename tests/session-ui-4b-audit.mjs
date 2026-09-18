@@ -63,7 +63,7 @@ page.on('dialog',d=>d.accept().catch(()=>{}));
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
   await page.waitForFunction(()=>window.DiagnostikaSessions?.moduleAware===true
-    && window.DiagnostikaSessions?.version==='4B'
+    && window.DiagnostikaSessions?.version==='4C'
     && !!window.DiagnostikaDashboardSessions
     && !!window.DiagnostikaClients?.current?.(),null,{timeout:15000});
   await page.locator('#hdAddSession').waitFor({state:'visible',timeout:8000});
