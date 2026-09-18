@@ -126,10 +126,62 @@
     document.body.appendChild(serviceScript);
   }
 
+  function ensureSessionsFoundation(next){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-sessions-module]')){
+        next();
+        return;
+      }
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/sessions/index.js?v=20260918-sessions4a';
+      moduleScript.setAttribute('data-sessions-module','1');
+      moduleScript.onload=next;
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.sessions){
+      loadModule();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-sessions-service]');
+    if(existing){
+      existing.addEventListener('load',loadModule,{once:true});
+      return;
+    }
+
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/sessions/session-service.js?v=20260918-sessions4a';
+    serviceScript.setAttribute('data-sessions-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
+  function loadSessionsApi(){
+    ensureSessionsFoundation(()=>{
+      if(window.DiagnostikaSessions?.moduleAware===true){
+        loadDashboard();
+        return;
+      }
+
+      const existing=document.querySelector('script[data-session-api]');
+      if(existing){
+        existing.addEventListener('load',loadSessionsApi,{once:true});
+        return;
+      }
+
+      const api=document.createElement('script');
+      api.src='session-api.js?v=20260918-sessions4a';
+      api.setAttribute('data-session-api','1');
+      api.onload=loadSessionsApi;
+      document.body.appendChild(api);
+    });
+  }
+
   function loadRequestApi(){
     ensureRequestsFoundation(()=>{
       if(window.DiagnostikaRequests?.moduleAware===true){
-        loadDashboard();
+        loadSessionsApi();
         return;
       }
 
