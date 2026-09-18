@@ -10,6 +10,7 @@ on:
       - 'client-ai-*.js'
       - 'session-ai-chat.js'
       - 'request-ai-n8n.js'
+      - 'form-integrations.js'
       - 'tests/ai-module-6a-audit.mjs'
       - '.github/workflows/ai-api-audit.yml'
       - 'index.html'
@@ -43,6 +44,7 @@ jobs:
           service=Path('modules/ai/ai-service.js').read_text(encoding='utf-8')
           api=Path('ai-api.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
+          forms=Path('form-integrations.js').read_text(encoding='utf-8')
 
           required=[
               'clientChat','sessionChat','appendClientMessage','replaceClientChat','clearClientChat',
@@ -72,6 +74,9 @@ jobs:
               raise SystemExit('6A inventory changed: client aiChat legacy writer was expected')
           if 's.aiChat' not in legacy_session or 'c.aiChat' not in legacy_session:
               raise SystemExit('6A inventory changed: session/client legacy writers were expected in session AI')
+          for token in ["'127.0.0.1'","'localhost'","'::1'","allowBackgroundInboxPolling"]:
+              if token not in forms:
+                  raise SystemExit('Localhost background n8n polling guard missing: '+token)
           print('AI 6A ownership foundation OK; legacy chat writers remain scoped for 6B/6C.')
           PY
 
