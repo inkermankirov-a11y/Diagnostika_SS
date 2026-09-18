@@ -11,6 +11,10 @@
 
   const rand=(prefix='DSS')=>`${prefix}-${crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)+Date.now().toString(36)}`;
   const normalizePhone=v=>String(v||'').replace(/\D/g,'').replace(/^8(?=\d{10}$)/,'7');
+  const clientsApi=()=>window.DiagnostikaClients
+    || window.DiagnostikaPlatform?.clients
+    || window.DiagnostikaPlatform?.services?.clients
+    || null;
 
   function blankConfig(){
     return {
@@ -37,12 +41,12 @@
 
   function getClientByPhone(phone){
     const p=normalizePhone(phone);if(!p)return null;
-    try{return (state?.clients||[]).find(c=>normalizePhone(c.phone)===p)||null;}catch(_){return null;}
+    try{return (clientsApi()?.list?.()||[]).find(c=>normalizePhone(c.phone)===p)||null;}catch(_){return null;}
   }
 
   function allQuestionnaireIds(){
     const set=new Set();
-    try{for(const c of state?.clients||[])for(const q of c.questionnaires||[])if(q?.externalId)set.add(String(q.externalId));}catch(_){}
+    try{for(const c of clientsApi()?.list?.()||[])for(const q of c.questionnaires||[])if(q?.externalId)set.add(String(q.externalId));}catch(_){}
     return set;
   }
 
@@ -113,14 +117,22 @@
       const q=questionnaireFromSubmission(sub,i);const p=q.profile;
       let c=getClientByPhone(p.phone);
       if(!c){
-        c=newClientFromProfile(p);
-        state.clients.push(c);newClients++;
-      }else attached++;
-      if(!Array.isArray(c.questionnaires))c.questionnaires=[];
-      if(!c.questionnaires.length)q.isPrimary=true;
-      c.questionnaires.push(q);
-      c.lastQuestionnaireAt=q.receivedAt;
-      c.lastQuestionnaireSource=q.source;
+        const seed=newClientFromProfile(p);
+        q.isPrimary=true;
+        seed.questionnaires=[q];
+        seed.lastQuestionnaireAt=q.receivedAt;
+        seed.lastQuestionnaireSource=q.source;
+        c=clientsApi()?.create?.(seed,{source:'form-integration-import',select:false,render:false})||null;
+        if(!c){skipped++;continue;}
+        newClients++;
+      }else{
+        attached++;
+        if(!Array.isArray(c.questionnaires))c.questionnaires=[];
+        if(!c.questionnaires.length)q.isPrimary=true;
+        c.questionnaires.push(q);
+        c.lastQuestionnaireAt=q.receivedAt;
+        c.lastQuestionnaireSource=q.source;
+      }
       if(ext)known.add(ext);
       imported++;names.push(c.name||p.name||'Новый клиент');
     }
