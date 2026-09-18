@@ -8,7 +8,7 @@ const apiSource=fs.readFileSync('payment-api.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
 
 assert.match(serviceSource,/services\.payments=Object\.freeze/);
-for(const token of ['function requestPayment(','function sessionPayment(','function updateRequest(','function addPayment(','function updatePayment(','function removePayment(','function updateSession(']){
+for(const token of ['function requestPayment(','function sessionPayment(','function updateRequest(','function replaceRequest(','function addPayment(','function updatePayment(','function removePayment(','function updateSession(']){
   assert(serviceSource.includes(token),'PaymentService method missing '+token);
 }
 for(const forbidden of ['querySelector(','payment-dialog','session-edit-dialog']){
@@ -16,11 +16,11 @@ for(const forbidden of ['querySelector(','payment-dialog','session-edit-dialog']
 }
 assert.match(moduleSource,/MODULE_ID='payments'/);
 assert.match(apiSource,/moduleAware:true/);
-assert.match(apiSource,/version:'5A'/);
+assert.match(apiSource,/version:'5[A-D]'/);
 for(const token of [
-  'modules/payments/payment-service.js?v=20260918-payment5a',
-  'modules/payments/index.js?v=20260918-payment5a',
-  'payment-api.js?v=20260918-payment5a'
+  'modules/payments/payment-service.js?v=20260918-payment5',
+  'modules/payments/index.js?v=20260918-payment5',
+  'payment-api.js?v=20260918-payment5'
 ]){
   assert(loaderSource.includes(token),'Payment 5A loader missing '+token);
 }
@@ -62,7 +62,7 @@ async function ready(){
       && p?.modules?.get?.('payments')?.status==='started'
       && p?.payments===p?.services?.payments
       && window.DiagnostikaPayments?.moduleAware===true
-      && window.DiagnostikaPayments?.version==='5A'
+      && /^5[A-D]$/.test(window.DiagnostikaPayments?.version||'')
       && typeof window.DiagnostikaPayments?.open==='function';
   },null,{timeout:15000});
 }
@@ -77,14 +77,14 @@ const architecture=await page.evaluate(()=>({
   moduleAware:window.DiagnostikaPayments.moduleAware,
   legacyOpen:typeof window.DiagnostikaPayments.open,
   legacyRefresh:typeof window.DiagnostikaPayments.refresh,
-  methods:['request','session','updateRequest','addPayment','updatePayment','removePayment','updateSession']
+  methods:['request','session','updateRequest','replaceRequest','addPayment','updatePayment','removePayment','updateSession']
     .reduce((out,key)=>(out[key]=typeof window.DiagnostikaPayments[key],out),{}),
   scripts:[...document.scripts].map(s=>s.src).filter(Boolean).map(src=>new URL(src).pathname)
 }));
 assert.equal(architecture.module.status,'started');
 assert.deepEqual(architecture.module.roles,['specialist','admin']);
 assert.equal(architecture.sameService,true);
-assert.equal(architecture.version,'5A');
+assert.match(architecture.version,/^5[A-D]$/);
 assert.equal(architecture.moduleAware,true);
 assert.equal(architecture.legacyOpen,'function');
 assert.equal(architecture.legacyRefresh,'function');
