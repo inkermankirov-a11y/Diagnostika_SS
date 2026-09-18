@@ -42,8 +42,6 @@
 
   compact.querySelector('.diagnosis-compact-back').addEventListener('click', () => {
     if (typeof mode !== 'undefined' && typeof renderMode === 'function') {
-      const c=typeof client==='function'?client():null;
-      if(c && requestId){c.lastDiagnosisRequestId=requestId;save();}
       if(typeof closeDiagnosisDialogs==='function')closeDiagnosisDialogs();
       mode = 'card';
       selected = null;
