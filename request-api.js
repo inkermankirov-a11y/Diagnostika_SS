@@ -150,16 +150,17 @@
     return index>=0?index+1:0;
   }
 
-  function syncActiveView(source){
+  function syncActiveView(source,options={}){
     const moduleService=service();
     const c=resolveClient();
     if(!moduleService?.view||!c)return false;
 
     const currentView=viewed(c);
-    if(currentView)return true;
+    if(currentView&&options.force!==true)return true;
 
     const activeRequest=active(c);
     if(!activeRequest)return false;
+    if(currentView&&String(currentView.id)===String(activeRequest.id))return true;
 
     return moduleService.view(activeRequest.id,{
       client:c,
@@ -180,7 +181,7 @@
     window.renderClient=wrapped;
   }
 
-  if(syncActiveView('request-api-initial-sync')&&typeof renderRequests==='function')renderRequests();
+  if(syncActiveView('request-api-initial-sync',{force:true})&&typeof renderRequests==='function')renderRequests();
 
   window.DiagnostikaRequests=Object.freeze({
     ...legacy,
