@@ -2,13 +2,9 @@ name: Payment API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, feature-payment-5a ]
+    branches: [ main, retire-old-interface, feature-sessions-4b, feature-sessions-4c ]
     paths:
       - 'home-dashboard.js'
-      - 'modules/payments/**'
-      - 'payment-api.js'
-      - 'app-loader.js'
-      - 'tests/payment-module-5a-audit.mjs'
       - 'payment-*.js'
       - 'request-select-labels.js'
       - 'request-title-display.js'
@@ -32,11 +28,6 @@ jobs:
           node --check request-select-labels.js
           node --check request-title-display.js
           for f in payment-*.js; do node --check "$f"; done
-          node --check modules/payments/payment-service.js
-          node --check modules/payments/index.js
-          node --check payment-api.js
-          node --check app-loader.js
-          node --check tests/payment-module-5a-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -66,19 +57,8 @@ jobs:
               if 'window.DiagnostikaPayments=' in text:
                   owners.append(f.name)
           print('DiagnostikaPayments owner files:',owners)
-          expected={'payment-system.js','payment-api.js'}
-          if set(owners) != expected:
-              raise SystemExit(f'Payment 5A facade owners mismatch, got {owners}')
-          service=Path('modules/payments/payment-service.js').read_text(encoding='utf-8')
-          api=Path('payment-api.js').read_text(encoding='utf-8')
-          loader=Path('app-loader.js').read_text(encoding='utf-8')
-          if 'services.payments=Object.freeze' not in service:
-              raise SystemExit('PaymentService export missing')
-          if "version:'5A'" not in api or 'moduleAware:true' not in api:
-              raise SystemExit('Payment facade is not module-aware 5A')
-          for token in ['modules/payments/payment-service.js?v=20260918-payment5a','modules/payments/index.js?v=20260918-payment5a','payment-api.js?v=20260918-payment5a']:
-              if token not in loader:
-                  raise SystemExit('Payment 5A loader missing '+token)
+          if owners != ['payment-system.js']:
+              raise SystemExit(f'DiagnostikaPayments must have one owner, got {owners}')
           if 'open:openPayment' not in payment:
               raise SystemExit('Payment API no longer exports openPayment')
           PY
@@ -271,5 +251,4 @@ jobs:
           await browser.close();
           JS
           node payment-api-audit.mjs
-          node tests/payment-module-5a-audit.mjs
-# acceptance-ci-trigger: 20260918-payment5a
+# acceptance-ci-trigger: 20260918
