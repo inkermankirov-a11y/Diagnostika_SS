@@ -210,10 +210,6 @@ jobs:
                 return fn(...args);
               };
             }
-            window.__payment5bEvents=[];
-            window.DiagnostikaPlatform.events.on('payment:updated',detail=>window.__payment5bEvents.push({type:'payment:updated',detail:{...detail}}));
-            window.DiagnostikaPlatform.events.on('payment:added',detail=>window.__payment5bEvents.push({type:'payment:added',detail:{...detail}}));
-            window.DiagnostikaPlatform.events.on('payment:deleted',detail=>window.__payment5bEvents.push({type:'payment:deleted',detail:{...detail}}));
             const legacy=document.querySelector('#clientPaymentBox .client-payment-btn');
             if(legacy)legacy.addEventListener('click',()=>window.__legacyPaymentClicks++,true);
           });
@@ -324,9 +320,7 @@ jobs:
           },ids);
           const editCalls=await page.evaluate(()=>window.__paymentServiceCalls||[]);
           console.log('PAYMENT_5B_EDIT_STATE:',JSON.stringify(editedState));
-          const editEvents=await page.evaluate(()=>window.__payment5bEvents||[]);
           console.log('PAYMENT_5B_EDIT_CALLS:',JSON.stringify(editCalls));
-          console.log('PAYMENT_5B_EDIT_EVENTS:',JSON.stringify(editEvents));
           if(editedState.amount!==5500||editedState.note!=='AUDIT PAYMENT EDITED')throw new Error('Payment 5B edit did not persist through service');
           await editRow.locator('.pr-delete').click();
           await page.waitForTimeout(80);
@@ -373,6 +367,8 @@ jobs:
           const serviceCalls=await page.evaluate(()=>window.__paymentServiceCalls||[]);
           console.log('PAYMENT_5B_SERVICE_CALLS:',JSON.stringify(serviceCalls));
           const serviceSources=new Set(serviceCalls.map(x=>x.source));
+          const normalizeCount=serviceCalls.filter(x=>x.source==='payment-request-normalize').length;
+          if(normalizeCount>5)throw new Error('Payment request normalization loop detected: '+normalizeCount);
           for(const source of ['payment-dialog-mode','payment-dialog-total','payment-dialog-currency','payment-dialog-add','payment-dialog-edit','payment-dialog-delete']){
             if(!serviceSources.has(source))throw new Error(`Payment 5B missing service source ${source}: ${JSON.stringify(serviceCalls)}`);
           }
