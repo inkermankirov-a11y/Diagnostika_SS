@@ -129,7 +129,7 @@ await page.evaluate(id=>{
 
 await page.waitForFunction(id=>{
   const c=window.DiagnostikaClients.findById(id);
-  return c?.initialProblem==='Развёрнутый AI запрос acceptance'
+  return c?.initialProblem==='Исходный запрос acceptance'
     && c?.mainRequest==='Короткий AI запрос acceptance'
     && c?.tried==='Пробовал дыхательные практики'
     && c?.desiredOutcome==='Желаемый AI результат acceptance';
@@ -254,7 +254,7 @@ assert.equal(beforeReload.name,'Анна Acceptance');
 assert.equal(beforeReload.phone,'+79995556677');
 assert.equal(beforeReload.email,'anna.acceptance@example.com');
 assert.equal(beforeReload.city,'Казань');
-assert.equal(beforeReload.initialProblem,'Развёрнутый AI запрос acceptance');
+assert.equal(beforeReload.initialProblem,'Исходный запрос acceptance');
 assert.equal(beforeReload.mainRequest,'Короткий AI запрос acceptance');
 assert.equal(beforeReload.tried,'Пробовал дыхательные практики');
 assert.equal(beforeReload.desiredOutcome,'Желаемый AI результат acceptance');
@@ -311,7 +311,7 @@ assert.deepEqual(afterReload,{
   phone:'+79995556677',
   email:'anna.acceptance@example.com',
   city:'Казань',
-  initialProblem:'Развёрнутый AI запрос acceptance',
+  initialProblem:'Исходный запрос acceptance',
   mainRequest:'Короткий AI запрос acceptance',
   tried:'Пробовал дыхательные практики',
   desiredOutcome:'Желаемый AI результат acceptance',
