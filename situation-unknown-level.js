@@ -16,22 +16,28 @@
   const editBtn=document.getElementById('editSituationBtn');
   if(editBtn){
     editBtn.onclick=()=>{
+      const c=typeof client==='function'?client():null;
+      const r=typeof request==='function'?request():null;
       const s=typeof situation==='function'?situation():null;
-      if(!s)return;
+      const api=window.DiagnostikaDiagnosis;
+      if(!c||!r||!s||!api?.moduleAware)return;
+      const changes={};
       const n=prompt('Название ситуации',s.name||'');
-      if(n!==null)s.name=n;
+      if(n!==null)changes.name=n;
       const current=(s.level===null||s.level===undefined)?'':s.level;
       const l=prompt('Дискомфорт 1–10. Оставь пустым, если ещё не уточняли.',current);
       if(l!==null){
         const clean=String(l).trim();
-        if(!clean){s.level=null;s.levelUnknown=true;}
+        if(!clean){changes.level=null;changes.levelUnknown=true;}
         else{
-          const num=Math.max(1,Math.min(10,Number(clean)||1));
-          s.level=num;s.levelUnknown=false;
-          if(String(s.comment||'').includes('Уровень дискомфорта не указан'))s.comment='';
+          changes.level=Math.max(1,Math.min(10,Number(clean)||1));
+          changes.levelUnknown=false;
+          if(String(s.comment||'').includes('Уровень дискомфорта не указан'))changes.comment='';
         }
       }
-      try{if(typeof save==='function')save();}catch(_){}
+      if(!Object.keys(changes).length)return;
+      if(!api.updateSituation(s.id,changes,{client:c,requestId:r.id,source:'diagnosis-ui-situation-edit',render:false}))return;
+      selected=null;
       try{if(typeof renderSituationList==='function')renderSituationList();}catch(_){}
     };
   }
