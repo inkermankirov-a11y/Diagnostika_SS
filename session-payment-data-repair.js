@@ -3,6 +3,10 @@
 (() => {
   const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
   const currentClient=()=>typeof client==='function'?client():null;
+  const allClients=()=>{
+    try{if(typeof state!=='undefined'&&Array.isArray(state.clients))return state.clients;}catch(_){}
+    try{return window.DiagnostikaPlatform?.store?.clients?.()||[];}catch(_){return [];}
+  };
   const linkSessionRequest=(c,s,requestId,source)=>{
     if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
     const api=window.DiagnostikaSessions?.moduleAware===true
@@ -33,9 +37,10 @@
   const suspicious=(amount,configured)=>amount>0&&configured>0&&amount<configured/100;
 
   function repairAllSessionPayments(){
-    if(!window.state||!Array.isArray(state.clients))return false;
+    const clients=allClients();
+    if(!clients.length)return false;
     let changed=false;
-    state.clients.forEach(c=>{
+    clients.forEach(c=>{
       const requests=Array.isArray(c.requests)?c.requests:[];
       const sessions=Array.isArray(c.sessions)?c.sessions:[];
       requests.forEach(r=>{
