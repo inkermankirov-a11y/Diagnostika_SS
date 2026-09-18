@@ -39,7 +39,7 @@ jobs:
           node --check tests/payment-module-5a-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
-          import sys
+          import sys,re
 
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
           html=Path('index.html').read_text(encoding='utf-8')
@@ -74,11 +74,11 @@ jobs:
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           if 'services.payments=Object.freeze' not in service:
               raise SystemExit('PaymentService export missing')
-          if "version:'5A'" not in api or 'moduleAware:true' not in api:
-              raise SystemExit('Payment facade is not module-aware 5A')
-          for token in ['modules/payments/payment-service.js?v=20260918-payment5a','modules/payments/index.js?v=20260918-payment5a','payment-api.js?v=20260918-payment5a']:
+          if not re.search(r"version:'5[A-D]'",api) or 'moduleAware:true' not in api:
+              raise SystemExit('Payment facade is not module-aware')
+          for token in ['modules/payments/payment-service.js?v=20260918-payment5','modules/payments/index.js?v=20260918-payment5','payment-api.js?v=20260918-payment5']:
               if token not in loader:
-                  raise SystemExit('Payment 5A loader missing '+token)
+                  raise SystemExit('Payment loader missing/stale '+token)
           if 'open:openPayment' not in payment:
               raise SystemExit('Payment API no longer exports openPayment')
           primary=payment[payment.find('function renderPaymentList'):payment.find('function allRows')]
@@ -98,6 +98,36 @@ jobs:
           print('Payment 5B primary direct writers:',found_5b or 'none')
           if missing_5b or found_5b:
               raise SystemExit('Payment 5B primary request UI still bypasses services')
+
+          request_writer_paths=[
+              'payment-system.js',
+              'payment-total-input-stability.js',
+              'payment-currency.js',
+              'payment-currency-hard-rule.js',
+              'payment-history-scope.js',
+              'all-payments-complete.js',
+              'payment-session-fix.js',
+              'payment-enhancements.js',
+              'session-payment-status.js',
+              'payment-save-guard.js'
+          ]
+          request_writer_patterns=[
+              re.compile(r'\br\.payment\s*=(?!=)'),
+              re.compile(r'\bdelete\s+r\.payment\b'),
+              re.compile(r'\bitem\.request\.payment\b'),
+              re.compile(r'\bp\.(?:mode|total|currency|currencyManual|sessionAmount|sessionDiscount)\s*=(?!=)'),
+              re.compile(r'\bp\.payments(?:\.push|\s*=(?!=))'),
+              re.compile(r'\bpay\.(?:date|amount|note|receiptUrl)\s*=(?!=)')
+          ]
+          direct_request_writers=[]
+          for path in request_writer_paths:
+              src=Path(path).read_text(encoding='utf-8')
+              for pattern in request_writer_patterns:
+                  if pattern.search(src):
+                      direct_request_writers.append(f'{path}: {pattern.pattern}')
+          print('Payment 5B direct request writers:',direct_request_writers or 'none')
+          if direct_request_writers:
+              raise SystemExit('Payment 5B request.payment still has legacy direct writers')
           PY
 
       - name: Install browser
@@ -275,6 +305,46 @@ jobs:
           };
           console.log('PAYMENT_REOPENED_STATE:',JSON.stringify(reopened));
           if(reopened.mode!=='parts'||Number(reopened.total)!==12345||reopened.currency!=='EUR'||reopened.rows!==1||Number(reopened.historyAmount)!==5000||reopened.historyNote!=='AUDIT PAYMENT')throw new Error('Payment dialog did not reproduce saved state');
+
+          // Edit and delete the concrete request payment through PaymentService.
+          const editRow=dialog.locator('#paymentList .payment-row').first();
+          await editRow.locator('.pr-amount').fill('5500');
+          await editRow.locator('.pr-note').fill('AUDIT PAYMENT EDITED');
+          await editRow.locator('.pr-save').click();
+          await page.waitForTimeout(80);
+          const editedState=await page.evaluate(({secondId,clientId})=>{
+            const c=state.clients.find(x=>String(x.id)===String(clientId));
+            const r=c?.requests?.find(x=>x.id===secondId);
+            return {amount:Number(r?.payment?.payments?.[0]?.amount)||0,note:r?.payment?.payments?.[0]?.note||''};
+          },ids);
+          if(editedState.amount!==5500||editedState.note!=='AUDIT PAYMENT EDITED')throw new Error('Payment 5B edit did not persist through service');
+          await editRow.locator('.pr-delete').click();
+          await page.waitForTimeout(80);
+          if((await page.evaluate(({secondId,clientId})=>{
+            const c=state.clients.find(x=>String(x.id)===String(clientId));
+            return c?.requests?.find(x=>x.id===secondId)?.payment?.payments?.length||0;
+          },ids))!==0)throw new Error('Payment 5B delete did not persist through service');
+
+          // Request-owned per-session pricing is also Payment 5B.
+          await dialog.locator('#paymentMode').selectOption('session');
+          await page.locator('#sessionBasePrice').waitFor({state:'visible',timeout:3000});
+          await page.locator('#sessionBasePrice').fill('9000');
+          await page.locator('#sessionDiscount').fill('10');
+          await page.locator('#paymentSaveSettings').click();
+          await page.waitForTimeout(100);
+          const sessionSettings=await page.evaluate(({secondId,clientId})=>{
+            const c=state.clients.find(x=>String(x.id)===String(clientId));
+            const r=c?.requests?.find(x=>x.id===secondId);
+            return {
+              mode:r?.payment?.mode||'',
+              total:Number(r?.payment?.total)||0,
+              sessionAmount:Number(r?.payment?.sessionAmount)||0,
+              sessionDiscount:Number(r?.payment?.sessionDiscount)||0,
+              activeRequestId:c?.currentRequestId||null
+            };
+          },ids);
+          if(sessionSettings.mode!=='session'||sessionSettings.total!==0||sessionSettings.sessionAmount!==9000||sessionSettings.sessionDiscount!==10)throw new Error('Payment 5B session settings mismatch: '+JSON.stringify(sessionSettings));
+          if(sessionSettings.activeRequestId!==ids.secondId)throw new Error('Payment 5B changed active request unexpectedly');
           await closePayment(dialog);
 
           // A rapid repeated click must not create another dialog or browser exception.
@@ -293,9 +363,11 @@ jobs:
           const serviceCalls=await page.evaluate(()=>window.__paymentServiceCalls||[]);
           console.log('PAYMENT_5B_SERVICE_CALLS:',JSON.stringify(serviceCalls));
           const serviceSources=new Set(serviceCalls.map(x=>x.source));
-          for(const source of ['payment-dialog-mode','payment-dialog-total','payment-dialog-currency','payment-dialog-add']){
+          for(const source of ['payment-dialog-mode','payment-dialog-total','payment-dialog-currency','payment-dialog-add','payment-dialog-edit','payment-dialog-delete']){
             if(!serviceSources.has(source))throw new Error(`Payment 5B missing service source ${source}: ${JSON.stringify(serviceCalls)}`);
           }
+
+          if(!serviceSources.has('payment-session-settings')&&!serviceSources.has('payment-session-price'))throw new Error('Payment 5B session pricing did not pass through service: '+JSON.stringify(serviceCalls));
 
           const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
           console.log('Browser errors:',JSON.stringify(errors));
@@ -305,4 +377,4 @@ jobs:
           JS
           node payment-api-audit.mjs
           node tests/payment-module-5a-audit.mjs
-# acceptance-ci-trigger: 20260918-payment5b
+# acceptance-ci-trigger: 20260918-payment5b-final
