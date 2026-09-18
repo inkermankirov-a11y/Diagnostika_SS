@@ -2,7 +2,7 @@ name: Site audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d ]
+    branches: [ main, retire-old-interface, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, feature-sessions-4a ]
     paths:
       - '**.js'
       - '**.css'
