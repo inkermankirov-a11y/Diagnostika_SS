@@ -11,11 +11,16 @@ on:
       - 'client-trash.js'
       - 'client-db-enhancements.js'
       - 'session-interactions.js'
+      - 'last-client.js'
+      - 'client-transfer.js'
+      - 'form-integrations.js'
+      - 'ui-fixes.js'
       - 'app-loader.js'
       - 'index.html'
       - 'tests/client-module-audit.mjs'
       - 'tests/client-write-audit.mjs'
       - 'tests/client-trash-audit.mjs'
+      - 'tests/client-legacy-boundary-audit.mjs'
       - '.github/workflows/client-module-audit.yml'
   workflow_dispatch:
 
