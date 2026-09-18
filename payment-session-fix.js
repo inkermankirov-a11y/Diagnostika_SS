@@ -108,13 +108,6 @@
     if(e.target?.id==='paymentMode')setTimeout(apply,0);
   });
 
-  const relevantNode=node=>node?.nodeType===1&&(
-    node.matches?.('.payment-dialog,#sessionPaymentSettings')
-    ||node.querySelector?.('.payment-dialog,#sessionPaymentSettings')
-  );
-  const observer=new MutationObserver(records=>{
-    if(records.some(record=>Array.from(record.addedNodes||[]).some(relevantNode)))setTimeout(apply,0);
-  });
-  observer.observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('diagnostika:payment-dialog-opened',()=>setTimeout(apply,0));
   setTimeout(apply,0);
 })();
