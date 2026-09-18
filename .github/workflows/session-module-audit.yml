@@ -1,0 +1,78 @@
+name: Session module audit
+
+on:
+  push:
+    branches: [ main, feature-sessions-4a ]
+    paths:
+      - 'modules/sessions/**'
+      - 'session-api.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/session-module-audit.mjs'
+      - '.github/workflows/session-module-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  session-module:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static SessionService boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/sessions/session-service.js
+          node --check modules/sessions/index.js
+          node --check session-api.js
+          node --check tests/session-module-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          service=Path('modules/sessions/session-service.js').read_text(encoding='utf-8')
+          module=Path('modules/sessions/index.js').read_text(encoding='utf-8')
+          api=Path('session-api.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          index=Path('index.html').read_text(encoding='utf-8')
+          errors=[]
+
+          if 'services.sessions=Object.freeze' not in service:
+              errors.append('SessionService export missing')
+          for token in ['function list(','function get(','function create(','function update(','function remove(','function forRequest(','function requestId(','function sessionNumber(','function refresh(']:
+              if token not in service:
+                  errors.append('SessionService method missing '+token)
+          for forbidden in ['querySelector(', 'openSessionEditor', 'session-edit-dialog']:
+              if forbidden in service:
+                  errors.append('SessionService knows UI/HTML: '+forbidden)
+          if "MODULE_ID='sessions'" not in module:
+              errors.append('sessions module registration missing')
+          if "version:'4A'" not in api or 'moduleAware:true' not in api:
+              errors.append('session facade is not module-aware 4A')
+          for token in [
+              'modules/sessions/session-service.js?v=20260918-sessions4a',
+              'modules/sessions/index.js?v=20260918-sessions4a',
+              'session-api.js?v=20260918-sessions4a'
+          ]:
+              if token not in loader:
+                  errors.append('session loader missing/stale: '+token)
+          if 'name="diagnostika-build" content="20260918-sessions4a"' not in index:
+              errors.append('Sessions 4A build marker missing')
+          if 'app-loader.js?v=20260918-sessions4a' not in index:
+              errors.append('Sessions 4A app-loader cache marker missing')
+          print('SESSION_BOUNDARY_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify SessionService 4A module
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/session-module-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/session-module-audit.mjs
