@@ -4,18 +4,14 @@
   const platform=window.DiagnostikaPlatform;
   if(!platform||window.DiagnostikaAI?.moduleAware===true)return;
 
-  const legacy=window.DiagnostikaAI&&typeof window.DiagnostikaAI==='object'
-    ? window.DiagnostikaAI
-    : {};
   const service=()=>platform.services?.ai||null;
   const invoke=(name,args,failValue)=>{
     const fn=service()?.[name];
     return typeof fn==='function'?fn(...args):failValue;
   };
 
-  window.DiagnostikaAI={
-    ...legacy,
-    version:'6C',
+  window.DiagnostikaAI=Object.freeze({
+    version:'6D',
     moduleAware:true,
     events:Object.freeze({
       clientUpdated:'ai-client-chat:updated',
@@ -31,5 +27,5 @@
     appendSessionMessage(sessionRef,data={},options={}){return invoke('appendSessionMessage',[sessionRef,data,options],null);},
     replaceSessionChat(sessionRef,chat=[],options={}){return invoke('replaceSessionChat',[sessionRef,chat,options],null);},
     clearSessionChat(sessionRef,options={}){return invoke('clearSessionChat',[sessionRef,options],null);}
-  };
+  });
 })();
