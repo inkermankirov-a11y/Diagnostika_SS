@@ -2,7 +2,7 @@ name: Client API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-core-0.2a, feature-clients-2b1, feature-clients-2b2, 'feature-payment-*' ]
+    branches: [main, retire-old-interface, feature-core-0.2a, feature-clients-2b1, feature-clients-2b2, 'feature-payment-*', 'feature-ai-*' ]
     paths:
       - 'client-api.js'
       - 'delete-client.js'
