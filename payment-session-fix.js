@@ -104,17 +104,17 @@
     }
   }
 
-  document.addEventListener('input',e=>{
-    if(e.target?.id!=='sessionBasePrice'&&e.target?.id!=='sessionDiscount')return;
-    const dlg=e.target.closest('.payment-dialog');if(!dlg)return;
-    persistSessionSettings(dlg);
-  },true);
-
   document.addEventListener('change',e=>{
     if(e.target?.id==='paymentMode')setTimeout(apply,0);
   });
 
-  const observer=new MutationObserver(()=>setTimeout(apply,0));
+  const relevantNode=node=>node?.nodeType===1&&(
+    node.matches?.('.payment-dialog,#sessionPaymentSettings')
+    ||node.querySelector?.('.payment-dialog,#sessionPaymentSettings')
+  );
+  const observer=new MutationObserver(records=>{
+    if(records.some(record=>Array.from(record.addedNodes||[]).some(relevantNode)))setTimeout(apply,0);
+  });
   observer.observe(document.body,{childList:true,subtree:true});
   setTimeout(apply,0);
 })();
