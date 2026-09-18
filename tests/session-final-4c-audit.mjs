@@ -165,6 +165,9 @@ const browser=await chromium.launch({headless:true});
   page.on('dialog',d=>d.accept().catch(()=>{}));
   await page.goto(base,{waitUntil:'commit',timeout:10000});
   await waitReady(page);
+  await page.waitForFunction(()=>!!window.DiagnostikaSessionPaymentButtonAuthority
+    && !!window.DiagnostikaSessionPaymentRepair
+    && !!window.DiagnostikaSessionPaymentUiSync,null,{timeout:10000});
 
   await page.evaluate(()=>{
     window.__sessions4cPaymentEvents=[];
