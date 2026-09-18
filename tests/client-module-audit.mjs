@@ -54,7 +54,7 @@ const architecture=await page.evaluate(()=>{
 assert.equal(architecture.status,'started');
 assert.deepEqual([...architecture.roles].sort(),['admin','specialist']);
 assert.equal(architecture.sameActiveService,true);
-assert.equal(architecture.facadeVersion,'2B1');
+assert.equal(architecture.facadeVersion,'2B2');
 assert.equal(architecture.moduleAware,true);
 assert.deepEqual(architecture.events,{
   created:'client:created',
