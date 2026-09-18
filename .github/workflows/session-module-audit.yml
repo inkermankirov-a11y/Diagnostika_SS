@@ -2,7 +2,7 @@ name: Session module audit
 
 on:
   push:
-    branches: [ main, feature-sessions-4a, feature-sessions-4b ]
+    branches: [ main, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c ]
     paths:
       - 'modules/sessions/**'
       - 'session-api.js'
@@ -10,6 +10,17 @@ on:
       - 'index.html'
       - 'tests/session-module-audit.mjs'
       - 'tests/session-ui-4b-audit.mjs'
+      - 'tests/session-final-4c-audit.mjs'
+      - 'test-data.js'
+      - 'core/legacy-event-bridge.js'
+      - 'core/bootstrap.js'
+      - 'session-payment-data-repair.js'
+      - 'session-payment-editor.js'
+      - 'session-payment-ui-sync.js'
+      - 'session-payment-button-authority.js'
+      - 'payment-system.js'
+      - 'payment-consistency-core.js'
+      - 'payment-save-guard.js'
       - 'home-dashboard-sessions.js'
       - 'session-attachments.js'
       - 'session-interactions.js'
@@ -33,6 +44,17 @@ jobs:
           node --check session-api.js
           node --check tests/session-module-audit.mjs
           node --check tests/session-ui-4b-audit.mjs
+          node --check tests/session-final-4c-audit.mjs
+          node --check test-data.js
+          node --check core/legacy-event-bridge.js
+          node --check core/bootstrap.js
+          node --check session-payment-data-repair.js
+          node --check session-payment-editor.js
+          node --check session-payment-ui-sync.js
+          node --check session-payment-button-authority.js
+          node --check payment-system.js
+          node --check payment-consistency-core.js
+          node --check payment-save-guard.js
           node --check home-dashboard-sessions.js
           node --check session-attachments.js
           node --check session-interactions.js
@@ -52,6 +74,18 @@ jobs:
           interactions=Path('session-interactions.js').read_text(encoding='utf-8')
           active=Path('session-active-request.js').read_text(encoding='utf-8')
           format_ui=Path('session-format.js').read_text(encoding='utf-8')
+          legacy=Path('core/legacy-event-bridge.js').read_text(encoding='utf-8')
+          test_data=Path('test-data.js').read_text(encoding='utf-8')
+          payment_paths=[
+              'session-payment-data-repair.js',
+              'session-payment-editor.js',
+              'session-payment-ui-sync.js',
+              'session-payment-button-authority.js',
+              'payment-system.js',
+              'payment-consistency-core.js',
+              'payment-save-guard.js'
+          ]
+          payment_sources={p:Path(p).read_text(encoding='utf-8') for p in payment_paths}
           errors=[]
 
           if 'services.sessions=Object.freeze' not in service:
@@ -64,19 +98,19 @@ jobs:
                   errors.append('SessionService knows UI/HTML: '+forbidden)
           if "MODULE_ID='sessions'" not in module:
               errors.append('sessions module registration missing')
-          if "version:'4B'" not in api or 'moduleAware:true' not in api:
-              errors.append('session facade is not module-aware 4B')
+          if "version:'4C'" not in api or 'moduleAware:true' not in api:
+              errors.append('session facade is not module-aware 4C')
           for token in [
-              'modules/sessions/session-service.js?v=20260918-sessions4b',
-              'modules/sessions/index.js?v=20260918-sessions4b',
-              'session-api.js?v=20260918-sessions4b'
+              'modules/sessions/session-service.js?v=20260918-sessions4c',
+              'modules/sessions/index.js?v=20260918-sessions4c',
+              'session-api.js?v=20260918-sessions4c'
           ]:
               if token not in loader:
                   errors.append('session loader missing/stale: '+token)
-          if 'name="diagnostika-build" content="20260918-sessions4b"' not in index:
-              errors.append('Sessions 4B build marker missing')
-          if 'app-loader.js?v=20260918-sessions4b' not in index:
-              errors.append('Sessions 4B app-loader cache marker missing')
+          if 'name="diagnostika-build" content="20260918-sessions4c"' not in index:
+              errors.append('Sessions 4C build marker missing')
+          if 'app-loader.js?v=20260918-sessions4c' not in index:
+              errors.append('Sessions 4C app-loader cache marker missing')
           if 'c.sessions.push(' in dashboard:
               errors.append('dashboard still creates sessions directly')
           if "addEventListener('diagnostika:sessions-changed'" in dashboard:
@@ -98,6 +132,20 @@ jobs:
               errors.append('active-request SessionService source missing')
           if re.search(r's\.sessionFormat\s*=(?!=)',format_ui) or "typeof save==='function'" in format_ui:
               errors.append('session format still owns session persistence')
+          for token in ['diagnostika:sessions-changed','legacy-session-store','sessionSnapshots','resyncSessions']:
+              if token in legacy:
+                  errors.append('legacy bridge still owns sessions: '+token)
+          if re.search(r'c\.sessions\s*=',test_data) or 'c.sessions.push(' in test_data or 'c.sessions.splice(' in test_data:
+              errors.append('test-data still owns session storage')
+          for token in ['test-data-session-reset','test-data-session-create','sessionApi.remove','sessionApi.create']:
+              if token not in test_data:
+                  errors.append('test-data SessionService boundary missing '+token)
+          direct=re.compile(r'(?:\bs|\bsession|\bsessionNow|item\.session)\.requestId\s*=(?!=)')
+          for path,src in payment_sources.items():
+              if direct.search(src):
+                  errors.append(path+' still mutates session.requestId directly')
+              if 'DiagnostikaSessions' not in src and 'linkSessionRequest' not in src:
+                  errors.append(path+' has no SessionService request-link boundary')
           print('SESSION_BOUNDARY_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
@@ -115,5 +163,6 @@ jobs:
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/session-module-audit.mjs
           node tests/session-ui-4b-audit.mjs
+          node tests/session-final-4c-audit.mjs
 
-# acceptance-ci-trigger: 20260918-sessions4b
+# acceptance-ci-trigger: 20260918-sessions4c
