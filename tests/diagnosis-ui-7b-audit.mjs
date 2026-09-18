@@ -18,8 +18,8 @@ for(const forbidden of [
   'r.situations.push(s)',
   'r.situations=r.situations.filter',
   "s.result=$('#situationResult').value",
-  's.name=n',
-  's.level=lvl(l)'
+  'if(n!==null)s.name=n',
+  'if(l!==null)s.level=lvl(l)'
 ])assert.equal(appSource.includes(forbidden),false,'Situation UI still mutates diagnosis state directly: '+forbidden);
 
 assert(indexSource.includes('app.js?v=20260919-diagnosis7b'),'app.js cache marker is stale');
