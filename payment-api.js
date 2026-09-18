@@ -15,7 +15,7 @@
 
   const facade={
     ...legacy,
-    version:'5B',
+    version:'5C',
     moduleAware:true,
     events:Object.freeze({
       updated:'payment:updated',
@@ -30,6 +30,7 @@
     addPayment(requestRef,data={},options={}){return invoke('addPayment',[requestRef,data,options],null);},
     updatePayment(requestRef,paymentId,changes={},options={}){return invoke('updatePayment',[requestRef,paymentId,changes,options],null);},
     removePayment(requestRef,paymentId,options={}){return invoke('removePayment',[requestRef,paymentId,options],null);},
+    replaceSession(sessionRef,payment=null,options={}){return invoke('replaceSession',[sessionRef,payment,options],null);},
     updateSession(sessionRef,changes={},options={}){return invoke('updateSession',[sessionRef,changes,options],null);}
   };
 
