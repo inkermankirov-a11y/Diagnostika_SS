@@ -5,6 +5,7 @@
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
   const currentClient=()=>typeof client==='function'?client():null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||(c?.requests?.indexOf(r)+1||0);
   const paymentOf=(c,r)=>window.DiagnostikaPayments?.paymentOfRequest?.(c,r)||r?.payment||{};
   const symbolFor=(c,r)=>window.DiagnostikaPayments?.symbolFor?.(c,r)||SYMBOLS[paymentOf(c,r)?.currency||c?.currency||'RUB']||'₽';
@@ -91,10 +92,17 @@
         editor.querySelector('.apc-save').onclick=()=>{
           const amount=num(editor.querySelector('#apcAmount').value);
           if(amount<=0){editor.querySelector('#apcAmount').focus();return;}
-          item.pay.date=editor.querySelector('#apcDate').value||item.pay.date||'';
-          item.pay.amount=amount;
-          item.pay.note=editor.querySelector('#apcNote').value.trim();
-          if(typeof save==='function')save();
+          const updated=paymentWriter()?.updatePayment?.(
+            item.request?.id,
+            item.pay?.id,
+            {
+              date:editor.querySelector('#apcDate').value||item.pay.date||'',
+              amount,
+              note:editor.querySelector('#apcNote').value.trim()
+            },
+            {client:c,source:'all-payments-edit'}
+          );
+          if(!updated)return;
           try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
           editor.close();
           setTimeout(renderComplete,0);
