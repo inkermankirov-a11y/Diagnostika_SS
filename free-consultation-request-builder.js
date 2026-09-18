@@ -217,37 +217,52 @@
   }
 
   function createDiagnosis(){
+    currentClient=typeof client==='function'?client():currentClient;
     if(!currentClient)return;
+    const api=window.DiagnostikaRequests?.moduleAware===true
+      ? window.DiagnostikaRequests
+      : window.DiagnostikaPlatform?.services?.requests||null;
+    if(!api?.create)return alert('Модуль запросов ещё не готов.');
+
     const title=selectedShortTitle();
     if(!title)return alert('ИИ пока не выделил короткий запрос. Сначала уточни данные консультации и запусти анализ ещё раз.');
     saveMainRequest(false);
 
-    const r=typeof newRequest==='function'?newRequest():{id:typeof uid==='function'?uid():String(Date.now()),title:'',situations:[]};
-    r.title=title;
-    r.source='free-consultation-ai';
-    r.createdAt=new Date().toISOString();
-    r.situations=[];
+    const situations=[];
     for(const item of collectSituations()){
       const s=typeof newSituation==='function'?newSituation():{id:typeof uid==='function'?uid():String(Date.now()+Math.random()),name:'',comment:'',result:'',beliefs:[]};
       s.name=item.name;
       s.level=item.level;
       s.levelUnknown=item.level===null;
       if(item.level===null)s.comment='Уровень дискомфорта не указан на бесплатной консультации — уточнить у клиента.';
-      r.situations.push(s);
+      situations.push(s);
     }
 
-    currentClient.requests=Array.isArray(currentClient.requests)?currentClient.requests:[];
-    currentClient.requests.push(r);
-    currentClient.currentRequestId=r.id;
-    currentClient.freeConsultation={...(currentClient.freeConsultation||{}),aiResult:{...(currentClient.freeConsultation?.aiResult||{}),mainRequest:resultMain.value.trim(),selectedShortRequest:title,diagnosisRequestId:r.id}};
+    const created=api.create({
+      title,
+      source:'free-consultation-ai',
+      situations
+    },{
+      client:currentClient,
+      source:'free-consultation-create'
+    });
+    if(!created)return alert('Не удалось создать запрос в Диагностике.');
 
-    try{requestId=r.id;situationId=r.situations[0]?.id||null;selected=null;mode='diagnosis';}catch(_){}
+    currentClient.freeConsultation={
+      ...(currentClient.freeConsultation||{}),
+      aiResult:{
+        ...(currentClient.freeConsultation?.aiResult||{}),
+        mainRequest:resultMain.value.trim(),
+        selectedShortRequest:title,
+        diagnosisRequestId:created.id
+      }
+    };
     try{if(typeof save==='function')save();}catch(_){}
-    try{if(typeof renderClient==='function')renderClient();else if(typeof renderRequests==='function')renderRequests();}catch(_){}
-    try{if(typeof renderMode==='function')renderMode();}catch(_){}
 
-    resultNote.textContent=`Создан новый запрос в Диагностике: «${title}»${r.situations.length?`. Ситуаций добавлено: ${r.situations.length}.`:'.'}`;
-    setTimeout(()=>{if(resultDlg.open)resultDlg.close();if(dlg.open)dlg.close();},650);
+    resultNote.textContent=`Создан новый запрос в Диагностике: «${title}»${situations.length?`. Ситуаций добавлено: ${situations.length}.`:'.'}`;
+    if(resultDlg.open)resultDlg.close();
+    if(dlg.open)dlg.close();
+    setTimeout(()=>window.DiagnostikaDiagnosis?.open?.(),0);
   }
 
   q('.fc-close').onclick=close;q('.fc-cancel').onclick=close;q('.fc-save').onclick=()=>persist(true);q('.fc-ai').onclick=generate;
