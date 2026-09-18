@@ -50,7 +50,13 @@
       mode:existing.mode||'',
       currency:existing.currency||c?.currency||'RUB'
     };
-    const needsNormalization=!Array.isArray(existing.payments)||!existing.mode||!existing.currency;
+    const needsNormalization=
+      !Array.isArray(existing.payments)
+      ||!Object.prototype.hasOwnProperty.call(existing,'mode')
+      ||!existing.currency
+      ||!Number.isFinite(Number(existing.total))
+      ||!Number.isFinite(Number(existing.sessionAmount))
+      ||!Number.isFinite(Number(existing.sessionDiscount));
     if(needsNormalization){
       return writer?.replaceRequest?.(
         r.id,
