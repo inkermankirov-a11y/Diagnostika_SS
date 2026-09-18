@@ -175,17 +175,13 @@
     const previousCurrentRequestId=c.currentRequestId??null;
     const previousLastDiagnosisRequestId=c.lastDiagnosisRequestId??null;
     const previousStatus=target.status;
-    const previousUpdatedAt=target.updatedAt;
-
     if(options.resumeCompleted===true&&target.status==='completed')target.status='active';
-    target.updatedAt=now();
     c.currentRequestId=target.id;
     c.lastDiagnosisRequestId=target.id;
     if(!setLegacyView(target.id)){
       c.currentRequestId=previousCurrentRequestId;
       c.lastDiagnosisRequestId=previousLastDiagnosisRequestId;
       target.status=previousStatus;
-      target.updatedAt=previousUpdatedAt;
       return false;
     }
 
@@ -193,7 +189,6 @@
       c.currentRequestId=previousCurrentRequestId;
       c.lastDiagnosisRequestId=previousLastDiagnosisRequestId;
       target.status=previousStatus;
-      target.updatedAt=previousUpdatedAt;
       setLegacyView(previousViewedId);
       return false;
     }
