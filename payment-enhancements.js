@@ -7,10 +7,7 @@
   const requestForSession=(c,s)=>c?.requests?.find(r=>r.id===s?.requestId)||null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{mode:'',total:0,payments:[],sessionAmount:0,sessionDiscount:0});
-  const sessionPay=s=>{
-    if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
-    return s.payment;
-  };
+  const sessionPay=(c,s)=>paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
   const priorPaid=p=>(p?.payments||[]).reduce((sum,x)=>sum+(Number(x.amount)||0),0);
   const sessionPrice=p=>{
     const base=Math.max(0,Number(p?.sessionAmount)||0);
@@ -120,12 +117,20 @@
 
   function openSessionPaymentEditor(c,s){
     const r=requestForSession(c,s),p=paymentOf(c,r);if(!r||p?.mode!=='session')return;
-    const sp=sessionPay(s),effective=sessionPrice(p);if(!sp.paid&&!sp.manualAmount)sp.amount=effective;
+    const sp=sessionPay(c,s),effective=sessionPrice(p);
     const dlg=document.createElement('dialog');dlg.className='session-payment-edit-dialog';
     dlg.innerHTML=`<div class="session-payment-edit-card"><h3>Оплата сессии</h3><div class="session-payment-edit-fields"><label class="session-payment-paid-check"><input id="spePaid" type="checkbox"> Оплачено</label><label>Сумма<input id="speAmount" type="number" min="0" step="100"></label></div><div class="session-payment-edit-actions"><button type="button" id="speCancel" class="tk-btn">Отмена</button><button type="button" id="speSave" class="tk-btn">Сохранить</button></div></div>`;
     document.body.appendChild(dlg);const paid=dlg.querySelector('#spePaid'),amount=dlg.querySelector('#speAmount');paid.checked=!!sp.paid;amount.value=sp.amount||effective||'';
     const close=()=>{try{dlg.close();}catch(e){}dlg.remove();};dlg.querySelector('#speCancel').onclick=close;
-    dlg.querySelector('#speSave').onclick=()=>{sp.paid=paid.checked;sp.amount=Math.max(0,Number(amount.value)||0);sp.manualAmount=true;sp.receiptUrl='';if(typeof save==='function')save();close();if(typeof renderSessions==='function')renderSessions();setTimeout(refresh,0);};
+    dlg.querySelector('#speSave').onclick=()=>{
+      const updated=paymentWriter()?.updateSession?.(
+        s.id,
+        {paid:paid.checked,amount:Math.max(0,Number(amount.value)||0),manualAmount:true,receiptUrl:''},
+        {client:c,source:'payment-enhancements-session-editor'}
+      );
+      if(!updated)return;
+      close();if(typeof renderSessions==='function')renderSessions();setTimeout(refresh,0);
+    };
     dlg.addEventListener('click',e=>{if(e.target===dlg)close();});dlg.showModal();
   }
 
@@ -134,7 +139,7 @@
     document.querySelectorAll('.session-card').forEach(card=>{
       const old=card.querySelector('.session-pay-status');if(!old||old.dataset.editablePayment==='1')return;
       const s=findSessionFromCard(c,card);if(!s)return;const r=requestForSession(c,s),p=paymentOf(c,r);if(!r||p?.mode!=='session')return;
-      const sp=sessionPay(s),effective=sessionPrice(p);if(!sp.paid&&!sp.manualAmount)sp.amount=effective;
+      const sp=sessionPay(c,s),effective=sessionPrice(p);
       const btn=old.cloneNode(true);btn.dataset.editablePayment='1';btn.textContent=sp.paid?`✓ Оплачено ${money(sp.amount||effective)} ₽`:'Не оплачено';btn.title='Редактировать оплату сессии';
       btn.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();openSessionPaymentEditor(c,s);});old.replaceWith(btn);
     });
