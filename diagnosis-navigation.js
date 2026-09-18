@@ -65,8 +65,19 @@
 
   let historySelectedId = null;
 
+  function requestsApi(){
+    return window.DiagnostikaRequests?.moduleAware===true
+      ? window.DiagnostikaRequests
+      : window.DiagnostikaPlatform?.services?.requests||null;
+  }
+
+  function currentClient(){
+    return window.DiagnostikaClients?.current?.()
+      || (typeof client==='function'?client():null);
+  }
+
   function requestDate(r) {
-    const raw = r.updatedAt || r.modifiedAt || r.createdAt || '';
+    const raw = r?.updatedAt || r?.modifiedAt || r?.createdAt || '';
     if (!raw) return '—';
     const d = new Date(raw);
     if (Number.isNaN(d.getTime())) return String(raw);
@@ -74,103 +85,100 @@
   }
 
   function populateHistory(selectId = null) {
-    const c = client();
-    const body = document.querySelector('#requestHistoryBody');
-    body.innerHTML = '';
-    if (!c || !c.requests?.length) {
-      body.innerHTML = '<div style="padding:18px;color:#777">Предыдущих запросов пока нет.</div>';
-      historySelectedId = null;
+    const api=requestsApi();
+    const c=currentClient();
+    const rows=api?.list?.(c)||[];
+    const body=document.querySelector('#requestHistoryBody');
+    body.innerHTML='';
+    if(!api||!c||!rows.length){
+      body.innerHTML='<div style="padding:18px;color:#777">Предыдущих запросов пока нет.</div>';
+      historySelectedId=null;
       return;
     }
-    historySelectedId = selectId && c.requests.some(r => r.id === selectId) ? selectId : c.requests[0].id;
-    c.requests.forEach((r, i) => {
-      const row = document.createElement('div');
-      row.className = 'request-history-row' + (r.id === historySelectedId ? ' selected' : '');
-      row.innerHTML = `<div>${i + 1}</div><div>${requestDate(r)}</div><div></div>`;
-      row.children[2].textContent = r.title || 'Без названия';
-      row.onclick = () => {
-        historySelectedId = r.id;
-        populateHistory(historySelectedId);
-      };
-      row.ondblclick = () => openSelectedRequest();
+    historySelectedId=selectId&&api.get(selectId,c)?selectId:rows[0].id;
+    rows.forEach((r,i)=>{
+      const row=document.createElement('div');
+      row.className='request-history-row'+(String(r.id)===String(historySelectedId)?' selected':'');
+      row.dataset.requestId=r.id;
+      row.innerHTML=`<div>${i+1}</div><div>${requestDate(r)}</div><div></div>`;
+      row.children[2].textContent=r.title||'Без названия';
+      row.onclick=()=>{historySelectedId=r.id;populateHistory(historySelectedId);};
+      row.ondblclick=()=>openSelectedRequest();
       body.appendChild(row);
     });
   }
 
-  function openDiagnosisFor(id) {
-    const c = client();
-    const r = c?.requests?.find(x => x.id === id);
-    if (!r) return;
-    requestId = r.id;
-    situationId = r.situations?.[0]?.id || null;
-    selected = null;
-    mode = 'diagnosis';
-    save();
-    renderRequests();
-    renderMode();
+  function enterDiagnosis(r){
+    if(!r)return false;
+    try{
+      situationId=r.situations?.[0]?.id||null;
+      selected=null;
+      mode='diagnosis';
+    }catch(_){return false;}
+    try{if(typeof renderMode==='function')renderMode();}catch(_){return false;}
     history.close();
     launch.close();
+    return true;
   }
 
-  function openSelectedRequest() {
-    if (!historySelectedId) return alert('Выбери запрос из списка.');
+  function openDiagnosisFor(id){
+    const api=requestsApi();
+    const c=currentClient();
+    const r=api?.get?.(id,c);
+    if(!api||!c||!r)return false;
+    if(!api.view(r.id,{client:c,source:'diagnosis-history-view'}))return false;
+    return enterDiagnosis(r);
+  }
+
+  function openSelectedRequest(){
+    if(!historySelectedId)return alert('Выбери запрос из списка.');
     openDiagnosisFor(historySelectedId);
   }
 
-  function deleteRequestById(id) {
-    const c = client();
-    const r = c?.requests?.find(x => x.id === id);
-    if (!c || !r) return;
-    if (!confirm(`Удалить запрос «${r.title || 'Без названия'}» со всей его диагностикой?`)) return;
-    c.requests = c.requests.filter(x => x.id !== id);
-    if (requestId === id) {
-      requestId = null;
-      situationId = null;
-      selected = null;
-    }
-    save();
-    populateHistory();
-    renderRequests();
+  function deleteRequestById(id){
+    const api=requestsApi();
+    const c=currentClient();
+    const r=api?.get?.(id,c);
+    if(!api||!c||!r)return;
+    if(!confirm(`Удалить запрос «${r.title||'Без названия'}» со всей его диагностикой?`))return;
+    if(!api.remove(r.id,{client:c,source:'diagnosis-history-delete'}))return;
+    const next=api.viewedId?.(c)||api.activeId?.(c)||null;
+    populateHistory(next);
   }
 
-  document.querySelector('#diagNewBtn').onclick = () => {
-    const c = client();
-    if (!c) return;
-    const r = newRequest();
-    r.title = 'Новый запрос';
-    r.createdAt = new Date().toISOString();
-    r.updatedAt = r.createdAt;
-    c.requests.push(r);
-    requestId = r.id;
-    situationId = null;
-    selected = null;
-    save();
-    openDiagnosisFor(r.id);
+  document.querySelector('#diagNewBtn').onclick=()=>{
+    const api=requestsApi();
+    const c=currentClient();
+    if(!api||!c)return;
+    const created=api.create({title:'Новый запрос'},{client:c,source:'diagnosis-create'});
+    if(created)enterDiagnosis(created);
   };
 
-  document.querySelector('#diagPreviousBtn').onclick = () => {
-    const c = client();
-    if (!c?.requests?.length) return alert('У клиента пока нет предыдущих запросов.');
-    populateHistory(requestId);
+  document.querySelector('#diagPreviousBtn').onclick=()=>{
+    const api=requestsApi();
+    const c=currentClient();
+    if(!api||!c||!api.list(c).length)return alert('У клиента пока нет предыдущих запросов.');
+    populateHistory(api.viewedId(c)||api.activeId(c));
     launch.close();
     history.showModal();
   };
 
-  document.querySelector('#diagDeleteBtn').onclick = () => {
-    const c = client();
-    if (!c?.requests?.length) return alert('Удалять нечего: у клиента нет запросов.');
-    populateHistory(requestId);
+  document.querySelector('#diagDeleteBtn').onclick=()=>{
+    const api=requestsApi();
+    const c=currentClient();
+    if(!api||!c||!api.list(c).length)return alert('Удалять нечего: у клиента нет запросов.');
+    populateHistory(api.viewedId(c)||api.activeId(c));
     launch.close();
     history.showModal();
   };
 
-  document.querySelector('#requestOpenBtn').onclick = openSelectedRequest;
-  document.querySelector('#requestDeleteSelectedBtn').onclick = () => {
-    if (!historySelectedId) return alert('Выбери запрос из списка.');
+  document.querySelector('#requestOpenBtn').onclick=openSelectedRequest;
+  document.querySelector('#requestDeleteSelectedBtn').onclick=()=>{
+    if(!historySelectedId)return alert('Выбери запрос из списка.');
     deleteRequestById(historySelectedId);
   };
-  document.querySelector('#requestHistoryCloseBtn').onclick = () => history.close();
+  document.querySelector('#requestHistoryCloseBtn').onclick=()=>history.close();
 
-  launch.addEventListener('click', e => { if (e.target === launch) launch.close(); });
-  history.addEventListener('click', e => { if (e.target === history) history.close(); });
+  launch.addEventListener('click',e=>{if(e.target===launch)launch.close();});
+  history.addEventListener('click',e=>{if(e.target===history)history.close();});
 })();
