@@ -137,10 +137,15 @@
     if(actions.querySelector('.hd-ai-clear-btn'))return true;
     const btn=document.createElement('button');btn.type='button';btn.className='hd-ai-clear-btn';btn.textContent='Очистить';btn.title='Очистить историю этого чата';
     btn.onclick=e=>{
-      e.preventDefault();e.stopPropagation();const c=currentClient();if(!c)return;
-      const count=Array.isArray(c.aiChat)?c.aiChat.length:0;if(!count)return;
-      if(!confirm(`Очистить переписку ИИ помощника по клиенту «${c.name||'Клиент'}»?`))return;
-      c.aiChat=[];persist();window.DiagnostikaClientAIChat?.refresh?.();
+      e.preventDefault();e.stopPropagation();
+      const c=currentClient();if(!c)return;
+      const api=window.DiagnostikaAI;
+      const history=api?.clientChat?.(c.id);
+      const count=Array.isArray(history)?history.length:0;if(!count)return;
+      if(!confirm('Очистить переписку ИИ помощника по клиенту «'+(c.name||'Клиент')+'»?'))return;
+      const cleared=api?.clearClientChat?.(c.id,{client:c,source:'session-ai-client-clear'});
+      if(!Array.isArray(cleared))return;
+      window.DiagnostikaClientAIChat?.refresh?.();
       window.dispatchEvent(new CustomEvent('diagnostika-client-ai-chat-changed',{detail:{clientId:c.id}}));
     };
     actions.insertBefore(btn,actions.firstChild);return true;
