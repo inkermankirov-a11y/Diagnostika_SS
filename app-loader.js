@@ -34,7 +34,7 @@
     const loadModule=()=>{
       if(document.querySelector('script[data-clients-module]')) return;
       const moduleScript=document.createElement('script');
-      moduleScript.src='modules/clients/index.js?v=20260918-clients2a';
+      moduleScript.src='modules/clients/index.js?v=20260918-clients2b1';
       moduleScript.setAttribute('data-clients-module','1');
       document.body.appendChild(moduleScript);
     };
@@ -51,7 +51,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2a';
+    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b1';
     serviceScript.setAttribute('data-clients-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -126,7 +126,7 @@
   }
 
   const api=document.createElement('script');
-  api.src='client-api.js?v=20260918-clients2a';
+  api.src='client-api.js?v=20260918-clients2b1';
   api.setAttribute('data-client-api','1');
   api.onload=loadRequestApi;
   document.body.appendChild(api);
