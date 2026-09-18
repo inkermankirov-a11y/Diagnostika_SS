@@ -84,7 +84,7 @@ assert.equal(formState.questionnaireCount,1);
 assert.equal(formState.currentId,'legacy-a','form import must not steal current selection');
 assert.equal(formState.created.filter(x=>x.clientId===formState.id).length,1);
 
-await page.waitForSelector('input[data-client-transfer-import="1"]',{timeout:5000});
+await page.waitForSelector('input[data-client-transfer-import="1"]',{state:'attached',timeout:5000});
 const transferPackage={
   format:'diagnostika-client-transfer-v1',
   version:1,
