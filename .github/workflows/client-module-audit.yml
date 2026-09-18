@@ -2,7 +2,7 @@ name: Client module audit
 
 on:
   push:
-    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2 ]
+    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
@@ -18,6 +18,7 @@ on:
       - 'client-questionnaires.js'
       - 'free-consultation-client-card-sync.js'
       - 'ai-settings-button.js'
+      - 'home-dashboard.js'
       - 'app-loader.js'
       - 'index.html'
       - 'tests/client-module-audit.mjs'
@@ -25,6 +26,7 @@ on:
       - 'tests/client-trash-audit.mjs'
       - 'tests/client-legacy-boundary-audit.mjs'
       - 'tests/client-profile-boundary-audit.mjs'
+      - 'tests/client-final-boundary-audit.mjs'
       - '.github/workflows/client-module-audit.yml'
   workflow_dispatch:
 
@@ -55,6 +57,8 @@ jobs:
           node --check free-consultation-client-card-sync.js
           node --check ai-settings-button.js
           node --check tests/client-profile-boundary-audit.mjs
+          node --check home-dashboard.js
+          node --check tests/client-final-boundary-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -71,6 +75,7 @@ jobs:
           questionnaires=Path('client-questionnaires.js').read_text(encoding='utf-8')
           consultation_sync=Path('free-consultation-client-card-sync.js').read_text(encoding='utf-8')
           ai_settings=Path('ai-settings-button.js').read_text(encoding='utf-8')
+          home_dashboard=Path('home-dashboard.js').read_text(encoding='utf-8')
           errors=[]
           for token in ["created: 'client:created'","selected: 'client:selected'","updated: 'client:updated'","deleted: 'client:deleted'","restored: 'client:restored'"]:
               if token not in service: errors.append('service contract missing '+token)
@@ -100,7 +105,8 @@ jobs:
           if 'client-db-enhancements.js?v=20260918-clients2b2' not in index: errors.append('client DB cache version is stale')
           if 'client-trash.js?v=20260918-clients2b2' not in index: errors.append('client trash cache version is stale')
           if 'session-interactions.js?v=20260918-clients2b2' not in index: errors.append('session interactions cache version is stale')
-          if 'app-loader.js?v=20260918-clients2b2' not in index: errors.append('app loader cache version is stale')
+          if 'app-loader.js?v=20260918-clients2d' not in index: errors.append('app loader cache version is stale')
+          if 'home-dashboard.js?v=20260918-clients2d' not in loader: errors.append('home dashboard cache version is stale')
           if "api.update(c.id,patch,{source:'questionnaire-primary-profile'})" not in questionnaires: errors.append('questionnaire primary profile does not use client service')
           for token in ['if(p.name)c.name=p.name','if(p.phone)c.phone=p.phone',"if(typeof renderClient==='function')renderClient();"]:
               if token in questionnaires: errors.append('questionnaire direct profile mutation remains '+token)
@@ -110,7 +116,10 @@ jobs:
           if 'client-questionnaires.js?v=20260918-clients2c2' not in ai_settings: errors.append('questionnaire loader cache version is stale')
           if 'free-consultation-client-card-sync.js?v=20260918-clients2c2' not in index: errors.append('free consultation sync cache version is stale')
           if 'ai-settings-button.js?v=20260918-clients2c2' not in index: errors.append('AI settings loader cache version is stale')
-          if 'diagnostika-build" content="20260918-clients2c2' not in index: errors.append('build marker is stale')
+          if 'renderClient=' in home_dashboard.replace('===','').replace('!==',''): errors.append('home dashboard still replaces renderClient')
+          for token in ["'client:created'","'client:selected'","'client:updated'","'client:deleted'","'client:restored'","'client:purged'",'events.on(type,()=>setTimeout(refresh,0))']:
+              if token not in home_dashboard: errors.append('home dashboard client event boundary missing '+token)
+          if 'diagnostika-build" content="20260918-clients2d' not in index: errors.append('build marker is stale')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY
@@ -205,3 +214,11 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-profile-boundary-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/client-profile-boundary-audit.mjs
+
+      - name: Verify Clients 2D event-driven dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-final-boundary-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/client-final-boundary-audit.mjs
