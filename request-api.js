@@ -199,7 +199,7 @@
         try{
           requestId=selected.id;
           situationId=null;
-          window.selected=null;
+          selected=null;
         }catch(_){}
       }
       const result=previous.apply(this,arguments);
@@ -212,7 +212,7 @@
 
   const selected=active();
   if(selected){
-    try{requestId=selected.id;situationId=null;window.selected=null;}catch(_){}
+    try{requestId=selected.id;situationId=null;selected=null;}catch(_){}
     if(typeof renderRequests==='function')renderRequests();
   }
 
