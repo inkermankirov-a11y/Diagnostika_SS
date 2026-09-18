@@ -1,7 +1,7 @@
 'use strict';
 
 (() => {
-  if (window.DiagnostikaDiagnosis?.open) return;
+  if(window.DiagnostikaDiagnosis?.moduleAware===true)return;
 
   function currentClient(){
     return window.DiagnostikaClients?.current?.()
@@ -12,6 +12,10 @@
     return window.DiagnostikaRequests?.moduleAware===true
       ? window.DiagnostikaRequests
       : window.DiagnostikaPlatform?.services?.requests||null;
+  }
+
+  function service(){
+    return window.DiagnostikaPlatform?.services?.diagnosis||null;
   }
 
   function showChooser(){
@@ -52,5 +56,28 @@
     return true;
   }
 
-  window.DiagnostikaDiagnosis=Object.freeze({open});
+  const call=(method,...args)=>{
+    const api=service();
+    return typeof api?.[method]==='function'?api[method](...args):null;
+  };
+
+  window.DiagnostikaDiagnosis=Object.freeze({
+    version:'7A',
+    moduleAware:true,
+    open,
+    snapshot:(requestRef,clientRef)=>call('snapshot',requestRef,clientRef),
+    situations:(requestRef,clientRef)=>call('situations',requestRef,clientRef)||[],
+    getSituation:(id,requestRef,clientRef)=>call('getSituation',id,requestRef,clientRef),
+    findElement:(type,id,requestRef,clientRef)=>call('findElement',type,id,requestRef,clientRef),
+    addSituation:(data,options)=>call('addSituation',data,options),
+    updateSituation:(id,changes,options)=>call('updateSituation',id,changes,options),
+    removeSituation:(id,options)=>call('removeSituation',id,options),
+    addBelief:(situationId,data,options)=>call('addBelief',situationId,data,options),
+    addFeeling:(beliefId,data,options)=>call('addFeeling',beliefId,data,options),
+    addDeep:(feelingId,data,options)=>call('addDeep',feelingId,data,options),
+    addInstinct:(deepId,data,options)=>call('addInstinct',deepId,data,options),
+    updateElement:(type,id,changes,options)=>call('updateElement',type,id,changes,options),
+    removeElement:(type,id,options)=>call('removeElement',type,id,options),
+    refresh:()=>call('refresh')
+  });
 })();
