@@ -31,7 +31,10 @@
     if(!key)throw new Error('Для ИИ помощника нужен ключ доступа n8n.');
     return key;
   }
-  function sessionChat(s,c){\n    const hist=window.DiagnostikaAI?.sessionChat?.(s?.id,c?.id);\n    return Array.isArray(hist)?hist:[];\n  }
+  function sessionChat(s,c){
+    const hist=window.DiagnostikaAI?.sessionChat?.(s?.id,c?.id);
+    return Array.isArray(hist)?hist:[];
+  }
   function linkedRequest(c,s,dlg){
     const selected=dlg?.querySelector('.session-edit-grid select')?.value||s.requestId||'';
     return (c?.requests||[]).find(r=>String(r.id)===String(selected))||null;
@@ -191,11 +194,16 @@
     const setStatus=(text,kind='')=>{status.textContent=text||'';status.className=`session-ai-status ${kind}`.trim();};
     const send=async()=>{
       const message=input.value.trim();if(!message||sending)return;input.value='';
-      const api=window.DiagnostikaAI;\n      const addedUser=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'user',text:message,createdAt:Date.now()},{client:c,source:'session-ai-chat-user'});\n      if(!addedUser){setStatus('Не удалось сохранить сообщение сессии.','error');return;}\n      renderSessionChat(box,c,s);
+      const api=window.DiagnostikaAI;
+      const addedUser=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'user',text:message,createdAt:Date.now()},{client:c,source:'session-ai-chat-user'});
+      if(!addedUser){setStatus('Не удалось сохранить сообщение сессии.','error');return;}
+      renderSessionChat(box,c,s);
       sending=true;input.disabled=true;sendBtn.disabled=true;setStatus('ИИ анализирует эту сессию…','busy');
       try{
         const answer=await ask(c,s,dlg,number,message);
-        const addedAssistant=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'assistant',text:answer,createdAt:Date.now()},{client:c,source:'session-ai-chat-assistant'});\n        if(!addedAssistant)throw new Error('Не удалось сохранить ответ ИИ по сессии.');\n        renderSessionChat(box,c,s);scrollLastAnswerToStart(box);setStatus('');
+        const addedAssistant=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'assistant',text:answer,createdAt:Date.now()},{client:c,source:'session-ai-chat-assistant'});
+        if(!addedAssistant)throw new Error('Не удалось сохранить ответ ИИ по сессии.');
+        renderSessionChat(box,c,s);scrollLastAnswerToStart(box);setStatus('');
       }catch(err){console.warn('Session AI chat failed',err);setStatus(err?.message||'Не удалось получить ответ ИИ.','error');}
       finally{sending=false;input.disabled=false;sendBtn.disabled=false;input.focus();}
     };
@@ -203,7 +211,9 @@
     box.querySelector('.session-ai-clear').onclick=()=>{
       const hist=sessionChat(s,c);if(!hist.length)return;
       if(!confirm(`Очистить переписку ИИ помощника по сессии №${number}?`))return;
-      const cleared=window.DiagnostikaAI?.clearSessionChat?.(s.id,{client:c,source:'session-ai-chat-clear'});\n      if(!Array.isArray(cleared)){setStatus('Не удалось очистить историю сессии.','error');return;}\n      renderSessionChat(box,c,s);setStatus('');
+      const cleared=window.DiagnostikaAI?.clearSessionChat?.(s.id,{client:c,source:'session-ai-chat-clear'});
+      if(!Array.isArray(cleared)){setStatus('Не удалось очистить историю сессии.','error');return;}
+      renderSessionChat(box,c,s);setStatus('');
     };
     return true;
   }
