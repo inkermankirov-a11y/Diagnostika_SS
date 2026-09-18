@@ -73,10 +73,24 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-module-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/client-module-audit.mjs
-      - name: Verify client create and update flows
+      - name: Verify client card create flow
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-write-http.log 2>&1 &
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-write-create-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
-          node tests/client-write-audit.mjs
+          CLIENT_WRITE_PHASE=create node tests/client-write-audit.mjs
+      - name: Verify client card update flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-write-update-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          CLIENT_WRITE_PHASE=update node tests/client-write-audit.mjs
+      - name: Verify legacy database create flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-write-legacy-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          CLIENT_WRITE_PHASE=legacy node tests/client-write-audit.mjs
