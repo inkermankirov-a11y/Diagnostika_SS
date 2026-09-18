@@ -170,7 +170,13 @@
     renderSummary(c,r);renderPaymentList(c,r);
   }
 
-  function openPayment(){const c=currentClient(),r=currentRequest(c);if(!c||!r){window.AppDialog?.alert?.('Сначала создай или возобнови запрос.','Нет текущего запроса');return;}renderDialog({resetEntry:true});dlg.showModal();}
+  function openPayment(){
+    const c=currentClient(),r=currentRequest(c);
+    if(!c||!r){window.AppDialog?.alert?.('Сначала создай или возобнови запрос.','Нет текущего запроса');return;}
+    renderDialog({resetEntry:true});
+    dlg.showModal();
+    window.dispatchEvent(new CustomEvent('diagnostika:payment-dialog-opened',{detail:{clientId:c.id,requestId:r.id}}));
+  }
   q('.payment-x').onclick=()=>dlg.close();q('#paymentClose').onclick=()=>dlg.close();dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
   q('#paymentMode').onchange=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;if(!updateRequestPayment(c,r,{mode:e.target.value},'payment-dialog-mode'))return;renderDialog();refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
   q('#paymentCurrency').onchange=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;const code=e.target.value;if(!updateRequestPayment(c,r,{currency:code,currencyManual:true},'payment-dialog-currency'))return;window.DiagnostikaClients?.update?.(c.id,{currency:code,currencyManual:true},{source:'payment-dialog-currency-client',render:false});renderSummary(c,r);renderPaymentList(c,r);renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();};
