@@ -109,7 +109,7 @@ jobs:
               raise SystemExit('DiagnosisService persists directly instead of RequestService')
           if 'api.update(' not in service:
               raise SystemExit('DiagnosisService does not commit through RequestService.update')
-          ui_sources=app+'\n'+create_ui+'\n'+unknown_ui
+          ui_sources=app+'\n'+create_ui+'\n'+unknown_ui+'\n'+fc2
           for token in ["source:'diagnosis-ui-situation-add'","source:'diagnosis-ui-situation-edit'","source:'diagnosis-ui-situation-delete'","source:'diagnosis-ui-situation-result'"]:
               if token not in ui_sources:
                   raise SystemExit('Diagnosis 7B situation UI source missing '+token)
@@ -119,6 +119,9 @@ jobs:
           for token in ['r.situations.push(s)','r.situations=r.situations.filter',"s.result=$('#situationResult').value",'if(n!==null)s.name=n','if(l!==null)s.level=lvl(l)']:
               if token in app:
                   raise SystemExit('Diagnosis 7B app situation UI still mutates state directly: '+token)
+          for token in ['if(n!==null)s.name=n','s.level=num;s.levelPending=false']:
+              if token in fc2:
+                  raise SystemExit('Diagnosis 7B consultation edit override still mutates state directly: '+token)
 
           owned_files={
               'diagnosis-navigation.js':nav,
