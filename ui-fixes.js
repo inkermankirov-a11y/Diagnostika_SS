@@ -1,11 +1,19 @@
 'use strict';
 
+function clientUiApi(){
+  return window.DiagnostikaClients
+    || window.DiagnostikaPlatform?.clients
+    || window.DiagnostikaPlatform?.services?.clients
+    || null;
+}
+
 function renderClientDatabaseTable(){
   const dlg=document.querySelector('#clientDialog');
   const root=document.querySelector('#clientDatabaseList');
   if(!dlg||!root) return;
+  const clients=clientUiApi()?.list?.()||[];
   root.innerHTML='';
-  if(!state.clients.length){
+  if(!clients.length){
     const empty=document.createElement('div');
     empty.className='db-empty';
     empty.textContent='Клиентов пока нет.';
@@ -16,7 +24,7 @@ function renderClientDatabaseTable(){
   table.className='db-table';
   table.innerHTML='<thead><tr><th class="db-col-num">№</th><th>ФИО</th><th class="db-col-city">Город</th><th class="db-col-actions">Действия</th></tr></thead>';
   const tbody=document.createElement('tbody');
-  state.clients.forEach((c,index)=>{
+  clients.forEach((c,index)=>{
     const tr=document.createElement('tr');
     const num=document.createElement('td');num.className='db-col-num';num.textContent=String(index+1);
     const name=document.createElement('td');name.textContent=c.name||'Без имени';
@@ -24,9 +32,9 @@ function renderClientDatabaseTable(){
     const actions=document.createElement('td');actions.className='db-col-actions';
     const group=document.createElement('div');group.className='db-action-group';
     const openBtn=document.createElement('button');openBtn.type='button';openBtn.className='db-open-btn';openBtn.textContent='Открыть';
-    openBtn.onclick=()=>{clientId=c.id;requestId=null;situationId=null;selected=null;dlg.close();renderClient();};
+    openBtn.onclick=()=>{if(clientUiApi()?.select?.(c.id,{source:'ui-fixes-database-open'}))dlg.close();};
     const delBtn=document.createElement('button');delBtn.type='button';delBtn.className='db-delete-btn';delBtn.textContent='Удалить';
-    delBtn.onclick=()=>{clientId=c.id;deleteCurrentClient();if(dlg.open)renderClientDatabaseTable();};
+    delBtn.onclick=()=>{const removed=window.moveClientToTrashById?.(c.id);if(removed&&dlg.open)renderClientDatabaseTable();};
     group.append(openBtn,delBtn);actions.appendChild(group);tr.append(num,name,city,actions);tbody.appendChild(tr);
   });
   table.appendChild(tbody);root.appendChild(table);
