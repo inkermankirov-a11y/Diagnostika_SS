@@ -143,9 +143,10 @@
   }
 
   function refresh(){syncSessionSettings();ensurePreviousSummary();hideLegacySessionPriceAndReceipts();replacePaymentButtons();enhanceMainSummary();}
+  window.addEventListener('diagnostika:payment-dialog-opened',()=>setTimeout(refresh,0));
   const relevantNode=node=>node?.nodeType===1&&(
-    node.matches?.('dialog.session-edit-dialog,.session-card,.payment-dialog,#clientPaymentBox')
-    ||node.querySelector?.('dialog.session-edit-dialog,.session-card,.payment-dialog,#clientPaymentBox')
+    node.matches?.('dialog.session-edit-dialog,.session-card,#clientPaymentBox')
+    ||node.querySelector?.('dialog.session-edit-dialog,.session-card,#clientPaymentBox')
   );
   const observer=new MutationObserver(records=>{
     if(records.some(record=>Array.from(record.addedNodes||[]).some(relevantNode)))setTimeout(refresh,0);
