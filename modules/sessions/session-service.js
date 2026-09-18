@@ -147,9 +147,6 @@
     return false;
   }
 
-  function syncLegacySnapshot(){
-    try{window.DiagnostikaLegacyEvents?.resyncSessions?.();}catch(_){}
-  }
 
   function render(){
     try{if(typeof renderSessions==='function')renderSessions();}catch(error){
@@ -183,7 +180,6 @@
       return null;
     }
 
-    syncLegacySnapshot();
     emit(EVENTS.created,{
       clientId:c.id,
       sessionId:created.id,
@@ -219,7 +215,6 @@
       return null;
     }
 
-    syncLegacySnapshot();
     emit(EVENTS.updated,{
       clientId:c.id,
       sessionId:target.id,
@@ -245,7 +240,6 @@
       return null;
     }
 
-    syncLegacySnapshot();
     emit(EVENTS.deleted,{
       clientId:c.id,
       sessionId:removed.id,
