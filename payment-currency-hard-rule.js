@@ -3,12 +3,8 @@
 (() => {
   const SYMBOLS={RUB:'₽',USD:'$',EUR:'€',KZT:'₸'};
   const currentClient=()=>typeof client==='function'?client():null;
-  const paymentOf=r=>{
-    if(!r)return null;
-    if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[]};
-    if(!Array.isArray(r.payment.payments))r.payment.payments=[];
-    return r.payment;
-  };
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
+  const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:null);
   function requestFromDialog(c,dlg){
     const text=dlg?.querySelector('#paymentRequestSub')?.textContent||'';
     const m=text.match(/Запрос\s+(\d+)/i);
@@ -17,7 +13,7 @@
   }
   function symbolForDialog(c,r,dlg){
     const selected=dlg?.querySelector('#paymentCurrency')?.value;
-    const code=selected||paymentOf(r)?.currency||c?.currency||'RUB';
+    const code=selected||paymentOf(c,r)?.currency||c?.currency||'RUB';
     return SYMBOLS[code]||'₽';
   }
   function replaceMoneySymbols(root,symbol){
@@ -57,9 +53,13 @@
       const dlg=e.target.closest('.payment-dialog');
       const c=currentClient(),r=requestFromDialog(c,dlg);
       if(c&&r){
-        const p=paymentOf(r),code=e.target.value;
-        p.currency=code;p.currencyManual=true;
-        if(typeof save==='function')save();
+        const code=e.target.value;
+        const updated=paymentWriter()?.updateRequest?.(
+          r.id,
+          {currency:code,currencyManual:true},
+          {client:c,source:'payment-currency-hard-rule'}
+        );
+        if(!updated)return;
       }
       schedule();
     }
