@@ -2,7 +2,7 @@ name: Request selection audit
 
 on:
   push:
-    branches: [ main, fix-request-selection-not-active, feature-requests-3a, feature-requests-3b, feature-requests-3c ]
+    branches: [ main, fix-request-selection-not-active, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d ]
   workflow_dispatch:
 
 jobs:
