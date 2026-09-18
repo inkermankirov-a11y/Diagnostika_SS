@@ -14,16 +14,16 @@ for(const token of [
   "source:'session-ai-chat-assistant'",
   "source:'session-ai-chat-clear'"
 ])assert(sessionSource.includes(token),'Missing AIService session writer '+token);
-assert(apiSource.includes("version:'6C'"),'AI facade version is not 6C');
+assert(apiSource.includes("version:'6D'"),'AI facade version is not 6D');
 for(const token of [
-  'modules/ai/ai-service.js?v=20260919-ai6c',
-  'modules/ai/index.js?v=20260919-ai6c',
-  'ai-api.js?v=20260919-ai6c'
+  'modules/ai/ai-service.js?v=20260919-ai6d',
+  'modules/ai/index.js?v=20260919-ai6d',
+  'ai-api.js?v=20260919-ai6d'
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
-  'client-ai-chat.js?v=20260919-ai6c',
-  'session-ai-chat.js?v=20260919-ai6c',
-  'app-loader.js?v=20260919-ai6c'
+  'client-ai-chat.js?v=20260919-ai6d',
+  'session-ai-chat.js?v=20260919-ai6d',
+  'app-loader.js?v=20260919-ai6d'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
@@ -59,7 +59,7 @@ await page.route('https://lugovoyn8n.ru/**',route=>route.abort());
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaAI?.version==='6C' && window.DiagnostikaPlatform?.services?.ai,null,{timeout:15000});
+  await page.waitForFunction(()=>window.DiagnostikaAI?.version==='6D' && window.DiagnostikaPlatform?.services?.ai,null,{timeout:15000});
 }
 
 await page.goto(base,{waitUntil:'commit',timeout:10000});
