@@ -82,14 +82,11 @@
 
   function persist(){
     try{
-      if(platform.store?.legacySave?.())return true;
-    }catch(_){}
-    try{
-      if(typeof save==='function'){save();return true;}
+      return platform.store?.legacySave?.()===true;
     }catch(error){
       console.error('[DiagnostikaPlatform] AI persistence failed',error);
+      return false;
     }
-    return false;
   }
 
   function emit(type,detail={}){
