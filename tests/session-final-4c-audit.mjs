@@ -185,6 +185,7 @@ const browser=await chromium.launch({headless:true});
     amount:Number(window.DiagnostikaSessions.get('sessions-4c-pay-session')?.payment?.amount)||0,
     events:window.__sessions4cPaymentEvents
   }));
+  console.log('SESSION_4C_PAYMENT_LINK_STATE',JSON.stringify(linked));
   assert.equal(linked.requestId,'sessions-4c-r2');
   assert.equal(linked.activeRequestId,'sessions-4c-r1','payment repair changed active request');
   assert(linked.amount>0,'payment repair did not restore the configured session amount');
