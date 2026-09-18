@@ -2,7 +2,7 @@ name: Client module audit
 
 on:
   push:
-    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2 ]
+    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1 ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
@@ -40,7 +40,7 @@ jobs:
           node --check app-loader.js
           node --check tests/client-module-audit.mjs
           node --check tests/client-write-audit.mjs
-          node --check tests/client-trash-audit.mjs
+          node --check tests/client-trash-audit.mjs\n          node --check tests/client-legacy-boundary-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -84,7 +84,7 @@ jobs:
           if 'client-trash.js?v=20260918-clients2b2' not in index: errors.append('client trash cache version is stale')
           if 'session-interactions.js?v=20260918-clients2b2' not in index: errors.append('session interactions cache version is stale')
           if 'app-loader.js?v=20260918-clients2b2' not in index: errors.append('app loader cache version is stale')
-          if 'diagnostika-build" content="20260918-clients2b2' not in index: errors.append('build marker is stale')
+          if 'diagnostika-build" content="20260918-clients2c1' not in index: errors.append('build marker is stale')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY
@@ -163,3 +163,11 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-trash-last-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           CLIENT_TRASH_PHASE=last node tests/client-trash-audit.mjs
+
+      - name: Verify Clients 2C-1 legacy boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-legacy-boundary-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/client-legacy-boundary-audit.mjs
