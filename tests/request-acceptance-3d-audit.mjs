@@ -126,7 +126,12 @@ await page.evaluate(()=>{
     window.DiagnostikaPlatform.events.on(type,detail=>window.__requests3dEvents.push({type,detail:{...detail}}));
   }
 });
-await page.locator('#testFillBtn').click();
+assert.equal(await page.evaluate(()=>{
+  const button=document.querySelector('#testFillBtn');
+  if(!button)return false;
+  button.click();
+  return true;
+}),true,'TEST button is missing');
 await page.waitForTimeout(250);
 
 const testData=await page.evaluate(()=>({
