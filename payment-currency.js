@@ -5,20 +5,19 @@
   const CUR={RUB:{symbol:'₽',label:'₽ RUB'},USD:{symbol:'$',label:'$ USD'},EUR:{symbol:'€',label:'€ EUR'},KZT:{symbol:'₸',label:'₸ KZT'}};
   const langDefault=()=>({ru:'RUB',en:'USD',fr:'EUR',de:'EUR',it:'EUR'})[localStorage.getItem(LANG_KEY)||'en']||'USD';
   const clientNow=()=>typeof client==='function'?client():null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const reqFromDialog=(c,dlg)=>{
     const t=dlg?.querySelector('#paymentRequestSub')?.textContent||'';
     const m=t.match(/Запрос\s+(\d+)/i);
     if(m&&c?.requests?.[Number(m[1])-1])return c.requests[Number(m[1])-1];
     return window.DiagnostikaRequests?.current?.(c)||c?.requests?.find(r=>r.id===c?.currentRequestId)||null;
   };
-  const paymentOf=r=>{if(!r)return null;if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[]};return r.payment;};
+  const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:null);
   const currencyFor=(c,r)=>{
     if(!c)return langDefault();
-    if(!c.currencyManual)c.currency=langDefault();
-    if(!c.currency)c.currency=langDefault();
-    const p=paymentOf(r);
-    if(p&&!p.currencyManual)p.currency=c.currency;
-    return p?.currency||c.currency;
+    const clientCurrency=c.currencyManual?(c.currency||langDefault()):langDefault();
+    const p=paymentOf(c,r);
+    return p?.currencyManual?(p.currency||clientCurrency):clientCurrency;
   };
   const symbolFor=(c,r)=>CUR[currencyFor(c,r)]?.symbol||'₽';
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
@@ -36,9 +35,17 @@
       label.querySelector('select').addEventListener('change',e=>{
         const c=clientNow(),r=reqFromDialog(c,dlg);if(!c||!r)return;
         const code=e.target.value;
-        const p=paymentOf(r);p.currency=code;p.currencyManual=true;
-        c.currency=code;c.currencyManual=true;
-        if(typeof save==='function')save();
+        const updated=paymentWriter()?.updateRequest?.(
+          r.id,
+          {currency:code,currencyManual:true},
+          {client:c,source:'payment-currency-selector'}
+        );
+        if(!updated)return;
+        window.DiagnostikaClients?.update?.(
+          c.id,
+          {currency:code,currencyManual:true},
+          {source:'payment-currency-client',render:false}
+        );
         refresh();
         try{window.DiagnostikaPayments?.refresh?.();}catch(_){ }
         try{window.DiagnostikaCurrencyHardRule?.refresh?.();}catch(_){ }
@@ -74,8 +81,7 @@
     ensureSelector();
     const dlg=document.querySelector('.payment-dialog:not(.all-client-payments-dialog)');
     const c=clientNow(),r=reqFromDialog(c,dlg);
-    if(c&&!c.currencyManual){c.currency=langDefault();}
-    if(dlg&&c&&r){
+     if(dlg&&c&&r){
       const sym=symbolFor(c,r);
       replaceCurrencyText(dlg.querySelector('#paymentSummary'),sym);
       replaceCurrencyText(dlg.querySelector('#sessionFinalPrice'),sym);
