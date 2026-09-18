@@ -52,12 +52,15 @@
   document.body.appendChild(dlg);
 
   const q = id => document.getElementById(id);
-  const emit=(type,detail)=>window.DiagnostikaLegacyEvents?.emit?.(type,detail);
   const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccClientNotes'];
   let draftMode=false;
   let draft=null;
   let dirty=false;
   let photoData='';
+
+  function clientsApi(){
+    return window.DiagnostikaClients || null;
+  }
 
   function ageFromBirth(value){
     if(!value) return '';
@@ -79,7 +82,8 @@
   }
 
   function sourceClient(){
-    return draftMode ? draft : (typeof client==='function' ? client() : null);
+    if(draftMode) return draft;
+    return clientsApi()?.current?.() || (typeof client==='function' ? client() : null);
   }
 
   function fillFrom(c){
@@ -104,25 +108,27 @@
     dirty=false;
   }
 
-  function collectInto(c){
-    c.name = q('ccName').value.trim() || 'Новый клиент';
-    c.phone = q('ccPhone').value.trim();
-    c.email = q('ccEmail').value.trim();
-    c.gender = q('ccGender').value;
-    c.country = q('ccCountry').value.trim();
-    c.city = q('ccCity').value.trim();
-    c.birth = q('ccBirth').value;
-    c.age = q('ccAge').value.trim() || ageFromBirth(c.birth) || '';
-    c.vk = q('ccVk').value.trim();
-    c.telegram = q('ccTelegram').value.trim();
-    c.max = q('ccMax').value.trim();
-    c.initialProblem = q('ccInitialProblem').value;
-    c.mainRequest = q('ccMainRequest').value;
-    c.tried = q('ccTried').value;
-    c.desiredOutcome = q('ccDesiredOutcome').value;
-    c.clientNotes = q('ccClientNotes').value;
-    c.photoData = photoData || '';
-    return c;
+  function collectData(){
+    const birth=q('ccBirth').value;
+    return {
+      name:q('ccName').value.trim() || 'Новый клиент',
+      phone:q('ccPhone').value.trim(),
+      email:q('ccEmail').value.trim(),
+      gender:q('ccGender').value,
+      country:q('ccCountry').value.trim(),
+      city:q('ccCity').value.trim(),
+      birth,
+      age:q('ccAge').value.trim() || ageFromBirth(birth) || '',
+      vk:q('ccVk').value.trim(),
+      telegram:q('ccTelegram').value.trim(),
+      max:q('ccMax').value.trim(),
+      initialProblem:q('ccInitialProblem').value,
+      mainRequest:q('ccMainRequest').value,
+      tried:q('ccTried').value,
+      desiredOutcome:q('ccDesiredOutcome').value,
+      clientNotes:q('ccClientNotes').value,
+      photoData:photoData || ''
+    };
   }
 
   function hasAnyDraftData(){
@@ -131,32 +137,22 @@
   }
 
   function saveCard(){
+    const api=clientsApi();
+    if(!api) return alert('Модуль клиентов не загрузился. Обновите страницу.');
+
     if(draftMode){
       if(!draft) return;
-      const savedClient=draft;
-      const previousClientId=typeof clientId!=='undefined'?clientId:null;
-      collectInto(savedClient);
-      state.clients.push(savedClient);
-      clientId=savedClient.id;
-      requestId=null;
-      situationId=null;
-      selected=null;
-      if(typeof save==='function') save();
-      if(typeof renderClient==='function') renderClient();
-      emit('client:created',{clientId:savedClient.id,source:'client-card'});
-      if(String(previousClientId??'')!==String(savedClient.id)){
-        emit('client:selected',{clientId:savedClient.id,previousClientId:previousClientId??null,source:'client-card-create'});
-      }
+      const created=api.create?.({...draft,...collectData()},{source:'client-card-create'});
+      if(!created) return alert('Не удалось сохранить клиента.');
       draftMode=false;draft=null;dirty=false;
       dlg.close();
       return;
     }
-    const c = sourceClient();
+
+    const c=sourceClient();
     if(!c) return;
-    collectInto(c);
-    if(typeof save==='function') save();
-    if(typeof renderClient==='function') renderClient();
-    emit('client:updated',{clientId:c.id,source:'client-card'});
+    const updated=api.update?.(c.id,collectData(),{source:'client-card'});
+    if(!updated) return alert('Не удалось сохранить карточку клиента.');
     dirty=false;
     dlg.close();
   }
@@ -173,7 +169,7 @@
   }
 
   function openExisting(){
-    const c = typeof client==='function' ? client() : null;
+    const c=clientsApi()?.current?.() || (typeof client==='function' ? client() : null);
     if(!c) return alert('Сначала выбери клиента.');
     draftMode=false;draft=null;
     q('ccSaveBtn').textContent='Сохранить карточку';
@@ -203,7 +199,6 @@
     r.readAsDataURL(f);
     e.target.value='';
   };
-
 
   dlg.addEventListener('click', e => { if(e.target === dlg) closeDraftAware(); });
   dlg.addEventListener('cancel',e=>{e.preventDefault();closeDraftAware();});
