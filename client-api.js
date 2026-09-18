@@ -10,7 +10,8 @@
     selected: 'client:selected',
     updated: 'client:updated',
     deleted: 'client:deleted',
-    restored: 'client:restored'
+    restored: 'client:restored',
+    purged: 'client:purged'
   });
 
   function service(){
@@ -170,6 +171,137 @@
     return legacyUpdate(id,changes,options);
   }
 
+  function legacyTrashState(){
+    try{
+      if(!Array.isArray(state.deletedClients)) state.deletedClients=[];
+      if(!Array.isArray(state.deletedClientTombstones)) state.deletedClientTombstones=[];
+      const blocked=new Set(state.deletedClientTombstones.map(String));
+      const active=new Set(legacyList().map(x=>x?.id).filter(Boolean).map(String));
+      state.deletedClients=state.deletedClients.filter(x=>x?.id&&!blocked.has(String(x.id))&&!active.has(String(x.id)));
+      return {deletedClients:state.deletedClients,tombstones:state.deletedClientTombstones};
+    }catch(_){
+      return null;
+    }
+  }
+
+  function trashList(){
+    const moduleService=service();
+    if(moduleService?.trashList) return moduleService.trashList();
+    const trash=legacyTrashState();
+    return trash ? JSON.parse(JSON.stringify(trash.deletedClients)) : [];
+  }
+
+  function findDeletedById(id){
+    const moduleService=service();
+    if(moduleService?.findDeletedById) return moduleService.findDeletedById(id);
+    return trashList().find(x=>x&&String(x.id)===String(id))||null;
+  }
+
+  function legacyRemove(id,options={}){
+    const clients=legacyList();
+    const index=clients.findIndex(x=>x&&String(x.id)===String(id));
+    if(index<0) return null;
+    const trash=legacyTrashState();
+    if(!trash) return null;
+
+    const previousClientId=legacyCurrentId();
+    const target=clients[index];
+    const archived=JSON.parse(JSON.stringify(target));
+    archived.deletedAt=new Date().toISOString();
+
+    state.deletedClients=trash.deletedClients.filter(x=>x&&String(x.id)!==String(id));
+    state.deletedClients.push(archived);
+    state.deletedClientTombstones=trash.tombstones.filter(x=>String(x)!==String(id));
+    clients.splice(index,1);
+
+    let replacementCreated=false;
+    let selectionChanged=false;
+    if(!clients.length){
+      const replacement=fallbackNewClient();
+      clients.push(replacement);
+      clientId=replacement.id;
+      replacementCreated=true;
+      selectionChanged=true;
+    }else if(!clients.some(x=>x&&String(x.id)===String(previousClientId))){
+      const replacement=clients[Math.min(index,clients.length-1)];
+      clientId=replacement.id;
+      selectionChanged=true;
+    }
+
+    if(selectionChanged){
+      requestId=null;
+      situationId=null;
+      selected=null;
+      try{ mode='card'; }catch(_){}
+    }
+
+    if(!legacyPersist()) return null;
+    if(options.render!==false) legacyRender();
+
+    emit(EVENT_NAMES.deleted,{
+      clientId:target.id,
+      selectedClientId:legacyCurrentId(),
+      replacementCreated,
+      source:options.source||'client-api-fallback'
+    });
+    if(selectionChanged&&legacyCurrentId()){
+      emit(EVENT_NAMES.selected,{
+        clientId:legacyCurrentId(),
+        previousClientId:previousClientId??null,
+        reason:'client-deleted',
+        source:options.source||'client-api-fallback'
+      });
+    }
+    return {clientId:target.id,selectedClientId:legacyCurrentId(),replacementCreated};
+  }
+
+  function remove(id,options={}){
+    const moduleService=service();
+    if(moduleService?.remove) return moduleService.remove(id,options);
+    return legacyRemove(id,options);
+  }
+
+  function legacyRestore(id,options={}){
+    const trash=legacyTrashState();
+    if(!trash) return null;
+    const index=trash.deletedClients.findIndex(x=>x&&String(x.id)===String(id));
+    if(index<0||findById(id)) return null;
+    const restored=JSON.parse(JSON.stringify(trash.deletedClients[index]));
+    delete restored.deletedAt;
+    state.deletedClients.splice(index,1);
+    state.deletedClientTombstones=trash.tombstones.filter(x=>String(x)!==String(id));
+    legacyList().push(restored);
+    if(!legacyPersist()) return null;
+    emit(EVENT_NAMES.restored,{clientId:restored.id,source:options.source||'client-api-fallback'});
+    if(options.select===true) legacySelect(restored.id,{source:options.source||'client-api-fallback-restore',render:options.render});
+    else if(options.render!==false) legacyRender();
+    return restored;
+  }
+
+  function restore(id,options={}){
+    const moduleService=service();
+    if(moduleService?.restore) return moduleService.restore(id,options);
+    return legacyRestore(id,options);
+  }
+
+  function legacyPurge(id,options={}){
+    const trash=legacyTrashState();
+    if(!trash) return false;
+    const index=trash.deletedClients.findIndex(x=>x&&String(x.id)===String(id));
+    if(index<0) return false;
+    state.deletedClients.splice(index,1);
+    if(!state.deletedClientTombstones.some(x=>String(x)===String(id))) state.deletedClientTombstones.push(id);
+    if(!legacyPersist()) return false;
+    emit(EVENT_NAMES.purged,{clientId:id,source:options.source||'client-api-fallback'});
+    return true;
+  }
+
+  function purge(id,options={}){
+    const moduleService=service();
+    if(moduleService?.purge) return moduleService.purge(id,options);
+    return legacyPurge(id,options);
+  }
+
   function openDatabase(){
     if(typeof window.openDatabase!=='function') return false;
     window.openDatabase();
@@ -177,7 +309,7 @@
   }
 
   const api=Object.freeze({
-    version:'2B1',
+    version:'2B2',
     moduleAware:true,
     events:service()?.events||EVENT_NAMES,
     list,
@@ -187,6 +319,11 @@
     select,
     create,
     update,
+    trashList,
+    findDeletedById,
+    remove,
+    restore,
+    purge,
     openDatabase
   });
   window.DiagnostikaClients=api;
