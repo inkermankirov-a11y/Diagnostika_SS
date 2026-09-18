@@ -2,13 +2,19 @@ name: Session module audit
 
 on:
   push:
-    branches: [ main, feature-sessions-4a ]
+    branches: [ main, feature-sessions-4a, feature-sessions-4b ]
     paths:
       - 'modules/sessions/**'
       - 'session-api.js'
       - 'app-loader.js'
       - 'index.html'
       - 'tests/session-module-audit.mjs'
+      - 'tests/session-ui-4b-audit.mjs'
+      - 'home-dashboard-sessions.js'
+      - 'session-attachments.js'
+      - 'session-interactions.js'
+      - 'session-active-request.js'
+      - 'session-format.js'
       - '.github/workflows/session-module-audit.yml'
   workflow_dispatch:
 
@@ -26,6 +32,12 @@ jobs:
           node --check modules/sessions/index.js
           node --check session-api.js
           node --check tests/session-module-audit.mjs
+          node --check tests/session-ui-4b-audit.mjs
+          node --check home-dashboard-sessions.js
+          node --check session-attachments.js
+          node --check session-interactions.js
+          node --check session-active-request.js
+          node --check session-format.js
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -35,6 +47,11 @@ jobs:
           api=Path('session-api.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           index=Path('index.html').read_text(encoding='utf-8')
+          dashboard=Path('home-dashboard-sessions.js').read_text(encoding='utf-8')
+          editor=Path('session-attachments.js').read_text(encoding='utf-8')
+          interactions=Path('session-interactions.js').read_text(encoding='utf-8')
+          active=Path('session-active-request.js').read_text(encoding='utf-8')
+          format_ui=Path('session-format.js').read_text(encoding='utf-8')
           errors=[]
 
           if 'services.sessions=Object.freeze' not in service:
@@ -47,19 +64,40 @@ jobs:
                   errors.append('SessionService knows UI/HTML: '+forbidden)
           if "MODULE_ID='sessions'" not in module:
               errors.append('sessions module registration missing')
-          if "version:'4A'" not in api or 'moduleAware:true' not in api:
-              errors.append('session facade is not module-aware 4A')
+          if "version:'4B'" not in api or 'moduleAware:true' not in api:
+              errors.append('session facade is not module-aware 4B')
           for token in [
-              'modules/sessions/session-service.js?v=20260918-sessions4a',
-              'modules/sessions/index.js?v=20260918-sessions4a',
-              'session-api.js?v=20260918-sessions4a'
+              'modules/sessions/session-service.js?v=20260918-sessions4b',
+              'modules/sessions/index.js?v=20260918-sessions4b',
+              'session-api.js?v=20260918-sessions4b'
           ]:
               if token not in loader:
                   errors.append('session loader missing/stale: '+token)
-          if 'name="diagnostika-build" content="20260918-sessions4a"' not in index:
+          if 'name="diagnostika-build" content="20260918-sessions4b"' not in index:
               errors.append('Sessions 4A build marker missing')
-          if 'app-loader.js?v=20260918-sessions4a' not in index:
+          if 'app-loader.js?v=20260918-sessions4b' not in index:
               errors.append('Sessions 4A app-loader cache marker missing')
+          if 'c.sessions.push(' in dashboard:
+              errors.append('dashboard still creates sessions directly')
+          if "addEventListener('diagnostika:sessions-changed'" in dashboard:
+              errors.append('dashboard still consumes legacy session DOM events directly')
+          if "home-dashboard-session-create" not in dashboard:
+              errors.append('dashboard SessionService create source missing')
+          for token in ['s.date=','s.requestId=','s.notes=','s.youtubeUrl=']:
+              if token in editor:
+                  errors.append('session editor direct mutation: '+token)
+          if "source:'session-editor-save'" not in editor:
+              errors.append('session editor SessionService save missing')
+          if 'c.sessions.splice(' in interactions:
+              errors.append('session delete still splices client sessions')
+          if "source: 'session-editor-delete'" not in interactions:
+              errors.append('session delete SessionService source missing')
+          if 's.requestId =' in active:
+              errors.append('active-request bridge still mutates requestId directly')
+          if "source:'session-active-request'" not in active:
+              errors.append('active-request SessionService source missing')
+          if 's.sessionFormat=' in format_ui or "typeof save==='function'" in format_ui:
+              errors.append('session format still owns session persistence')
           print('SESSION_BOUNDARY_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
@@ -69,12 +107,13 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Verify SessionService 4A module
+      - name: Verify SessionService module foundation
         shell: bash
         run: |
           set -euo pipefail
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/session-module-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/session-module-audit.mjs
+          node tests/session-ui-4b-audit.mjs
 
-# acceptance-ci-trigger: 20260918-sessions4a
+# acceptance-ci-trigger: 20260918-sessions4b
