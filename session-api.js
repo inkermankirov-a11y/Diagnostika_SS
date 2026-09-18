@@ -11,7 +11,7 @@
   };
 
   window.DiagnostikaSessions=Object.freeze({
-    version:'4B',
+    version:'4C',
     moduleAware:true,
     events:Object.freeze({
       created:'session:created',
