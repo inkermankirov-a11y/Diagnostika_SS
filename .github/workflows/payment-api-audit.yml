@@ -2,7 +2,7 @@ name: Payment API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, feature-payment-5a ]
+    branches: [ main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*' ]
     paths:
       - 'home-dashboard.js'
       - 'modules/payments/**'
@@ -81,6 +81,23 @@ jobs:
                   raise SystemExit('Payment 5A loader missing '+token)
           if 'open:openPayment' not in payment:
               raise SystemExit('Payment API no longer exports openPayment')
+          primary=payment[payment.find("q('#paymentMode')"):payment.find('function allRows')]
+          required_5b=[
+              'payment-dialog-mode','payment-dialog-currency','payment-dialog-total',
+              'payment-dialog-add','payment-dialog-edit','payment-dialog-delete',
+              'updateRequestPayment(','addRequestPayment(','updateRequestPaymentRecord(','removeRequestPayment('
+          ]
+          missing_5b=[x for x in required_5b if x not in primary]
+          forbidden_5b=[
+              'paymentOfRequest(c,r).mode=','paymentOfRequest(c,r).total=',
+              'p.payments.push(','p.payments=p.payments.filter',
+              'pay.date=','pay.amount=','c.currency='
+          ]
+          found_5b=[x for x in forbidden_5b if x in primary]
+          print('Payment 5B primary service markers missing:',missing_5b or 'none')
+          print('Payment 5B primary direct writers:',found_5b or 'none')
+          if missing_5b or found_5b:
+              raise SystemExit('Payment 5B primary request UI still bypasses services')
           PY
 
       - name: Install browser
@@ -149,9 +166,19 @@ jobs:
           await page.evaluate(()=>{
             window.__paymentApiCalls=0;
             window.__legacyPaymentClicks=0;
+            window.__paymentServiceCalls=[];
             const api=window.DiagnostikaPayments;
             const original=api.open.bind(api);
             api.open=function(){window.__paymentApiCalls++;return original();};
+            for(const name of ['updateRequest','addPayment','updatePayment','removePayment']){
+              const fn=typeof api[name]==='function'?api[name].bind(api):null;
+              if(!fn)continue;
+              api[name]=function(...args){
+                const options=args[args.length-1];
+                window.__paymentServiceCalls.push({name,source:options?.source||''});
+                return fn(...args);
+              };
+            }
             const legacy=document.querySelector('#clientPaymentBox .client-payment-btn');
             if(legacy)legacy.addEventListener('click',()=>window.__legacyPaymentClicks++,true);
           });
@@ -263,6 +290,12 @@ jobs:
           const finalCounters=await page.evaluate(()=>({api:window.__paymentApiCalls||0,legacy:window.__legacyPaymentClicks||0}));
           console.log('FINAL_COUNTERS:',JSON.stringify(finalCounters));
           if(finalCounters.legacy!==0)throw new Error(`Legacy payment button was clicked ${finalCounters.legacy} time(s)`);
+          const serviceCalls=await page.evaluate(()=>window.__paymentServiceCalls||[]);
+          console.log('PAYMENT_5B_SERVICE_CALLS:',JSON.stringify(serviceCalls));
+          const serviceSources=new Set(serviceCalls.map(x=>x.source));
+          for(const source of ['payment-dialog-mode','payment-dialog-total','payment-dialog-currency','payment-dialog-add']){
+            if(!serviceSources.has(source))throw new Error(`Payment 5B missing service source ${source}: ${JSON.stringify(serviceCalls)}`);
+          }
 
           const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
           console.log('Browser errors:',JSON.stringify(errors));
@@ -272,4 +305,4 @@ jobs:
           JS
           node payment-api-audit.mjs
           node tests/payment-module-5a-audit.mjs
-# acceptance-ci-trigger: 20260918-payment5a
+# acceptance-ci-trigger: 20260918-payment5b
