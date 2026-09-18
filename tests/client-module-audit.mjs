@@ -61,7 +61,8 @@ assert.deepEqual(architecture.events,{
   selected:'client:selected',
   updated:'client:updated',
   deleted:'client:deleted',
-  restored:'client:restored'
+  restored:'client:restored',
+  purged:'client:purged'
 });
 assert.equal(architecture.list.length,2);
 assert.deepEqual(architecture.facadeList,architecture.list);
