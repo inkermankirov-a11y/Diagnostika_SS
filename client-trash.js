@@ -1,17 +1,10 @@
 'use strict';
 
 (() => {
-  const clone=v=>JSON.parse(JSON.stringify(v));
-  const ensureState=()=>{
-    if(!Array.isArray(state.deletedClients)) state.deletedClients=[];
-    if(!Array.isArray(state.deletedClientTombstones)) state.deletedClientTombstones=[];
-    const blocked=new Set(state.deletedClientTombstones);
-    const activeIds=new Set((state.clients||[]).map(c=>c?.id).filter(Boolean));
-    const before=state.deletedClients.length;
-    state.deletedClients=state.deletedClients.filter(c=>c?.id&&!blocked.has(c.id)&&!activeIds.has(c.id));
-    if(before!==state.deletedClients.length) save();
-  };
-  ensureState();
+  const clientsApi=()=>window.DiagnostikaClients
+    || window.DiagnostikaPlatform?.clients
+    || window.DiagnostikaPlatform?.services?.clients
+    || null;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -31,7 +24,7 @@
 
   const dlg=document.createElement('dialog');
   dlg.className='trash-dialog';
-  dlg.innerHTML=`<div class="trash-window"><div class="trash-head"><h2>Удалённые клиенты</h2><button type="button" class="tk-btn trash-close">×</button></div><div class="trash-list"></div></div>`;
+  dlg.innerHTML='<div class="trash-window"><div class="trash-head"><h2>Удалённые клиенты</h2><button type="button" class="tk-btn trash-close">×</button></div><div class="trash-list"></div></div>';
   document.body.appendChild(dlg);
   dlg.querySelector('.trash-close').onclick=()=>dlg.close();
   dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
@@ -42,46 +35,64 @@
     return `Удалён: ${d.toLocaleString('ru-RU')}`;
   }
 
+  function refreshDatabase(){
+    if(typeof window.renderClientDatabaseTable==='function') window.renderClientDatabaseTable();
+  }
+
   function renderTrash(){
-    ensureState();
+    const api=clientsApi();
+    const items=api?.trashList?.()||[];
     const root=dlg.querySelector('.trash-list');
     root.innerHTML='';
-    if(!state.deletedClients.length){
-      const empty=document.createElement('div');empty.className='trash-empty';empty.textContent='Удалённых клиентов нет.';root.appendChild(empty);return;
+
+    if(!items.length){
+      const empty=document.createElement('div');
+      empty.className='trash-empty';
+      empty.textContent='Удалённых клиентов нет.';
+      root.appendChild(empty);
+      return;
     }
-    [...state.deletedClients].sort((a,b)=>String(b.deletedAt||'').localeCompare(String(a.deletedAt||''))).forEach(c=>{
-      const row=document.createElement('div');row.className='trash-row';
+
+    [...items].sort((a,b)=>String(b.deletedAt||'').localeCompare(String(a.deletedAt||''))).forEach(c=>{
+      const row=document.createElement('div');
+      row.className='trash-row';
+
       const info=document.createElement('div');
-      info.innerHTML=`<div class="trash-name"></div><div class="trash-meta"></div>`;
+      info.innerHTML='<div class="trash-name"></div><div class="trash-meta"></div>';
       info.querySelector('.trash-name').textContent=c.name||'Без имени';
       info.querySelector('.trash-meta').textContent=`${c.city||'Город не указан'} · ${formatDeletedAt(c.deletedAt)}`;
-      const actions=document.createElement('div');actions.className='trash-actions';
+
+      const actions=document.createElement('div');
+      actions.className='trash-actions';
 
       const restore=document.createElement('button');
-      restore.type='button';restore.className='tk-btn trash-restore';restore.textContent='Восстановить';
+      restore.type='button';
+      restore.className='tk-btn trash-restore';
+      restore.textContent='Восстановить';
       restore.onclick=()=>{
-        state.deletedClients=state.deletedClients.filter(x=>x.id!==c.id);
-        state.deletedClientTombstones=state.deletedClientTombstones.filter(id=>id!==c.id);
-        const restored=clone(c);delete restored.deletedAt;
-        if(!state.clients.some(x=>x.id===restored.id)) state.clients.push(restored);
-        save();
-        if(typeof window.renderClientDatabaseTable==='function') window.renderClientDatabaseTable();
+        const restored=clientsApi()?.restore?.(c.id,{source:'client-trash'});
+        if(!restored) return;
+        refreshDatabase();
         renderTrash();
       };
 
       const forever=document.createElement('button');
-      forever.type='button';forever.className='tk-btn trash-delete';forever.textContent='Удалить навсегда';
+      forever.type='button';
+      forever.className='tk-btn trash-delete';
+      forever.textContent='Удалить навсегда';
       forever.onclick=()=>{
-        state.deletedClients=state.deletedClients.filter(x=>x.id!==c.id);
-        if(!state.deletedClientTombstones.includes(c.id)) state.deletedClientTombstones.push(c.id);
-        save();
+        const purged=clientsApi()?.purge?.(c.id,{source:'client-trash'});
+        if(!purged) return;
         renderTrash();
       };
 
-      actions.append(restore,forever);row.append(info,actions);root.appendChild(row);
+      actions.append(restore,forever);
+      row.append(info,actions);
+      root.appendChild(row);
     });
   }
 
+  window.renderDeletedClients=renderTrash;
   window.openDeletedClients=function(){
     renderTrash();
     if(!dlg.open) dlg.showModal();
@@ -89,14 +100,23 @@
 
   function installButton(){
     const actions=document.querySelector('#clientDialog .dialog-actions');
-    if(!actions||actions.querySelector('#deletedClientsBtn'))return;
+    if(!actions||actions.querySelector('#deletedClientsBtn'))return false;
+
     const btn=document.createElement('button');
-    btn.type='button';btn.id='deletedClientsBtn';btn.className='db-trash-btn';btn.textContent='Удалённые клиенты';
+    btn.type='button';
+    btn.id='deletedClientsBtn';
+    btn.className='db-trash-btn';
+    btn.textContent='Удалённые клиенты';
+
     const close=actions.querySelector('[value="cancel"]');
-    if(close) actions.insertBefore(btn,close); else actions.appendChild(btn);
+    if(close) actions.insertBefore(btn,close);
+    else actions.appendChild(btn);
+
     btn.onclick=()=>window.openDeletedClients();
+    return true;
   }
 
+  // #clientDialog is part of the static page shell and exists before this script runs.
+  // No global document MutationObserver is needed.
   installButton();
-  new MutationObserver(installButton).observe(document.body,{childList:true,subtree:true});
 })();
