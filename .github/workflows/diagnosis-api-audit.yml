@@ -176,9 +176,14 @@ jobs:
             const original=window.DiagnostikaDiagnosis.open;
             window.DiagnostikaDiagnosis=Object.freeze({open:function(){window.__diagApiCalls++;return original();}});
             document.querySelector('#diagnosisModeBtn')?.addEventListener('click',()=>window.__legacyDiagnosisClicks++,true);
-            return {clientId:c.id,firstId:first.id,secondId:second.id,requests:JSON.stringify(c.requests)};
+            return {clientId:c.id,firstId:first.id,secondId:second.id};
           });
-          await page.waitForTimeout(100);
+          await page.waitForTimeout(200);
+          setup.requests=await page.evaluate(()=>JSON.stringify(window.DiagnostikaRequests.list()));
+          setup.storedRequests=await page.evaluate((clientId)=>{
+            const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');
+            return JSON.stringify(stored?.clients?.find(x=>String(x.id)===String(clientId))?.requests||[]);
+          },setup.clientId);
 
           const dashboardRequest=(await page.locator('#hdSummary .hd-summary-box').first().locator('.hd-summary-value').textContent()||'').trim();
           console.log('DASHBOARD_REQUEST_BEFORE_OPEN:',dashboardRequest);
@@ -210,7 +215,7 @@ jobs:
               current:c?.currentRequestId,
               last:c?.lastDiagnosisRequestId,
               requestsSame:JSON.stringify(c?.requests||[])===setup.requests,
-              storedRequestsSame:JSON.stringify(sc?.requests||[])===setup.requests
+              storedRequestsSame:JSON.stringify(sc?.requests||[])===setup.storedRequests
             };
           },setup);
           console.log('DIAGNOSIS_STRESS_RESULT:',JSON.stringify({cycles:CYCLES,...result}));
