@@ -2,7 +2,7 @@ name: Request API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-core-0.2a, feature-requests-3a ]
+    branches: [ main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b ]
   workflow_dispatch:
 
 jobs:
@@ -21,10 +21,16 @@ jobs:
           node --check tests/request-module-audit.mjs
           node --check home-dashboard.js
           node --check request-title-display.js
+          node --check request-select-labels.js
+          node --check request-date-unsaved.js
+          node --check tests/request-ui-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
           api=Path('request-api.js').read_text(encoding='utf-8')
+          request_ui=Path('request-select-labels.js').read_text(encoding='utf-8')
+          request_title=Path('request-title-display.js').read_text(encoding='utf-8')
+          request_date=Path('request-date-unsaved.js').read_text(encoding='utf-8')
           service=Path('modules/requests/request-service.js').read_text(encoding='utf-8')
           module=Path('modules/requests/index.js').read_text(encoding='utf-8')
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
@@ -37,9 +43,17 @@ jobs:
           for token in ['function view(','function activate(','function create(','function update(','function complete(','function resume(','function remove(']:
               if token not in service: errors.append('RequestService method missing '+token)
           if "MODULE_ID='requests'" not in module: errors.append('requests module registration missing')
-          if 'modules/requests/request-service.js?v=20260918-requests3a' not in loader: errors.append('request service loader missing/stale')
-          if 'modules/requests/index.js?v=20260918-requests3a' not in loader: errors.append('requests module loader missing/stale')
-          if 'request-api.js?v=20260918-requests3a' not in loader: errors.append('request API cache version stale')
+          if 'modules/requests/request-service.js?v=20260918-requests3b' not in loader: errors.append('request service loader missing/stale')
+          if 'modules/requests/index.js?v=20260918-requests3b' not in loader: errors.append('requests module loader missing/stale')
+          if 'request-api.js?v=20260918-requests3b' not in loader: errors.append('request API cache version stale')
+          if "DiagnostikaRequestsUI=Object.freeze({version:'3B'" not in request_ui: errors.append('Request UI 3B marker missing')
+          for forbidden in ['c.requests.push','c.currentRequestId=','c.lastDiagnosisRequestId=','r.status=','window.renderClient=function','window.renderRequests=function']:
+              if forbidden in request_ui: errors.append('request UI owns request state/render boundary: '+forbidden)
+          if request_ui.count('new MutationObserver') != 1: errors.append('request UI must keep exactly one scoped 3C compatibility observer')
+          if '.observe(select,{childList:true})' not in request_ui: errors.append('request UI observer is not select-scoped')
+          if 'new MutationObserver' in request_date: errors.append('request-date-unsaved still observes request DOM')
+          if '.update(r.id,{title:value}' not in request_title: errors.append('request title edit does not use RequestService update')
+          if 'r.title = value' in request_title or 'r.updatedAt' in request_title: errors.append('request title display still writes request directly')
           if 'name="diagnostika-build" content="' not in index: errors.append('build marker missing')
           # Ignore requestId when it is only a field/property name such as session.requestId.
           dash_without_member_fields=re.sub(r'\??\.requestId\b','',dash)
@@ -62,6 +76,13 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-module-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/request-module-audit.mjs
+      - name: Verify Request UI 3B lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-ui-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/request-ui-audit.mjs
       - name: Stress request navigation and persistence
         shell: bash
         run: |

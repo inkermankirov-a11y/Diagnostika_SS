@@ -9,127 +9,207 @@
     de:{active:'In Arbeit',completed:'Abgeschlossen',current:'AKTUELLES ANLIEGEN',none:'Kein aktuelles Anliegen',finish:'Abschließen',resume:'Wiederaufnehmen',makeCurrent:'Aktives Anliegen',currentMark:'Aktives Anliegen ✓',other:'Weitere Anliegen in Arbeit'},
     it:{active:'In corso',completed:'Completato',current:'RICHIESTA ATTUALE',none:'Nessuna richiesta attuale',finish:'Completa richiesta',resume:'Riprendi',makeCurrent:'Richiesta attiva',currentMark:'Richiesta attiva ✓',other:'Altre richieste in corso'}
   };
+  const REQUEST_EVENTS=['request:created','request:selected','request:updated','request:activated','request:completed','request:resumed','request:deleted'];
+  let started=false;
 
   function lang(){const l=window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';return PREFIX[l]?l:'en';}
   function tx(k){return TEXT[lang()][k]||TEXT.en[k]||k;}
-  function cclient(){return typeof client==='function'?client():null;}
-  function reqById(c,id){return c?.requests?.find(r=>r.id===id)||null;}
-  function now(){return new Date().toISOString();}
-  function emit(type,detail){window.DiagnostikaLegacyEvents?.emit?.(type,detail);}
+  function platform(){return window.DiagnostikaPlatform||null;}
+  function requestsApi(){
+    if(window.DiagnostikaRequests?.moduleAware===true)return window.DiagnostikaRequests;
+    return platform()?.services?.requests||null;
+  }
+  function cclient(){return window.DiagnostikaClients?.current?.()||(typeof client==='function'?client():null);}
+  function list(c=cclient()){return requestsApi()?.list?.(c)||[];}
+  function reqById(c,id){return requestsApi()?.get?.(id,c)||null;}
+  function viewed(c=cclient()){return requestsApi()?.viewed?.(c)||null;}
+  function viewedId(c=cclient()){return requestsApi()?.viewedId?.(c)||null;}
+  function activeId(c=cclient()){return requestsApi()?.activeId?.(c)||null;}
+  function statusOf(r){return r?.status==='completed'?'completed':'active';}
   function dateText(raw){if(!raw)return'';const d=new Date(raw);if(Number.isNaN(d.getTime()))return'';return d.toLocaleDateString(lang()==='ru'?'ru-RU':lang()==='de'?'de-DE':lang()==='fr'?'fr-FR':lang()==='it'?'it-IT':'en-GB');}
 
-  function normalizeStatus(r){
-    if(!r.status) r.status='active';
-    if(r.status==='paused'||r.status==='resumed') r.status='active';
-    return r.status;
+  function ensureInitialAuthority(){
+    const api=requestsApi(),c=cclient();
+    if(!api||!c||api.activeId(c))return;
+    const first=api.list(c).find(r=>statusOf(r)==='active')||null;
+    if(first)api.activate(first.id,{client:c,source:'request-ui-bootstrap',render:false});
   }
 
-  function ensureClient(c){
-    if(!c||!Array.isArray(c.requests)) return null;
-    c.requests.forEach(r=>{normalizeStatus(r);if(!r.createdAt)r.createdAt=now();});
-    if(c.currentRequestId&&!reqById(c,c.currentRequestId))c.currentRequestId=null;
-    if(!c.currentRequestId){
-      const active=c.requests.find(r=>normalizeStatus(r)==='active');
-      if(active)c.currentRequestId=active.id;
-    }
-    return reqById(c,c.currentRequestId);
+  function requestNumber(c,r){
+    const value=requestsApi()?.requestNumber?.(c,r);
+    return Number.isFinite(value)?value:0;
   }
 
-  function setCurrent(c,id,{resumeCompleted=false}={}){
-    if(!c)return null;
-    const target=reqById(c,id);if(!target)return null;
-    if(target.status==='completed'&&!resumeCompleted)return null;
-    const previousRequestId=c.currentRequestId||null;
-    if(target.status==='completed')target.status='active';
-    c.currentRequestId=target.id;
-    c.lastDiagnosisRequestId=target.id;
-    target.updatedAt=now();
-    if(typeof save==='function')save();
-    if(String(previousRequestId??'')!==String(target.id)){
-      emit('request:activated',{clientId:c.id,requestId:target.id,previousRequestId:previousRequestId??null,source:'request-cycle'});
-    }
-    return target;
-  }
-
-  function currentRequest(c=cclient()){return ensureClient(c);}
-  function requestNumber(c,r){const i=c?.requests?.indexOf(r)??-1;return i>=0?i+1:0;}
-  function statusLabel(r){return tx(normalizeStatus(r||{}));}
-  function openCount(c){return (c?.requests||[]).filter(r=>r.id!==c.currentRequestId&&normalizeStatus(r)==='active').length;}
+  function statusLabel(r){return tx(statusOf(r));}
 
   function relabel(){
-    const c=cclient(),select=document.querySelector('#requestSelect');if(!select)return;
+    const api=requestsApi(),c=cclient(),select=document.querySelector('#requestSelect');
+    if(!api||!select)return;
+    const rows=api.list(c);
     [...select.options].forEach((option,index)=>{
-      const r=c?.requests?.[index];
-      const d=dateText(r?.createdAt);
-      option.textContent=`${PREFIX[lang()]} ${index+1}${d?' · '+d:''}`;
+      const r=api.get(option.value,c)||rows[index]||null;
+      const d=dateText(r?.createdAt||r?.createdDate||r?.date);
+      const number=r?requestNumber(c,r):(index+1);
+      option.textContent=`${PREFIX[lang()]} ${number||index+1}${d?' · '+d:''}`;
     });
-    if(requestId&&[...select.options].some(o=>o.value===requestId))select.value=requestId;
+    const id=api.viewedId(c);
+    if(id&&[...select.options].some(o=>String(o.value)===String(id)))select.value=id;
   }
 
   function ensureStatusControls(){
-    const toolbar=document.querySelector('.query-toolbar');if(!toolbar||document.querySelector('#requestStatusControls'))return;
-    const row=document.createElement('div');row.id='requestStatusControls';row.className='request-status-controls';
+    const toolbar=document.querySelector('.query-toolbar');
+    if(!toolbar)return null;
+    let row=document.querySelector('#requestStatusControls');
+    if(row)return row;
+    row=document.createElement('div');
+    row.id='requestStatusControls';
+    row.className='request-status-controls';
     row.innerHTML='<span class="request-status-badge"></span><button type="button" class="tk-btn request-current-btn"></button><button type="button" class="tk-btn request-resume-btn"></button><button type="button" class="tk-btn request-finish-btn"></button>';
     toolbar.insertAdjacentElement('afterend',row);
 
     row.querySelector('.request-current-btn').onclick=()=>{
-      const c=cclient(),r=reqById(c,requestId);if(!c||!r||r.status==='completed')return;
-      setCurrent(c,r.id);renderAll();
+      const api=requestsApi(),r=viewed();
+      if(!api||!r||statusOf(r)==='completed')return;
+      api.activate(r.id,{source:'request-ui-activate'});
     };
     row.querySelector('.request-resume-btn').onclick=()=>{
-      const c=cclient(),r=reqById(c,requestId);if(!c||!r)return;
-      r.status='active';delete r.completedAt;r.updatedAt=now();setCurrent(c,r.id,{resumeCompleted:true});save();renderAll();
-      emit('request:resumed',{clientId:c.id,requestId:r.id,source:'request-cycle'});
+      const api=requestsApi(),r=viewed();
+      if(!api||!r)return;
+      api.resume(r.id,{source:'request-ui-resume'});
     };
     row.querySelector('.request-finish-btn').onclick=()=>{
-      const c=cclient(),r=reqById(c,requestId);if(!c||!r)return;
-      const finishedId=r.id;
-      const wasCurrent=c.currentRequestId===r.id;
-      r.status='completed';r.completedAt=now();r.updatedAt=r.completedAt;
-      let next=null;
-      if(wasCurrent){next=c.requests.find(x=>x.id!==r.id&&normalizeStatus(x)==='active')||null;c.currentRequestId=next?.id||null;}
-      save();renderAll();
-      emit('request:completed',{clientId:c.id,requestId:finishedId,source:'request-cycle'});
-      if(next){emit('request:activated',{clientId:c.id,requestId:next.id,previousRequestId:finishedId,source:'request-cycle-auto-next'});}
+      const api=requestsApi(),r=viewed();
+      if(!api||!r)return;
+      api.complete(r.id,{source:'request-ui-complete'});
     };
+    return row;
   }
 
   function renderStatusControls(){
-    ensureStatusControls();const row=document.querySelector('#requestStatusControls'),c=cclient(),r=reqById(c,requestId);if(!row)return;
-    if(!r){row.style.display='none';return;}row.style.display='flex';normalizeStatus(r);
-    const badge=row.querySelector('.request-status-badge'),currentBtn=row.querySelector('.request-current-btn'),resumeBtn=row.querySelector('.request-resume-btn'),finishBtn=row.querySelector('.request-finish-btn');
-    badge.textContent=statusLabel(r);badge.className=`request-status-badge ${r.status}`;
-    const completed=r.status==='completed',isCurrent=c?.currentRequestId===r.id;
-    currentBtn.style.display=completed?'none':'';currentBtn.textContent=isCurrent?tx('currentMark'):tx('makeCurrent');currentBtn.disabled=isCurrent;
-    resumeBtn.style.display=completed?'':'none';resumeBtn.textContent=tx('resume');
-    finishBtn.style.display=completed?'none':'';finishBtn.textContent=tx('finish');
+    const row=ensureStatusControls(),c=cclient(),r=viewed(c);
+    if(!row)return;
+    if(!r){row.style.display='none';return;}
+    row.style.display='flex';
+    const badge=row.querySelector('.request-status-badge');
+    const currentBtn=row.querySelector('.request-current-btn');
+    const resumeBtn=row.querySelector('.request-resume-btn');
+    const finishBtn=row.querySelector('.request-finish-btn');
+    const status=statusOf(r);
+    badge.textContent=statusLabel(r);
+    badge.className='request-status-badge '+status;
+    const completed=status==='completed';
+    const isCurrent=String(activeId(c)??'')===String(r.id);
+    currentBtn.style.display=completed?'none':'';
+    currentBtn.textContent=isCurrent?tx('currentMark'):tx('makeCurrent');
+    currentBtn.disabled=isCurrent;
+    resumeBtn.style.display=completed?'':'none';
+    resumeBtn.textContent=tx('resume');
+    finishBtn.style.display=completed?'none':'';
+    finishBtn.textContent=tx('finish');
   }
 
-  function renderAll(){relabel();renderStatusControls();if(window.DiagnostikaPayments?.refresh)window.DiagnostikaPayments.refresh();}
-
-  (state.clients||[]).forEach(ensureClient);if(typeof save==='function')save();
-
-  const oldRenderClient=window.renderClient;if(typeof oldRenderClient==='function')window.renderClient=function(){const v=oldRenderClient.apply(this,arguments);setTimeout(renderAll,0);return v;};
-  const oldRenderRequests=window.renderRequests;if(typeof oldRenderRequests==='function')window.renderRequests=function(){const v=oldRenderRequests.apply(this,arguments);setTimeout(renderAll,0);return v;};
-
-  const select=document.querySelector('#requestSelect');
-  if(select){
-    select.onchange=e=>{const previousRequestId=requestId||null;requestId=e.target.value;situationId=null;selected=null;if(typeof renderRequests==='function')renderRequests();if(String(previousRequestId??'')!==String(requestId??'')){const c=cclient();emit('request:selected',{clientId:c?.id||null,requestId:requestId||null,previousRequestId,source:'request-select'});}};
-    new MutationObserver(relabel).observe(select,{childList:true});
+  function renderAll(){
+    ensureInitialAuthority();
+    relabel();
+    renderStatusControls();
+    try{window.DiagnostikaRequestTitleDisplay?.refresh?.();}catch(_){}
+    try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
   }
 
-  const addRequest=document.querySelector('#addRequestBtn');
-  if(addRequest)addRequest.onclick=()=>{const c=cclient();if(!c)return;const previousRequestId=c.currentRequestId||null;const r=newRequest();r.title='Новый запрос';r.status='active';r.createdAt=now();r.updatedAt=r.createdAt;c.requests.push(r);c.currentRequestId=r.id;c.lastDiagnosisRequestId=r.id;requestId=r.id;situationId=null;selected=null;save();renderRequests();emit('request:created',{clientId:c.id,requestId:r.id,source:'request-create'});emit('request:selected',{clientId:c.id,requestId:r.id,previousRequestId,source:'request-create'});emit('request:activated',{clientId:c.id,requestId:r.id,previousRequestId,source:'request-create'});};
+  function bindLegacyUi(){
+    const select=document.querySelector('#requestSelect');
+    if(select){
+      select.onchange=e=>{
+        const api=requestsApi();
+        if(!api)return;
+        api.view(e.target.value,{source:'request-ui-view'});
+      };
+      // Compatibility bridge until 3C: Diagnosis / Free Consultation still rebuild
+      // this select through legacy renderRequests() without RequestService events.
+      new MutationObserver(()=>setTimeout(renderAll,0)).observe(select,{childList:true});
+    }
 
-  const diagNew=document.querySelector('#diagNewBtn');
-  if(diagNew)diagNew.onclick=()=>{const c=cclient();if(!c)return;const previousRequestId=c.currentRequestId||null;const r=newRequest();r.title='Новый запрос';r.status='active';r.createdAt=now();r.updatedAt=r.createdAt;c.requests.push(r);c.currentRequestId=r.id;c.lastDiagnosisRequestId=r.id;requestId=r.id;situationId=null;selected=null;mode='diagnosis';save();renderRequests();renderMode();document.querySelector('#diagnosisLaunchDialog')?.close();emit('request:created',{clientId:c.id,requestId:r.id,source:'diagnosis-create'});emit('request:selected',{clientId:c.id,requestId:r.id,previousRequestId,source:'diagnosis-create'});emit('request:activated',{clientId:c.id,requestId:r.id,previousRequestId,source:'diagnosis-create'});};
+    const addRequest=document.querySelector('#addRequestBtn');
+    if(addRequest)addRequest.onclick=()=>{
+      requestsApi()?.create?.({title:'Новый запрос'},{source:'request-ui-create'});
+    };
 
-  const style=document.createElement('style');style.textContent=`
-    .current-request-box{margin:8px 0 2px;padding:9px 10px;border:1px solid #cddbea;border-radius:8px;background:#f3f8fd}.current-request-label{font-size:11px;font-weight:800;color:#334155;margin-bottom:4px}.current-request-row{display:flex;gap:8px;align-items:center;justify-content:space-between}.current-request-text{font-size:12px;color:#334155;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.current-request-status,.request-status-badge{flex:0 0 auto;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;border:1px solid #cbd5e1}.current-request-status.active,.request-status-badge.active{background:#e8f7ee;color:#237a49;border-color:#bce3cb}.current-request-status.completed,.request-status-badge.completed{background:#eef1f4;color:#65717e;border-color:#d5dce3}.current-request-extra{font-size:10px;color:#7b8794;margin-top:4px}.request-status-controls{display:flex;align-items:center;gap:7px;margin:7px 0 10px;flex-wrap:wrap}.request-status-controls .tk-btn{padding:6px 10px!important;font-size:11px!important;min-height:30px!important}.request-current-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-current-btn:disabled{opacity:.65;cursor:default}.request-resume-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-finish-btn{margin-left:auto;background:linear-gradient(#53aa77,#2d8f59)!important;color:#fff!important}@media(max-width:640px){.current-request-row{align-items:flex-start}.current-request-text{white-space:normal}.request-finish-btn{margin-left:0}}
-  `;document.head.appendChild(style);
+    const deleteRequest=document.querySelector('#deleteRequestBtn');
+    if(deleteRequest)deleteRequest.onclick=()=>{
+      const api=requestsApi(),r=viewed();
+      if(!api||!r)return;
+      if(confirm('Удалить запрос?'))api.remove(r.id,{source:'request-ui-delete'});
+    };
 
-  const oldSetLanguage=window.DiagnostikaI18n?.setLanguage;if(oldSetLanguage&&!oldSetLanguage.__requestCyclePatched2){const wrapped=function(l){const v=oldSetLanguage.call(this,l);setTimeout(renderAll,0);return v;};wrapped.__requestCyclePatched2=true;window.DiagnostikaI18n.setLanguage=wrapped;}
+    const requestTitle=document.querySelector('#requestTitle');
+    if(requestTitle)requestTitle.oninput=e=>{
+      const api=requestsApi(),r=viewed();
+      if(!api||!r)return;
+      api.update(r.id,{title:e.target.value},{source:'request-ui-title-input'});
+    };
 
-  window.DiagnostikaRequests={current:currentRequest,setCurrent,ensureClient,requestNumber,statusLabel,refresh:renderAll};
-  renderAll();
+    const diagNew=document.querySelector('#diagNewBtn');
+    if(diagNew)diagNew.onclick=()=>{
+      const api=requestsApi();
+      if(!api)return;
+      const created=api.create({title:'Новый запрос'},{source:'diagnosis-create'});
+      if(!created)return;
+      try{mode='diagnosis';}catch(_){}
+      try{if(typeof renderMode==='function')renderMode();}catch(_){}
+      document.querySelector('#diagnosisLaunchDialog')?.close();
+    };
+  }
+
+  function bindEvents(){
+    const bus=platform()?.events;
+    if(!bus?.on)return;
+    for(const type of REQUEST_EVENTS)bus.on(type,()=>setTimeout(renderAll,0));
+    for(const type of ['client:created','client:selected','client:updated','client:deleted','client:restored','client:purged']){
+      bus.on(type,()=>setTimeout(renderAll,0));
+    }
+  }
+
+  function bindLanguage(){
+    const oldSetLanguage=window.DiagnostikaI18n?.setLanguage;
+    if(!oldSetLanguage||oldSetLanguage.__requestUiPatched3B)return;
+    const wrapped=function(l){
+      const value=oldSetLanguage.call(this,l);
+      setTimeout(renderAll,0);
+      return value;
+    };
+    wrapped.__requestUiPatched3B=true;
+    window.DiagnostikaI18n.setLanguage=wrapped;
+  }
+
+  function installStyle(){
+    if(document.querySelector('style[data-request-ui-3b]'))return;
+    const style=document.createElement('style');
+    style.dataset.requestUi3b='1';
+    style.textContent='.current-request-box{margin:8px 0 2px;padding:9px 10px;border:1px solid #cddbea;border-radius:8px;background:#f3f8fd}.current-request-label{font-size:11px;font-weight:800;color:#334155;margin-bottom:4px}.current-request-row{display:flex;gap:8px;align-items:center;justify-content:space-between}.current-request-text{font-size:12px;color:#334155;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.current-request-status,.request-status-badge{flex:0 0 auto;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;border:1px solid #cbd5e1}.current-request-status.active,.request-status-badge.active{background:#e8f7ee;color:#237a49;border-color:#bce3cb}.current-request-status.completed,.request-status-badge.completed{background:#eef1f4;color:#65717e;border-color:#d5dce3}.current-request-extra{font-size:10px;color:#7b8794;margin-top:4px}.request-status-controls{display:flex;align-items:center;gap:7px;margin:7px 0 10px;flex-wrap:wrap}.request-status-controls .tk-btn{padding:6px 10px!important;font-size:11px!important;min-height:30px!important}.request-current-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-current-btn:disabled{opacity:.65;cursor:default}.request-resume-btn{background:linear-gradient(#5482ef,#315bd8)!important;color:#fff!important}.request-finish-btn{margin-left:auto;background:linear-gradient(#53aa77,#2d8f59)!important;color:#fff!important}@media(max-width:640px){.current-request-row{align-items:flex-start}.current-request-text{white-space:normal}.request-finish-btn{margin-left:0}}';
+    document.head.appendChild(style);
+  }
+
+  function start(){
+    if(started||!requestsApi())return;
+    started=true;
+    bindLegacyUi();
+    bindEvents();
+    bindLanguage();
+    installStyle();
+    window.DiagnostikaRequestsUI=Object.freeze({version:'3B',ready:true,refresh:renderAll});
+    renderAll();
+  }
+
+  async function boot(){
+    const p=platform();
+    if(!p)return;
+    try{await p.ready;}catch(_){}
+    if(p.services?.requests){start();return;}
+    if(!p.events?.on)return;
+    let off=null;
+    off=p.events.on('requests:ready',()=>{off?.();start();});
+    if(p.services?.requests){off?.();start();}
+  }
+
+  boot().catch(error=>console.error('[DiagnostikaPlatform] Request UI 3B failed',error));
 })();

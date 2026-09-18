@@ -2,7 +2,7 @@ name: Request selection audit
 
 on:
   push:
-    branches: [ main, fix-request-selection-not-active, feature-requests-3a ]
+    branches: [ main, fix-request-selection-not-active, feature-requests-3a, feature-requests-3b ]
   workflow_dispatch:
 
 jobs:
@@ -14,6 +14,8 @@ jobs:
       - name: Static syntax check
         run: |
           node --check request-select-labels.js
+          node --check request-title-display.js
+          node --check request-date-unsaved.js
       - name: Install browser
         run: |
           npm init -y >/dev/null 2>&1
@@ -34,6 +36,7 @@ jobs:
           page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
           await page.goto(`http://127.0.0.1:8000/index.html?request-selection=${Date.now()}`,{waitUntil:'commit',timeout:10000});
           await page.locator('.home-dashboard').waitFor({state:'visible',timeout:10000});
+          await page.waitForFunction(()=>window.DiagnostikaRequestsUI?.version==='3B'&&window.DiagnostikaRequests?.moduleAware===true,null,{timeout:10000});
 
           const ids=await page.evaluate(()=>{
             const c=typeof client==='function'?client():null;

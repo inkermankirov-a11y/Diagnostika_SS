@@ -1,50 +1,6 @@
 'use strict';
 
 (() => {
-  const PREFIX={ru:'Запрос',en:'Request',fr:'Demande',de:'Anliegen',it:'Richiesta'};
-
-  function currentLang(){
-    const l=window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';
-    return PREFIX[l]?l:'en';
-  }
-
-  function formatRequestDate(raw){
-    if(!raw) return '';
-    const d=new Date(raw);
-    if(Number.isNaN(d.getTime())) return '';
-    return d.toLocaleDateString(currentLang()==='en'?'en-GB':currentLang()==='fr'?'fr-FR':currentLang()==='de'?'de-DE':currentLang()==='it'?'it-IT':'ru-RU');
-  }
-
-  function relabelRequests(){
-    const c=typeof client==='function'?client():null;
-    const select=document.querySelector('#requestSelect');
-    if(!c||!select||!Array.isArray(c.requests)) return;
-    const prefix=PREFIX[currentLang()];
-    [...select.options].forEach((option,index)=>{
-      const r=c.requests.find(x=>x.id===option.value)||c.requests[index];
-      const date=formatRequestDate(r?.createdAt||r?.createdDate||r?.date);
-      const label=`${prefix} ${index+1}${date?` · ${date}`:''}`;
-      if(option.textContent!==label) option.textContent=label;
-    });
-  }
-
-  const requestSelect=document.querySelector('#requestSelect');
-  if(requestSelect){
-    new MutationObserver(()=>setTimeout(relabelRequests,0)).observe(requestSelect,{childList:true});
-    requestSelect.addEventListener('change',()=>setTimeout(relabelRequests,0));
-  }
-
-  const oldSetLanguage=window.DiagnostikaI18n?.setLanguage;
-  if(oldSetLanguage&&!oldSetLanguage.__requestDatePatched){
-    const wrapped=function(lang){
-      const result=oldSetLanguage.call(this,lang);
-      setTimeout(relabelRequests,0);
-      return result;
-    };
-    wrapped.__requestDatePatched=true;
-    window.DiagnostikaI18n.setLanguage=wrapped;
-  }
-
   function snapshot(dlg){
     return [...dlg.querySelectorAll('input,select,textarea')]
       .filter(el=>el.type!=='file')
@@ -64,7 +20,7 @@
   }
 
   function guardSessionDialog(dlg){
-    if(!dlg||dlg.dataset.unsavedGuard==='1') return;
+    if(!dlg||dlg.dataset.unsavedGuard==='1')return;
     dlg.dataset.unsavedGuard='1';
     const initial=snapshot(dlg);
     let bypass=false;
@@ -72,28 +28,30 @@
     const deleteBtn=dlg.querySelector('.session-delete-btn');
     const cancelBtn=[...dlg.querySelectorAll('.session-edit-actions button')].find(b=>b!==saveBtn&&b!==deleteBtn);
     const dirty=()=>snapshot(dlg)!==initial;
-    const discard=()=>{bypass=true;try{dlg.close();}catch(e){}};
+    const discard=()=>{bypass=true;try{dlg.close();}catch(_){}};
 
     saveBtn?.addEventListener('click',()=>{bypass=true;},{capture:true});
     deleteBtn?.addEventListener('click',()=>{bypass=true;},{capture:true});
 
     if(cancelBtn){
       cancelBtn.addEventListener('click',e=>{
-        if(bypass||!dirty()) return;
-        e.preventDefault();e.stopImmediatePropagation();
+        if(bypass||!dirty())return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
         askSave(dlg,saveBtn,discard);
       },true);
     }
 
     dlg.addEventListener('click',e=>{
-      if(e.target!==dlg||bypass) return;
+      if(e.target!==dlg||bypass)return;
       if(!dirty()){discard();return;}
-      e.preventDefault();e.stopImmediatePropagation();
+      e.preventDefault();
+      e.stopImmediatePropagation();
       askSave(dlg,saveBtn,discard);
     },true);
 
     dlg.addEventListener('cancel',e=>{
-      if(bypass||!dirty()) return;
+      if(bypass||!dirty())return;
       e.preventDefault();
       askSave(dlg,saveBtn,discard);
     });
@@ -110,6 +68,4 @@
     wrapped.__unsavedGuardPatched=true;
     window.openSessionEditor=wrapped;
   }
-
-  relabelRequests();
 })();
