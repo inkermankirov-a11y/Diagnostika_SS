@@ -9,7 +9,14 @@
   const NOTES_END = '=== КОНЕЦ АВТО-БЛОКА ===';
 
   const text = value => String(value ?? '').trim();
+  const escRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\  const text = value => String(value ?? '').trim();
   const escRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  function getClient(){');
+  const clientsApi=()=>window.DiagnostikaClients
+    || window.DiagnostikaPlatform?.clients
+    || window.DiagnostikaPlatform?.services?.clients
+    || null;
 
   function getClient(){
     try{ const c=window.DiagnostikaClients?.current?.(); if(c) return c; }catch(_){}
@@ -133,13 +140,13 @@
     return text(typeof first==='string'?first:first?.title);
   }
 
-  function safeAutoField(c,key,next,previousValues){
+  function queueAutoField(c,patch,key,next,previousValues){
     next=text(next);
     if(!next) return false;
-    const current=text(c[key]);
+    const current=text(Object.prototype.hasOwnProperty.call(patch,key)?patch[key]:c[key]);
     const previous=text(previousValues?.[key]);
     if(!current || current===previous || current===next){
-      if(c[key]!==next){ c[key]=next; return true; }
+      if(text(c[key])!==next){patch[key]=next;return true;}
     }
     return false;
   }
@@ -151,14 +158,14 @@
     return {value:cleaned,changed:cleaned!==original};
   }
 
-  function cleanLegacyAutoNotes(c){
-    let changed=false;
+  function legacyAutoNotesPatch(c){
+    const patch={};
     for(const key of ['clientNotes','notes']){
       if(typeof c?.[key]!=='string' || !c[key].includes(NOTES_START)) continue;
       const cleaned=stripLegacyAutoBlock(c[key]);
-      if(cleaned.changed){ c[key]=cleaned.value; changed=true; }
+      if(cleaned.changed)patch[key]=cleaned.value;
     }
-    return changed;
+    return patch;
   }
 
   function refreshOpenCard(c){
@@ -185,7 +192,9 @@
     const fc=ensureFreeConsultation(c);
     const migrated=migrateConsultationFields(fc);
     const ai=aiOverride||fc.aiResult||null;
-    let changed=migrated || cleanLegacyAutoNotes(c);
+    const profilePatch=legacyAutoNotesPatch(c);
+    let profileChanged=Object.keys(profilePatch).length>0;
+    let internalChanged=migrated;
 
     if(ai){
       const sync=fc.cardSync&&typeof fc.cardSync==='object'?fc.cardSync:{};
@@ -201,21 +210,39 @@
       // запрос в mainRequest. Это известное старое автозначение, его можно безопасно
       // заменить выбранным коротким запросом, не трогая произвольный ручной текст.
       if(next.mainRequest && text(c.mainRequest)===text(ai?.mainRequest) && text(c.mainRequest)!==next.mainRequest){
-        c.mainRequest=next.mainRequest;
-        changed=true;
+        profilePatch.mainRequest=next.mainRequest;
+        profileChanged=true;
       }
 
-      for(const [key,value] of Object.entries(next)) changed=safeAutoField(c,key,value,previous)||changed;
+      for(const [key,value] of Object.entries(next)){
+        profileChanged=queueAutoField(c,profilePatch,key,value,previous)||profileChanged;
+      }
 
+      const valuesChanged=SYNC_VERSION!==sync.version || JSON.stringify(previous)!==JSON.stringify(next);
       fc.cardSync={
         version:SYNC_VERSION,
         syncedAt:new Date().toISOString(),
         values:next
       };
+      internalChanged=valuesChanged||internalChanged;
     }
 
-    if(changed) saveState();
-    refreshOpenCard(c);
+    let updated=c;
+    if(profileChanged){
+      const api=clientsApi();
+      if(api?.update){
+        const result=api.update(c.id,profilePatch,{source:'free-consultation-card-sync',render:false});
+        if(result)updated=result;
+        else profileChanged=false;
+      }else{
+        console.error('[Diagnostika] ClientService.update is unavailable for free consultation sync.');
+        profileChanged=false;
+      }
+    }
+
+    if(internalChanged&&!profileChanged) saveState();
+    const changed=profileChanged||internalChanged;
+    refreshOpenCard(updated);
     try{ window.DiagnostikaHomeDashboard?.refresh?.(); }catch(_){}
     window.dispatchEvent(new CustomEvent('diagnostika:free-consultation-card-synced',{detail:{clientId:c.id,changed}}));
     return changed;
