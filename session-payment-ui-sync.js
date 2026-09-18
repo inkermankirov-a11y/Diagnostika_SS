@@ -3,6 +3,7 @@
 (() => {
   const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
   const currentClient=()=>typeof client==='function'?client():null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const linkSessionRequest=(c,s,requestId,source)=>{
     if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
     const api=window.DiagnostikaSessions?.moduleAware===true
@@ -77,14 +78,17 @@
     const req=requestForDialog(c,s,dlg);
     if(req?.payment?.mode!=='session')return;
 
-    if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
-    const amount=canonicalAmount(s,req);
+    const current=paymentWriter()?.session?.(s.id,c)||(s.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
+    const amount=canonicalAmount({...s,payment:current},req);
 
-    if(s.payment.paid&&num(s.payment.amount)<=0&&amount>0){
-      s.payment.amount=amount;
-      s.payment.requestId=req.id;
-      linkSessionRequest(c,s,req.id,'session-payment-ui-sync-link');
-      if(typeof save==='function')save();
+    if(current.paid&&num(current.amount)<=0&&amount>0){
+      if(!linkSessionRequest(c,s,req.id,'session-payment-ui-sync-link'))return;
+      const updated=paymentWriter()?.updateSession?.(
+        s.id,
+        {amount,requestId:req.id},
+        {client:c,source:'session-payment-ui-sync-repair'}
+      );
+      if(!updated)return;
     }
 
     const wrap=dlg.querySelector('.session-editor-payment-amount-wrap');
@@ -95,7 +99,7 @@
     const legacy=dlg.querySelector('.session-payment-field input[type="number"]');
     if(legacy&&document.activeElement!==legacy){const next=String(amount);if(legacy.value!==next)legacy.value=next;}
 
-    const paid=!!s.payment.paid;
+    const paid=!!(paymentWriter()?.session?.(s.id,c)||current).paid;
     const btn=dlg.querySelector('.session-editor-payment-state');
     if(btn){
       if(btn.classList.contains('paid')!==paid)btn.classList.toggle('paid',paid);
