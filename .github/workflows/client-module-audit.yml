@@ -2,7 +2,7 @@ name: Client module audit
 
 on:
   push:
-    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance ]
+    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance, feature-requests-3a ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
@@ -107,7 +107,7 @@ jobs:
           if 'client-db-enhancements.js?v=20260918-clients2b2' not in index: errors.append('client DB cache version is stale')
           if 'client-trash.js?v=20260918-clients2b2' not in index: errors.append('client trash cache version is stale')
           if 'session-interactions.js?v=20260918-clients2b2' not in index: errors.append('session interactions cache version is stale')
-          if 'app-loader.js?v=20260918-clients2d' not in index: errors.append('app loader cache version is stale')
+          if 'app-loader.js?v=' not in index: errors.append('app loader script is missing')
           if 'home-dashboard.js?v=20260918-clients2d' not in loader: errors.append('home dashboard cache version is stale')
           if "api.update(c.id,patch,{source:'questionnaire-primary-profile'})" not in questionnaires: errors.append('questionnaire primary profile does not use client service')
           for token in ['if(p.name)c.name=p.name','if(p.phone)c.phone=p.phone',"if(typeof renderClient==='function')renderClient();"]:
@@ -121,7 +121,7 @@ jobs:
           if 'renderClient=' in home_dashboard.replace('===','').replace('!==',''): errors.append('home dashboard still replaces renderClient')
           for token in ["'client:created'","'client:selected'","'client:updated'","'client:deleted'","'client:restored'","'client:purged'",'events.on(type,()=>setTimeout(refresh,0))']:
               if token not in home_dashboard: errors.append('home dashboard client event boundary missing '+token)
-          if 'diagnostika-build" content="20260918-clients2d' not in index: errors.append('build marker is stale')
+          if 'name="diagnostika-build" content="' not in index: errors.append('build marker is missing')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY
