@@ -82,9 +82,7 @@ await page.evaluate(()=>{
 
 const dialog=page.locator('dialog.payment-dialog:has(#paymentMode)').first();
 await dialog.waitFor({state:'visible',timeout:5000});
-if((await dialog.locator('#paymentMode').inputValue())!=='session'){
-  await dialog.locator('#paymentMode').selectOption('session');
-}
+assert.equal(await dialog.locator('#paymentMode').inputValue(),'session','Fixture session mode was not rendered on open');
 await page.locator('#sessionBasePrice').waitFor({state:'visible',timeout:5000});
 await page.locator('#paymentSaveSettings').waitFor({state:'visible',timeout:5000});
 
