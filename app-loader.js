@@ -7,7 +7,7 @@
     s.setAttribute(marker,'1');
     document.body.appendChild(s);
   }
-  loadOnce('session-payment-data-repair.js?v=20260918-payment5c-final','data-session-payment-data-repair');
+  loadOnce('session-payment-data-repair.js?v=20260918-payment5d','data-session-payment-data-repair');
   loadOnce('session-payment-mode-rule.js?v=20260912-59','data-session-payment-mode-rule');
 })();
 
@@ -165,7 +165,7 @@
         return;
       }
       const moduleScript=document.createElement('script');
-      moduleScript.src='modules/payments/index.js?v=20260918-payment5c-final';
+      moduleScript.src='modules/payments/index.js?v=20260918-payment5d';
       moduleScript.setAttribute('data-payments-module','1');
       moduleScript.onload=next;
       document.body.appendChild(moduleScript);
@@ -183,7 +183,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/payments/payment-service.js?v=20260918-payment5c-final';
+    serviceScript.src='modules/payments/payment-service.js?v=20260918-payment5d';
     serviceScript.setAttribute('data-payments-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -203,7 +203,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='payment-api.js?v=20260918-payment5c-final';
+      api.src='payment-api.js?v=20260918-payment5d';
       api.setAttribute('data-payment-api','1');
       api.onload=loadDashboard;
       document.body.appendChild(api);
