@@ -2,15 +2,19 @@ name: Client module audit
 
 on:
   push:
-    branches: [ main, feature-clients-2a, feature-clients-2b1 ]
+    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2 ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
       - 'client-card-window.js'
+      - 'delete-client.js'
+      - 'client-trash.js'
+      - 'client-db-enhancements.js'
       - 'app-loader.js'
       - 'index.html'
       - 'tests/client-module-audit.mjs'
       - 'tests/client-write-audit.mjs'
+      - 'tests/client-trash-audit.mjs'
       - '.github/workflows/client-module-audit.yml'
   workflow_dispatch:
 
@@ -28,9 +32,13 @@ jobs:
           node --check modules/clients/index.js
           node --check client-api.js
           node --check client-card-window.js
+          node --check delete-client.js
+          node --check client-trash.js
+          node --check client-db-enhancements.js
           node --check app-loader.js
           node --check tests/client-module-audit.mjs
           node --check tests/client-write-audit.mjs
+          node --check tests/client-trash-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -38,27 +46,39 @@ jobs:
           module=Path('modules/clients/index.js').read_text(encoding='utf-8')
           api=Path('client-api.js').read_text(encoding='utf-8')
           card=Path('client-card-window.js').read_text(encoding='utf-8')
+          delete_client=Path('delete-client.js').read_text(encoding='utf-8')
+          trash=Path('client-trash.js').read_text(encoding='utf-8')
+          db=Path('client-db-enhancements.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           index=Path('index.html').read_text(encoding='utf-8')
           errors=[]
           for token in ["created: 'client:created'","selected: 'client:selected'","updated: 'client:updated'","deleted: 'client:deleted'","restored: 'client:restored'"]:
               if token not in service: errors.append('service contract missing '+token)
-          for token in ['function create(', 'function update(', 'create,', 'update']:
-              if token not in service: errors.append('client write service missing '+token)
+          for token in ['function create(', 'function update(', 'function trashList(', 'function remove(', 'function restore(', 'function purge(', 'create,', 'update,', 'trashList,', 'remove,', 'restore,', 'purge']:
+              if token not in service: errors.append('client lifecycle service missing '+token)
           if "id: MODULE_ID" not in module or "const MODULE_ID = 'clients'" not in module: errors.append('clients module registration missing')
           if "roles: ['specialist', 'admin']" not in module: errors.append('clients module roles missing')
           if 'moduleAware:true' not in api: errors.append('module-aware compatibility facade missing')
-          if "version:'2B1'" not in api: errors.append('client facade version is stale')
-          if 'create,' not in api or 'update,' not in api: errors.append('client facade write methods missing')
+          if "version:'2B2'" not in api: errors.append('client facade version is stale')
+          for token in ['create,','update,','trashList,','remove,','restore,','purge,']:
+              if token not in api: errors.append('client facade lifecycle method missing '+token)
           if 'state.clients.push' in card: errors.append('client card still pushes directly into state.clients')
           if "emit('client:created'" in card or "emit('client:updated'" in card: errors.append('client card still emits write events directly')
           if 'api.create?.' not in card or 'api.update?.' not in card: errors.append('client card does not use client service facade')
-          if 'modules/clients/client-service.js?v=20260918-clients2b1' not in loader: errors.append('client service cache version is stale')
-          if 'modules/clients/index.js?v=20260918-clients2b1' not in loader: errors.append('clients module cache version is stale')
-          if 'client-api.js?v=20260918-clients2b1' not in loader: errors.append('client API cache version is stale')
+          if 'state.deletedClients' in trash or 'state.deletedClientTombstones' in trash: errors.append('trash UI still mutates trash state directly')
+          if 'new MutationObserver' in trash: errors.append('trash UI still installs a global MutationObserver')
+          if 'state.clients' in delete_client or 'deletedClients' in delete_client: errors.append('delete compatibility layer still owns client data')
+          if 'clientId=' in db.replace('===','').replace('!==',''): errors.append('enhanced database still assigns clientId directly')
+          if "clientsApi()?.select?.(c.id,{source:'client-database-open'})" not in db: errors.append('enhanced database does not select through client facade')
+          if 'modules/clients/client-service.js?v=20260918-clients2b2' not in loader: errors.append('client service cache version is stale')
+          if 'modules/clients/index.js?v=20260918-clients2b2' not in loader: errors.append('clients module cache version is stale')
+          if 'client-api.js?v=20260918-clients2b2' not in loader: errors.append('client API cache version is stale')
           if 'client-card-window.js?v=20260918-clients2b1' not in index: errors.append('client card cache version is stale')
-          if 'app-loader.js?v=20260918-clients2b1' not in index: errors.append('app loader cache version is stale')
-          if 'diagnostika-build" content="20260918-clients2b1' not in index: errors.append('build marker is stale')
+          if 'delete-client.js?v=20260918-clients2b2' not in index: errors.append('delete-client cache version is stale')
+          if 'client-db-enhancements.js?v=20260918-clients2b2' not in index: errors.append('client DB cache version is stale')
+          if 'client-trash.js?v=20260918-clients2b2' not in index: errors.append('client trash cache version is stale')
+          if 'app-loader.js?v=20260918-clients2b2' not in index: errors.append('app loader cache version is stale')
+          if 'diagnostika-build" content="20260918-clients2b2' not in index: errors.append('build marker is stale')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY
@@ -94,3 +114,11 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-write-legacy-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           CLIENT_WRITE_PHASE=legacy node tests/client-write-audit.mjs
+
+      - name: Verify client trash lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-trash-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/client-trash-audit.mjs
