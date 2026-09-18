@@ -199,6 +199,37 @@
     return r.payment;
   }
 
+
+  function replaceRequest(requestRef,nextPayment,options={}){
+    const c=resolveClient(options.client??options.clientId);
+    const r=resolveRequest(requestRef,c);
+    if(!c||!r)return null;
+    if(nextPayment!==null&&(!nextPayment||typeof nextPayment!=='object'))return null;
+    const before=clone(r.payment);
+    if(nextPayment===null){
+      delete r.payment;
+    }else{
+      r.payment=clone(nextPayment)||{};
+      ensureRequestPayment(r,c);
+    }
+    syncBridge();
+    if(!persist()){
+      if(before===undefined)delete r.payment;else r.payment=before;
+      syncBridge();
+      return null;
+    }
+    emit(EVENTS.updated,{
+      clientId:c.id,
+      requestId:r.id,
+      paymentId:null,
+      change:'replace',
+      before,
+      after:clone(r.payment??null),
+      source:options.source||'payment-service-request-replace'
+    });
+    return r.payment??null;
+  }
+
   function addPayment(requestRef,data={},options={}){
     const c=resolveClient(options.client??options.clientId);
     const r=resolveRequest(requestRef,c);
@@ -309,6 +340,7 @@
     request:requestPayment,
     session:sessionPayment,
     updateRequest,
+    replaceRequest,
     addPayment,
     updatePayment,
     removePayment,
