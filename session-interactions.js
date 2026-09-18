@@ -17,32 +17,32 @@
     }
   }
 
-  // Тройная защита удаления клиента.
+  function confirmClientTrash(name) {
+    if (!confirm(`Удалить клиента «${name}»?`)) return false;
+    if (!confirm(`Подтверди ещё раз: клиента «${name}» действительно нужно удалить?`)) return false;
+    return confirm(`ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ\n\nКлиент «${name}» будет перемещён в «Удалённые клиенты». Его можно будет восстановить.\n\nПереместить в корзину?`);
+  }
+
+  function clientsApi() {
+    return window.DiagnostikaClients
+      || window.DiagnostikaPlatform?.clients
+      || window.DiagnostikaPlatform?.services?.clients
+      || null;
+  }
+
+  // Тройная защита удаления клиента сохраняется, бизнес-логика живёт в ClientService.
   deleteCurrentClient = function() {
-    const c = client();
-    if (!c) return;
+    const api = clientsApi();
+    const c = api?.current?.() || (typeof client === 'function' ? client() : null);
+    if (!c?.id) return false;
     const name = c.name || 'Без имени';
-    if (!tripleConfirm('клиента', name)) return;
-
-    const index = state.clients.findIndex(x => x.id === c.id);
-    if (index < 0) return;
-
-    state.clients.splice(index, 1);
-    if (!state.clients.length) {
-      const replacement = newClient();
-      state.clients.push(replacement);
-      clientId = replacement.id;
-    } else {
-      clientId = state.clients[Math.min(index, state.clients.length - 1)].id;
-    }
-
-    requestId = null;
-    situationId = null;
-    selected = null;
-    mode = 'card';
-    save();
-    renderClient();
+    if (!confirmClientTrash(name)) return false;
+    return !!api?.remove?.(c.id, { source: 'session-interactions-client-delete' });
   };
+  window.deleteCurrentClient = deleteCurrentClient;
+
+  const deleteClientButton = document.querySelector('#deleteClientBtn');
+  if (deleteClientButton) deleteClientButton.onclick = deleteCurrentClient;
 
   // Добавляем удаление внутрь редактора сессии.
   const previousOpenSessionEditor = openSessionEditor;
