@@ -2,7 +2,7 @@ name: Request API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b ]
+    branches: [ main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c ]
   workflow_dispatch:
 
 jobs:
@@ -46,11 +46,11 @@ jobs:
           if 'modules/requests/request-service.js?v=20260918-requests3b' not in loader: errors.append('request service loader missing/stale')
           if 'modules/requests/index.js?v=20260918-requests3b' not in loader: errors.append('requests module loader missing/stale')
           if 'request-api.js?v=20260918-requests3b' not in loader: errors.append('request API cache version stale')
-          if "DiagnostikaRequestsUI=Object.freeze({version:'3B'" not in request_ui: errors.append('Request UI 3B marker missing')
+          if "DiagnostikaRequestsUI=Object.freeze({version:'3C'" not in request_ui: errors.append('Request UI 3C marker missing')
           for forbidden in ['c.requests.push','c.currentRequestId=','c.lastDiagnosisRequestId=','r.status=','window.renderClient=function','window.renderRequests=function']:
               if forbidden in request_ui: errors.append('request UI owns request state/render boundary: '+forbidden)
-          if request_ui.count('new MutationObserver') != 1: errors.append('request UI must keep exactly one scoped 3C compatibility observer')
-          if '.observe(select,{childList:true})' not in request_ui: errors.append('request UI observer is not select-scoped')
+          if 'new MutationObserver' in request_ui: errors.append('request UI still owns a MutationObserver after 3C')
+          if "querySelector('#diagNewBtn')" in request_ui or 'diagnosis-create' in request_ui: errors.append('request UI still knows Diagnosis HTML/actions')
           if 'new MutationObserver' in request_date: errors.append('request-date-unsaved still observes request DOM')
           if '.update(r.id,{title:value}' not in request_title: errors.append('request title edit does not use RequestService update')
           if 'r.title = value' in request_title or 'r.updatedAt' in request_title: errors.append('request title display still writes request directly')
