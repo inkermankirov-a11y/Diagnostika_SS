@@ -41,16 +41,19 @@
   const getClient=()=>window.DiagnostikaClients?.current?.()||null;
   const sessionRequestId=s=>String(s?.requestId||s?.payment?.requestId||'');
 
+  function sessionsApi(){
+    return window.DiagnostikaSessions?.moduleAware===true
+      ? window.DiagnostikaSessions
+      : window.DiagnostikaPlatform?.services?.sessions||null;
+  }
+
   function createSession(c,r){
-    if(!c||!r)return null;
-    if(!Array.isArray(c.sessions))c.sessions=[];
-    const makeId=()=>typeof uid==='function'?uid():(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
-    const makeToday=()=>typeof today==='function'?today():new Date().toISOString().slice(0,10);
-    const s={id:makeId(),date:makeToday(),requestId:r.id,notes:''};
-    c.sessions.push(s);
-    try{if(typeof save==='function')save();}catch(_){}
-    try{if(typeof renderSessions==='function')renderSessions();}catch(_){}
-    return s;
+    const api=sessionsApi();
+    if(!c||!r||!api?.create)return null;
+    return api.create(
+      {notes:''},
+      {client:c,requestId:r.id,source:'home-dashboard-session-create'}
+    );
   }
 
   function currentRequest(c){
@@ -229,7 +232,6 @@
     if(!fresh){render();return;}
     const updated=getClient()||c;
     const numbered=numberedSessions(updated).find(x=>x.s===fresh||x.s.id===fresh.id);
-    render();
     if(numbered)openEditor(updated,fresh,numbered.number);
   });
 
@@ -242,7 +244,10 @@
   document.addEventListener('close',e=>{
     if(e.target?.matches?.('dialog.session-edit-dialog'))setTimeout(render,0);
   },true);
-  document.addEventListener('diagnostika:sessions-changed',render);
+  const events=window.DiagnostikaPlatform?.events;
+  events?.on?.('session:created',render);
+  events?.on?.('session:updated',render);
+  events?.on?.('session:deleted',render);
 
   if(typeof renderClient==='function'){
     const prev=renderClient;
