@@ -2,9 +2,11 @@ name: Diagnosis API audit
 
 on:
   push:
-    branches: [main, retire-old-interface, feature-requests-3c, feature-requests-3d, 'feature-payment-*', 'feature-ai-*' ]
+    branches: [main, retire-old-interface, feature-requests-3c, feature-requests-3d, 'feature-payment-*', 'feature-ai-*', 'feature-diagnosis-*' ]
     paths:
       - 'diagnosis-api.js'
+      - 'modules/diagnosis/**'
+      - 'app-loader.js'
       - 'home-dashboard.js'
       - 'diagnosis-navigation.js'
       - 'diagnosis-compact-client.js'
@@ -13,6 +15,7 @@ on:
       - 'request-select-labels.js'
       - 'request-api.js'
       - 'tests/request-diagnosis-3c-audit.mjs'
+      - 'tests/diagnosis-module-7a-audit.mjs'
       - 'request-title-display.js'
       - 'index.html'
       - '.github/workflows/diagnosis-api-audit.yml'
@@ -30,6 +33,8 @@ jobs:
         run: |
           set -euo pipefail
           node --check diagnosis-api.js
+          node --check modules/diagnosis/diagnosis-service.js
+          node --check modules/diagnosis/index.js
           node --check home-dashboard.js
           node --check request-select-labels.js
           node --check diagnosis-navigation.js
@@ -37,6 +42,7 @@ jobs:
           node --check free-consultation-request-builder.js
           node --check free-consultation-v2.js
           node --check tests/request-diagnosis-3c-audit.mjs
+          node --check tests/diagnosis-module-7a-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -49,6 +55,9 @@ jobs:
           fc2=Path('free-consultation-v2.js').read_text(encoding='utf-8')
           request_ui=Path('request-select-labels.js').read_text(encoding='utf-8')
           html=Path('index.html').read_text(encoding='utf-8')
+          service=Path('modules/diagnosis/diagnosis-service.js').read_text(encoding='utf-8')
+          module=Path('modules/diagnosis/index.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
 
           if 'DiagnostikaDiagnosis?.open' not in dash:
               raise SystemExit('Dashboard does not use DiagnostikaDiagnosis.open')
@@ -73,8 +82,22 @@ jobs:
           if not (order['request-select-labels.js'] < order['diagnosis-api.js'] < order['request-title-display.js']):
               raise SystemExit('Diagnosis API load order is unsafe')
 
-          if 'Object.freeze({open})' not in api:
-              raise SystemExit('Diagnosis API export shape changed unexpectedly')
+          if "version:'7A'" not in api or 'moduleAware:true' not in api:
+              raise SystemExit('Diagnosis API is not module-aware 7A')
+          for token in ['snapshot','situations','getSituation','findElement','addSituation','updateSituation','removeSituation','addBelief','addFeeling','addDeep','addInstinct','updateElement','removeElement']:
+              if token not in service or token not in api:
+                  raise SystemExit('Diagnosis 7A method missing '+token)
+          if "MODULE_ID='diagnosis'" not in module:
+              raise SystemExit('Diagnosis module registration missing')
+          for token in ['modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7a','modules/diagnosis/index.js?v=20260919-diagnosis7a']:
+              if token not in loader:
+                  raise SystemExit('Diagnosis loader missing/stale '+token)
+          if re.search(r'\b(?:currentRequestId|lastDiagnosisRequestId)\s*=',service):
+              raise SystemExit('DiagnosisService owns request authority')
+          if re.search(r'\bsave\s*\(',service):
+              raise SystemExit('DiagnosisService persists directly instead of RequestService')
+          if 'api.update(' not in service:
+              raise SystemExit('DiagnosisService does not commit through RequestService.update')
 
           owned_files={
               'diagnosis-navigation.js':nav,
@@ -254,5 +277,13 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/requests-3c-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/request-diagnosis-3c-audit.mjs
+
+      - name: Verify Diagnosis 7A module ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7a-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-module-7a-audit.mjs
 
 # acceptance-ci-trigger: 20260918
