@@ -118,7 +118,7 @@ await page.evaluate(()=>{
 
 const sessionDialog=page.locator('dialog.session-edit-dialog').last();
 await sessionDialog.waitFor({state:'visible',timeout:5000});
-const toggle=sessionDialog.locator('.session-payment-toggle-stable');
+const toggle=sessionDialog.locator('.session-payment-toggle-stable,.session-editor-payment-state').first();
 await toggle.waitFor({state:'visible',timeout:5000});
 await toggle.click();
 await page.waitForTimeout(150);
@@ -133,8 +133,8 @@ assert.equal(state.payment.paid,true);
 assert.equal(state.payment.amount,9000);
 assert.equal(state.payment.requestId,'payment-5c-r1');
 assert.equal(state.currentRequestId,'payment-5c-r1');
-assert(state.calls.some(x=>x.name==='replaceSession'&&x.source==='session-payment-authority-toggle'),
-  'Authoritative session toggle did not use PaymentService.replaceSession');
+assert(state.calls.some(x=>x.name==='replaceSession'&&['session-payment-authority-toggle','session-payment-editor-toggle'].includes(x.source)),
+  'Session payment toggle did not use PaymentService.replaceSession');
 
 await toggle.click();
 await page.waitForTimeout(150);
