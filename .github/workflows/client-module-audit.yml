@@ -66,11 +66,17 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Verify client module in browser
+      - name: Verify client module compatibility
         shell: bash
         run: |
           set -euo pipefail
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-module-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/client-module-audit.mjs
+      - name: Verify client create and update flows
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-write-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/client-write-audit.mjs
