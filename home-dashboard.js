@@ -244,10 +244,24 @@
   $('#hdOpenNotes').onclick=openQuickNotes;
   $('#hdPlanBtn').onclick=openQuickNotes;
 
-  if(typeof renderClient==='function'){
-    const prev=renderClient;
-    renderClient=function(){const out=prev.apply(this,arguments);setTimeout(refresh,0);return out;};
+  const dashboardEvents=[
+    'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged',
+    'request:created','request:selected','request:activated','request:completed','request:resumed',
+    'session:created','session:updated',
+    'payment:updated','payment:added','payment:deleted','session-payment:updated'
+  ];
+  let eventBusBound=false;
+  function bindPlatformEvents(){
+    if(eventBusBound)return true;
+    const events=window.DiagnostikaPlatform?.events;
+    if(!events?.on)return false;
+    for(const type of dashboardEvents)events.on(type,()=>setTimeout(refresh,0));
+    eventBusBound=true;
+    return true;
   }
+  bindPlatformEvents();
+  window.addEventListener('diagnostika:platform-core-ready',bindPlatformEvents,{once:true});
+
   if(typeof renderMode==='function'){
     const prev=renderMode;
     renderMode=function(){const out=prev.apply(this,arguments);setTimeout(syncVisibility,0);return out;};
