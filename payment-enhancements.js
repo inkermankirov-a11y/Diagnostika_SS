@@ -5,14 +5,8 @@
   const currentClient=()=>typeof client==='function'?client():null;
   const currentRequest=c=>window.DiagnostikaRequests?.current?.(c)||c?.requests?.find(r=>r.id===c?.currentRequestId)||null;
   const requestForSession=(c,s)=>c?.requests?.find(r=>r.id===s?.requestId)||null;
-  const paymentOf=r=>{
-    if(!r)return null;
-    if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[]};
-    if(!Array.isArray(r.payment.payments))r.payment.payments=[];
-    if(!Number.isFinite(Number(r.payment.sessionAmount)))r.payment.sessionAmount=0;
-    if(!Number.isFinite(Number(r.payment.sessionDiscount)))r.payment.sessionDiscount=0;
-    return r.payment;
-  };
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
+  const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{mode:'',total:0,payments:[],sessionAmount:0,sessionDiscount:0});
   const sessionPay=s=>{
     if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0,receiptUrl:'',note:''};
     return s.payment;
@@ -69,10 +63,16 @@
       if(grid)grid.insertAdjacentElement('afterend',wrap);
       const base=wrap.querySelector('#sessionBasePrice'),discount=wrap.querySelector('#sessionDiscount');
       const persist=()=>{
-        const c=currentClient(),r=requestShownInDialog(c,dlg);if(!r)return;const p=paymentOf(r);
-        p.sessionAmount=Math.max(0,Number(base.value)||0);
-        p.sessionDiscount=Math.min(100,Math.max(0,Number(discount.value)||0));
-        if(typeof save==='function')save();
+        const c=currentClient(),r=requestShownInDialog(c,dlg);if(!c||!r)return;
+        const p=paymentWriter()?.updateRequest?.(
+          r.id,
+          {
+            sessionAmount:Math.max(0,Number(base.value)||0),
+            sessionDiscount:Math.min(100,Math.max(0,Number(discount.value)||0))
+          },
+          {client:c,source:'payment-session-price'}
+        );
+        if(!p)return;
         const effective=sessionPrice(p);
         const final=wrap.querySelector('#sessionFinalPrice');
         if(final)final.innerHTML=p.sessionDiscount>0?`Цена после скидки: <strong>${money(effective)} ₽</strong> <span style="color:#728092">(базовая ${money(p.sessionAmount)} ₽, скидка ${p.sessionDiscount}%)</span>`:`Итог за сессию: <strong>${money(effective)} ₽</strong>`;
@@ -86,7 +86,7 @@
   function syncSessionSettings(){
     ensureSessionSettings();
     const dlg=document.querySelector('.payment-dialog'),wrap=dlg?.querySelector('#sessionPaymentSettings');if(!wrap)return;
-    const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(r),isSession=p?.mode==='session';
+    const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(c,r),isSession=p?.mode==='session';
     wrap.hidden=!isSession;
     const totalField=dlg.querySelector('#paymentTotalField');if(totalField&&isSession)totalField.hidden=true;
     if(!isSession)return;
@@ -101,7 +101,7 @@
     const dlg=document.querySelector('.payment-dialog');if(!dlg)return;
     let box=dlg.querySelector('#previousPaymentSummary');
     if(!box){box=document.createElement('div');box.id='previousPaymentSummary';box.className='previous-payment-summary';const hint=dlg.querySelector('#paymentSessionHint');if(hint)hint.insertAdjacentElement('afterend',box);}
-    const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(r),paid=priorPaid(p);
+    const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(c,r),paid=priorPaid(p);
     box.hidden=!(p?.mode==='session'&&paid>0);
     if(!box.hidden)box.innerHTML=`<strong>Ранее внесено:</strong> ${money(paid)} ₽ <span style="color:#7b8794">до перехода на оплату по сессиям</span>`;
   }
@@ -119,7 +119,7 @@
   }
 
   function openSessionPaymentEditor(c,s){
-    const r=requestForSession(c,s),p=paymentOf(r);if(!r||p?.mode!=='session')return;
+    const r=requestForSession(c,s),p=paymentOf(c,r);if(!r||p?.mode!=='session')return;
     const sp=sessionPay(s),effective=sessionPrice(p);if(!sp.paid&&!sp.manualAmount)sp.amount=effective;
     const dlg=document.createElement('dialog');dlg.className='session-payment-edit-dialog';
     dlg.innerHTML=`<div class="session-payment-edit-card"><h3>Оплата сессии</h3><div class="session-payment-edit-fields"><label class="session-payment-paid-check"><input id="spePaid" type="checkbox"> Оплачено</label><label>Сумма<input id="speAmount" type="number" min="0" step="100"></label></div><div class="session-payment-edit-actions"><button type="button" id="speCancel" class="tk-btn">Отмена</button><button type="button" id="speSave" class="tk-btn">Сохранить</button></div></div>`;
@@ -133,7 +133,7 @@
     const c=currentClient();if(!c)return;
     document.querySelectorAll('.session-card').forEach(card=>{
       const old=card.querySelector('.session-pay-status');if(!old||old.dataset.editablePayment==='1')return;
-      const s=findSessionFromCard(c,card);if(!s)return;const r=requestForSession(c,s),p=paymentOf(r);if(!r||p?.mode!=='session')return;
+      const s=findSessionFromCard(c,card);if(!s)return;const r=requestForSession(c,s),p=paymentOf(c,r);if(!r||p?.mode!=='session')return;
       const sp=sessionPay(s),effective=sessionPrice(p);if(!sp.paid&&!sp.manualAmount)sp.amount=effective;
       const btn=old.cloneNode(true);btn.dataset.editablePayment='1';btn.textContent=sp.paid?`✓ Оплачено ${money(sp.amount||effective)} ₽`:'Не оплачено';btn.title='Редактировать оплату сессии';
       btn.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();openSessionPaymentEditor(c,s);});old.replaceWith(btn);
@@ -141,7 +141,7 @@
   }
 
   function enhanceMainSummary(){
-    const c=currentClient(),r=currentRequest(c),p=paymentOf(r),box=document.querySelector('#clientPaymentBox');if(!box||!r||p?.mode!=='session')return;
+    const c=currentClient(),r=currentRequest(c),p=paymentOf(c,r),box=document.querySelector('#clientPaymentBox');if(!box||!r||p?.mode!=='session')return;
     const paidBefore=priorPaid(p);if(!paidBefore)return;const summary=box.querySelector('.client-payment-summary');if(summary&&!summary.textContent.includes('ранее внесено'))summary.textContent+=` · ранее внесено ${money(paidBefore)} ₽`;
   }
 
