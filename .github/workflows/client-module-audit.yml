@@ -233,3 +233,4 @@ jobs:
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/client-acceptance-audit.mjs
 # acceptance-ci-trigger: 20260918
+# requests-3a-cross-module-check
