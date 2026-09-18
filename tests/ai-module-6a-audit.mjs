@@ -22,8 +22,8 @@ assert(/modules\/ai\/index\.js\?v=2026091[89]-ai6[abc]/.test(loaderSource),'AI m
 assert(/ai-api\.js\?v=2026091[89]-ai6[abc]/.test(loaderSource),'AI facade is not loaded by app-loader');
 assert.equal(serviceSource.includes('fetch('),false,'AI 6A service must not own n8n transport yet');
 
-// Foundation audit remains valid after 6B: client debt may be gone; session debt remains until 6C.
-assert(sessionLegacy.includes('s.aiChat'),'Expected session aiChat debt for 6C disappeared unexpectedly');
+// Foundation audit remains valid after 6C: legacy UI must no longer own session aiChat directly.
+assert.equal(sessionLegacy.includes('s.aiChat'),false,'Session AI UI regressed to direct session.aiChat access');
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const fixture={version:4,clients:[{
