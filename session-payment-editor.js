@@ -4,6 +4,13 @@
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(v)||0);
   const uidPay=()=>crypto.randomUUID?crypto.randomUUID():'pay_'+Date.now()+'_'+Math.random().toString(16).slice(2);
   const currentClient=()=>typeof client==='function'?client():null;
+  const linkSessionRequest=(c,s,requestId,source)=>{
+    if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
+    const api=window.DiagnostikaSessions?.moduleAware===true
+      ? window.DiagnostikaSessions
+      : window.DiagnostikaPlatform?.services?.sessions||null;
+    return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
+  };
   const paymentOf=r=>{
     if(!r)return null;
     if(!r.payment||typeof r.payment!=='object')r.payment={mode:'',total:0,payments:[]};
@@ -120,7 +127,7 @@
   function persistInstallmentSessionPayment(c,s,preferredId,paid,dateValue,amountValue){
     const sp=sessionPay(s),linked=linkedRequest(c,s,preferredId),p=paymentOf(linked);
     if(!linked||!p)return false;
-    if(linked.id){sp.requestId=linked.id;s.requestId=linked.id;}
+    if(linked.id){sp.requestId=linked.id;linkSessionRequest(c,s,linked.id,'session-payment-installment-link');}
     const existing=installmentPaymentForSession(linked,s);
     if(paid){
       const amount=Math.max(0,Number(amountValue)||0);
@@ -212,7 +219,7 @@
     e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
     const dlg=btn.closest('dialog.session-edit-dialog'),c=currentClient();if(!dlg||!c)return;
     const s=(c.sessions||[]).find(x=>x.id===btn.dataset.sessionId)||getDialogSession(c,dlg);if(!s)return;
-    const requestSelect=dlg.querySelector('.session-edit-grid select');const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';if(preferredId)s.requestId=preferredId;
+    const requestSelect=dlg.querySelector('.session-edit-grid select');const preferredId=requestSelect?.value||s.requestId||sessionPay(s).requestId||'';if(preferredId)linkSessionRequest(c,s,preferredId,'session-payment-toggle-link');
     const linked=linkedRequest(c,s,preferredId),p=paymentOf(linked);
     const dateInput=dlg.querySelector('.session-edit-grid input[type="date"]'),next=!sessionPay(s).paid;
     if(p?.mode==='parts'){
