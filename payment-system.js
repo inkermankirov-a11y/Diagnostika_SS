@@ -13,6 +13,11 @@
     return window.DiagnostikaRequests?.current?.(c)||c.requests?.find(r=>r.id===c.currentRequestId)||c.requests?.find(r=>r.id===requestId)||c.requests?.[0]||null;
   };
   const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||(c?.requests?.indexOf(r)+1||0);
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
+  const updateRequestPayment=(c,r,changes,source)=>paymentWriter()?.updateRequest?.(r?.id,changes,{client:c,source})||null;
+  const addRequestPayment=(c,r,data,source)=>paymentWriter()?.addPayment?.(r?.id,data,{client:c,source})||null;
+  const updateRequestPaymentRecord=(c,r,id,changes,source)=>paymentWriter()?.updatePayment?.(r?.id,id,changes,{client:c,source})||null;
+  const removeRequestPayment=(c,r,id,source)=>paymentWriter()?.removePayment?.(r?.id,id,{client:c,source})||null;
   const blankPayment=()=>({mode:'',total:0,payments:[],currency:'RUB'});
   function paymentOfRequest(c,r){
     if(!r)return blankPayment();
@@ -105,10 +110,16 @@
       row.querySelector('.pr-amount').title=`Валюта: ${sym}`;
       row.querySelector('.pr-save').onclick=()=>{
         const amount=num(row.querySelector('.pr-amount').value);if(amount<=0){row.querySelector('.pr-amount').focus();return;}
-        pay.date=row.querySelector('.pr-date').value||todayLocal();pay.amount=amount;pay.note=row.querySelector('.pr-note').value.trim();pay.receiptUrl=row.querySelector('.pr-receipt').value.trim();
-        save();renderSummary(c,r);refreshDatabasePaymentColumn();renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();
+        const updated=updateRequestPaymentRecord(c,r,pay.id,{
+          date:row.querySelector('.pr-date').value||todayLocal(),
+          amount,
+          note:row.querySelector('.pr-note').value.trim(),
+          receiptUrl:row.querySelector('.pr-receipt').value.trim()
+        },'payment-dialog-edit');
+        if(!updated)return;
+        renderSummary(c,r);refreshDatabasePaymentColumn();renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();
       };
-      row.querySelector('.pr-delete').onclick=()=>{p.payments=p.payments.filter(x=>x.id!==pay.id);save();renderPaymentList(c,r);renderSummary(c,r);refreshDatabasePaymentColumn();renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();};
+      row.querySelector('.pr-delete').onclick=()=>{if(!removeRequestPayment(c,r,pay.id,'payment-dialog-delete'))return;renderPaymentList(c,r);renderSummary(c,r);refreshDatabasePaymentColumn();renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();};
       root.appendChild(row);
     });
   }
@@ -127,10 +138,10 @@
 
   function openPayment(){const c=currentClient(),r=currentRequest(c);if(!c||!r){window.AppDialog?.alert?.('Сначала создай или возобнови запрос.','Нет текущего запроса');return;}renderDialog({resetEntry:true});dlg.showModal();}
   q('.payment-x').onclick=()=>dlg.close();q('#paymentClose').onclick=()=>dlg.close();dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
-  q('#paymentMode').onchange=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;paymentOfRequest(c,r).mode=e.target.value;save();renderDialog();refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
-  q('#paymentCurrency').onchange=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;const p=paymentOfRequest(c,r);p.currency=e.target.value;p.currencyManual=true;c.currency=e.target.value;c.currencyManual=true;save();renderSummary(c,r);renderPaymentList(c,r);renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();};
-  q('#paymentTotal').oninput=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;paymentOfRequest(c,r).total=num(e.target.value);save();renderSummary(c,r);refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
-  q('#paymentAddBtn').onclick=()=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;const p=paymentOfRequest(c,r),amount=num(q('#paymentAmount').value);if(amount<=0){q('#paymentAmount').focus();return;}p.payments.push({id:uidPay(),date:q('#paymentDate').value||todayLocal(),amount,note:q('#paymentNote').value.trim(),receiptUrl:q('#paymentReceipt').value.trim()});save();q('#paymentAmount').value='';q('#paymentNote').value='';q('#paymentReceipt').value='';renderPaymentList(c,r);renderSummary(c,r);refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
+  q('#paymentMode').onchange=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;if(!updateRequestPayment(c,r,{mode:e.target.value},'payment-dialog-mode'))return;renderDialog();refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
+  q('#paymentCurrency').onchange=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;const code=e.target.value;if(!updateRequestPayment(c,r,{currency:code,currencyManual:true},'payment-dialog-currency'))return;window.DiagnostikaClients?.update?.(c.id,{currency:code,currencyManual:true},{source:'payment-dialog-currency-client',render:false});renderSummary(c,r);renderPaymentList(c,r);renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();};
+  q('#paymentTotal').oninput=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;if(!updateRequestPayment(c,r,{total:num(e.target.value)},'payment-dialog-total'))return;renderSummary(c,r);refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
+  q('#paymentAddBtn').onclick=()=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;const amount=num(q('#paymentAmount').value);if(amount<=0){q('#paymentAmount').focus();return;}const added=addRequestPayment(c,r,{id:uidPay(),date:q('#paymentDate').value||todayLocal(),amount,note:q('#paymentNote').value.trim(),receiptUrl:q('#paymentReceipt').value.trim()},'payment-dialog-add');if(!added)return;q('#paymentAmount').value='';q('#paymentNote').value='';q('#paymentReceipt').value='';renderPaymentList(c,r);renderSummary(c,r);refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
 
   function allRows(c){
     const rows=[];
