@@ -12,6 +12,7 @@ on:
       - 'request-ai-n8n.js'
       - 'form-integrations.js'
       - 'tests/ai-module-6a-audit.mjs'
+      - 'tests/ai-module-6b-audit.mjs'
       - '.github/workflows/ai-api-audit.yml'
       - 'index.html'
   workflow_dispatch:
@@ -37,6 +38,7 @@ jobs:
           node --check session-ai-chat.js
           node --check request-ai-n8n.js
           node --check tests/ai-module-6a-audit.mjs
+          node --check tests/ai-module-6b-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -53,31 +55,37 @@ jobs:
           missing=[x for x in required if x not in service or x not in api]
           if missing:
               raise SystemExit('AI 6A service/facade methods missing: '+', '.join(missing))
-          if "version:'6A'" not in api or 'moduleAware:true' not in api:
-              raise SystemExit('AI 6A facade marker missing')
+          if "version:'6B'" not in api or 'moduleAware:true' not in api:
+              raise SystemExit('AI 6B facade marker missing')
           if 'services.ai=Object.freeze' not in service:
               raise SystemExit('AIService frozen export missing')
           if 'fetch(' in service:
               raise SystemExit('AI 6A service must not own transport yet')
           for token in [
-              'modules/ai/ai-service.js?v=20260918-ai6a',
-              'modules/ai/index.js?v=20260918-ai6a',
-              'ai-api.js?v=20260918-ai6a'
+              'modules/ai/ai-service.js?v=20260918-ai6b',
+              'modules/ai/index.js?v=20260918-ai6b',
+              'ai-api.js?v=20260918-ai6b'
           ]:
               if token not in loader:
                   raise SystemExit('AI loader missing/stale '+token)
 
-          # 6A inventory: these direct writers are intentionally left for 6B/6C.
-          legacy_client=Path('client-ai-chat.js').read_text(encoding='utf-8')
-          legacy_session=Path('session-ai-chat.js').read_text(encoding='utf-8')
-          if 'c.aiChat' not in legacy_client:
-              raise SystemExit('6A inventory changed: client aiChat legacy writer was expected')
-          if 's.aiChat' not in legacy_session or 'c.aiChat' not in legacy_session:
-              raise SystemExit('6A inventory changed: session/client legacy writers were expected in session AI')
+          client_chat=Path('client-ai-chat.js').read_text(encoding='utf-8')
+          session_chat=Path('session-ai-chat.js').read_text(encoding='utf-8')
+          if 'c.aiChat' in client_chat:
+              raise SystemExit('AI 6B regression: client AI UI accesses client.aiChat directly')
+          if 'c.aiChat' in session_chat:
+              raise SystemExit('AI 6B regression: session compatibility UI accesses client.aiChat directly')
+          if 's.aiChat' not in session_chat:
+              raise SystemExit('AI 6B scope changed: session aiChat should remain for 6C')
+          for token in ["source:'client-ai-chat-user'","source:'client-ai-chat-assistant'"]:
+              if token not in client_chat:
+                  raise SystemExit('AI 6B client writer missing '+token)
+          if "source:'session-ai-client-clear'" not in session_chat:
+              raise SystemExit('AI 6B client clear writer missing')
           for token in ["'127.0.0.1'","'localhost'","'::1'","allowBackgroundInboxPolling"]:
               if token not in forms:
                   raise SystemExit('Localhost background n8n polling guard missing: '+token)
-          print('AI 6A ownership foundation OK; legacy chat writers remain scoped for 6B/6C.')
+          print('AI 6B client chat ownership boundary OK; session aiChat remains scoped for 6C.')
           PY
 
       - name: Install browser
@@ -93,3 +101,4 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/ai-api-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/ai-module-6a-audit.mjs
+          node tests/ai-module-6b-audit.mjs
