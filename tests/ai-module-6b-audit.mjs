@@ -14,16 +14,16 @@ assert(clientSource.includes("source:'client-ai-chat-user'"),'Client user messag
 assert(clientSource.includes("source:'client-ai-chat-assistant'"),'Client assistant message is not routed through AIService');
 assert(sessionSource.includes("source:'session-ai-client-clear'"),'Client chat clear is not routed through AIService');
 assert.equal(sessionSource.includes('s.aiChat'),false,'Session AI UI still accesses session.aiChat directly');
-assert(apiSource.includes("version:'6C'"),'AI facade version is not 6C');
+assert(apiSource.includes("version:'6D'"),'AI facade version is not 6D');
 for(const token of [
-  'modules/ai/ai-service.js?v=20260919-ai6c',
-  'modules/ai/index.js?v=20260919-ai6c',
-  'ai-api.js?v=20260919-ai6c'
+  'modules/ai/ai-service.js?v=20260919-ai6d',
+  'modules/ai/index.js?v=20260919-ai6d',
+  'ai-api.js?v=20260919-ai6d'
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
-  'client-ai-chat.js?v=20260919-ai6c',
-  'session-ai-chat.js?v=20260919-ai6c',
-  'app-loader.js?v=20260919-ai6c'
+  'client-ai-chat.js?v=20260919-ai6d',
+  'session-ai-chat.js?v=20260919-ai6d',
+  'app-loader.js?v=20260919-ai6d'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
@@ -80,7 +80,7 @@ await page.route('https://lugovoyn8n.ru/**',async route=>{
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaAI?.version==='6C'
+  await page.waitForFunction(()=>window.DiagnostikaAI?.version==='6D'
     && window.DiagnostikaPlatform?.services?.ai
     && typeof window.DiagnostikaClientAIChat?.send==='function',
     null,{timeout:15000});
@@ -91,19 +91,7 @@ await page.goto(base,{waitUntil:'commit',timeout:10000});
 await ready();
 
 await page.evaluate(()=>{
-  window.__ai6bCalls=[];
   window.__ai6bEvents=[];
-  const api=window.DiagnostikaAI;
-  const add=api.appendClientMessage.bind(api);
-  const clear=api.clearClientChat.bind(api);
-  api.appendClientMessage=function(clientRef,data,options){
-    window.__ai6bCalls.push({method:'appendClientMessage',clientRef,data:{...data},options:{...options}});
-    return add(clientRef,data,options);
-  };
-  api.clearClientChat=function(clientRef,options){
-    window.__ai6bCalls.push({method:'clearClientChat',clientRef,options:{...options}});
-    return clear(clientRef,options);
-  };
   const bus=window.DiagnostikaPlatform.events;
   for(const type of ['ai-client-chat:message-added','ai-client-chat:updated']){
     bus.on(type,detail=>window.__ai6bEvents.push({type,detail:{...detail}}));
@@ -119,19 +107,15 @@ await page.waitForFunction(()=>{
 },null,{timeout:10000});
 
 const afterSend=await page.evaluate(()=>({
-  calls:window.__ai6bCalls,
   events:window.__ai6bEvents,
   client:{...state.clients.find(x=>x.id==='ai-6b-client')},
   persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}')
 }));
 
 assert.equal(chatRequests,1,'Expected exactly one successful client AI transport request');
-assert.equal(afterSend.calls.filter(x=>x.method==='appendClientMessage').length,2,'Client AI send must use exactly two AIService appends');
-assert.deepEqual(
-  afterSend.calls.filter(x=>x.method==='appendClientMessage').map(x=>x.options.source),
-  ['client-ai-chat-user','client-ai-chat-assistant']
-);
-assert.equal(afterSend.events.filter(x=>x.type==='ai-client-chat:message-added').length,2);
+const addedEvents=afterSend.events.filter(x=>x.type==='ai-client-chat:message-added');
+assert.equal(addedEvents.length,2,'Client AI send must emit exactly two AIService message events');
+assert.deepEqual(addedEvents.map(x=>x.detail.source),['client-ai-chat-user','client-ai-chat-assistant']);
 assert.equal(afterSend.events.filter(x=>x.type==='ai-client-chat:updated').length,2);
 assert.equal(afterSend.client.currentRequestId,'ai-6b-r2','Client AI send changed active request');
 assert.equal(afterSend.client.sessions[0].requestId,'ai-6b-r1','Client AI send changed root session.requestId');
@@ -155,13 +139,10 @@ assert.equal(restored.currentRequestId,'ai-6b-r2');
 assert.equal(restored.sessionRequestId,'ai-6b-r1');
 
 await page.evaluate(()=>{
-  window.__ai6bClearCalls=[];
-  const api=window.DiagnostikaAI;
-  const clear=api.clearClientChat.bind(api);
-  api.clearClientChat=function(clientRef,options){
-    window.__ai6bClearCalls.push({clientRef,options:{...options}});
-    return clear(clientRef,options);
-  };
+  window.__ai6bClearEvents=[];
+  window.DiagnostikaPlatform.events.on('ai-client-chat:updated',detail=>{
+    if(detail?.change==='replace')window.__ai6bClearEvents.push({...detail});
+  });
 });
 await page.locator('#hdClientAiWidget .hd-ai-clear-btn').waitFor({state:'visible',timeout:10000});
 await page.locator('#hdClientAiWidget .hd-ai-clear-btn').click();
@@ -171,13 +152,13 @@ await page.waitForFunction(()=>{
 },null,{timeout:5000});
 
 const afterClear=await page.evaluate(()=>({
-  calls:window.__ai6bClearCalls,
+  events:window.__ai6bClearEvents,
   currentRequestId:state.clients.find(x=>x.id==='ai-6b-client').currentRequestId,
   sessionRequestId:state.clients.find(x=>x.id==='ai-6b-client').sessions[0].requestId,
   persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}')
 }));
-assert.equal(afterClear.calls.length,1,'Client clear must use AIService exactly once');
-assert.equal(afterClear.calls[0].options.source,'session-ai-client-clear');
+assert.equal(afterClear.events.length,1,'Client clear must emit one AIService replace event');
+assert.equal(afterClear.events[0].source,'session-ai-client-clear');
 assert.equal(afterClear.currentRequestId,'ai-6b-r2');
 assert.equal(afterClear.sessionRequestId,'ai-6b-r1');
 assert.deepEqual(afterClear.persisted.clients.find(x=>x.id==='ai-6b-client').aiChat,[]);
@@ -187,10 +168,9 @@ assert.deepEqual(serious,[],'Unexpected runtime errors');
 
 console.log('AI_MODULE_6B_SUCCESS',JSON.stringify({
   transportRequests:chatRequests,
-  appendCalls:afterSend.calls.filter(x=>x.method==='appendClientMessage').length,
   messageEvents:afterSend.events.filter(x=>x.type==='ai-client-chat:message-added').length,
   restoredMessages:restored.chat.length,
-  clearCalls:afterClear.calls.length,
+  clearEvents:afterClear.events.length,
   currentRequestId:afterClear.currentRequestId,
   sessionRequestId:afterClear.sessionRequestId
 }));
