@@ -31,7 +31,7 @@ page.on('dialog',d=>d.accept().catch(()=>{}));
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaPayments?.version==='5C'
+  await page.waitForFunction(()=>/^5[C-D]$/.test(window.DiagnostikaPayments?.version||'')
     && typeof window.DiagnostikaPayments?.updateSession==='function'
     && typeof window.DiagnostikaPayments?.replaceSession==='function'
     && window.DiagnostikaSessions?.moduleAware===true,
