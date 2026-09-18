@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
+const phase=process.env.CLIENT_WRITE_PHASE||'create';
 const fixture={version:4,clients:[{
   id:'clients-2b1-seed',
   name:'Seed Client',
@@ -45,94 +46,96 @@ await page.evaluate(()=>{
   }
 });
 
-// 1. Create through the actual client card.
-await page.evaluate(()=>window.DiagnostikaClientCard.openNew());
-const card=page.locator('#clientCardDialog');
-await card.waitFor({state:'visible',timeout:5000});
-await card.locator('#ccName').fill('Created Through Card');
-await card.locator('#ccPhone').fill('+79990001122');
-await card.locator('#ccCity').fill('Москва');
-await card.locator('#ccInitialProblem').fill('Первичный запрос');
-await card.locator('#ccSaveBtn').click();
-await card.waitFor({state:'hidden',timeout:5000});
+if(phase==='create'){
+  await page.evaluate(()=>window.DiagnostikaClientCard.openNew());
+  const card=page.locator('#clientCardDialog');
+  await card.waitFor({state:'visible',timeout:5000});
+  await card.locator('#ccName').fill('Created Through Card');
+  await card.locator('#ccPhone').fill('+79990001122');
+  await card.locator('#ccCity').fill('Москва');
+  await card.locator('#ccInitialProblem').fill('Первичный запрос');
+  await card.locator('#ccSaveBtn').click();
+  await card.waitFor({state:'hidden',timeout:5000});
 
-const afterCreate=await page.evaluate(()=>({
-  count:window.DiagnostikaClients.list().length,
-  currentId:window.DiagnostikaClients.currentId(),
-  current:{...window.DiagnostikaClients.current()},
-  events:window.__clientWriteEvents.map(x=>({type:x.type,detail:{...x.detail}}))
-}));
-assert.equal(afterCreate.count,2);
-assert.equal(afterCreate.current.name,'Created Through Card');
-assert.equal(afterCreate.current.phone,'+79990001122');
-assert.equal(afterCreate.current.city,'Москва');
-assert.equal(afterCreate.current.initialProblem,'Первичный запрос');
-const cardClientId=afterCreate.currentId;
-const cardCreated=afterCreate.events.filter(x=>x.type==='client:created'&&x.detail.clientId===cardClientId);
-const cardSelected=afterCreate.events.filter(x=>x.type==='client:selected'&&x.detail.clientId===cardClientId);
-assert.equal(cardCreated.length,1,'Card create must emit client:created exactly once');
-assert.equal(cardSelected.length,1,'Card create must emit client:selected exactly once');
-assert.equal(cardCreated[0].detail.source,'client-card-create');
+  const result=await page.evaluate(()=>({
+    count:window.DiagnostikaClients.list().length,
+    currentId:window.DiagnostikaClients.currentId(),
+    current:{...window.DiagnostikaClients.current()},
+    events:window.__clientWriteEvents.map(x=>({type:x.type,detail:{...x.detail}})),
+    persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}')
+  }));
+  assert.equal(result.count,2);
+  assert.equal(result.current.name,'Created Through Card');
+  assert.equal(result.current.phone,'+79990001122');
+  assert.equal(result.current.city,'Москва');
+  assert.equal(result.current.initialProblem,'Первичный запрос');
+  assert.equal(result.persisted.clients.length,2);
+  const created=result.events.filter(x=>x.type==='client:created'&&x.detail.clientId===result.currentId);
+  const selected=result.events.filter(x=>x.type==='client:selected'&&x.detail.clientId===result.currentId);
+  assert.equal(created.length,1,'Card create must emit client:created exactly once');
+  assert.equal(selected.length,1,'Card create must emit client:selected exactly once');
+  assert.equal(created[0].detail.source,'client-card-create');
 
-// 2. Update the same client through the actual card.
-await page.evaluate(()=>window.DiagnostikaClientCard.openExisting());
-await card.waitFor({state:'visible',timeout:5000});
-await card.locator('#ccCity').fill('Санкт-Петербург');
-await card.locator('#ccDesiredOutcome').fill('Желаемый результат 2B1');
-await card.locator('#ccSaveBtn').click();
-await card.waitFor({state:'hidden',timeout:5000});
+  await page.reload({waitUntil:'commit',timeout:10000});
+  await page.waitForFunction(()=>window.DiagnostikaClients?.version==='2B1'&&window.DiagnostikaPlatform?.services?.clients,null,{timeout:20000});
+  const afterReload=await page.evaluate(id=>window.DiagnostikaClients.findById(id),result.currentId);
+  assert.equal(afterReload?.name,'Created Through Card');
+  assert.equal(afterReload?.phone,'+79990001122');
+}
 
-const afterUpdate=await page.evaluate(id=>({
-  client:{...window.DiagnostikaClients.findById(id)},
-  events:window.__clientWriteEvents.map(x=>({type:x.type,detail:{...x.detail}}))
-}),cardClientId);
-assert.equal(afterUpdate.client.city,'Санкт-Петербург');
-assert.equal(afterUpdate.client.desiredOutcome,'Желаемый результат 2B1');
-const updates=afterUpdate.events.filter(x=>x.type==='client:updated'&&x.detail.clientId===cardClientId);
-assert.equal(updates.length,1,'Card update must emit client:updated exactly once');
-assert.equal(updates[0].detail.source,'client-card');
-assert(updates[0].detail.fields.includes('city'));
-assert(updates[0].detail.fields.includes('desiredOutcome'));
+if(phase==='update'){
+  await page.evaluate(()=>window.DiagnostikaClientCard.openExisting());
+  const card=page.locator('#clientCardDialog');
+  await card.waitFor({state:'visible',timeout:5000});
+  await card.locator('#ccCity').fill('Санкт-Петербург');
+  await card.locator('#ccDesiredOutcome').fill('Желаемый результат 2B1');
+  await card.locator('#ccSaveBtn').click();
+  await card.waitFor({state:'hidden',timeout:5000});
 
-// 3. Legacy database "+ Новый клиент" button must also go through the service.
-const opened=await page.evaluate(()=>window.DiagnostikaClients.openDatabase());
-assert.equal(opened,true);
-const database=page.locator('#clientDialog');
-await database.waitFor({state:'visible',timeout:5000});
-await database.locator('#dialogAddClientBtn').click();
-await database.waitFor({state:'hidden',timeout:5000});
-await page.waitForTimeout(80);
+  const result=await page.evaluate(()=>({
+    client:{...window.DiagnostikaClients.findById('clients-2b1-seed')},
+    events:window.__clientWriteEvents.map(x=>({type:x.type,detail:{...x.detail}})),
+    persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}')
+  }));
+  assert.equal(result.client.city,'Санкт-Петербург');
+  assert.equal(result.client.desiredOutcome,'Желаемый результат 2B1');
+  const updates=result.events.filter(x=>x.type==='client:updated'&&x.detail.clientId==='clients-2b1-seed');
+  assert.equal(updates.length,1,'Card update must emit client:updated exactly once');
+  assert.equal(updates[0].detail.source,'client-card');
+  assert(updates[0].detail.fields.includes('city'));
+  assert(updates[0].detail.fields.includes('desiredOutcome'));
+  const persisted=result.persisted.clients.find(x=>x.id==='clients-2b1-seed');
+  assert.equal(persisted?.city,'Санкт-Петербург');
+  assert.equal(persisted?.desiredOutcome,'Желаемый результат 2B1');
+}
 
-const afterLegacyCreate=await page.evaluate(()=>({
-  count:window.DiagnostikaClients.list().length,
-  currentId:window.DiagnostikaClients.currentId(),
-  currentName:window.DiagnostikaClients.current()?.name||null,
-  events:window.__clientWriteEvents.map(x=>({type:x.type,detail:{...x.detail}})),
-  persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}')
-}));
-assert.equal(afterLegacyCreate.count,3);
-assert.equal(afterLegacyCreate.currentName,'Новый клиент');
-assert.equal(afterLegacyCreate.persisted.clients.length,3);
-const legacyCreated=afterLegacyCreate.events.filter(x=>x.type==='client:created'&&x.detail.clientId===afterLegacyCreate.currentId);
-assert.equal(legacyCreated.length,1,'Legacy database create must emit client:created exactly once');
-assert.equal(legacyCreated[0].detail.source,'client-database-create');
+if(phase==='legacy'){
+  const opened=await page.evaluate(()=>window.DiagnostikaClients.openDatabase());
+  assert.equal(opened,true);
+  const database=page.locator('#clientDialog');
+  await database.waitFor({state:'visible',timeout:5000});
+  await database.locator('#dialogAddClientBtn').click();
+  await database.waitFor({state:'hidden',timeout:5000});
+  await page.waitForTimeout(80);
 
-// All writes must persist across a real reload.
-await page.reload({waitUntil:'commit',timeout:10000});
-await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-await page.waitForFunction(()=>window.DiagnostikaClients?.version==='2B1'&&window.DiagnostikaPlatform?.services?.clients,null,{timeout:10000});
-const afterReload=await page.evaluate(id=>({
-  count:window.DiagnostikaClients.list().length,
-  edited:{...window.DiagnostikaClients.findById(id)}
-}),cardClientId);
-assert.equal(afterReload.count,3);
-assert.equal(afterReload.edited.city,'Санкт-Петербург');
-assert.equal(afterReload.edited.desiredOutcome,'Желаемый результат 2B1');
-assert.equal(afterReload.edited.phone,'+79990001122');
+  const result=await page.evaluate(()=>({
+    count:window.DiagnostikaClients.list().length,
+    currentId:window.DiagnostikaClients.currentId(),
+    currentName:window.DiagnostikaClients.current()?.name||null,
+    events:window.__clientWriteEvents.map(x=>({type:x.type,detail:{...x.detail}})),
+    persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}')
+  }));
+  assert.equal(result.count,2);
+  assert.equal(result.currentName,'Новый клиент');
+  assert.equal(result.persisted.clients.length,2);
+  const created=result.events.filter(x=>x.type==='client:created'&&x.detail.clientId===result.currentId);
+  assert.equal(created.length,1,'Legacy database create must emit client:created exactly once');
+  assert.equal(created[0].detail.source,'client-database-create');
+}
 
 const serious=pageErrors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
-console.log('CLIENT_WRITE_2B1_AUDIT_SUCCESS',JSON.stringify({cardClientId,afterReload}));
+console.log('CLIENT_WRITE_2B1_AUDIT_SUCCESS',phase);
 
 await context.close();
 await browser.close();
