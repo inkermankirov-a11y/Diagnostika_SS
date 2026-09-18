@@ -157,23 +157,76 @@
     document.body.appendChild(serviceScript);
   }
 
-  function loadSessionsApi(){
-    ensureSessionsFoundation(()=>{
-      if(window.DiagnostikaSessions?.moduleAware===true){
+
+  function ensurePaymentsFoundation(next){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-payments-module]')){
+        next();
+        return;
+      }
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/payments/index.js?v=20260918-payment5a';
+      moduleScript.setAttribute('data-payments-module','1');
+      moduleScript.onload=next;
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.payments){
+      loadModule();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-payments-service]');
+    if(existing){
+      existing.addEventListener('load',loadModule,{once:true});
+      return;
+    }
+
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/payments/payment-service.js?v=20260918-payment5a';
+    serviceScript.setAttribute('data-payments-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
+  function loadPaymentApi(){
+    ensurePaymentsFoundation(()=>{
+      if(window.DiagnostikaPayments?.moduleAware===true){
         loadDashboard();
         return;
       }
 
-      const existing=document.querySelector('script[data-session-api]');
+      const existing=document.querySelector('script[data-payment-api]');
       if(existing){
         existing.addEventListener('load',loadDashboard,{once:true});
         return;
       }
 
       const api=document.createElement('script');
+      api.src='payment-api.js?v=20260918-payment5a';
+      api.setAttribute('data-payment-api','1');
+      api.onload=loadDashboard;
+      document.body.appendChild(api);
+    });
+  }
+
+  function loadSessionsApi(){
+    ensureSessionsFoundation(()=>{
+      if(window.DiagnostikaSessions?.moduleAware===true){
+        loadPaymentApi();
+        return;
+      }
+
+      const existing=document.querySelector('script[data-session-api]');
+      if(existing){
+        existing.addEventListener('load',loadPaymentApi,{once:true});
+        return;
+      }
+
+      const api=document.createElement('script');
       api.src='session-api.js?v=20260918-sessions4c';
       api.setAttribute('data-session-api','1');
-      api.onload=loadDashboard;
+      api.onload=loadPaymentApi;
       document.body.appendChild(api);
     });
   }
