@@ -2,7 +2,7 @@ name: Client module audit
 
 on:
   push:
-    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1 ]
+    branches: [ main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2 ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
@@ -15,12 +15,16 @@ on:
       - 'client-transfer.js'
       - 'form-integrations.js'
       - 'ui-fixes.js'
+      - 'client-questionnaires.js'
+      - 'free-consultation-client-card-sync.js'
+      - 'ai-settings-button.js'
       - 'app-loader.js'
       - 'index.html'
       - 'tests/client-module-audit.mjs'
       - 'tests/client-write-audit.mjs'
       - 'tests/client-trash-audit.mjs'
       - 'tests/client-legacy-boundary-audit.mjs'
+      - 'tests/client-profile-boundary-audit.mjs'
       - '.github/workflows/client-module-audit.yml'
   workflow_dispatch:
 
@@ -47,6 +51,10 @@ jobs:
           node --check tests/client-write-audit.mjs
           node --check tests/client-trash-audit.mjs
           node --check tests/client-legacy-boundary-audit.mjs
+          node --check client-questionnaires.js
+          node --check free-consultation-client-card-sync.js
+          node --check ai-settings-button.js
+          node --check tests/client-profile-boundary-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -60,6 +68,9 @@ jobs:
           session_interactions=Path('session-interactions.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           index=Path('index.html').read_text(encoding='utf-8')
+          questionnaires=Path('client-questionnaires.js').read_text(encoding='utf-8')
+          consultation_sync=Path('free-consultation-client-card-sync.js').read_text(encoding='utf-8')
+          ai_settings=Path('ai-settings-button.js').read_text(encoding='utf-8')
           errors=[]
           for token in ["created: 'client:created'","selected: 'client:selected'","updated: 'client:updated'","deleted: 'client:deleted'","restored: 'client:restored'"]:
               if token not in service: errors.append('service contract missing '+token)
@@ -90,7 +101,16 @@ jobs:
           if 'client-trash.js?v=20260918-clients2b2' not in index: errors.append('client trash cache version is stale')
           if 'session-interactions.js?v=20260918-clients2b2' not in index: errors.append('session interactions cache version is stale')
           if 'app-loader.js?v=20260918-clients2b2' not in index: errors.append('app loader cache version is stale')
-          if 'diagnostika-build" content="20260918-clients2c1' not in index: errors.append('build marker is stale')
+          if "api.update(c.id,patch,{source:'questionnaire-primary-profile'})" not in questionnaires: errors.append('questionnaire primary profile does not use client service')
+          for token in ['if(p.name)c.name=p.name','if(p.phone)c.phone=p.phone',"if(typeof renderClient==='function')renderClient();"]:
+              if token in questionnaires: errors.append('questionnaire direct profile mutation remains '+token)
+          if "api.update(c.id,profilePatch,{source:'free-consultation-card-sync',render:false})" not in consultation_sync: errors.append('free consultation profile sync does not use client service')
+          for token in ['c.mainRequest=next.mainRequest','c[key]=cleaned.value','c[key]=next']:
+              if token in consultation_sync: errors.append('free consultation direct profile mutation remains '+token)
+          if 'client-questionnaires.js?v=20260918-clients2c2' not in ai_settings: errors.append('questionnaire loader cache version is stale')
+          if 'free-consultation-client-card-sync.js?v=20260918-clients2c2' not in index: errors.append('free consultation sync cache version is stale')
+          if 'ai-settings-button.js?v=20260918-clients2c2' not in index: errors.append('AI settings loader cache version is stale')
+          if 'diagnostika-build" content="20260918-clients2c2' not in index: errors.append('build marker is stale')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
           if errors: sys.exit(1)
           PY
@@ -177,3 +197,11 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-legacy-boundary-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/client-legacy-boundary-audit.mjs
+
+      - name: Verify Clients 2C-2 profile boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-profile-boundary-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/client-profile-boundary-audit.mjs
