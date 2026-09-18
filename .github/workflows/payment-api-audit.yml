@@ -2,7 +2,7 @@ name: Payment API audit
 
 on:
   push:
-    branches: [ main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*' ]
+    branches: [main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*' ]
     paths:
       - 'home-dashboard.js'
       - 'modules/payments/**'
