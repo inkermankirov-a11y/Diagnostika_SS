@@ -4,6 +4,7 @@
   const clone=v=>{try{return JSON.parse(JSON.stringify(v??null));}catch(_){return null;}};
   const todayLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
   const currentClient=()=>typeof client==='function'?client():null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
 
   function requestFromPaymentDialog(dlg,c=currentClient()){
     if(!c)return null;
@@ -146,8 +147,11 @@
     const c=currentClient();if(!c||!dlg?.__saveGuardPaymentRequestId)return;
     const r=c.requests?.find(x=>x.id===dlg.__saveGuardPaymentRequestId);if(!r)return;
     const snap=clone(dlg.__saveGuardPaymentSnapshot);
-    if(snap===null)delete r.payment;else r.payment=snap;
-    if(typeof save==='function')save();
+    paymentWriter()?.replaceRequest?.(
+      r.id,
+      snap,
+      {client:c,source:'payment-save-guard-restore'}
+    );
     try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
     try{window.DiagnostikaSessionPayments?.refresh?.();}catch(_){}
   }
@@ -260,6 +264,7 @@
 (() => {
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const currentClient=()=>typeof client==='function'?client():null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const sessionPayment=s=>{if(!s.payment||typeof s.payment!=='object')s.payment={paid:false,amount:0};return s.payment;};
   const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||(c?.requests?.indexOf(r)+1||0);
 
@@ -328,10 +333,17 @@
 
     editor.querySelector('.apr-save').onclick=()=>{
       const value=num(amount.value);if(value<=0){amount.focus();return;}
-      item.pay.date=date.value||item.pay.date||'';
-      item.pay.amount=value;
-      item.pay.note=note.value.trim();
-      if(typeof save==='function')save();
+      const updated=paymentWriter()?.updatePayment?.(
+        item.request?.id,
+        item.pay?.id,
+        {
+          date:date.value||item.pay.date||'',
+          amount:value,
+          note:note.value.trim()
+        },
+        {client:c,source:'payment-save-guard-history-edit'}
+      );
+      if(!updated)return;
       try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
       try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
       editor.close();
