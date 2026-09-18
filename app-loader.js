@@ -81,7 +81,7 @@
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
           const x=document.createElement('script');
-          x.src='home-dashboard-sessions.js?v=20260916-newui1';
+          x.src='home-dashboard-sessions.js?v=20260918-sessions4b';
           x.setAttribute('data-home-dashboard-sessions','1');
           document.body.appendChild(x);
         }
@@ -89,7 +89,7 @@
       document.body.appendChild(s);
     }else if(!document.querySelector('script[data-home-dashboard-sessions]')){
       const x=document.createElement('script');
-      x.src='home-dashboard-sessions.js?v=20260916-newui1';
+      x.src='home-dashboard-sessions.js?v=20260918-sessions4b';
       x.setAttribute('data-home-dashboard-sessions','1');
       document.body.appendChild(x);
     }
@@ -133,7 +133,7 @@
         return;
       }
       const moduleScript=document.createElement('script');
-      moduleScript.src='modules/sessions/index.js?v=20260918-sessions4a';
+      moduleScript.src='modules/sessions/index.js?v=20260918-sessions4b';
       moduleScript.setAttribute('data-sessions-module','1');
       moduleScript.onload=next;
       document.body.appendChild(moduleScript);
@@ -151,7 +151,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/sessions/session-service.js?v=20260918-sessions4a';
+    serviceScript.src='modules/sessions/session-service.js?v=20260918-sessions4b';
     serviceScript.setAttribute('data-sessions-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -171,7 +171,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='session-api.js?v=20260918-sessions4a';
+      api.src='session-api.js?v=20260918-sessions4b';
       api.setAttribute('data-session-api','1');
       api.onload=loadDashboard;
       document.body.appendChild(api);
