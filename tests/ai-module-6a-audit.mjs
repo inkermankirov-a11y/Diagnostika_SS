@@ -15,11 +15,11 @@ for(const token of [
   assert(serviceSource.includes(token),`AIService missing ${token}`);
   assert(apiSource.includes(token),`AI facade missing ${token}`);
 }
-assert(/version:'6[A-B]'/.test(apiSource),'AI facade version is outside supported 6A-6B range');
+assert(/version:'6[A-C]'/.test(apiSource),'AI facade version is outside supported 6A-6C range');
 assert(apiSource.includes('moduleAware:true'),'AI facade is not module-aware');
-assert(/modules\/ai\/ai-service\.js\?v=20260918-ai6[ab]/.test(loaderSource),'AI service is not loaded by app-loader');
-assert(/modules\/ai\/index\.js\?v=20260918-ai6[ab]/.test(loaderSource),'AI module is not loaded by app-loader');
-assert(/ai-api\.js\?v=20260918-ai6[ab]/.test(loaderSource),'AI facade is not loaded by app-loader');
+assert(/modules\/ai\/ai-service\.js\?v=2026091[89]-ai6[abc]/.test(loaderSource),'AI service is not loaded by app-loader');
+assert(/modules\/ai\/index\.js\?v=2026091[89]-ai6[abc]/.test(loaderSource),'AI module is not loaded by app-loader');
+assert(/ai-api\.js\?v=2026091[89]-ai6[abc]/.test(loaderSource),'AI facade is not loaded by app-loader');
 assert.equal(serviceSource.includes('fetch('),false,'AI 6A service must not own n8n transport yet');
 
 // Foundation audit remains valid after 6B: client debt may be gone; session debt remains until 6C.
