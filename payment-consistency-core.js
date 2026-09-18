@@ -175,8 +175,7 @@
     return dlg;
   }
 
-  function refreshEverywhere(persist=true){
-    if(persist){try{if(typeof save==='function')save();}catch(_){}}
+  function refreshEverywhere(){
     try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
     try{window.DiagnostikaPaymentConsistency?.refresh?.();}catch(_){}
     try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(_){}
@@ -268,7 +267,7 @@
         if(!updated)return;
       }
 
-      refreshEverywhere(false);
+      refreshEverywhere();
       dlg.close();
       setTimeout(renderAll,0);
     };
@@ -277,7 +276,7 @@
       const yes=await confirmDelete();
       if(!yes)return;
       if(!removePayment(item))return;
-      refreshEverywhere(false);
+      refreshEverywhere();
       dlg.close();
       setTimeout(renderAll,0);
     };
