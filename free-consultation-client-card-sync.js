@@ -9,15 +9,11 @@
   const NOTES_END = '=== КОНЕЦ АВТО-БЛОКА ===';
 
   const text = value => String(value ?? '').trim();
-  const escRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\  const text = value => String(value ?? '').trim();
   const escRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-  function getClient(){');
   const clientsApi=()=>window.DiagnostikaClients
     || window.DiagnostikaPlatform?.clients
     || window.DiagnostikaPlatform?.services?.clients
     || null;
-
   function getClient(){
     try{ const c=window.DiagnostikaClients?.current?.(); if(c) return c; }catch(_){}
     try{ if(typeof client==='function'){ const c=client(); if(c) return c; } }catch(_){}
