@@ -15,7 +15,7 @@
 
   const facade={
     ...legacy,
-    version:'5C',
+    version:'5D',
     moduleAware:true,
     events:Object.freeze({
       updated:'payment:updated',
