@@ -177,6 +177,23 @@ assert.deepEqual(snap,{client:'requests-3b-client-2',active:'requests-3b-c2-r1',
 assert.equal(await page.evaluate(()=>window.DiagnostikaClients.select('requests-3b-client')),true);
 await page.waitForTimeout(100);
 assert.equal(await page.evaluate(()=>window.DiagnostikaRequests.activate('requests-3b-r2',{source:'requests-3b-final-active'})),true);
+await page.waitForTimeout(250);
+const beforeReload=await page.evaluate(()=>{
+  const live=window.DiagnostikaClients.current();
+  const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null')?.clients?.find(c=>String(c.id)===String(live?.id));
+  return {
+    liveCurrent:live?.currentRequestId||null,
+    liveLast:live?.lastDiagnosisRequestId||null,
+    active:window.DiagnostikaRequests.activeId(),
+    viewed:window.DiagnostikaRequests.viewedId(),
+    storedCurrent:stored?.currentRequestId||null,
+    storedLast:stored?.lastDiagnosisRequestId||null
+  };
+});
+console.log('REQUEST_UI_3B_BEFORE_RELOAD',JSON.stringify(beforeReload));
+assert.equal(beforeReload.liveCurrent,'requests-3b-r2');
+assert.equal(beforeReload.active,'requests-3b-r2');
+assert.equal(beforeReload.storedCurrent,'requests-3b-r2');
 
 const events=await page.evaluate(()=>window.__requests3bEvents);
 const uiPairs=new Map();
