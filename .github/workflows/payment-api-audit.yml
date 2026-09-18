@@ -109,7 +109,8 @@ jobs:
               'payment-session-fix.js',
               'payment-enhancements.js',
               'session-payment-status.js',
-              'payment-save-guard.js'
+              'payment-save-guard.js',
+              'payment-consistency-core.js'
           ]
           request_writer_patterns=[
               re.compile(r'\br\.payment\s*=(?!=)'),
