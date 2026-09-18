@@ -12,7 +12,15 @@
   let selectedId=null;
   let noticeTimer=null;
 
-  function currentClient(){try{return typeof client==='function'?client():null;}catch(_){return null;}}
+  const clientsApi=()=>window.DiagnostikaClients
+    || window.DiagnostikaPlatform?.clients
+    || window.DiagnostikaPlatform?.services?.clients
+    || null;
+
+  function currentClient(){
+    try{const c=clientsApi()?.current?.();if(c)return c;}catch(_){}
+    try{return typeof client==='function'?client():null;}catch(_){return null;}
+  }
   function arr(c){return Array.isArray(c?.questionnaires)?c.questionnaires:[];}
   function fmtDate(v){try{return new Date(v).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(_){return String(v||'');}}
   function uid(prefix='manual'){
@@ -202,13 +210,38 @@
 
   function makePrimary(){
     const c=currentClient(),x=selected();if(!c||!x)return;
+    const api=clientsApi();
+    if(!api?.update){
+      showNotice('ClientService недоступен. Данные клиента не изменены.');
+      return;
+    }
     if(!writeEditorTo(x))return;
+
+    const previousPrimary=arr(c).map(qx=>({id:qx.id,isPrimary:!!qx.isPrimary}));
     for(const qx of arr(c))qx.isPrimary=String(qx.id)===String(x.id);
+
     const p=x.profile||{};
-    if(p.name)c.name=p.name;if(p.phone)c.phone=p.phone;if(p.email)c.email=p.email;if(p.city)c.city=p.city;if(p.age)c.age=p.age;if(p.country)c.country=p.country;if(['Мужской','Женский'].includes(p.gender))c.gender=p.gender;c.preferredContact=p.contactMethod||c.preferredContact||'';
-    if(typeof save==='function')save();
-    if(typeof renderClient==='function')renderClient();
-    refreshOpenCard(c);renderList();renderEditor();updateButton();
+    const patch={};
+    if(p.name)patch.name=p.name;
+    if(p.phone)patch.phone=p.phone;
+    if(p.email)patch.email=p.email;
+    if(p.city)patch.city=p.city;
+    if(p.age)patch.age=p.age;
+    if(p.country)patch.country=p.country;
+    if(['Мужской','Женский'].includes(p.gender))patch.gender=p.gender;
+    if(p.contactMethod)patch.preferredContact=p.contactMethod;
+
+    const updated=api.update(c.id,patch,{source:'questionnaire-primary-profile'});
+    if(!updated){
+      for(const old of previousPrimary){
+        const qx=arr(c).find(item=>String(item.id)===String(old.id));
+        if(qx)qx.isPrimary=old.isPrimary;
+      }
+      showNotice('Не удалось обновить данные клиента.');
+      return;
+    }
+
+    refreshOpenCard(updated);renderList();renderEditor();updateButton();
     showNotice('Анкета назначена основной. Данные клиента обновлены.');
   }
 
