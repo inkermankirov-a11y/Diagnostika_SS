@@ -43,7 +43,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaRequests?.moduleAware===true&&window.DiagnostikaRequestsUI?.version==='3B'&&window.DiagnostikaRequestsUI?.ready===true,null,{timeout:15000});
+  await page.waitForFunction(()=>window.DiagnostikaRequests?.moduleAware===true&&window.DiagnostikaRequestsUI?.version==='3C'&&window.DiagnostikaRequestsUI?.ready===true,null,{timeout:15000});
 }
 
 await page.goto('http://127.0.0.1:8000/index.html?request-ui-3b='+Date.now(),{waitUntil:'commit',timeout:10000});
@@ -211,7 +211,7 @@ assert.equal(events.filter(x=>x.type==='request:updated'&&x.detail.source==='req
 const observers=await page.evaluate(()=>(window.__requests3bObservers||[]).map(x=>({stack:x.stack,count:x.count,records:x.records})));
 const requestSelectObservers=observers.filter(x=>x.stack.includes('request-select-labels.js'));
 const requestDateObservers=observers.filter(x=>x.stack.includes('request-date-unsaved.js'));
-assert.equal(requestSelectObservers.length,1,'Request UI should keep only one scoped legacy compatibility observer until 3C');
+assert.equal(requestSelectObservers.length,0,'Request UI must not keep request DOM observers after 3C');
 assert.equal(requestDateObservers.length,0,'request-date-unsaved.js must not own request DOM observation');
 
 await page.reload({waitUntil:'commit'});
@@ -232,6 +232,6 @@ assert.equal(reloaded.status,'active');
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
 
-console.log('REQUEST_UI_3B_SUCCESS',JSON.stringify({viewed,created,reloaded,eventCount:events.length,requestSelectObservers:requestSelectObservers.length}));
+console.log('REQUEST_UI_3C_COMPAT_SUCCESS',JSON.stringify({viewed,created,reloaded,eventCount:events.length,requestSelectObservers:requestSelectObservers.length}));
 await context.close();
 await browser.close();
