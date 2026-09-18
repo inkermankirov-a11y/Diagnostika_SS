@@ -198,14 +198,14 @@
 
       const existing=document.querySelector('script[data-payment-api]');
       if(existing){
-        existing.addEventListener('load',loadPaymentApi,{once:true});
+        existing.addEventListener('load',loadDashboard,{once:true});
         return;
       }
 
       const api=document.createElement('script');
       api.src='payment-api.js?v=20260918-payment5a';
       api.setAttribute('data-payment-api','1');
-      api.onload=loadPaymentApi;
+      api.onload=loadDashboard;
       document.body.appendChild(api);
     });
   }
@@ -219,14 +219,14 @@
 
       const existing=document.querySelector('script[data-session-api]');
       if(existing){
-        existing.addEventListener('load',loadDashboard,{once:true});
+        existing.addEventListener('load',loadPaymentApi,{once:true});
         return;
       }
 
       const api=document.createElement('script');
       api.src='session-api.js?v=20260918-sessions4c';
       api.setAttribute('data-session-api','1');
-      api.onload=loadDashboard;
+      api.onload=loadPaymentApi;
       document.body.appendChild(api);
     });
   }
