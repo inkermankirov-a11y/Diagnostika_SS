@@ -50,7 +50,8 @@
       const r=api.get(option.value,c)||rows[index]||null;
       const d=dateText(r?.createdAt||r?.createdDate||r?.date);
       const number=r?requestNumber(c,r):(index+1);
-      option.textContent=`${PREFIX[lang()]} ${number||index+1}${d?' · '+d:''}`;
+      const label=`${PREFIX[lang()]} ${number||index+1}${d?' · '+d:''}`;
+      if(option.textContent!==label)option.textContent=label;
     });
     const id=api.viewedId(c);
     if(id&&[...select.options].some(o=>String(o.value)===String(id)))select.value=id;
@@ -108,12 +109,12 @@
     finishBtn.textContent=tx('finish');
   }
 
-  function renderAll(){
+  function renderAll(options={}){
     ensureInitialAuthority();
     relabel();
     renderStatusControls();
     try{window.DiagnostikaRequestTitleDisplay?.refresh?.();}catch(_){}
-    try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
+    if(options.payment!==false){try{window.DiagnostikaPayments?.refresh?.();}catch(_){}}
   }
 
   function bindLegacyUi(){
@@ -126,7 +127,7 @@
       };
       // Compatibility bridge until 3C: Diagnosis / Free Consultation still rebuild
       // this select through legacy renderRequests() without RequestService events.
-      new MutationObserver(()=>setTimeout(renderAll,0)).observe(select,{childList:true});
+      new MutationObserver(()=>setTimeout(()=>renderAll({payment:false}),0)).observe(select,{childList:true});
     }
 
     const addRequest=document.querySelector('#addRequestBtn');
