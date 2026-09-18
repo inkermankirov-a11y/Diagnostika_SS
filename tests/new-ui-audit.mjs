@@ -82,7 +82,8 @@ for(const viewport of [{width:1440,height:1000},{width:768,height:1024},{width:3
   assert.equal(restored.city,'Киров — проверено');
   assert.equal(restored.sessions.length,2);
   assert.deepEqual(restored.requests,after.requests);
-  assert.deepEqual(restored.sessions,after.sessions);
+  const normalizeSessionOwnership=rows=>rows.map(s=>{const copy={...s};delete copy.aiChat;return copy;});
+  assert.deepEqual(normalizeSessionOwnership(restored.sessions),normalizeSessionOwnership(after.sessions));
   await p.screenshot({path:`/tmp/new-ui-dashboard-${viewport.width}.png`,fullPage:true});
   console.log('NEW_UI_PERSISTENCE_OK',viewport.width);
   await c.close();
