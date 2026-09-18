@@ -15,16 +15,15 @@ for(const token of [
   assert(serviceSource.includes(token),`AIService missing ${token}`);
   assert(apiSource.includes(token),`AI facade missing ${token}`);
 }
-assert(apiSource.includes("version:'6A'"),'AI facade version is not 6A');
+assert(/version:'6[A-B]'/.test(apiSource),'AI facade version is outside supported 6A-6B range');
 assert(apiSource.includes('moduleAware:true'),'AI facade is not module-aware');
-assert(loaderSource.includes('modules/ai/ai-service.js?v=20260918-ai6a'),'AI service is not loaded by app-loader');
-assert(loaderSource.includes('modules/ai/index.js?v=20260918-ai6a'),'AI module is not loaded by app-loader');
-assert(loaderSource.includes('ai-api.js?v=20260918-ai6a'),'AI facade is not loaded by app-loader');
+assert(/modules\/ai\/ai-service\.js\?v=20260918-ai6[ab]/.test(loaderSource),'AI service is not loaded by app-loader');
+assert(/modules\/ai\/index\.js\?v=20260918-ai6[ab]/.test(loaderSource),'AI module is not loaded by app-loader');
+assert(/ai-api\.js\?v=20260918-ai6[ab]/.test(loaderSource),'AI facade is not loaded by app-loader');
 assert.equal(serviceSource.includes('fetch('),false,'AI 6A service must not own n8n transport yet');
 
-// 6A deliberately leaves these legacy writers for 6B/6C.
-assert(clientLegacy.includes('c.aiChat'),'Expected client legacy aiChat debt disappeared unexpectedly');
-assert(sessionLegacy.includes('s.aiChat'),'Expected session legacy aiChat debt disappeared unexpectedly');
+// Foundation audit remains valid after 6B: client debt may be gone; session debt remains until 6C.
+assert(sessionLegacy.includes('s.aiChat'),'Expected session aiChat debt for 6C disappeared unexpectedly');
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const fixture={version:4,clients:[{
