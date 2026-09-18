@@ -7,7 +7,7 @@
     s.setAttribute(marker,'1');
     document.body.appendChild(s);
   }
-  loadOnce('session-payment-data-repair.js?v=20260918-sessions4c','data-session-payment-data-repair');
+  loadOnce('session-payment-data-repair.js?v=20260918-payment5b','data-session-payment-data-repair');
   loadOnce('session-payment-mode-rule.js?v=20260912-59','data-session-payment-mode-rule');
 })();
 
