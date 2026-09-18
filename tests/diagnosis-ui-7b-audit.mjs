@@ -83,18 +83,6 @@ const before=await page.evaluate(()=>{
   };
 });
 await page.locator('#addSituationBtn').waitFor({state:'visible',timeout:5000});
-const preClick=await page.evaluate(()=>({
-  apiVersion:window.DiagnostikaDiagnosis?.version||null,
-  moduleAware:window.DiagnostikaDiagnosis?.moduleAware===true,
-  service:!!window.DiagnostikaPlatform?.services?.diagnosis,
-  requestService:!!window.DiagnostikaPlatform?.services?.requests,
-  clientId:client()?.id||null,
-  requestId:request()?.id||null,
-  globalRequestId:typeof requestId!=='undefined'?requestId:null,
-  handler:String(document.getElementById('addSituationBtn')?.onclick||'')
-}));
-console.log('DIAGNOSIS_7B_PRECLICK',JSON.stringify(preClick));
-
 await page.locator('#addSituationBtn').click();
 await page.locator('.situation-create-dialog').waitFor({state:'visible',timeout:3000});
 await page.locator('#newSituationName').fill('Created through DiagnosisService');
@@ -121,8 +109,6 @@ assert.deepEqual(
   'Adding a situation changed request authority'
 );
 
-const editPre=await page.evaluate(()=>String(document.getElementById('editSituationBtn')?.onclick||''));
-console.log('DIAGNOSIS_7B_EDIT_HANDLER',editPre);
 await page.locator('#editSituationBtn').click();
 const edited=await page.evaluate(id=>{
   const c=window.DiagnostikaClients.current();
@@ -155,7 +141,6 @@ assert.deepEqual(
   {name:persistedBeforeReload.name,level:persistedBeforeReload.level,result:persistedBeforeReload.result},
   {name:'Edited through DiagnosisService',level:9,result:'Desired result through service'}
 );
-console.log('DIAGNOSIS_7B_EVENTS',JSON.stringify(persistedBeforeReload.events));
 for(const source of ['diagnosis-ui-situation-add','diagnosis-ui-situation-edit','diagnosis-ui-situation-result']){
   assert(persistedBeforeReload.events.some(x=>x.detail?.source===source),'Missing diagnosis event source '+source);
 }
