@@ -63,31 +63,26 @@
     };
   }
 
-  function patchAiFetch(){
-    if(window.__diagnostikaClientAiFetchModePatched)return;
-    window.__diagnostikaClientAiFetchModePatched=true;
-    const nativeFetch=window.fetch.bind(window);
-    window.fetch=function(input,init){
-      try{
-        const url=typeof input==='string'?input:(input?.url||'');
-        if(url.includes('/diagnostika-client-chat-v1')&&init?.body&&typeof init.body==='string'){
-          const payload=JSON.parse(init.body);
-          const mode=getMode();
-          payload.responseMode=mode;
-          if(mode==='short'){
-            payload.message='РЕЖИМ КОРОТКО. Ответь содержательно, но кратко: обычно 4–7 предложений или максимум 6 коротких пунктов. Сначала дай главный вывод, затем только самое важное. Не пересказывай весь контекст клиента. Если данных недостаточно, скажи об этом одной короткой фразой.\n\nВопрос пользователя: '+String(payload.message||'');
-            payload.clientContext=compactContext(payload.clientContext);
-            payload.chatHistory=(Array.isArray(payload.chatHistory)?payload.chatHistory:[]).slice(-6).map(m=>({role:m?.role||'user',text:clip(m?.text,900)}));
-            payload.maxOutputTokens=500;
-          }else{
-            payload.message='РЕЖИМ ГЛУБОКО. Дай подробный, но без лишних повторов анализ. Используй весь доступный контекст клиента.\n\nВопрос пользователя: '+String(payload.message||'');
-            payload.maxOutputTokens=1800;
-          }
-          init={...init,body:JSON.stringify(payload)};
-        }
-      }catch(err){console.warn('AI response mode preparation failed',err);}
-      return nativeFetch(input,init);
-    };
+  function preparePayload(payload){
+    if(!payload||typeof payload!=='object'||payload.sessionId)return payload;
+    try{
+      const next={...payload};
+      const mode=getMode();
+      next.responseMode=mode;
+      if(mode==='short'){
+        next.message='РЕЖИМ КОРОТКО. Ответь содержательно, но кратко: обычно 4–7 предложений или максимум 6 коротких пунктов. Сначала дай главный вывод, затем только самое важное. Не пересказывай весь контекст клиента. Если данных недостаточно, скажи об этом одной короткой фразой.\n\nВопрос пользователя: '+String(next.message||'');
+        next.clientContext=compactContext(next.clientContext);
+        next.chatHistory=(Array.isArray(next.chatHistory)?next.chatHistory:[]).slice(-6).map(m=>({role:m?.role||'user',text:clip(m?.text,900)}));
+        next.maxOutputTokens=500;
+      }else{
+        next.message='РЕЖИМ ГЛУБОКО. Дай подробный, но без лишних повторов анализ. Используй весь доступный контекст клиента.\n\nВопрос пользователя: '+String(next.message||'');
+        next.maxOutputTokens=1800;
+      }
+      return next;
+    }catch(err){
+      console.warn('AI response mode preparation failed',err);
+      return payload;
+    }
   }
 
   const style=document.createElement('style');
@@ -283,7 +278,6 @@
     if(attempts<60)setTimeout(init,250);
   }
 
-  patchAiFetch();
   document.addEventListener('click',e=>{
     const menu=widget?.querySelector('.hd-ai-hints-menu');
     if(menu&&!menu.hidden&&!e.target.closest('.hd-ai-hints-wrap'))menu.hidden=true;
@@ -296,5 +290,6 @@
   });
   window.addEventListener('diagnostika-client-ai-chat-changed',()=>setTimeout(()=>{install();normalizeHeader();scrollAssistantToStart();},0));
 
+  window.DiagnostikaClientAIChatView=Object.freeze({preparePayload,getMode,setMode});
   init();
 })();
