@@ -278,25 +278,39 @@
   function createDiagnosis(){
     currentClient=getClient()||currentClient;
     if(!currentClient)return alert('Клиент не выбран.');
+    const api=window.DiagnostikaRequests?.moduleAware===true
+      ? window.DiagnostikaRequests
+      : window.DiagnostikaPlatform?.services?.requests||null;
+    if(!api?.create)return alert('Модуль запросов ещё не готов.');
+
     persistAiEdits();
     const title=selectedShortInput.value.trim();
     if(!title)return alert('Сначала выбери или введи короткий запрос для Диагностики.');
+
     const situations=getSituationTexts();
-    const req={id:makeId(),title,situations:situations.map(makeSituation),createdAt:new Date().toISOString(),source:'freeConsultationAI'};
-    currentClient.requests=Array.isArray(currentClient.requests)?currentClient.requests:[];
-    currentClient.requests.push(req);
-    currentClient.currentRequestId=req.id;
+    const created=api.create({
+      id:makeId(),
+      title,
+      situations:situations.map(makeSituation),
+      source:'freeConsultationAI'
+    },{
+      client:currentClient,
+      source:'free-consultation-v2-create'
+    });
+    if(!created)return alert('Не удалось создать запрос в Диагностике.');
+
     if(currentClient.freeConsultation?.aiResult){
-      currentClient.freeConsultation.aiResult.diagnosisRequestId=req.id;
+      currentClient.freeConsultation.aiResult.diagnosisRequestId=created.id;
       currentClient.freeConsultation.aiResult.selectedShortRequest={title,priority:normalizeShorts(lastResult)[selectedShortIndex]?.priority||0};
       currentClient.freeConsultation.aiResult.situations=situations;
     }
-    try{requestId=req.id;}catch(_){}
     saveState();
-    try{if(typeof renderClient==='function')renderClient();}catch(_){}
+
     createdNote.textContent=`Создан запрос «${title}»${situations.length?` и добавлено ситуаций: ${situations.length}`:''}.`;
     createdNote.classList.add('show');
-    const btn=rq('.fc-v2-create-diagnosis');btn.disabled=true;btn.textContent='Создано в Диагностике';
+    const btn=rq('.fc-v2-create-diagnosis');
+    btn.disabled=true;
+    btn.textContent='Создано в Диагностике';
     setTimeout(()=>window.DiagnostikaDiagnosis?.open?.(),80);
   }
 
