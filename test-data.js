@@ -22,6 +22,11 @@
     return window.DiagnostikaPlatform?.services?.requests||null;
   }
 
+  function sessionsApi(){
+    if(window.DiagnostikaSessions?.moduleAware===true)return window.DiagnostikaSessions;
+    return window.DiagnostikaPlatform?.services?.sessions||null;
+  }
+
   function currentClient(){
     return window.DiagnostikaClients?.current?.()||(typeof client==='function'?client():null);
   }
@@ -35,8 +40,10 @@
   btn.onclick=()=>{
     const c=currentClient();
     const api=requestsApi();
+    const sessionApi=sessionsApi();
     if(!c)return alert('Сначала выберите клиента.');
     if(!api?.list||!api?.create||!api?.remove||!api?.activate)return alert('Модуль запросов ещё загружается.');
+    if(!sessionApi?.list||!sessionApi?.create||!sessionApi?.remove)return alert('Модуль сессий ещё загружается.');
 
     const hasData=(c.name&&c.name!=='Новый клиент')||c.city||api.list(c).length||c.sessions?.length;
     if(hasData&&!confirm('ТЕСТ перезапишет данные текущего клиента и его диагностику. Продолжить?'))return;
@@ -49,6 +56,12 @@
     c.telegram='https://t.me/test';
     c.max='https://max.ru/';
     c.photoData='';
+
+    for(const existing of sessionApi.list(c).slice()){
+      if(!sessionApi.remove(existing.id,{client:c,source:'test-data-session-reset',render:false})){
+        return alert('Не удалось очистить старые тестовые сессии.');
+      }
+    }
 
     for(const existing of api.list(c).slice()){
       if(!api.remove(existing.id,{client:c,source:'test-data-reset',render:false})){
@@ -83,10 +96,23 @@
       return alert('Не удалось активировать тестовый запрос.');
     }
 
-    c.sessions=[
-      {id:uid(),date:today(),requestId:first.id,notes:'Тестовая сессия: первичная диагностика, выявление ключевых ситуаций и убеждений.'},
-      {id:uid(),date:today(),requestId:first.id,notes:'Тестовая сессия: работа с эмоциональной реакцией и глубинным убеждением.'}
+    const testSessions=[
+      'Тестовая сессия: первичная диагностика, выявление ключевых ситуаций и убеждений.',
+      'Тестовая сессия: работа с эмоциональной реакцией и глубинным убеждением.'
     ];
+    for(const notes of testSessions){
+      const createdSession=sessionApi.create({
+        id:uid(),
+        date:today(),
+        requestId:first.id,
+        notes
+      },{
+        client:c,
+        source:'test-data-session-create',
+        render:false
+      });
+      if(!createdSession)return alert('Не удалось создать тестовую сессию.');
+    }
 
     situationId=first.situations?.[0]?.id||null;
     selected=null;
@@ -95,6 +121,7 @@
     renderClient();
     renderMode();
     api.refresh?.();
+    sessionApi.refresh?.();
     alert('Тестовые данные заполнены.');
   };
 })();
