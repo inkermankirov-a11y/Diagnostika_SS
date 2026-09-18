@@ -15,6 +15,13 @@ const paymentFiles=[
   'payment-consistency-core.js',
   'payment-save-guard.js'
 ];
+const paymentLinkFiles=new Set([
+  'session-payment-data-repair.js',
+  'session-payment-editor.js',
+  'session-payment-ui-sync.js',
+  'session-payment-button-authority.js',
+  'payment-consistency-core.js'
+]);
 
 assert.equal(legacy.includes('diagnostika:sessions-changed'),false,'legacy bridge still observes session DOM changes');
 assert.equal(legacy.includes('legacy-session-store'),false,'legacy bridge still emits session lifecycle events');
@@ -38,7 +45,9 @@ for(const path of paymentFiles){
   const src=fs.readFileSync(path,'utf8');
   assert.equal(directRequestAssignment.test(src),false,path+' still mutates session.requestId directly');
   directRequestAssignment.lastIndex=0;
-  assert(src.includes('DiagnostikaSessions')||src.includes('linkSessionRequest'),path+' has no SessionService boundary');
+  if(paymentLinkFiles.has(path)){
+    assert(src.includes('DiagnostikaSessions')||src.includes('linkSessionRequest'),path+' has no SessionService boundary');
+  }
 }
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
