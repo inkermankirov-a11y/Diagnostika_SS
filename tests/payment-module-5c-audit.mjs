@@ -25,7 +25,7 @@ await context.addInitScript(data=>{
 },fixture);
 const page=await context.newPage();
 const errors=[];
-page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+page.on('pageerror',e=>errors.push('pageerror: '+(e.stack||e.message)));
 page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 page.on('dialog',d=>d.accept().catch(()=>{}));
 
