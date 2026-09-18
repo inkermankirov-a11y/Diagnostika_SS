@@ -99,9 +99,7 @@
     return true;
   }
 
-  const observer=new MutationObserver(()=>install());
-  observer.observe(document.body,{childList:true,subtree:true});
-  setTimeout(install,0);
+  install();
 
   window.DiagnostikaPaymentTotalInputStability={refresh:install,format};
 })();
