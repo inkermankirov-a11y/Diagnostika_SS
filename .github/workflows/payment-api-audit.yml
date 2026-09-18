@@ -9,6 +9,7 @@ on:
       - 'payment-api.js'
       - 'app-loader.js'
       - 'tests/payment-module-5a-audit.mjs'
+      - 'tests/payment-module-5c-audit.mjs'
       - 'payment-*.js'
       - 'request-select-labels.js'
       - 'request-title-display.js'
@@ -37,6 +38,7 @@ jobs:
           node --check payment-api.js
           node --check app-loader.js
           node --check tests/payment-module-5a-audit.mjs
+          node --check tests/payment-module-5c-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys,re
@@ -129,6 +131,37 @@ jobs:
           print('Payment 5B direct request writers:',direct_request_writers or 'none')
           if direct_request_writers:
               raise SystemExit('Payment 5B request.payment still has legacy direct writers')
+
+          session_writer_paths=[
+              'session-payment-editor.js',
+              'session-payment-status.js',
+              'session-payment-button-authority.js',
+              'session-payment-data-repair.js',
+              'session-payment-ui-sync.js',
+              'payment-save-guard.js',
+              'payment-enhancements.js',
+              'payment-consistency-core.js',
+              'payment-history-scope.js',
+              'payment-system.js'
+          ]
+          session_fields='paid|amount|manualAmount|receiptUrl|note|requestId|paidAt|sessionDate|priceSnapshot|baseAmount|discountSnapshot'
+          session_writer_patterns=[
+              re.compile(r'\bs\.payment\s*=(?!=)'),
+              re.compile(r'\bdelete\s+s\.payment\b'),
+              re.compile(rf'\bsp\.(?:{session_fields})\s*=(?!=)'),
+              re.compile(rf'\bdelete\s+sp\.(?:{session_fields})\b'),
+              re.compile(rf'\bs\.payment\.(?:{session_fields})\s*=(?!=)'),
+              re.compile(r'\bs\.requestId\s*=(?!=)')
+          ]
+          direct_session_writers=[]
+          for path in session_writer_paths:
+              src=Path(path).read_text(encoding='utf-8')
+              for pattern in session_writer_patterns:
+                  if pattern.search(src):
+                      direct_session_writers.append(f'{path}: {pattern.pattern}')
+          print('Payment 5C direct session writers:',direct_session_writers or 'none')
+          if direct_session_writers:
+              raise SystemExit('Payment 5C session.payment or root session.requestId still has legacy direct writers')
           PY
 
       - name: Install browser
@@ -383,4 +416,5 @@ jobs:
           JS
           node payment-api-audit.mjs
           node tests/payment-module-5a-audit.mjs
-# acceptance-ci-trigger: 20260918-payment5b-final
+          node tests/payment-module-5c-audit.mjs
+# acceptance-ci-trigger: 20260918-payment5c
