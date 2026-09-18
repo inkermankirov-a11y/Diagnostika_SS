@@ -2,7 +2,7 @@ name: Session module audit
 
 on:
   push:
-    branches: [ main, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c ]
+    branches: [ main, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, feature-payment-5a ]
     paths:
       - 'modules/sessions/**'
       - 'session-api.js'
@@ -114,10 +114,14 @@ jobs:
           ]:
               if token not in loader:
                   errors.append('session loader missing/stale: '+token)
-          if 'name="diagnostika-build" content="20260918-sessions4c"' not in index:
-              errors.append('Sessions 4C build marker missing')
-          if 'app-loader.js?v=20260918-sessions4c' not in index:
-              errors.append('Sessions 4C app-loader cache marker missing')
+          build_match=re.search(r'name=["\\']diagnostika-build["\\']\\s+content=["\\']([^"\\']+)["\\']',index)
+          loader_match=re.search(r'app-loader\\.js\\?v=([^"\\']+)',index)
+          if not build_match:
+              errors.append('diagnostika build marker missing')
+          if not loader_match:
+              errors.append('app-loader cache marker missing')
+          if build_match and loader_match and build_match.group(1)!=loader_match.group(1):
+              errors.append('build marker and app-loader cache marker differ')
           if 'c.sessions.push(' in dashboard:
               errors.append('dashboard still creates sessions directly')
           if "addEventListener('diagnostika:sessions-changed'" in dashboard:
