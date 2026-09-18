@@ -5,6 +5,7 @@
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
   const currentClient=()=>typeof client==='function'?client():null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const linkSessionRequest=(c,s,requestId,source)=>{
     if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
     const api=window.DiagnostikaSessions?.moduleAware===true
@@ -194,12 +195,11 @@
     if(!item)return false;
 
     if(item.kind==='request'){
-      const payments=item.request?.payment?.payments;
-      if(!Array.isArray(payments))return false;
-      const index=payments.indexOf(item.pay);
-      if(index<0)return false;
-      payments.splice(index,1);
-      return true;
+      return !!paymentWriter()?.removePayment?.(
+        item.request?.id,
+        item.pay?.id,
+        {client:currentClient(),source:'payment-consistency-delete'}
+      );
     }
 
     if(item.kind==='session'&&item.session){
@@ -245,10 +245,13 @@
       const newReceipt=receipt.value.trim();
 
       if(item.kind==='request'){
-        item.pay.date=newDate;
-        item.pay.amount=value;
-        item.pay.note=newNote;
-        item.pay.receiptUrl=newReceipt;
+        const updated=paymentWriter()?.updatePayment?.(
+          item.request?.id,
+          item.pay?.id,
+          {date:newDate,amount:value,note:newNote,receiptUrl:newReceipt},
+          {client:currentClient(),source:'payment-consistency-edit'}
+        );
+        if(!updated)return;
       }else{
         const sp=sessionPayment(item.session);
         sp.paid=true;
@@ -262,7 +265,7 @@
         }
       }
 
-      refreshEverywhere();
+      refreshEverywhere(item.kind!=='request');
       dlg.close();
       setTimeout(renderAll,0);
     };
@@ -271,7 +274,7 @@
       const yes=await confirmDelete();
       if(!yes)return;
       if(!removePayment(item))return;
-      refreshEverywhere();
+      refreshEverywhere(item.kind!=='request');
       dlg.close();
       setTimeout(renderAll,0);
     };
