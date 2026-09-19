@@ -2,7 +2,7 @@ name: Request API audit
 
 on:
   push:
-    branches: [main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, feature-sessions-4a, 'feature-payment-*', 'feature-ai-*' ]
+    branches: [main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, feature-sessions-4a, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
   workflow_dispatch:
 
 jobs:
