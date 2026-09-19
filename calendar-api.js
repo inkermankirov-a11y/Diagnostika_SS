@@ -4,9 +4,10 @@
   const platform=window.DiagnostikaPlatform;
   if(!platform||window.DiagnostikaCalendar?.moduleAware===true)return;
 
-  const legacyUi=window.DiagnostikaCalendar&&window.DiagnostikaCalendar.moduleAware!==true
+  const initialLegacyUi=window.DiagnostikaCalendar&&window.DiagnostikaCalendar.moduleAware!==true
     ? window.DiagnostikaCalendar
     : null;
+  const ui=()=>window.DiagnostikaCalendarUI||initialLegacyUi||null;
 
   const service=()=>platform.services?.calendar||null;
   const invoke=(name,args,failValue)=>{
@@ -15,7 +16,7 @@
   };
 
   window.DiagnostikaCalendar=Object.freeze({
-    version:'8B',
+    version:'8D',
     moduleAware:true,
     events:Object.freeze({
       created:'calendar:event-created',
@@ -24,10 +25,10 @@
       replaced:'calendar:events-replaced'
     }),
     open(...args){
-      try{return typeof legacyUi?.open==='function'?legacyUi.open(...args):false;}catch(_){return false;}
+      try{return typeof ui()?.open==='function'?ui().open(...args):false;}catch(_){return false;}
     },
     refresh(...args){
-      try{return typeof legacyUi?.refresh==='function'?legacyUi.refresh(...args):false;}catch(_){return false;}
+      try{return typeof ui()?.refresh==='function'?ui().refresh(...args):false;}catch(_){return false;}
     },
     list(filter={}){return invoke('list',[filter],[]);},
     get(id){return invoke('get',[id],null);},
