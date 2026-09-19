@@ -222,6 +222,7 @@
   }
 
   services.files=Object.freeze({
+    version:'9D',
     events:EVENTS,
     dbName:DB_NAME,
     storeName:STORE_NAME,
