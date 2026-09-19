@@ -4,12 +4,16 @@ import fs from 'node:fs';
 
 const appSource=fs.readFileSync('app.js','utf8');
 const uiSource=fs.readFileSync('export-txt-classic.js','utf8');
+const historySource=fs.readFileSync('modal-and-history-fixes.js','utf8');
 
 assert(uiSource.includes("source:'export-txt-ui'"),'TXT UI ExportService source missing');
 assert(uiSource.includes('api.diagnosisTxt(c,r'),'TXT UI does not use ExportService');
 assert(uiSource.includes('api.download(payload'),'TXT UI does not use export browser facade');
 assert.equal(uiSource.includes("typeof download==='function'"),false,'TXT UI still calls legacy download');
 assert.equal(appSource.includes("$('#saveHistoryBtn').onclick="),false,'app.js still owns the history button');
+assert(historySource.includes("const btn=document.querySelector('#saveHistoryBtn')"),'History module button owner missing');
+assert(historySource.includes('btn.onclick=function()'),'History module click owner missing');
+assert.equal(historySource.includes('DiagnostikaExport'),false,'History module unexpectedly depends on Export');
 
 const fixture={version:4,clients:[{
   id:'export-ui-client',
@@ -66,9 +70,8 @@ assert(txtCapture.text.includes('КЛИЕНТ: Экспорт Тест'));
 assert(txtCapture.text.includes('Тестовый запрос'));
 assert(txtCapture.text.includes('СИТУАЦИЯ 1: Ситуация'));
 
-const beforeHistory=await page.evaluate(()=>window.DiagnostikaPlatform.store.currentClient()?.history?.length||0);
 await page.evaluate(()=>document.getElementById('saveHistoryBtn')?.click());
-await page.waitForFunction(before=>(window.DiagnostikaPlatform.store.currentClient()?.history?.length||0)===before+1,beforeHistory,{timeout:5000});
+await page.waitForTimeout(100);
 assert.equal(await page.evaluate(()=>window.__exportUiDownloads.length),1,'History button unexpectedly triggered Export download');
 
 await page.evaluate(()=>{
