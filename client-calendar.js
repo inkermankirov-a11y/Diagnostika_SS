@@ -83,10 +83,30 @@
   let selected=todayIso();
 
   function getState(){try{return typeof state!=='undefined'?state:null;}catch(_){return null;}}
-  function clients(){const st=getState();return Array.isArray(st?.clients)?st.clients:[];}
+  function calendarApi(){
+    const facade=window.DiagnostikaCalendar;
+    if(facade?.moduleAware===true)return facade;
+    return window.DiagnostikaPlatform?.services?.calendar||null;
+  }
+  function clientsApi(){
+    const facade=window.DiagnostikaClients;
+    if(facade?.moduleAware===true)return facade;
+    return window.DiagnostikaPlatform?.services?.clients||null;
+  }
+  function clients(){
+    try{
+      const rows=clientsApi()?.list?.();
+      if(Array.isArray(rows))return rows;
+    }catch(_){}
+    const st=getState();
+    return Array.isArray(st?.clients)?st.clients:[];
+  }
   function customEvents(){
-    const api=window.DiagnostikaCalendar;
-    if(api?.moduleAware===true&&typeof api.list==='function')return api.list();
+    const api=calendarApi();
+    try{
+      const rows=api?.list?.();
+      if(Array.isArray(rows))return rows;
+    }catch(_){}
     const st=getState();
     return Array.isArray(st?.calendarEvents)?st.calendarEvents.map(e=>({...e})):[];
   }
@@ -96,7 +116,15 @@
       .sort((a,b)=>String(a.time||'99:99').localeCompare(String(b.time||'99:99'))||String(a.title||'').localeCompare(String(b.title||'')));
   }
   function eventsOn(date){return allEvents().filter(e=>e.date===date);}
-  function currentClientId(){try{const c=typeof client==='function'?client():null;if(c?.id)return c.id;}catch(_){}try{if(typeof clientId!=='undefined'&&clientId)return clientId;}catch(_){}return '';}
+  function currentClientId(){
+    try{
+      const id=clientsApi()?.currentId?.();
+      if(id!==undefined&&id!==null&&id!=='')return id;
+    }catch(_){}
+    try{const c=typeof client==='function'?client():null;if(c?.id)return c.id;}catch(_){}
+    try{if(typeof clientId!=='undefined'&&clientId)return clientId;}catch(_){}
+    return '';
+  }
   function fillClientOptions(){const current=currentClientId();clientSelect.innerHTML='<option value="">— Без клиента —</option>'+clients().map(c=>`<option value="${esc(c.id)}">${esc(c.name||'Без имени')}</option>`).join('');if(current&&clients().some(c=>String(c.id)===String(current)))clientSelect.value=String(current);}
   function humanDate(date){const d=new Date(date+'T12:00:00');return new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);}
 
@@ -109,11 +137,12 @@
     evs.forEach(e=>{
       const row=document.createElement('div');
       row.className='cal-event';
+      row.dataset.calendarEventId=String(e.id||'');
       const meta=[e.clientName,e.meta,e.note].filter(Boolean).join(' • ');
       row.innerHTML=`<div class="cal-event-time">${esc(e.time||'—')}</div><div><div class="cal-event-title">${esc(e.title||e.type||'Запись')}</div><div class="cal-event-meta">${esc(meta)}</div></div><button type="button" class="tk-btn cal-delete" title="Удалить">×</button>`;
       row.querySelector('.cal-delete').onclick=()=>{
-        const api=window.DiagnostikaCalendar;
-        if(api?.moduleAware!==true||typeof api.remove!=='function')return;
+        const api=calendarApi();
+        if(typeof api?.remove!=='function')return;
         if(!api.remove(e.id,{source:'calendar-ui-delete'}))return;
         render();
       };
@@ -168,8 +197,8 @@
     const c=clients().find(x=>String(x.id)===String(clientIdValue));
     const type=typeSelect.value||'Запись';
     const note=noteInput.value.trim();
-    const api=window.DiagnostikaCalendar;
-    if(api?.moduleAware!==true||typeof api.create!=='function')return;
+    const api=calendarApi();
+    if(typeof api?.create!=='function')return;
     const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note};
     if(!api.create(item,{source:'calendar-ui-create'}))return;
     noteInput.value='';
@@ -187,5 +216,23 @@
   }
   attach();
 
-  window.DiagnostikaCalendar={open:openCalendar,refresh:render};
+  const ui=Object.freeze({version:'8D',open:openCalendar,refresh:render});
+  window.DiagnostikaCalendarUI=ui;
+  if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui;
+
+  let eventRefreshBound=false;
+  function bindCalendarEvents(){
+    if(eventRefreshBound)return true;
+    const bus=window.DiagnostikaPlatform?.events;
+    if(!bus?.on)return false;
+    ['calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced'].forEach(type=>{
+      bus.on(type,()=>{
+        if(overlay.open)setTimeout(render,0);
+      });
+    });
+    eventRefreshBound=true;
+    return true;
+  }
+  bindCalendarEvents();
+  Promise.resolve(window.DiagnostikaPlatform?.ready).then(bindCalendarEvents).catch(()=>{});
 })();
