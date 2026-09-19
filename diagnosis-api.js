@@ -62,7 +62,7 @@
   };
 
   window.DiagnostikaDiagnosis=Object.freeze({
-    version:'7B',
+    version:'7C',
     moduleAware:true,
     open,
     snapshot:(requestRef,clientRef)=>call('snapshot',requestRef,clientRef),
@@ -74,6 +74,7 @@
     removeSituation:(id,options)=>call('removeSituation',id,options),
     addBelief:(situationId,data,options)=>call('addBelief',situationId,data,options),
     addFeeling:(beliefId,data,options)=>call('addFeeling',beliefId,data,options),
+    replaceFeelings:(beliefId,feelings,options)=>call('replaceFeelings',beliefId,feelings,options),
     addDeep:(feelingId,data,options)=>call('addDeep',feelingId,data,options),
     addInstinct:(deepId,data,options)=>call('addInstinct',deepId,data,options),
     updateElement:(type,id,changes,options)=>call('updateElement',type,id,changes,options),
