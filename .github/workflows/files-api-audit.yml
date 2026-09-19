@@ -2,7 +2,7 @@ name: Files API audit
 
 on:
   push:
-    branches: [main, 'feature-files-*']
+    branches: [main, 'feature-files-*', 'feature-export-*']
     paths:
       - 'modules/files/**'
       - 'files-api.js'

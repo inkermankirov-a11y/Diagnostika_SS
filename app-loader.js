@@ -222,6 +222,38 @@
   }
 
 
+  function ensureExportFoundation(next){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-export-module]')){
+        next();
+        return;
+      }
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/export/index.js?v=20260919-export10d';
+      moduleScript.setAttribute('data-export-module','1');
+      moduleScript.onload=next;
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.export){
+      loadModule();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-export-service]');
+    if(existing){
+      existing.addEventListener('load',loadModule,{once:true});
+      return;
+    }
+
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/export/export-service.js?v=20260919-export10d';
+    serviceScript.setAttribute('data-export-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
+
   function ensureCalendarFoundation(next){
     const loadModule=()=>{
       if(document.querySelector('script[data-calendar-module]')){
@@ -379,23 +411,44 @@
     });
   }
 
-  function loadFilesApi(){
-    ensureFilesFoundation(()=>{
-      if(window.DiagnostikaFiles?.moduleAware===true){
+  function loadExportApi(){
+    ensureExportFoundation(()=>{
+      if(window.DiagnostikaExport?.moduleAware===true){
         loadCalendarApi();
         return;
       }
 
-      const existing=document.querySelector('script[data-files-api]');
+      const existing=document.querySelector('script[data-export-api]');
       if(existing){
         existing.addEventListener('load',loadCalendarApi,{once:true});
         return;
       }
 
       const api=document.createElement('script');
+      api.src='export-api.js?v=20260919-export10d';
+      api.setAttribute('data-export-api','1');
+      api.onload=loadCalendarApi;
+      document.body.appendChild(api);
+    });
+  }
+
+  function loadFilesApi(){
+    ensureFilesFoundation(()=>{
+      if(window.DiagnostikaFiles?.moduleAware===true){
+        loadExportApi();
+        return;
+      }
+
+      const existing=document.querySelector('script[data-files-api]');
+      if(existing){
+        existing.addEventListener('load',loadExportApi,{once:true});
+        return;
+      }
+
+      const api=document.createElement('script');
       api.src='files-api.js?v=20260919-files9d';
       api.setAttribute('data-files-api','1');
-      api.onload=loadCalendarApi;
+      api.onload=loadExportApi;
       document.body.appendChild(api);
     });
   }
