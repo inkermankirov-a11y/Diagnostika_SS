@@ -66,6 +66,12 @@
     return String(v||'id').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,8)||'id';
   }
 
+  function filesApi(){
+    const facade=window.DiagnostikaFiles;
+    if(facade?.moduleAware===true)return facade;
+    return window.DiagnostikaPlatform?.services?.files||null;
+  }
+
   async function permission(handle,ask=false){
     if(!handle) return 'denied';
     const opts={mode:'readwrite'};
@@ -186,10 +192,11 @@
 
   async function fullExport(){
     await writeCoreState();
-    if(typeof mediaDbList==='function'){
+    const api=filesApi();
+    if(api?.list){
       for(const c of state.clients||[]){
         for(const s of c.sessions||[]){
-          const files=await mediaDbList(s.id);
+          const files=await api.list({sessionId:s.id});
           for(const rec of files) await mirrorRecord(rec);
         }
       }
@@ -427,25 +434,33 @@
     if(rootHandle && folderState) scheduleSync();
   };
 
-  if(typeof mediaDbPut==='function'){
-    const originalPut=mediaDbPut;
-    mediaDbPut=async function(record){
-      const result=await originalPut(record);
-      try{if(rootHandle) await mirrorRecord(record);}catch(e){console.warn('Файл сохранён в браузере, но не скопирован в папку',e);}
-      return result;
-    };
+  let fileEventsBound=false;
+  function bindFileEvents(){
+    if(fileEventsBound)return true;
+    const bus=window.DiagnostikaPlatform?.events;
+    if(!bus?.on)return false;
+
+    bus.on('file:created',detail=>{
+      Promise.resolve().then(async()=>{
+        if(!rootHandle)return;
+        const rec=detail?.record||await filesApi()?.get?.(detail?.fileId);
+        if(rec)await mirrorRecord(rec);
+      }).catch(e=>console.warn('Файл сохранён в браузере, но не скопирован в папку',e));
+    });
+
+    bus.on('file:deleted',detail=>{
+      Promise.resolve().then(async()=>{
+        if(!rootHandle||!detail?.record)return;
+        await removeMirroredRecord(detail.record);
+      }).catch(e=>console.warn('Файл удалён из браузера, но зеркальная копия не удалена',e));
+    });
+
+    fileEventsBound=true;
+    return true;
   }
 
-  if(typeof mediaDbDelete==='function'){
-    const originalDelete=mediaDbDelete;
-    mediaDbDelete=async function(id){
-      let rec=null;
-      try{if(typeof mediaDbGet==='function') rec=await mediaDbGet(id);}catch(e){}
-      const result=await originalDelete(id);
-      if(rec && rootHandle) await removeMirroredRecord(rec);
-      return result;
-    };
-  }
+  bindFileEvents();
+  Promise.resolve(window.DiagnostikaPlatform?.ready).then(bindFileEvents).catch(()=>{});
 
   (async()=>{
     if(!('showDirectoryPicker' in window)) return;
