@@ -50,7 +50,7 @@ for(const token of [
   'diagnosis-add-focus.js?v=20260919-diagnosis7c',
   'secondary-feeling-hints.js?v=20260919-diagnosis7c',
   'feeling-collapse.js?v=20260919-diagnosis7c',
-  'diagnosis-api.js?v=20260919-diagnosis7c'
+  'diagnosis-api.js?v=20260919-diagnosis7d'
 ])assert(indexSource.includes(token),'Diagnosis 7C cache marker missing '+token);
 
 const fixture={version:4,clients:[{
