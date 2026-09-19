@@ -197,7 +197,7 @@
         return;
       }
       const moduleScript=document.createElement('script');
-      moduleScript.src='modules/files/index.js?v=20260919-files9a';
+      moduleScript.src='modules/files/index.js?v=20260919-files9d';
       moduleScript.setAttribute('data-files-module','1');
       moduleScript.onload=next;
       document.body.appendChild(moduleScript);
@@ -215,7 +215,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/files/file-service.js?v=20260919-files9a';
+    serviceScript.src='modules/files/file-service.js?v=20260919-files9d';
     serviceScript.setAttribute('data-files-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -393,7 +393,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='files-api.js?v=20260919-files9a';
+      api.src='files-api.js?v=20260919-files9d';
       api.setAttribute('data-files-api','1');
       api.onload=loadCalendarApi;
       document.body.appendChild(api);
