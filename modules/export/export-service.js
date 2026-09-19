@@ -41,7 +41,8 @@
   }
 
   function dateTime(value){
-    const d=value instanceof Date?new Date(value.getTime()):new Date(value||Date.now());
+    let d=value instanceof Date?new Date(value.getTime()):new Date(value||Date.now());
+    if(Number.isNaN(d.getTime()))d=new Date();
     const dd=String(d.getDate()).padStart(2,'0');
     const mm=String(d.getMonth()+1).padStart(2,'0');
     const yyyy=d.getFullYear();
@@ -163,7 +164,7 @@
   }
 
   services.export=Object.freeze({
-    version:'10A',
+    version:'10D',
     events:EVENTS,
     safeName,
     dateTime,
