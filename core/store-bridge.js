@@ -47,24 +47,15 @@
 
     try {
       const db = platform.db || window.DiagnostikaDB;
-      if (db?.writeState) {
-        return db.writeState(currentState, {
-          source: options.source || 'store-persist'
-        }) === true;
+      if (!db?.writeState) {
+        console.error('[DiagnostikaPlatform] database persistence unavailable');
+        return false;
       }
+      return db.writeState(currentState, {
+        source: options.source || 'store-persist'
+      }) === true;
     } catch (error) {
       console.error('[DiagnostikaPlatform] database persistence failed', error);
-      return false;
-    }
-
-    try {
-      if (typeof save !== 'function') return false;
-      return save({
-        forceLegacy: true,
-        source: options.source || 'store-legacy-fallback'
-      }) !== false;
-    } catch (error) {
-      console.error('[DiagnostikaPlatform] legacy save failed', error);
       return false;
     }
   }
