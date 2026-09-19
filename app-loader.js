@@ -189,6 +189,39 @@
   }
 
 
+
+  function ensureCalendarFoundation(next){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-calendar-module]')){
+        next();
+        return;
+      }
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/calendar/index.js?v=20260919-calendar8a';
+      moduleScript.setAttribute('data-calendar-module','1');
+      moduleScript.onload=next;
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.calendar){
+      loadModule();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-calendar-service]');
+    if(existing){
+      existing.addEventListener('load',loadModule,{once:true});
+      return;
+    }
+
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/calendar/calendar-service.js?v=20260919-calendar8a';
+    serviceScript.setAttribute('data-calendar-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
+
   function ensurePaymentsFoundation(next){
     const loadModule=()=>{
       if(document.querySelector('script[data-payments-module]')){
@@ -293,10 +326,31 @@
     });
   }
 
+  function loadCalendarApi(){
+    ensureCalendarFoundation(()=>{
+      if(window.DiagnostikaCalendar?.moduleAware===true){
+        loadPaymentApi();
+        return;
+      }
+
+      const existing=document.querySelector('script[data-calendar-api]');
+      if(existing){
+        existing.addEventListener('load',loadCalendarApi,{once:true});
+        return;
+      }
+
+      const api=document.createElement('script');
+      api.src='calendar-api.js?v=20260919-calendar8a';
+      api.setAttribute('data-calendar-api','1');
+      api.onload=loadPaymentApi;
+      document.body.appendChild(api);
+    });
+  }
+
   function loadSessionsApi(){
     ensureSessionsFoundation(()=>{
       if(window.DiagnostikaSessions?.moduleAware===true){
-        loadPaymentApi();
+        loadCalendarApi();
         return;
       }
 
@@ -309,7 +363,7 @@
       const api=document.createElement('script');
       api.src='session-api.js?v=20260918-sessions4c';
       api.setAttribute('data-session-api','1');
-      api.onload=loadPaymentApi;
+      api.onload=loadCalendarApi;
       document.body.appendChild(api);
     });
   }
