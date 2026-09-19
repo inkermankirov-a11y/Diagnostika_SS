@@ -33,6 +33,7 @@ jobs:
           node --check app-loader.js
           node --check tests/export-module-10a-audit.mjs
           node --check tests/export-ui-10b-audit.mjs
+          node --check tests/export-hardening-10d-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -53,12 +54,14 @@ jobs:
                   errors.append('ExportService browser/UI dependency '+forbidden)
           if "MODULE_ID='export'" not in module:
               errors.append('export module registration missing')
-          if "version:'10A'" not in api or 'moduleAware:true' not in api:
-              errors.append('export facade is not module-aware 10A')
+          if "version:'10D'" not in api or 'moduleAware:true' not in api:
+              errors.append('export facade is not module-aware 10D')
+          if "version:'10D'" not in service:
+              errors.append('ExportService is not hardened 10D')
           for token in [
-              'modules/export/export-service.js?v=20260919-export10a',
-              'modules/export/index.js?v=20260919-export10a',
-              'export-api.js?v=20260919-export10a'
+              'modules/export/export-service.js?v=20260919-export10d',
+              'modules/export/index.js?v=20260919-export10d',
+              'export-api.js?v=20260919-export10d'
           ]:
               if token not in loader:
                   errors.append('export loader missing/stale '+token)
@@ -80,7 +83,7 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Verify Export 10A and 10B
+      - name: Verify Export 10A, 10B and 10D
         shell: bash
         run: |
           set -euo pipefail
@@ -88,3 +91,4 @@ jobs:
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/export-module-10a-audit.mjs
           node tests/export-ui-10b-audit.mjs
+          node tests/export-hardening-10d-audit.mjs
