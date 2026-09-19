@@ -27,7 +27,7 @@ jobs:
           node --check tests/db-foundation-14a-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
-          import sys
+          import re,sys
 
           db=Path('core/database.js').read_text(encoding='utf-8')
           bootstrap=Path('core/bootstrap.js').read_text(encoding='utf-8')
@@ -47,8 +47,13 @@ jobs:
 
           if "['db', 'core/database.js?v=20260919-db14a']" not in bootstrap:
               errors.append('CORE DB loader missing')
-          if 'core/bootstrap.js?v=20260919-db14a&api=13d' not in index:
-              errors.append('index DB cache marker missing')
+          build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
+          bootstrap_match=re.search(r'core/bootstrap[.]js[?]v=([^"&]+)&api=13d',index)
+          loader_match=re.search(r'app-loader[.]js[?]v=([^"&]+)&api=13d',index)
+          if not build_match or not bootstrap_match or not loader_match:
+              errors.append('DB global runtime markers missing')
+          elif len({build_match.group(1),bootstrap_match.group(1),loader_match.group(1)})!=1:
+              errors.append('DB global runtime markers differ')
 
           print('DB_14A_STATIC_ERRORS:',errors)
           if errors:
