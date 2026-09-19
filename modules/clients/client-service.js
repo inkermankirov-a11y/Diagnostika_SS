@@ -106,10 +106,17 @@
 
   function persist() {
     try {
-      if (typeof save === 'function') {
-        save();
-        return true;
-      }
+      if (platform.store?.legacySave?.({ source: 'client-service-persist' })) return true;
+    } catch (error) {
+      console.error('[DiagnostikaPlatform] client store persistence failed', error);
+      return false;
+    }
+
+    try {
+      if (typeof save === 'function') return save({
+        forceLegacy: true,
+        source: 'client-service-legacy-fallback'
+      }) !== false;
     } catch (error) {
       console.error('[DiagnostikaPlatform] client persistence failed', error);
     }

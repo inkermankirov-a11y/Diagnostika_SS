@@ -25,6 +25,7 @@ jobs:
           node --check core/database.js
           node --check core/bootstrap.js
           node --check tests/db-foundation-14a-audit.mjs
+          node --check tests/db-write-path-14b-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
@@ -35,7 +36,7 @@ jobs:
           errors=[]
 
           for token in [
-              "const VERSION = '14A'",
+              "const VERSION = '14B'",
               "const STATE_KEY = 'diagnostika-web-v1'",
               'function readState(',
               'function writeState(',
@@ -45,7 +46,7 @@ jobs:
               if token not in db:
                   errors.append('DB foundation missing '+token)
 
-          if "['db', 'core/database.js?v=20260919-db14a']" not in bootstrap:
+          if "['db', 'core/database.js?v=20260919-db14b']" not in bootstrap:
               errors.append('CORE DB loader missing')
           build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
           bootstrap_match=re.search(r'core/bootstrap[.]js[?]v=([^"&]+)&api=13d',index)
@@ -55,7 +56,7 @@ jobs:
           elif len({build_match.group(1),bootstrap_match.group(1),loader_match.group(1)})!=1:
               errors.append('DB global runtime markers differ')
 
-          print('DB_14A_STATIC_ERRORS:',errors)
+          print('DB_14B_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
           PY
@@ -66,10 +67,11 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Verify DB 14A runtime
+      - name: Verify DB 14A foundation and 14B write path
         shell: bash
         run: |
           set -euo pipefail
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/db-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/db-foundation-14a-audit.mjs
+          node tests/db-write-path-14b-audit.mjs
