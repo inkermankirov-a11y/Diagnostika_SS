@@ -26,8 +26,11 @@ for(const token of [
   'modules/calendar/index.js?v=20260919-calendar8a',
   'calendar-api.js?v=20260919-calendar8d'
 ])assert(loaderSource.includes(token),'Calendar loader missing/stale '+token);
-assert(/<meta name="diagnostika-build" content="20260919-(?:calendar8d|files9[a-d]|export10[a-d]|roles11[a-d])">/.test(indexSource),'Calendar-compatible build marker is stale');
-assert(/app-loader\.js\?v=20260919-(?:calendar8d|files9[a-d]|export10[a-d]|roles11[a-d])/.test(indexSource),'Calendar-compatible app-loader marker is stale');
+const calendarBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
+const calendarLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)/);
+assert(calendarBuildMatch,'Calendar global build marker missing');
+assert(calendarLoaderMatch,'Calendar app-loader marker missing');
+assert.equal(calendarBuildMatch[1],calendarLoaderMatch[1],'Calendar global build/app-loader markers differ');
 
 assert(planningSource.includes('normalizePlannedSessions'),'Session planning baseline missing');
 

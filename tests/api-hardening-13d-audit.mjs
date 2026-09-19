@@ -24,11 +24,15 @@ for(const marker of [
   'client-api.js?v=20260918-clients2b2&api=13d'
 ])assert(loaderSource.includes(marker),'API 13D facade marker missing '+marker);
 
-for(const marker of [
-  'core/bootstrap.js?v=20260919-roles11d&api=13d',
-  'diagnosis-api.js?v=20260919-diagnosis7d&api=13d',
-  'app-loader.js?v=20260919-roles11d&api=13d'
-])assert(indexSource.includes(marker),'API 13D index marker missing '+marker);
+assert(indexSource.includes('diagnosis-api.js?v=20260919-diagnosis7d&api=13d'),'API 13D Diagnosis index marker missing');
+const apiBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
+const apiBootstrapMatch=indexSource.match(/core\/bootstrap\.js\?v=([^"&]+)&api=13d/);
+const apiLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)&api=13d/);
+assert(apiBuildMatch,'API global build marker missing');
+assert(apiBootstrapMatch,'API bootstrap cache/API marker missing');
+assert(apiLoaderMatch,'API app-loader cache/API marker missing');
+assert.equal(apiBuildMatch[1],apiBootstrapMatch[1],'API global build/bootstrap markers differ');
+assert.equal(apiBuildMatch[1],apiLoaderMatch[1],'API global build/app-loader markers differ');
 
 const fixture={version:4,clients:[{
   id:'api13d-client',

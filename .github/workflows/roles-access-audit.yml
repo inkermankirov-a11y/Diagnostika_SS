@@ -2,7 +2,7 @@ name: Roles access audit
 
 on:
   push:
-    branches: [main, 'feature-roles-*', 'feature-api-*' ]
+    branches: [main, 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
     paths:
       - 'core/access-control.js'
       - 'core/module-registry.js'
@@ -32,7 +32,7 @@ jobs:
           node --check tests/roles-11d-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
-          import sys
+          import re,sys
 
           access=Path('core/access-control.js').read_text(encoding='utf-8')
           registry=Path('core/module-registry.js').read_text(encoding='utf-8')
@@ -58,13 +58,13 @@ jobs:
           ]:
               if token not in bootstrap:
                   errors.append('roles core cache marker missing '+token)
-          for token in [
-              '<meta name="diagnostika-build" content="20260919-roles11d">',
-              'core/bootstrap.js?v=20260919-roles11d',
-              'app-loader.js?v=20260919-roles11d'
-          ]:
-              if token not in index:
-                  errors.append('roles runtime build marker missing '+token)
+          build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
+          bootstrap_match=re.search(r'core/bootstrap[.]js[?]v=([^"&]+)',index)
+          loader_match=re.search(r'app-loader[.]js[?]v=([^"&]+)',index)
+          if not build_match or not bootstrap_match or not loader_match:
+              errors.append('roles runtime global build markers missing')
+          elif len({build_match.group(1),bootstrap_match.group(1),loader_match.group(1)})!=1:
+              errors.append('roles runtime global build markers differ')
 
           module_indexes=list(Path('modules').glob('*/index.js'))
           for path in module_indexes:

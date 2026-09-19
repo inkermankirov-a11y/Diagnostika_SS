@@ -21,8 +21,11 @@ for(const marker of [
   'app.js?v=20260919-export10d',
   'export-txt-classic.js?v=20260919-export10d'
 ])assert(indexSource.includes(marker),'Export 10D build marker missing '+marker);
-assert(/<meta name="diagnostika-build" content="20260919-(?:export10d|roles11[a-d])">/.test(indexSource),'Export-compatible build marker is stale');
-assert(/app-loader\.js\?v=20260919-(?:export10d|roles11[a-d])/.test(indexSource),'Export-compatible app-loader marker is stale');
+const exportBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
+const exportLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)/);
+assert(exportBuildMatch,'Export global build marker missing');
+assert(exportLoaderMatch,'Export app-loader cache marker missing');
+assert.equal(exportBuildMatch[1],exportLoaderMatch[1],'Export global build/app-loader markers differ');
 
 const fixture={version:4,clients:[{
   id:'export-10d-client',

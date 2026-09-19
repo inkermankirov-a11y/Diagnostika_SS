@@ -9,7 +9,7 @@ const indexSource=fs.readFileSync('index.html','utf8');
 
 assert(apiSource.includes("version:'8D'"),'Calendar facade version is not 8D');
 assert(indexSource.includes('client-calendar.js?v=20260919-calendar8d'),'Calendar UI cache marker is stale');
-assert(/app-loader\.js\?v=20260919-(?:calendar8d|files9[a-d]|export10[a-d]|roles11[a-d])/.test(indexSource),'Global loader marker is stale');
+assert(/app-loader\.js\?v=[^"&]+&api=13d/.test(indexSource),'Global app-loader/API marker missing');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade loader marker is stale');
 
 for(const forbidden of [

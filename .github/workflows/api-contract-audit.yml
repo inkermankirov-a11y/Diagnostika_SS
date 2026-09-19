@@ -2,7 +2,7 @@ name: API contract audit
 
 on:
   push:
-    branches: [main, 'feature-api-*']
+    branches: [main, 'feature-api-*', 'feature-db-*']
     paths:
       - 'core/api-registry.js'
       - 'core/bootstrap.js'
