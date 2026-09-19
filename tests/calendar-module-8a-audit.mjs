@@ -155,13 +155,20 @@ for(const source of ['calendar-8a-test-create','calendar-8a-test-update']){
   assert(persisted.events.some(x=>x.detail?.source===source),'Missing calendar event source '+source);
 }
 
-const ui=await page.evaluate(()=>{
+const uiOpen=await page.evaluate(()=>{
   const result=window.DiagnostikaCalendar.open();
   const dialog=document.getElementById('diagnostikaCalendarOverlay');
-  return {result,open:!!dialog?.open,rows:dialog?.querySelectorAll('.cal-event').length||0};
+  return {result,open:!!dialog?.open};
 });
-assert.equal(ui.open,true,'Calendar legacy UI did not open through 8A facade');
-assert(ui.rows>=1,'Calendar UI did not render stored events');
+assert.equal(uiOpen.open,true,'Calendar legacy UI did not open through 8A facade');
+await page.evaluate(()=>{
+  const cells=[...document.querySelectorAll('#diagnostikaCalendarOverlay .cal-day:not(.out)')];
+  const target=cells.find(cell=>cell.querySelector('.cal-num')?.textContent==='20');
+  if(!target)throw new Error('Calendar day 20 was not rendered');
+  target.click();
+});
+const uiRows=await page.locator('#diagnostikaCalendarOverlay .cal-event').count();
+assert(uiRows>=1,'Calendar UI did not render stored event after selecting its date');
 await page.locator('#diagnostikaCalendarOverlay .cal-close').click();
 
 const removed=await page.evaluate(()=>{
@@ -195,7 +202,7 @@ console.log('CALENDAR_8A_SUCCESS',JSON.stringify({
   module:foundation.module.status,
   initial:foundation.listCount,
   restored:restored.length,
-  uiOpened:ui.open
+  uiOpened:uiOpen.open
 }));
 
 await context.close();
