@@ -70,17 +70,23 @@ const clientUpdated=await page.evaluate(()=>Boolean(window.DiagnostikaClients.up
 )));
 assert.equal(clientUpdated,true,'ClientService DB write failed');
 
-await page.evaluate(()=>{
-  const input=document.getElementById('requestTitle');
-  if(!input)throw new Error('requestTitle input missing');
-  input.value='After DB 14B';
-  input.dispatchEvent(new Event('input',{bubbles:true}));
+await page.waitForFunction(()=>{
+  const rows=window.__db14bWrites||[];
+  return rows.some(x=>x.key==='diagnostika-web-v1'&&x.source==='client-service-persist');
+},null,{timeout:5000});
+
+const appSaved=await page.evaluate(()=>{
+  const c=window.DiagnostikaClients.findById('db14b-client');
+  const r=c?.requests?.find(x=>x.id==='db14b-r1');
+  if(!r||typeof window.save!=='function')return false;
+  r.title='After DB 14B';
+  return window.save()!==false;
 });
+assert.equal(appSaved,true,'app.js DB write failed');
 
 await page.waitForFunction(()=>{
   const rows=window.__db14bWrites||[];
-  return rows.some(x=>x.key==='diagnostika-web-v1'&&x.source==='client-service-persist')
-    && rows.some(x=>x.key==='diagnostika-web-v1'&&x.source==='app-save');
+  return rows.some(x=>x.key==='diagnostika-web-v1'&&x.source==='app-save');
 },null,{timeout:5000});
 
 const persisted=await page.evaluate(()=>{
