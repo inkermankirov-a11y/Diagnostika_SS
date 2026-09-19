@@ -15,6 +15,7 @@
     ['modules', 'core/module-registry.js?v=20260919-roles11d'],
     ['store', 'core/store-bridge.js?v=20260917-core02a'],
     ['access', 'core/access-control.js?v=20260919-roles11d'],
+    ['api', 'core/api-registry.js?v=20260919-api13a'],
     ['legacyEvents', 'core/legacy-event-bridge.js?v=20260918-sessions4c'],
     ['paymentEvents', 'core/payment-event-bridge.js?v=20260918-core02b']
   ];
