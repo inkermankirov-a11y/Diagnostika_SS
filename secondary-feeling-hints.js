@@ -196,20 +196,24 @@
 
   function saveBuilder(){
     if(!editingBelief)return;
-    editingBelief.feelings=rows.filter(x=>x.checked).map(item=>{
-      const f=item.source||{id:item.id||uid(),deep:item.deep||[]};
-      f.id=f.id||item.id||uid();
-      f.feelingType=item.name;
-      f.feelingQuestion=item.question||presetQuestion(item.name)||'';
-      f.feelingAnswer=item.answer||'';
-      f.level=Math.max(1,Math.min(10,Number(item.level)||1));
-      f.comment=item.comment||f.comment||'';
-      if(!Array.isArray(f.deep))f.deep=item.deep||[];
+    const c=typeof client==='function'?client():null;
+    const r=typeof request==='function'?request():null;
+    const api=window.DiagnostikaDiagnosis;
+    if(!c||!r||!api?.moduleAware)return;
+    const feelings=rows.filter(x=>x.checked).map(item=>{
+      const base=item.source?JSON.parse(JSON.stringify(item.source)):{id:item.id||uid(),deep:item.deep||[]};
+      base.id=base.id||item.id||uid();
+      base.feelingType=item.name;
+      base.feelingQuestion=item.question||presetQuestion(item.name)||'';
+      base.feelingAnswer=item.answer||'';
+      base.level=Math.max(1,Math.min(10,Number(item.level)||1));
+      base.comment=item.comment||base.comment||'';
+      if(!Array.isArray(base.deep))base.deep=item.deep||[];
       const detail=(item.answer||'').trim();
-      f.text=item.name+(detail?': '+detail:'');
-      return f;
+      base.text=item.name+(detail?': '+detail:'');
+      return base;
     });
-    if(typeof save==='function')save();
+    if(!api.replaceFeelings(editingBelief.id,feelings,{client:c,requestId:r.id,source:'diagnosis-ui-feelings-replace',render:false}))return;
     selected=null;
     if(typeof renderTree==='function')renderTree();
     dialog.close();
