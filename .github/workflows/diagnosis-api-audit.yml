@@ -121,7 +121,7 @@ jobs:
           if 'api.update(' not in service:
               raise SystemExit('DiagnosisService does not commit through RequestService.update')
           nested_sources=app+'\n'+focus_ui+'\n'+feelings_ui+'\n'+collapse_ui
-          for token in ["source:'diagnosis-ui-belief-add'","source:'diagnosis-ui-deep-add'","source:'diagnosis-ui-element-save'","source:'diagnosis-ui-element-delete'","source:'diagnosis-ui-instinct-save'","source:'diagnosis-ui-instinct-add'","source:'diagnosis-ui-feelings-replace'"]:
+          for token in ['diagnosis-ui-belief-add','diagnosis-ui-deep-add','diagnosis-ui-element-save','diagnosis-ui-element-delete','diagnosis-ui-instinct-save','diagnosis-ui-instinct-add','diagnosis-ui-feelings-replace']:
               if token not in nested_sources:
                   raise SystemExit('Diagnosis 7C nested UI source missing '+token)
           for token in ['(s.beliefs||(s.beliefs=[])).push','(selected.obj.feelings||(selected.obj.feelings=[])).push','(selected.obj.deep||(selected.obj.deep=[])).push','arr.splice(selected.index,1)','selected.obj.instincts.push(newInstinct())','arr.push(newInstinct())']:
