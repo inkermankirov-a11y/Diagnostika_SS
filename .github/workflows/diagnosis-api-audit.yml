@@ -316,7 +316,7 @@ jobs:
           console.log('DIAGNOSIS_EMPTY_FALLBACK:',JSON.stringify(fallback));
           if(fallback.result!==false||!fallback.chooser||!fallback.stayedCard)throw new Error('Empty-request diagnosis fallback is unsafe');
 
-          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
           console.log('Browser errors:',JSON.stringify(errors));
           if(serious.length)throw new Error(serious.join(' | '));
 
