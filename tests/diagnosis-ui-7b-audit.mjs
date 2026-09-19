@@ -6,7 +6,7 @@ const appSource=fs.readFileSync('app.js','utf8');
 const apiSource=fs.readFileSync('diagnosis-api.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(/version:'7[BC]'/.test(apiSource),'Diagnosis facade version is outside supported 7B-7C range');
+assert(/version:'7[BCD]'/.test(apiSource),'Diagnosis facade version is outside supported 7B-7D range');
 for(const token of [
   "source:'diagnosis-ui-situation-add'",
   "source:'diagnosis-ui-situation-edit'",
@@ -59,7 +59,7 @@ page.on('dialog',async d=>{
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>/^7[BC]$/.test(window.DiagnostikaDiagnosis?.version||'')
+  await page.waitForFunction(()=>/^7[BCD]$/.test(window.DiagnostikaDiagnosis?.version||'')
     && window.DiagnostikaDiagnosis?.moduleAware===true
     && window.DiagnostikaPlatform?.services?.diagnosis,
     null,{timeout:15000});
