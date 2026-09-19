@@ -52,7 +52,7 @@ openssl rand -hex 32
 
 Use one generated value for `TOKEN_ENCRYPTION_KEY`. Use another long random value for `SESSION_SECRET`.
 
-Never commit `.env` or the `server/data/` directory.
+Never commit `.env` or the `server/data/` directory. `npm start` automatically reads `server/.env`; real environment variables take precedence.
 
 ## 3. Run
 
@@ -77,10 +77,21 @@ Google OAuth routes:
 
 The public HTTPS domain should proxy `/auth/` and `/api/` to the Node process. The frontend can be served by the same Node process or by Nginx from the repository root.
 
-Do not expose the `server/` directory as a public static directory. In production, bind Node behind Nginx/firewall and route only the required endpoints.
+Do not expose the `server/` directory as a public static directory. Server 12D blocks `/server`, `/.git`, `/.github`, `/tests`, `/n8n` and dot-prefixed paths even when Node serves the frontend itself. In production, still bind Node behind Nginx/firewall and route only the required endpoints.
 
 ## 5. Current behavior
 
 After connection the server creates or reuses the `Diagnostika` folder in the user's Google Drive. The current implementation can store and restore `database.json` there. Refresh tokens are encrypted at rest using AES-256-GCM with `TOKEN_ENCRYPTION_KEY`.
 
 Session attachments are not yet mirrored to Google Drive; this is a separate storage layer to add after the OAuth/backend is running.
+
+
+## 6. Server 12D hardening
+
+- backend/internal repository paths are not served as public static files;
+- unknown `/api/*` and `/auth/*` routes do not fall through to the SPA;
+- browser mutation requests are checked against `PUBLIC_BASE_URL` when an `Origin` header is present;
+- the Google connection store is created with restrictive filesystem permissions where supported;
+- a corrupted connection store is never silently replaced with an empty store;
+- security headers and graceful SIGTERM/SIGINT shutdown are enabled;
+- `PUBLIC_BASE_URL`, `PORT`, encryption-key format and OAuth session-secret length are validated before use.
