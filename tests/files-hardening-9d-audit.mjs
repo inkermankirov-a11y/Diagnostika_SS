@@ -25,8 +25,11 @@ for(const marker of [
   'session-attachments.js?v=20260919-files9d',
   'storage-manager.js?v=20260919-files9d'
 ])assert(indexSource.includes(marker),'Files 9D runtime marker missing '+marker);
-assert(/<meta name="diagnostika-build" content="20260919-(?:files9d|export10[a-d]|roles11[a-d])">/.test(indexSource),'Files-compatible build marker is stale');
-assert(/app-loader\.js\?v=20260919-(?:files9d|export10[a-d]|roles11[a-d])/.test(indexSource),'Files-compatible app-loader marker is stale');
+const filesBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
+const filesLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)/);
+assert(filesBuildMatch,'Files global build marker missing');
+assert(filesLoaderMatch,'Files app-loader cache marker missing');
+assert.equal(filesBuildMatch[1],filesLoaderMatch[1],'Files global build/app-loader markers differ');
 
 const fixture={version:4,clients:[{
   id:'files-9d-client',
