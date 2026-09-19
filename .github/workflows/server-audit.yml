@@ -28,20 +28,24 @@ jobs:
           src=Path('server/server.js').read_text(encoding='utf-8')
           errors=[]
           for token in [
-              "const SERVER_VERSION='12A'",
+              "const SERVER_VERSION='12D'",
               "INTERNAL_STATIC_ROOTS",
               "dotfiles:'deny'",
               "res.status(404).json({error:'API route not found.'})",
               "Origin not allowed.",
               "mode:0o600",
               "X-Content-Type-Options",
-              "Permissions-Policy"
+              "Permissions-Policy",
+              "Content-Security-Policy",
+              "function loadEnvFile(",
+              "Google Drive connection store is corrupted; refusing to overwrite it.",
+              "Auth route not found."
           ]:
               if token not in src:
                   errors.append('server hardening missing '+token)
           if "app.use(express.static(ROOT" not in src:
               errors.append('frontend static serving unexpectedly removed')
-          print('SERVER_12AB_STATIC_ERRORS:',errors)
+          print('SERVER_12D_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
           PY
@@ -49,5 +53,5 @@ jobs:
       - name: Install server dependencies
         run: npm --prefix server install --no-audit --no-fund
 
-      - name: Verify Server 12A/12B runtime
+      - name: Verify Server 12D runtime
         run: node tests/server-12ab-audit.mjs
