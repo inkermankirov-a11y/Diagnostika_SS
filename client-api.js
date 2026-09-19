@@ -14,23 +14,32 @@
     purged: 'client:purged'
   });
 
+  function apiAllowed(){
+    const api=window.DiagnostikaPlatform?.api;
+    return !api||api.allowed('clients')!==false;
+  }
+
   function service(){
+    if(!apiAllowed())return null;
     return window.DiagnostikaPlatform?.clients
       || window.DiagnostikaPlatform?.services?.clients
       || null;
   }
 
   function legacyList(){
+    if(!apiAllowed())return [];
     try { return Array.isArray(state?.clients) ? state.clients : []; }
     catch (_) { return []; }
   }
 
   function legacyCurrent(){
+    if(!apiAllowed())return null;
     try { return typeof client === 'function' ? client() : null; }
     catch (_) { return null; }
   }
 
   function legacyCurrentId(){
+    if(!apiAllowed())return null;
     try { return typeof clientId !== 'undefined' ? clientId : null; }
     catch (_) { return null; }
   }
@@ -76,6 +85,7 @@
   }
 
   function legacySelect(id,options={}){
+    if(!apiAllowed())return false;
     const target=findById(id);
     if(!target) return false;
 
@@ -122,6 +132,7 @@
   }
 
   function legacyCreate(data={},options={}){
+    if(!apiAllowed())return null;
     const created=fallbackNewClient(data);
     if(findById(created.id)) return null;
     const clients=legacyList();
@@ -150,6 +161,7 @@
   }
 
   function legacyUpdate(id,changes={},options={}){
+    if(!apiAllowed())return null;
     const target=findById(id);
     if(!target||!changes||typeof changes!=='object') return null;
     const patch={...changes};
@@ -172,6 +184,7 @@
   }
 
   function legacyTrashState(){
+    if(!apiAllowed())return null;
     try{
       if(!Array.isArray(state.deletedClients)) state.deletedClients=[];
       if(!Array.isArray(state.deletedClientTombstones)) state.deletedClientTombstones=[];
@@ -198,6 +211,7 @@
   }
 
   function legacyRemove(id,options={}){
+    if(!apiAllowed())return null;
     const clients=legacyList();
     const index=clients.findIndex(x=>x&&String(x.id)===String(id));
     if(index<0) return null;
@@ -262,6 +276,7 @@
   }
 
   function legacyRestore(id,options={}){
+    if(!apiAllowed())return null;
     const trash=legacyTrashState();
     if(!trash) return null;
     const index=trash.deletedClients.findIndex(x=>x&&String(x.id)===String(id));
@@ -285,6 +300,7 @@
   }
 
   function legacyPurge(id,options={}){
+    if(!apiAllowed())return false;
     const trash=legacyTrashState();
     if(!trash) return false;
     const index=trash.deletedClients.findIndex(x=>x&&String(x.id)===String(id));
@@ -303,6 +319,7 @@
   }
 
   function openDatabase(){
+    if(!apiAllowed())return false;
     if(typeof window.openDatabase!=='function') return false;
     window.openDatabase();
     return true;
