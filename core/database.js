@@ -4,7 +4,7 @@
   const platform = window.DiagnostikaPlatform;
   if (!platform || platform.db) return;
 
-  const VERSION = '14A';
+  const VERSION = '14B';
   const BACKEND = 'localStorage';
   const STATE_KEY = 'diagnostika-web-v1';
   const SCHEMA_VERSION = 4;
