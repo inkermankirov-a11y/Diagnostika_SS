@@ -84,7 +84,7 @@ assert.equal(result.module.status,'started');
 assert(result.txt.filename.includes('2026-09-19_15-45'));
 assert.equal(result.backup.filename,'backup?.json');
 assert.equal(result.invalidSafe,'bad__name');
-assert(/^d{2}.d{2}.d{4} d{2}:d{2}$/.test(result.invalidDate.display));
+assert(/^[0-9]{2}\.[0-9]{2}\.[0-9]{4} [0-9]{2}:[0-9]{2}$/.test(result.invalidDate.display));
 
 const isolated=await page.evaluate(()=>{
   const c=window.DiagnostikaClients.current();
