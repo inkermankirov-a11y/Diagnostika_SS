@@ -208,11 +208,23 @@
     if(e.target?.closest?.('#ccCalendarBtn,.cal-day,.cal-prev,.cal-next,.cal-today'))setTimeout(refreshLinkage,0);
   },true);
 
-  const bus=window.DiagnostikaPlatform?.events;
-  ['calendar:ready','sessions:ready','session:created','session:updated','session:deleted'].forEach(type=>{
-    bus?.on?.(type,()=>setTimeout(refreshLinkage,0));
-  });
+  let serviceEventsBound=false;
+  function bindServiceEvents(){
+    if(serviceEventsBound)return true;
+    const bus=window.DiagnostikaPlatform?.events;
+    if(!bus?.on)return false;
+    ['calendar:ready','sessions:ready','session:created','session:updated','session:deleted'].forEach(type=>{
+      bus.on(type,()=>setTimeout(refreshLinkage,0));
+    });
+    serviceEventsBound=true;
+    return true;
+  }
 
+  bindServiceEvents();
+  Promise.resolve(window.DiagnostikaPlatform?.ready).then(()=>{
+    bindServiceEvents();
+    setTimeout(refreshLinkage,0);
+  }).catch(()=>{});
   setTimeout(refreshLinkage,0);
 
   window.DiagnostikaCalendarSessionPlanning=Object.freeze({
