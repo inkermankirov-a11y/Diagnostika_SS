@@ -358,23 +358,44 @@
     document.body.appendChild(serviceScript);
   }
 
+  function loadRuntimeContract(){
+    const finish=()=>loadDashboard();
+    if(window.DiagnostikaRuntime?.version==='15A'){
+      finish();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-runtime-contract]');
+    if(existing){
+      existing.addEventListener('load',finish,{once:true});
+      return;
+    }
+
+    const runtime=document.createElement('script');
+    runtime.src='core/runtime-contract.js?v=20260919-final15a';
+    runtime.setAttribute('data-runtime-contract','1');
+    runtime.onload=finish;
+    runtime.onerror=finish;
+    document.body.appendChild(runtime);
+  }
+
   function loadAIApi(){
     ensureAIFoundation(()=>{
       if(window.DiagnostikaAI?.moduleAware===true){
-        loadDashboard();
+        loadRuntimeContract();
         return;
       }
 
       const existing=document.querySelector('script[data-ai-api]');
       if(existing){
-        existing.addEventListener('load',loadDashboard,{once:true});
+        existing.addEventListener('load',loadRuntimeContract,{once:true});
         return;
       }
 
       const api=document.createElement('script');
       api.src='ai-api.js?v=20260919-ai6d&api=13d';
       api.setAttribute('data-ai-api','1');
-      api.onload=loadDashboard;
+      api.onload=loadRuntimeContract;
       document.body.appendChild(api);
     });
   }
