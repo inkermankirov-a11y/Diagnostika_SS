@@ -20,9 +20,9 @@ assert(moduleSource.includes("'session:deleted'"),'Files module does not clean d
 assert(moduleSource.includes("'client:purged'"),'Files module does not clean purged clients');
 assert(apiSource.includes("version:'9A'"),'Files facade version is not 9A');
 for(const marker of [
-  'modules/files/file-service.js?v=20260919-files9a',
-  'modules/files/index.js?v=20260919-files9a',
-  'files-api.js?v=20260919-files9a'
+  'modules/files/file-service.js?v=20260919-files9d',
+  'modules/files/index.js?v=20260919-files9d',
+  'files-api.js?v=20260919-files9d'
 ])assert(loaderSource.includes(marker),'Files loader marker missing '+marker);
 
 const fixture={version:4,clients:[{
@@ -52,7 +52,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 await page.goto('http://127.0.0.1:8000/index.html?files-9a=1',{waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-await page.waitForFunction(()=>window.DiagnostikaFiles?.version==='9A'
+await page.waitForFunction(()=>window.DiagnostikaFiles?.version==='9D'
   && window.DiagnostikaFiles?.moduleAware===true
   && window.DiagnostikaPlatform?.services?.files
   && window.DiagnostikaPlatform?.modules?.get?.('files')?.status==='started',
