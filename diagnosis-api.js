@@ -62,7 +62,7 @@
   };
 
   window.DiagnostikaDiagnosis=Object.freeze({
-    version:'7C',
+    version:'7D',
     moduleAware:true,
     open,
     snapshot:(requestRef,clientRef)=>call('snapshot',requestRef,clientRef),
