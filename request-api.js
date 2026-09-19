@@ -16,13 +16,20 @@
     deleted:'request:deleted'
   });
 
+  function apiAllowed(){
+    const api=window.DiagnostikaPlatform?.api;
+    return !api||api.allowed('requests')!==false;
+  }
+
   function service(){
+    if(!apiAllowed())return null;
     return window.DiagnostikaPlatform?.requests
       || window.DiagnostikaPlatform?.services?.requests
       || null;
   }
 
   function resolveClient(clientRef){
+    if(!apiAllowed())return null;
     if(clientRef&&typeof clientRef==='object')return clientRef;
     if(clientRef!==undefined&&clientRef!==null&&clientRef!==''){
       return window.DiagnostikaClients?.findById?.(clientRef)
@@ -90,6 +97,7 @@
   }
 
   function refresh(){
+    if(!apiAllowed())return false;
     let result=true;
     try{
       if(service()?.refresh)result=service().refresh()!==false;

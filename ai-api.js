@@ -6,8 +6,9 @@
 
   const service=()=>platform.services?.ai||null;
   const invoke=(name,args,failValue)=>{
+    if(platform.api?.invokeService)return platform.api.invokeService('ai',name,args,failValue);
     const fn=service()?.[name];
-    return typeof fn==='function'?fn(...args):failValue;
+    try{return typeof fn==='function'?fn(...args):failValue;}catch(_){return failValue;}
   };
 
   window.DiagnostikaAI=Object.freeze({

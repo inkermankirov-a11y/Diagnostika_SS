@@ -2,7 +2,7 @@ name: Calendar API audit
 
 on:
   push:
-    branches: [main, 'feature-calendar-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*']
+    branches: [main, 'feature-calendar-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
       - 'modules/calendar/**'
       - 'calendar-api.js'
@@ -85,7 +85,7 @@ jobs:
           if 'loadCalendarApi()' not in loader:
               errors.append('calendar API is not in application loader chain')
           build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
-          loader_match=re.search(r'app-loader[.]js[?]v=([^"]+)',index)
+          loader_match=re.search(r'app-loader[.]js[?]v=([^"&]+)',index)
           if not build_match or not loader_match:
               errors.append('calendar build/app-loader marker missing')
           elif build_match.group(1)!=loader_match.group(1):

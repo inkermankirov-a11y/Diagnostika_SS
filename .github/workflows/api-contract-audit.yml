@@ -1,0 +1,94 @@
+name: API contract audit
+
+on:
+  push:
+    branches: [main, 'feature-api-*']
+    paths:
+      - 'core/api-registry.js'
+      - 'core/bootstrap.js'
+      - '*-api.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/api-*.mjs'
+      - '.github/workflows/api-contract-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static API contract check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check core/api-registry.js
+          node --check core/bootstrap.js
+          node --check ai-api.js
+          node --check calendar-api.js
+          node --check client-api.js
+          node --check diagnosis-api.js
+          node --check export-api.js
+          node --check files-api.js
+          node --check payment-api.js
+          node --check request-api.js
+          node --check roles-api.js
+          node --check session-api.js
+          node --check tests/api-contract-13a-audit.mjs
+          node --check tests/api-hardening-13d-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          registry=Path('core/api-registry.js').read_text(encoding='utf-8')
+          bootstrap=Path('core/bootstrap.js').read_text(encoding='utf-8')
+          errors=[]
+
+          for token in [
+              "version:'13D'",
+              'window.DiagnostikaAPI=platform.api',
+              'function invokeService(',
+              'function invokeServiceAsync(',
+              'function health(',
+              'function allowed('
+          ]:
+              if token not in registry:
+                  errors.append('API registry missing '+token)
+
+          if "['api', 'core/api-registry.js?v=20260919-api13d']" not in bootstrap:
+              errors.append('CORE API registry loader missing')
+
+          for file in ['ai-api.js','calendar-api.js','session-api.js','payment-api.js','files-api.js','export-api.js']:
+              src=Path(file).read_text(encoding='utf-8')
+              if 'platform.api?.invokeService' not in src:
+                  errors.append(file+' does not use common invocation')
+
+          if 'Object.freeze(facade)' not in Path('payment-api.js').read_text(encoding='utf-8'):
+              errors.append('payment facade is not frozen')
+
+          for file in ['client-api.js','request-api.js','diagnosis-api.js']:
+              src=Path(file).read_text(encoding='utf-8')
+              if 'function apiAllowed()' not in src:
+                  errors.append(file+' lacks Roles-aware legacy guard')
+
+          print('API_13D_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify API 13A foundation and 13D hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/api-contract-13a-audit.mjs
+          node tests/api-hardening-13d-audit.mjs

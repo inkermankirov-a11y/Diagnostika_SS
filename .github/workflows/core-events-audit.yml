@@ -1,7 +1,7 @@
 name: CORE events audit
 on:
   push:
-    branches: [main, feature-core-0.2a, feature-core-0.2b, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
+    branches: [main, feature-core-0.2a, feature-core-0.2b, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
   workflow_dispatch:
 jobs:
   core-events:

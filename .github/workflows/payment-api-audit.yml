@@ -2,7 +2,7 @@ name: Payment API audit
 
 on:
   push:
-    branches: [main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
+    branches: [main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
       - 'home-dashboard.js'
       - 'modules/payments/**'
@@ -234,11 +234,12 @@ jobs:
             window.__paymentApiCalls=0;
             window.__legacyPaymentClicks=0;
             window.__paymentServiceCalls=[];
-            const api=window.DiagnostikaPayments;
-            const original=api.open.bind(api);
+            const originalApi=window.DiagnostikaPayments;
+            const api={...originalApi};
+            const original=originalApi.open.bind(originalApi);
             api.open=function(){window.__paymentApiCalls++;return original();};
             for(const name of ['updateRequest','replaceRequest','addPayment','updatePayment','removePayment']){
-              const fn=typeof api[name]==='function'?api[name].bind(api):null;
+              const fn=typeof originalApi[name]==='function'?originalApi[name].bind(originalApi):null;
               if(!fn)continue;
               api[name]=function(...args){
                 const options=args[args.length-1];
@@ -246,6 +247,7 @@ jobs:
                 return fn(...args);
               };
             }
+            window.DiagnostikaPayments=api;
             const legacy=document.querySelector('#clientPaymentBox .client-payment-btn');
             if(legacy)legacy.addEventListener('click',()=>window.__legacyPaymentClicks++,true);
           });

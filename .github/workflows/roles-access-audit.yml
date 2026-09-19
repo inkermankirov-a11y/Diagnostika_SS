@@ -2,7 +2,7 @@ name: Roles access audit
 
 on:
   push:
-    branches: [main, 'feature-roles-*']
+    branches: [main, 'feature-roles-*', 'feature-api-*' ]
     paths:
       - 'core/access-control.js'
       - 'core/module-registry.js'

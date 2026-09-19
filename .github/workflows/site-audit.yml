@@ -2,7 +2,7 @@ name: Site audit
 
 on:
   push:
-    branches: [main, retire-old-interface, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*' ]
+    branches: [main, retire-old-interface, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
       - '**.js'
       - '**.css'

@@ -372,7 +372,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='ai-api.js?v=20260919-ai6d';
+      api.src='ai-api.js?v=20260919-ai6d&api=13d';
       api.setAttribute('data-ai-api','1');
       api.onload=loadDashboard;
       document.body.appendChild(api);
@@ -393,7 +393,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='payment-api.js?v=20260918-payment5d';
+      api.src='payment-api.js?v=20260918-payment5d&api=13d';
       api.setAttribute('data-payment-api','1');
       api.onload=loadAIApi;
       document.body.appendChild(api);
@@ -414,7 +414,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='calendar-api.js?v=20260919-calendar8d';
+      api.src='calendar-api.js?v=20260919-calendar8d&api=13d';
       api.setAttribute('data-calendar-api','1');
       api.onload=loadPaymentApi;
       document.body.appendChild(api);
@@ -435,7 +435,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='export-api.js?v=20260919-export10d';
+      api.src='export-api.js?v=20260919-export10d&api=13d';
       api.setAttribute('data-export-api','1');
       api.onload=loadCalendarApi;
       document.body.appendChild(api);
@@ -456,7 +456,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='files-api.js?v=20260919-files9d';
+      api.src='files-api.js?v=20260919-files9d&api=13d';
       api.setAttribute('data-files-api','1');
       api.onload=loadExportApi;
       document.body.appendChild(api);
@@ -477,7 +477,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='session-api.js?v=20260918-sessions4c';
+      api.src='session-api.js?v=20260918-sessions4c&api=13d';
       api.setAttribute('data-session-api','1');
       api.onload=loadFilesApi;
       document.body.appendChild(api);
@@ -498,7 +498,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='diagnosis-api.js?v=20260919-diagnosis7a';
+      api.src='diagnosis-api.js?v=20260919-diagnosis7a&api=13d';
       api.setAttribute('data-diagnosis-api','1');
       api.onload=loadSessionsApi;
       document.body.appendChild(api);
@@ -519,7 +519,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='request-api.js?v=20260918-requests3d';
+      api.src='request-api.js?v=20260918-requests3d&api=13d';
       api.setAttribute('data-request-api','1');
       api.onload=loadDiagnosisApi;
       document.body.appendChild(api);
@@ -538,7 +538,7 @@
   }
 
   const api=document.createElement('script');
-  api.src='client-api.js?v=20260918-clients2b2';
+  api.src='client-api.js?v=20260918-clients2b2&api=13d';
   api.setAttribute('data-client-api','1');
   api.onload=loadRequestApi;
   document.body.appendChild(api);

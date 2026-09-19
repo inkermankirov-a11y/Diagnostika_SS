@@ -70,13 +70,15 @@ assert.equal(scripts.some(src=>src.includes('payment-observer-scope.js')),false,
 
 await page.evaluate(()=>{
   window.__payment5dUpdateCalls=[];
-  const api=window.DiagnostikaPayments;
-  const original=api.updateRequest.bind(api);
+  const originalApi=window.DiagnostikaPayments;
+  const api={...originalApi};
+  const original=originalApi.updateRequest.bind(originalApi);
   api.updateRequest=function(...args){
     const options=args[args.length-1];
     window.__payment5dUpdateCalls.push({source:options?.source||'',changes:{...(args[1]||{})}});
     return original(...args);
   };
+  window.DiagnostikaPayments=api;
   api.open();
 });
 
