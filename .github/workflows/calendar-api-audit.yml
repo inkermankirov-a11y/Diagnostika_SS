@@ -13,6 +13,7 @@ on:
       - 'index.html'
       - 'tests/calendar-module-8a-audit.mjs'
       - 'tests/calendar-ui-8b-audit.mjs'
+      - 'tests/calendar-session-8c-audit.mjs'
       - '.github/workflows/calendar-api-audit.yml'
   workflow_dispatch:
 
@@ -36,6 +37,7 @@ jobs:
           node --check app-loader.js
           node --check tests/calendar-module-8a-audit.mjs
           node --check tests/calendar-ui-8b-audit.mjs
+          node --check tests/calendar-session-8c-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
@@ -96,6 +98,21 @@ jobs:
                   errors.append('calendar 8B UI service boundary missing '+token)
           if 'normalizePlannedSessions' not in planning:
               errors.append('calendar session planning baseline missing')
+          if "version:'8C'" not in planning:
+              errors.append('calendar session planning is not 8C')
+          for token in [
+              "sessionsApi()?.forRequest?.(r.id,c)",
+              "api.list({clientId:c.id})",
+              "api.update(e.id,patch,{source:'calendar-session-linkage'})",
+              "'session:created'","'session:updated'","'session:deleted'"
+          ]:
+              if token not in planning:
+                  errors.append('calendar 8C session linkage missing '+token)
+          for forbidden in ["typeof save==='function'", 'st.calendarEvents', 'e.sessionNumber=', 'e.requestId=']:
+              if forbidden in planning:
+                  errors.append('calendar 8C legacy mutation remains: '+forbidden)
+          if 'calendar-session-planning.js?v=20260919-calendar8c' not in index:
+              errors.append('calendar 8C planning cache marker is stale')
 
           print('CALENDAR_8A_STATIC_ERRORS:',errors)
           if errors:
@@ -116,3 +133,4 @@ jobs:
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/calendar-module-8a-audit.mjs
           node tests/calendar-ui-8b-audit.mjs
+          node tests/calendar-session-8c-audit.mjs
