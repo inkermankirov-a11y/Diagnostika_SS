@@ -12,6 +12,7 @@ on:
       - 'app-loader.js'
       - 'index.html'
       - 'tests/calendar-module-8a-audit.mjs'
+      - 'tests/calendar-ui-8b-audit.mjs'
       - '.github/workflows/calendar-api-audit.yml'
   workflow_dispatch:
 
@@ -34,6 +35,7 @@ jobs:
           node --check calendar-google-link.js
           node --check app-loader.js
           node --check tests/calendar-module-8a-audit.mjs
+          node --check tests/calendar-ui-8b-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
@@ -64,14 +66,14 @@ jobs:
               errors.append('CalendarService does not persist through store bridge')
           if "MODULE_ID='calendar'" not in module:
               errors.append('calendar module registration missing')
-          if "version:'8A'" not in api or 'moduleAware:true' not in api:
-              errors.append('calendar facade is not module-aware 8A')
+          if "version:'8B'" not in api or 'moduleAware:true' not in api:
+              errors.append('calendar facade is not module-aware 8B')
           if 'window.DiagnostikaCalendar=Object.freeze({' not in api:
               errors.append('calendar facade is not frozen')
           for token in [
               'modules/calendar/calendar-service.js?v=20260919-calendar8a',
               'modules/calendar/index.js?v=20260919-calendar8a',
-              'calendar-api.js?v=20260919-calendar8a'
+              'calendar-api.js?v=20260919-calendar8b'
           ]:
               if token not in loader:
                   errors.append('calendar loader missing/stale: '+token)
@@ -83,12 +85,15 @@ jobs:
               errors.append('calendar build/app-loader marker missing')
           elif build_match.group(1)!=loader_match.group(1):
               errors.append('build marker and app-loader cache marker differ')
-          elif build_match.group(1)!='20260919-calendar8a':
-              errors.append('calendar 8A global loader marker is stale')
+          elif build_match.group(1)!='20260919-calendar8b':
+              errors.append('calendar 8B global loader marker is stale')
 
-          # 8A foundation intentionally leaves these UI writers for 8B/8C.
-          if 'customEvents().push(item)' not in ui or "typeof save==='function'" not in ui:
-              errors.append('calendar 8A legacy UI baseline changed unexpectedly')
+          for token in ['customEvents().push(item)', '.splice(idx,1)', "typeof save==='function'"]:
+              if token in ui:
+                  errors.append('calendar UI direct writer remains: '+token)
+          for token in ["source:'calendar-ui-create'","source:'calendar-ui-delete'","api.create(item","api.remove(e.id"]:
+              if token not in ui:
+                  errors.append('calendar 8B UI service boundary missing '+token)
           if 'normalizePlannedSessions' not in planning:
               errors.append('calendar session planning baseline missing')
 
@@ -110,3 +115,4 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/calendar-8a-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/calendar-module-8a-audit.mjs
+          node tests/calendar-ui-8b-audit.mjs
