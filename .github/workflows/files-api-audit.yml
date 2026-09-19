@@ -33,6 +33,7 @@ jobs:
           node --check storage-manager.js
           node --check tests/files-module-9a-audit.mjs
           node --check tests/files-ui-9b-audit.mjs
+          node --check tests/files-hardening-9d-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -61,12 +62,14 @@ jobs:
               errors.append('files module registration missing')
           if "'session:deleted'" not in module or "'client:purged'" not in module:
               errors.append('files lifecycle cleanup missing')
-          if "version:'9A'" not in api or 'moduleAware:true' not in api:
-              errors.append('files facade is not module-aware 9A')
+          if "version:'9D'" not in api or 'moduleAware:true' not in api:
+              errors.append('files facade is not module-aware 9D')
+          if "version:'9D'" not in service:
+              errors.append('FileService is not hardened 9D')
           for token in [
-              'modules/files/file-service.js?v=20260919-files9a',
-              'modules/files/index.js?v=20260919-files9a',
-              'files-api.js?v=20260919-files9a'
+              'modules/files/file-service.js?v=20260919-files9d',
+              'modules/files/index.js?v=20260919-files9d',
+              'files-api.js?v=20260919-files9d'
           ]:
               if token not in loader:
                   errors.append('files loader missing/stale '+token)
@@ -104,3 +107,4 @@ jobs:
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/files-module-9a-audit.mjs
           node tests/files-ui-9b-audit.mjs
+          node tests/files-hardening-9d-audit.mjs
