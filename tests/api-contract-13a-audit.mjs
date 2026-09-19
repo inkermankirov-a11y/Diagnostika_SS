@@ -5,13 +5,13 @@ import fs from 'node:fs';
 const registrySource=fs.readFileSync('core/api-registry.js','utf8');
 const bootstrapSource=fs.readFileSync('core/bootstrap.js','utf8');
 
-assert(registrySource.includes("version:'13A'"),'API registry is not 13A');
+assert(registrySource.includes("version:'13D'"),'API registry is not 13A');
 assert(registrySource.includes('window.DiagnostikaAPI=platform.api'),'Unified DiagnostikaAPI export missing');
 assert(registrySource.includes('function invokeService('),'Common service invocation missing');
 assert(registrySource.includes('function invokeServiceAsync('),'Common async service invocation missing');
 assert(registrySource.includes('function health('),'API health contract missing');
 assert(registrySource.includes('function allowed('),'API role gate missing');
-assert(bootstrapSource.includes("['api', 'core/api-registry.js?v=20260919-api13a']"),'API registry CORE loader missing');
+assert(bootstrapSource.includes("['api', 'core/api-registry.js?v=20260919-api13d']"),'API registry CORE loader missing');
 
 const apiFiles=[
   'ai-api.js','calendar-api.js','client-api.js','diagnosis-api.js','export-api.js',
@@ -55,7 +55,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 await page.goto('http://127.0.0.1:8000/index.html?api-13a=1',{waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-await page.waitForFunction(()=>window.DiagnostikaAPI?.version==='13A'
+await page.waitForFunction(()=>window.DiagnostikaAPI?.version==='13D'
   && window.DiagnostikaRoles?.moduleAware===true
   && window.DiagnostikaClients?.moduleAware===true
   && window.DiagnostikaRequests?.moduleAware===true
@@ -109,7 +109,7 @@ const initial=await page.evaluate(ids=>{
 },ids);
 
 assert.equal(initial.frozen,true);
-assert.equal(initial.version,'13A');
+assert.equal(initial.version,'13D');
 assert.equal(initial.rows.length,10);
 assert.equal(initial.summary.ready,true);
 assert.equal(initial.summary.total,10);
@@ -193,7 +193,7 @@ for(const h of restored.health)assert.equal(h.status,'ready',h.id+' did not rest
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
 
-console.log('API_13A_SUCCESS',JSON.stringify({
+console.log('API_13AD_SUCCESS',JSON.stringify({
   contracts:initial.rows.length,
   specialistReady:true,
   clientBlocked:blocked.ready.blockedCount,
