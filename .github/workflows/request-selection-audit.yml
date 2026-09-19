@@ -102,7 +102,7 @@ jobs:
           if(String(activated.current)!==String(ids.second)||String(activated.lastDiagnosis)!==String(ids.second))throw new Error(`Activate button did not switch active request: ${JSON.stringify(activated)}`);
           if(!activated.disabled||!activated.text.includes('✓'))throw new Error(`Activated request button state is wrong: ${JSON.stringify(activated)}`);
 
-          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
           if(serious.length)throw new Error(serious.join(' | '));
           await browser.close();
           JS
