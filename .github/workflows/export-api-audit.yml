@@ -2,7 +2,7 @@ name: Export API audit
 
 on:
   push:
-    branches: [main, 'feature-export-*']
+    branches: [main, 'feature-export-*', 'feature-roles-*']
     paths:
       - 'modules/export/**'
       - 'export-api.js'
