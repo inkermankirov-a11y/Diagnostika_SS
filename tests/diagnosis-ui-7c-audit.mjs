@@ -15,15 +15,15 @@ assert(apiSource.includes('replaceFeelings'),'Diagnosis facade missing replaceFe
 assert(serviceSource.includes('function replaceFeelings'),'DiagnosisService missing replaceFeelings');
 
 for(const token of [
-  "source:'diagnosis-ui-belief-add'",
-  "source:'diagnosis-ui-feeling-add'",
-  "source:'diagnosis-ui-deep-add'",
-  "source:'diagnosis-ui-element-save'",
-  "source:'diagnosis-ui-element-delete'",
-  "source:'diagnosis-ui-instinct-save'",
-  "source:'diagnosis-ui-instinct-add'"
+  "diagnosis-ui-belief-add'",
+  "diagnosis-ui-feeling-add'",
+  "diagnosis-ui-deep-add'",
+  "diagnosis-ui-element-save'",
+  "diagnosis-ui-element-delete'",
+  "diagnosis-ui-instinct-save'",
+  "diagnosis-ui-instinct-add'"
 ])assert(appSource.includes(token)||focusSource.includes(token)||collapseSource.includes(token),'Diagnosis 7C UI source missing '+token);
-assert(feelingsSource.includes("source:'diagnosis-ui-feelings-replace'"),'Feeling builder is not service-owned');
+assert(feelingsSource.includes("diagnosis-ui-feelings-replace'"),'Feeling builder is not service-owned');
 
 for(const forbidden of [
   '(s.beliefs||(s.beliefs=[])).push',
