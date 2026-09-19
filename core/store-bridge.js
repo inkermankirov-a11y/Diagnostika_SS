@@ -41,15 +41,39 @@
     }
   }
 
-  function legacySave() {
+  function persist(options = {}) {
+    const currentState = stateRef();
+    if (!currentState) return false;
+
+    try {
+      const db = platform.db || window.DiagnostikaDB;
+      if (db?.writeState) {
+        return db.writeState(currentState, {
+          source: options.source || 'store-persist'
+        }) === true;
+      }
+    } catch (error) {
+      console.error('[DiagnostikaPlatform] database persistence failed', error);
+      return false;
+    }
+
     try {
       if (typeof save !== 'function') return false;
-      save();
-      return true;
+      return save({
+        forceLegacy: true,
+        source: options.source || 'store-legacy-fallback'
+      }) !== false;
     } catch (error) {
       console.error('[DiagnostikaPlatform] legacy save failed', error);
       return false;
     }
+  }
+
+  function legacySave(options = {}) {
+    return persist({
+      ...options,
+      source: options.source || 'store-legacy-save'
+    });
   }
 
   function snapshot() {
@@ -63,5 +87,5 @@
     }
   }
 
-  platform.store = Object.freeze({ state: stateRef, clients, currentClient, currentClientId, legacySave, snapshot });
+  platform.store = Object.freeze({ state: stateRef, clients, currentClient, currentClientId, persist, legacySave, snapshot });
 })();
