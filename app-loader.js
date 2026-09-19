@@ -133,7 +133,7 @@
         return;
       }
       const moduleScript=document.createElement('script');
-      moduleScript.src='modules/diagnosis/index.js?v=20260919-diagnosis7a';
+      moduleScript.src='modules/diagnosis/index.js?v=20260919-diagnosis7c';
       moduleScript.setAttribute('data-diagnosis-module','1');
       moduleScript.onload=next;
       document.body.appendChild(moduleScript);
@@ -151,7 +151,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7a';
+    serviceScript.src='modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c';
     serviceScript.setAttribute('data-diagnosis-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
