@@ -7,10 +7,10 @@ const apiSource=fs.readFileSync('calendar-api.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(apiSource.includes("version:'8B'"),'Calendar facade version is not 8B');
-assert(indexSource.includes('client-calendar.js?v=20260919-calendar8b'),'Calendar UI cache marker is stale');
-assert(indexSource.includes('app-loader.js?v=20260919-calendar8b'),'Global loader marker is stale');
-assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8b'),'Calendar facade loader marker is stale');
+assert(apiSource.includes("version:'8D'"),'Calendar facade version is not 8D');
+assert(indexSource.includes('client-calendar.js?v=20260919-calendar8d'),'Calendar UI cache marker is stale');
+assert(indexSource.includes('app-loader.js?v=20260919-calendar8d'),'Global loader marker is stale');
+assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade loader marker is stale');
 
 for(const forbidden of [
   'customEvents().push(item)',
@@ -49,7 +49,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 await page.goto('http://127.0.0.1:8000/index.html?calendar-8b=1',{waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-await page.waitForFunction(()=>window.DiagnostikaCalendar?.version==='8B'
+await page.waitForFunction(()=>window.DiagnostikaCalendar?.version==='8D'
   && window.DiagnostikaCalendar?.moduleAware===true
   && window.DiagnostikaPlatform?.services?.calendar,
   null,{timeout:15000});

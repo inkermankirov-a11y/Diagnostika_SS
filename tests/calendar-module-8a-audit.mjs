@@ -18,16 +18,16 @@ assert.equal(serviceSource.includes('querySelector('),false,'CalendarService kno
 assert.equal(serviceSource.includes("typeof save==='function'"),false,'CalendarService calls global save directly');
 assert(serviceSource.includes('platform.store?.legacySave?.()===true'),'CalendarService does not persist through store bridge');
 assert(moduleSource.includes("MODULE_ID='calendar'"),'Calendar module registration missing');
-assert(/version:'8[AB]'/.test(apiSource),'Calendar facade version is outside supported 8A-8B range');
+assert(/version:'8[A-D]'/.test(apiSource),'Calendar facade version is outside supported 8A-8D range');
 assert(apiSource.includes('window.DiagnostikaCalendar=Object.freeze({'),'Calendar facade is not frozen');
-assert(apiSource.includes('const legacyUi=window.DiagnostikaCalendar'),'Calendar facade does not preserve legacy UI open/refresh');
+assert(apiSource.includes('const ui=()=>window.DiagnostikaCalendarUI||initialLegacyUi||null;'),'Calendar facade does not preserve dynamic UI bridge');
 for(const token of [
   'modules/calendar/calendar-service.js?v=20260919-calendar8a',
   'modules/calendar/index.js?v=20260919-calendar8a',
-  'calendar-api.js?v=20260919-calendar8b'
+  'calendar-api.js?v=20260919-calendar8d'
 ])assert(loaderSource.includes(token),'Calendar loader missing/stale '+token);
-assert(indexSource.includes('<meta name="diagnostika-build" content="20260919-calendar8b">'),'Calendar build marker is stale');
-assert(indexSource.includes('app-loader.js?v=20260919-calendar8b'),'Calendar app-loader marker is stale');
+assert(indexSource.includes('<meta name="diagnostika-build" content="20260919-calendar8d">'),'Calendar build marker is stale');
+assert(indexSource.includes('app-loader.js?v=20260919-calendar8d'),'Calendar app-loader marker is stale');
 
 assert(planningSource.includes('normalizePlannedSessions'),'Session planning baseline missing');
 
@@ -65,7 +65,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 await page.goto('http://127.0.0.1:8000/index.html?calendar-8a=1',{waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-await page.waitForFunction(()=>/^8[AB]$/.test(window.DiagnostikaCalendar?.version||'')
+await page.waitForFunction(()=>/^8[A-D]$/.test(window.DiagnostikaCalendar?.version||'')
   && window.DiagnostikaCalendar?.moduleAware===true
   && window.DiagnostikaPlatform?.services?.calendar
   && window.DiagnostikaPlatform?.modules?.get?.('calendar')?.status==='started',
@@ -184,7 +184,7 @@ assert.equal(removed.storedExists,false);
 assert(removed.events.some(x=>x.detail?.source==='calendar-8a-test-delete'),'Missing calendar delete event');
 
 await page.reload({waitUntil:'commit',timeout:10000});
-await page.waitForFunction(()=>/^8[AB]$/.test(window.DiagnostikaCalendar?.version||'')
+await page.waitForFunction(()=>/^8[A-D]$/.test(window.DiagnostikaCalendar?.version||'')
   && window.DiagnostikaPlatform?.services?.calendar
   && window.DiagnostikaPlatform?.modules?.get?.('calendar')?.status==='started',
   null,{timeout:20000});
