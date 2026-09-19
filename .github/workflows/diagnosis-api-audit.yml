@@ -2,7 +2,7 @@ name: Diagnosis API audit
 
 on:
   push:
-    branches: [main, retire-old-interface, feature-requests-3c, feature-requests-3d, 'feature-payment-*', 'feature-ai-*', 'feature-diagnosis-*' ]
+    branches: [main, retire-old-interface, feature-requests-3c, feature-requests-3d, 'feature-payment-*', 'feature-ai-*', 'feature-diagnosis-*', 'feature-roles-*' ]
     paths:
       - 'diagnosis-api.js'
       - 'app.js'

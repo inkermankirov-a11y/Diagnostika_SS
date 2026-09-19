@@ -1,0 +1,92 @@
+name: Roles access audit
+
+on:
+  push:
+    branches: [main, 'feature-roles-*']
+    paths:
+      - 'core/access-control.js'
+      - 'core/module-registry.js'
+      - 'roles-api.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'modules/**/index.js'
+      - 'tests/roles-*.mjs'
+      - '.github/workflows/roles-access-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  roles-access:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static Roles boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check core/access-control.js
+          node --check core/module-registry.js
+          node --check roles-api.js
+          node --check app-loader.js
+          node --check tests/roles-11d-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          access=Path('core/access-control.js').read_text(encoding='utf-8')
+          registry=Path('core/module-registry.js').read_text(encoding='utf-8')
+          api=Path('roles-api.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          bootstrap=Path('core/bootstrap.js').read_text(encoding='utf-8')
+          index=Path('index.html').read_text(encoding='utf-8')
+          errors=[]
+
+          for token in ["version: '11D'",'function moduleAllowed(','function requireModule(','function setRuntimeRole(']:
+              if token not in access:
+                  errors.append('AccessControl authority missing '+token)
+          for token in ["version: '11D'",'async function reconcileAccess(',"record.status = 'blocked'","'module:access-denied'"]:
+              if token not in registry:
+                  errors.append('ModuleRegistry roles enforcement missing '+token)
+          if "version:'11D'" not in api or 'moduleAware:true' not in api:
+              errors.append('roles facade is not module-aware 11D')
+          if 'roles-api.js?v=20260919-roles11d' not in loader:
+              errors.append('roles facade loader marker missing')
+          for token in [
+              'core/module-registry.js?v=20260919-roles11d',
+              'core/access-control.js?v=20260919-roles11d'
+          ]:
+              if token not in bootstrap:
+                  errors.append('roles core cache marker missing '+token)
+          for token in [
+              '<meta name="diagnostika-build" content="20260919-roles11d">',
+              'core/bootstrap.js?v=20260919-roles11d',
+              'app-loader.js?v=20260919-roles11d'
+          ]:
+              if token not in index:
+                  errors.append('roles runtime build marker missing '+token)
+
+          module_indexes=list(Path('modules').glob('*/index.js'))
+          for path in module_indexes:
+              src=path.read_text(encoding='utf-8')
+              if 'platform.modules.register' in src and "roles:['specialist','admin']" not in src and "roles: ['specialist', 'admin']" not in src:
+                  errors.append(str(path)+' has no explicit specialist/admin roles')
+
+          print('ROLES_11D_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify Roles runtime enforcement
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/roles-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/roles-11d-audit.mjs
