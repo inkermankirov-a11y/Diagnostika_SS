@@ -124,8 +124,16 @@
 
   async function reconcileAccess(role = currentRole(), context = {}) {
     const results = [];
+    const expectedRevision = context.revision;
+
+    const superseded = () => {
+      if (currentRole() !== role) return true;
+      if (expectedRevision === undefined || expectedRevision === null) return false;
+      return platform.access?.roleRevision?.() !== expectedRevision;
+    };
 
     for (const record of registry.values()) {
+      if (superseded()) break;
       const isAllowed = allowed(record, role);
 
       if (!isAllowed) {
@@ -142,6 +150,7 @@
       }
 
       if (record.desired && ['blocked', 'stopped', 'registered'].includes(record.status)) {
+        if (superseded()) break;
         try {
           await start(record.id, {
             desired: true,
@@ -190,7 +199,7 @@
   }
 
   platform.modules = Object.freeze({
-    version: '11B',
+    version: '11D',
     register,
     start,
     stop,
