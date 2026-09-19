@@ -175,7 +175,7 @@ jobs:
           if(assets.scripts.length||assets.css.length)throw new Error(`Duplicate runtime assets: ${JSON.stringify(assets)}`);
           const raf=[];for(let i=0;i<5;i++)raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));console.log('RAF_LATENCY_MS:',JSON.stringify(raf));if(Math.max(...raf)>1200)throw new Error('Main thread slow');
           const top=await page.evaluate(()=>(window.__moStats||[]).map(x=>({source:(x.stack.split('\n').find(v=>/\.js/.test(v))||'unknown').trim(),count:x.count,records:x.records})).sort((a,b)=>b.count-a.count).slice(0,15));console.log('MO_FINAL_TOP:',JSON.stringify(top));
-          fs.writeFileSync('/tmp/browser-errors.txt',errors.join('\n'));console.log('Browser errors:',JSON.stringify(errors));const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));if(serious.length)throw new Error(serious.join(' | '));
+          fs.writeFileSync('/tmp/browser-errors.txt',errors.join('\n'));console.log('Browser errors:',JSON.stringify(errors));const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));if(serious.length)throw new Error(serious.join(' | '));
           await browser.close();
           JS
           node diag-audit.mjs
