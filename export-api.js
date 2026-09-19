@@ -38,7 +38,7 @@
   }
 
   window.DiagnostikaExport=Object.freeze({
-    version:'10A',
+    version:'10D',
     moduleAware:true,
     events:Object.freeze({
       generated:'export:generated',
