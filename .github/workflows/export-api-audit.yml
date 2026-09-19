@@ -69,8 +69,8 @@ jobs:
               errors.append('TXT UI ExportService boundary missing')
           if "typeof download==='function'" in ui:
               errors.append('TXT UI still calls legacy download')
-          if "source:'export-backup-ui'" not in app or 'api.stateBackup(snapshot' not in app:
-              errors.append('backup UI ExportService boundary missing')
+          if "$('#saveHistoryBtn').onclick=" in app:
+              errors.append('app.js still owns the history button')
 
           print('EXPORT_10AB_STATIC_ERRORS:',errors)
           if errors:
