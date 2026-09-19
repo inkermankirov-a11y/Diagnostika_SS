@@ -115,7 +115,7 @@ jobs:
               if token not in loader:
                   errors.append('session loader missing/stale: '+token)
           build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
-          loader_match=re.search(r'app-loader[.]js[?]v=([^"]+)',index)
+          loader_match=re.search(r'app-loader[.]js[?]v=([^"&]+)',index)
           if not build_match:
               errors.append('diagnostika build marker missing')
           if not loader_match:
