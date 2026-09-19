@@ -20,6 +20,8 @@ const SECURE_COOKIE=process.env.NODE_ENV==='production';
 const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
 const FOLDER_NAME='Diagnostika';
 const COOKIE_NAME='diagnostika_sid';
+const SERVER_VERSION='12A';
+const INTERNAL_STATIC_ROOTS=new Set(['server','.git','.github','tests','n8n']);
 
 for(const [name,value] of Object.entries({PUBLIC_BASE_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SESSION_SECRET,TOKEN_ENCRYPTION_KEY})){
   if(!value) console.warn(`[config] ${name} is not configured`);
@@ -33,7 +35,36 @@ if(!fs.existsSync(CONNECTIONS_FILE)) fs.writeFileSync(CONNECTIONS_FILE,'{}','utf
 
 const app=express();
 app.disable('x-powered-by');
-app.use(express.json({limit:'15mb'}));
+app.set('trust proxy',1);
+
+app.use((req,res,next)=>{
+  res.setHeader('X-Content-Type-Options','nosniff');
+  res.setHeader('Referrer-Policy','same-origin');
+  res.setHeader('X-Frame-Options','DENY');
+  res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+  if(req.path.startsWith('/api/'))res.setHeader('Cache-Control','no-store');
+  next();
+});
+
+app.use(express.json({limit:'15mb',type:'application/json'}));
+
+function firstPathSegment(reqPath){
+  try{
+    const decoded=decodeURIComponent(String(reqPath||'/')).replace(/\\/g,'/');
+    return decoded.split('/').filter(Boolean)[0]?.toLowerCase()||'';
+  }catch{
+    return '';
+  }
+}
+
+function internalPathBlocked(reqPath){
+  return INTERNAL_STATIC_ROOTS.has(firstPathSegment(reqPath));
+}
+
+app.use((req,res,next)=>{
+  if(internalPathBlocked(req.path))return res.status(404).type('text/plain').send('Not found');
+  next();
+});
 
 function parseCookies(req){
   const out={};
@@ -289,9 +320,54 @@ app.get('/api/google-drive/restore',async(req,res)=>{
   }
 });
 
-app.get('/api/health',(req,res)=>res.json({ok:true,service:'diagnostika-ss',googleOAuthConfigured:Boolean(PUBLIC_BASE_URL&&GOOGLE_CLIENT_ID&&GOOGLE_CLIENT_SECRET&&SESSION_SECRET&&TOKEN_ENCRYPTION_KEY)}));
+app.get('/api/health',(req,res)=>res.json({
+  ok:true,
+  service:'diagnostika-ss',
+  version:SERVER_VERSION,
+  googleOAuthConfigured:Boolean(PUBLIC_BASE_URL&&GOOGLE_CLIENT_ID&&GOOGLE_CLIENT_SECRET&&SESSION_SECRET&&TOKEN_ENCRYPTION_KEY)
+}));
 
-app.use(express.static(ROOT,{extensions:['html']}));
-app.get('*',(req,res)=>res.sendFile(path.join(ROOT,'index.html')));
+app.use('/api',(req,res)=>{
+  res.status(404).json({error:'API route not found.'});
+});
 
-app.listen(PORT,()=>console.log(`Diagnostika_SS server listening on :${PORT}`));
+app.use(express.static(ROOT,{
+  extensions:['html'],
+  dotfiles:'deny',
+  fallthrough:true,
+  index:false,
+  setHeaders(res){
+    res.setHeader('X-Content-Type-Options','nosniff');
+  }
+}));
+
+app.get('*',(req,res)=>{
+  if(internalPathBlocked(req.path))return res.status(404).type('text/plain').send('Not found');
+  res.sendFile(path.join(ROOT,'index.html'));
+});
+
+app.use((err,req,res,next)=>{
+  if(res.headersSent)return next(err);
+  const status=err?.type==='entity.too.large'?413:err instanceof SyntaxError&&'body' in err?400:500;
+  if(status===500)console.error('[server error]',err);
+  if(req.path.startsWith('/api/')){
+    return res.status(status).json({
+      error:status===413?'Request body is too large.':status===400?'Invalid JSON body.':'Internal server error.'
+    });
+  }
+  res.status(status).type('text/plain').send(status===413?'Request body is too large.':status===400?'Invalid request.':'Internal server error.');
+});
+
+const httpServer=app.listen(PORT,()=>console.log(`Diagnostika_SS server ${SERVER_VERSION} listening on :${PORT}`));
+
+function shutdown(signal){
+  console.log(`[server] ${signal}: shutting down`);
+  httpServer.close(error=>{
+    if(error){
+      console.error('[server] shutdown error',error);
+      process.exitCode=1;
+    }
+  });
+}
+process.once('SIGTERM',()=>shutdown('SIGTERM'));
+process.once('SIGINT',()=>shutdown('SIGINT'));
