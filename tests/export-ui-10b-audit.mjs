@@ -9,9 +9,7 @@ assert(uiSource.includes("source:'export-txt-ui'"),'TXT UI ExportService source 
 assert(uiSource.includes('api.diagnosisTxt(c,r'),'TXT UI does not use ExportService');
 assert(uiSource.includes('api.download(payload'),'TXT UI does not use export browser facade');
 assert.equal(uiSource.includes("typeof download==='function'"),false,'TXT UI still calls legacy download');
-assert(appSource.includes("source:'export-backup-ui'"),'Backup UI ExportService source missing');
-assert(appSource.includes('api.stateBackup(snapshot'),'Backup UI does not use ExportService');
-assert.equal(appSource.includes("download('diagnostika-backup-"),false,'Backup button still calls legacy download');
+assert.equal(appSource.includes("$('#saveHistoryBtn').onclick="),false,'app.js still owns the history button');
 
 const fixture={version:4,clients:[{
   id:'export-ui-client',
@@ -68,15 +66,10 @@ assert(txtCapture.text.includes('КЛИЕНТ: Экспорт Тест'));
 assert(txtCapture.text.includes('Тестовый запрос'));
 assert(txtCapture.text.includes('СИТУАЦИЯ 1: Ситуация'));
 
+const beforeHistory=await page.evaluate(()=>window.DiagnostikaPlatform.store.currentClient()?.history?.length||0);
 await page.evaluate(()=>document.getElementById('saveHistoryBtn')?.click());
-await page.waitForFunction(()=>window.__exportUiDownloads.length>=2,null,{timeout:5000});
-const jsonCapture=await page.evaluate(async()=>{
-  const item=window.__exportUiDownloads[1];
-  return {filename:item.filename,text:await (await fetch(item.href)).text()};
-});
-assert(/^diagnostika-backup-\d{4}-\d{2}-\d{2}\.json$/.test(jsonCapture.filename));
-const backup=JSON.parse(jsonCapture.text);
-assert.equal(backup.clients[0].id,'export-ui-client');
+await page.waitForFunction(before=>(window.DiagnostikaPlatform.store.currentClient()?.history?.length||0)===before+1,beforeHistory,{timeout:5000});
+assert.equal(await page.evaluate(()=>window.__exportUiDownloads.length),1,'History button unexpectedly triggered Export download');
 
 await page.evaluate(()=>{
   if(window.__exportUiOriginalRevoke)URL.revokeObjectURL=window.__exportUiOriginalRevoke;
@@ -87,7 +80,7 @@ assert.deepEqual(serious,[],'Unexpected runtime errors');
 
 console.log('EXPORT_10B_SUCCESS',JSON.stringify({
   txt:txtCapture.filename,
-  backup:jsonCapture.filename
+  historyOwnedSeparately:true
 }));
 
 await context.close();
