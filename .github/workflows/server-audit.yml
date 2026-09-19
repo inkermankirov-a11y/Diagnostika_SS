@@ -1,0 +1,53 @@
+name: Server audit
+
+on:
+  push:
+    branches: [main, 'feature-server-*']
+    paths:
+      - 'server/**'
+      - 'tests/server-*.mjs'
+      - '.github/workflows/server-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  server:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static server checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check server/server.js
+          node --check tests/server-12ab-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          src=Path('server/server.js').read_text(encoding='utf-8')
+          errors=[]
+          for token in [
+              "const SERVER_VERSION='12A'",
+              "INTERNAL_STATIC_ROOTS",
+              "dotfiles:'deny'",
+              "res.status(404).json({error:'API route not found.'})",
+              "Origin not allowed.",
+              "mode:0o600",
+              "X-Content-Type-Options",
+              "Permissions-Policy"
+          ]:
+              if token not in src:
+                  errors.append('server hardening missing '+token)
+          if "app.use(express.static(ROOT" not in src:
+              errors.append('frontend static serving unexpectedly removed')
+          print('SERVER_12AB_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install server dependencies
+        run: npm --prefix server install --no-audit --no-fund
+
+      - name: Verify Server 12A/12B runtime
+        run: node tests/server-12ab-audit.mjs
