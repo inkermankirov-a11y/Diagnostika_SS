@@ -24,7 +24,11 @@ for(const token of [
   'client-ai-chat.js?v=20260919-ai6d',
   'session-ai-chat.js?v=20260919-ai6d'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
-assert(/app-loader\.js\?v=20260919-(?:ai6d|calendar8[a-d]|files9[a-d]|export10[a-d]|roles11[a-d])/.test(indexSource),'Stale global app-loader marker after AI 6D');
+const aiBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
+const aiLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)&api=13d/);
+assert(aiBuildMatch,'AI global build marker missing');
+assert(aiLoaderMatch,'AI global app-loader/API marker missing');
+assert.equal(aiBuildMatch[1],aiLoaderMatch[1],'AI global build/app-loader markers differ');
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const fixture={version:4,clients:[{
