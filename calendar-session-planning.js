@@ -27,23 +27,33 @@
 
   function getState(){try{return typeof state!=='undefined'?state:null;}catch(_){return null;}}
   function clients(){const st=getState();return Array.isArray(st?.clients)?st.clients:[];}
-  function events(){const st=getState();if(!st)return[];if(!Array.isArray(st.calendarEvents))st.calendarEvents=[];return st.calendarEvents;}
-  function sessionRequestId(s){return String(s?.requestId||s?.payment?.requestId||'');}
+  function calendarApi(){
+    const facade=window.DiagnostikaCalendar;
+    if(facade?.moduleAware===true)return facade;
+    return window.DiagnostikaPlatform?.services?.calendar||null;
+  }
+  function sessionsApi(){
+    const facade=window.DiagnostikaSessions;
+    if(facade?.moduleAware===true)return facade;
+    return window.DiagnostikaPlatform?.services?.sessions||null;
+  }
+  function requestsApi(){
+    const facade=window.DiagnostikaRequests;
+    if(facade?.moduleAware===true)return facade;
+    return window.DiagnostikaPlatform?.services?.requests||null;
+  }
+  function events(){
+    const api=calendarApi();
+    try{return api?.list?api.list():[];}catch(_){return[];}
+  }
 
   function activeRequest(c){
     const requests=Array.isArray(c?.requests)?c.requests:[];
     if(!requests.length)return null;
 
     try{
-      const currentClient=typeof client==='function'?client():null;
-      if(currentClient&&String(currentClient.id)===String(c.id)){
-        const fromModule=window.DiagnostikaRequests?.current?.(c);
-        if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
-        if(typeof requestId!=='undefined'&&requestId){
-          const byGlobal=requests.find(r=>String(r.id)===String(requestId));
-          if(byGlobal)return byGlobal;
-        }
-      }
+      const fromModule=requestsApi()?.current?.(c);
+      if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
     }catch(_){}
 
     return requests.find(r=>String(r.id)===String(c.currentRequestId||''))
@@ -54,12 +64,20 @@
   }
 
   function requestById(c,id){
-    return (c?.requests||[]).find(r=>String(r.id)===String(id||''))||null;
+    if(!c||id===undefined||id===null||id==='')return null;
+    try{
+      const fromModule=requestsApi()?.get?.(id,c);
+      if(fromModule)return fromModule;
+    }catch(_){}
+    return (c?.requests||[]).find(r=>String(r.id)===String(id))||null;
   }
 
   function actualSessionsFor(c,r){
     if(!c||!r)return[];
-    return (Array.isArray(c.sessions)?c.sessions:[]).filter(s=>sessionRequestId(s)===String(r.id));
+    try{
+      const rows=sessionsApi()?.forRequest?.(r.id,c);
+      return Array.isArray(rows)?rows:[];
+    }catch(_){return[];}
   }
 
   function isSessionEvent(e){return String(e?.type||'').trim()==='Сессия'||/^Сессия №\d+$/i.test(String(e?.title||'').trim());}
@@ -125,9 +143,12 @@
   }
 
   function normalizePlannedSessions(){
+    const api=calendarApi();
+    if(!api?.list||!api?.update)return false;
+
     let changed=false;
     clients().forEach(c=>{
-      const sessionEvents=events().filter(e=>String(e?.clientId||'')===String(c.id)&&isSessionEvent(e));
+      const sessionEvents=api.list({clientId:c.id}).filter(isSessionEvent);
       const groups=new Map();
       sessionEvents.forEach(e=>{
         const r=requestForEvent(c,e);
@@ -143,19 +164,26 @@
         items.forEach(e=>{
           const title=`Сессия №${number}`;
           const reqText=requestComment(r);
-          if(e.sessionNumber!==number){e.sessionNumber=number;changed=true;}
-          if(String(e.title||'')!==title){e.title=title;changed=true;}
-          if(String(e.type||'')!=='Сессия'){e.type='Сессия';changed=true;}
-          if(String(e.requestId||'')!==String(r.id)){e.requestId=r.id;changed=true;}
-          if(String(e.requestTitle||'')!==String(r.title||'')){e.requestTitle=r.title||'';changed=true;}
+          const patch={};
+
+          if(e.sessionNumber!==number)patch.sessionNumber=number;
+          if(String(e.title||'')!==title)patch.title=title;
+          if(String(e.type||'')!=='Сессия')patch.type='Сессия';
+          if(String(e.requestId||'')!==String(r.id))patch.requestId=r.id;
+          if(String(e.requestTitle||'')!==String(r.title||''))patch.requestTitle=r.title||'';
+
           const old=String(e.note||'').trim();
-          if(reqText&&!old){e.note=reqText;changed=true;}
-          else if(reqText&&old&&!old.includes(String(r.title||'').trim())){e.note=`${reqText}\n${old}`;changed=true;}
+          if(reqText&&!old)patch.note=reqText;
+          else if(reqText&&old&&!old.includes(String(r.title||'').trim()))patch.note=`${reqText}\n${old}`;
+
+          if(Object.keys(patch).length){
+            const updated=api.update(e.id,patch,{source:'calendar-session-linkage'});
+            if(updated)changed=true;
+          }
           number++;
         });
       });
     });
-    if(changed&&typeof save==='function')save();
     return changed;
   }
 
@@ -163,26 +191,35 @@
   typeSelect.addEventListener('change',updateForm);
   overlay.addEventListener('close',()=>{noteInput.dataset.autoRequestText='';});
 
+  function refreshLinkage(){
+    const changed=normalizePlannedSessions();
+    if(changed)window.DiagnostikaCalendar?.refresh?.();
+    updateForm();
+    return changed;
+  }
+
   saveButton.addEventListener('click',()=>{
     const wasSession=typeSelect.value==='Сессия';
     if(!wasSession)return;
-    setTimeout(()=>{
-      const changed=normalizePlannedSessions();
-      if(changed)window.DiagnostikaCalendar?.refresh?.();
-      setTimeout(updateForm,0);
-    },0);
+    setTimeout(refreshLinkage,0);
   });
 
   document.addEventListener('click',e=>{
-    if(e.target?.closest?.('#ccCalendarBtn,.cal-day,.cal-prev,.cal-next,.cal-today'))setTimeout(()=>{
-      const changed=normalizePlannedSessions();
-      if(changed)window.DiagnostikaCalendar?.refresh?.();
-      updateForm();
-    },0);
+    if(e.target?.closest?.('#ccCalendarBtn,.cal-day,.cal-prev,.cal-next,.cal-today'))setTimeout(refreshLinkage,0);
   },true);
 
-  normalizePlannedSessions();
-  setTimeout(updateForm,0);
+  const bus=window.DiagnostikaPlatform?.events;
+  ['calendar:ready','sessions:ready','session:created','session:updated','session:deleted'].forEach(type=>{
+    bus?.on?.(type,()=>setTimeout(refreshLinkage,0));
+  });
 
-  window.DiagnostikaCalendarSessionPlanning={refresh:()=>{normalizePlannedSessions();updateForm();},nextSessionNumber,activeRequest};
+  setTimeout(refreshLinkage,0);
+
+  window.DiagnostikaCalendarSessionPlanning=Object.freeze({
+    version:'8C',
+    moduleAware:true,
+    refresh:refreshLinkage,
+    nextSessionNumber,
+    activeRequest
+  });
 })();
