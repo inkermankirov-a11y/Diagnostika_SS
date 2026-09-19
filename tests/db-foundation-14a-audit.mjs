@@ -13,7 +13,14 @@ assert(dbSource.includes('function writeState('),'writeState contract missing');
 assert(dbSource.includes('function health('),'DB health contract missing');
 assert(dbSource.includes('window.DiagnostikaDB = db'),'DiagnostikaDB global bridge missing');
 assert(bootstrapSource.includes("['db', 'core/database.js?v=20260919-db14a']"),'DB CORE loader missing');
-assert(indexSource.includes('core/bootstrap.js?v=20260919-db14a&api=13d'),'DB cache-busted CORE loader missing');
+const dbBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
+const dbBootstrapMatch=indexSource.match(/core\/bootstrap\.js\?v=([^"&]+)&api=13d/);
+const dbLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)&api=13d/);
+assert(dbBuildMatch,'DB global build marker missing');
+assert(dbBootstrapMatch,'DB CORE loader marker missing');
+assert(dbLoaderMatch,'DB app-loader marker missing');
+assert.equal(dbBuildMatch[1],dbBootstrapMatch[1],'DB global build/bootstrap markers differ');
+assert.equal(dbBuildMatch[1],dbLoaderMatch[1],'DB global build/app-loader markers differ');
 
 const fixture={version:4,clients:[{
   id:'db14a-client',
