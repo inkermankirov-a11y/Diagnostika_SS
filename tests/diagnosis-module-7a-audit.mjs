@@ -15,15 +15,15 @@ for(const token of [
   assert(serviceSource.includes(token),'DiagnosisService missing '+token);
   assert(apiSource.includes(token),'Diagnosis facade missing '+token);
 }
-assert(/version:'7[AB]'/.test(apiSource),'Diagnosis facade version is outside supported 7A-7B range');
+assert(/version:'7[ABC]'/.test(apiSource),'Diagnosis facade version is outside supported 7A-7C range');
 assert(apiSource.includes('moduleAware:true'),'Diagnosis facade is not module-aware');
 assert(serviceSource.includes('api.update('),'DiagnosisService does not commit through RequestService.update');
 assert.equal(/\b(?:currentRequestId|lastDiagnosisRequestId)\s*=/.test(serviceSource),false,'DiagnosisService owns request authority');
 assert.equal(/\bsave\s*\(/.test(serviceSource),false,'DiagnosisService persists directly');
 assert(moduleSource.includes("MODULE_ID='diagnosis'"),'Diagnosis module registration missing');
 for(const token of [
-  'modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7a',
-  'modules/diagnosis/index.js?v=20260919-diagnosis7a'
+  'modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c',
+  'modules/diagnosis/index.js?v=20260919-diagnosis7c'
 ])assert(loaderSource.includes(token),'Diagnosis loader missing '+token);
 
 const fixture={version:4,clients:[{
@@ -53,7 +53,7 @@ page.on('dialog',d=>d.accept().catch(()=>{}));
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>/^7[AB]$/.test(window.DiagnostikaDiagnosis?.version||'')
+  await page.waitForFunction(()=>/^7[ABC]$/.test(window.DiagnostikaDiagnosis?.version||'')
     && window.DiagnostikaDiagnosis?.moduleAware===true
     && window.DiagnostikaPlatform?.services?.diagnosis
     && window.DiagnostikaPlatform?.modules?.get?.('diagnosis')?.status==='started',
