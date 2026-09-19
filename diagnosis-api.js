@@ -3,7 +3,13 @@
 (() => {
   if(window.DiagnostikaDiagnosis?.moduleAware===true)return;
 
+  function apiAllowed(){
+    const api=window.DiagnostikaPlatform?.api;
+    return !api||api.allowed('diagnosis')!==false;
+  }
+
   function currentClient(){
+    if(!apiAllowed())return null;
     return window.DiagnostikaClients?.current?.()
       || (typeof client === 'function' ? client() : null);
   }
@@ -15,6 +21,7 @@
   }
 
   function service(){
+    if(!apiAllowed())return null;
     return window.DiagnostikaPlatform?.services?.diagnosis||null;
   }
 
@@ -24,6 +31,7 @@
   }
 
   function open(){
+    if(!apiAllowed())return false;
     const c=currentClient();
     const api=requestsApi();
     if(!c){
