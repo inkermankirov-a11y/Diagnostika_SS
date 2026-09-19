@@ -2,7 +2,7 @@ name: Calendar API audit
 
 on:
   push:
-    branches: [main, 'feature-calendar-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*']
+    branches: [main, 'feature-calendar-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
       - 'modules/calendar/**'
       - 'calendar-api.js'
