@@ -24,7 +24,7 @@ for(const token of [
   'client-ai-chat.js?v=20260919-ai6d',
   'session-ai-chat.js?v=20260919-ai6d'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
-assert(/app-loader\.js\?v=20260919-(?:ai6d|calendar8[a-d])/.test(indexSource),'Stale global app-loader marker after AI 6D');
+assert(/app-loader\.js\?v=20260919-(?:ai6d|calendar8[a-d]|files9[a-d])/.test(indexSource),'Stale global app-loader marker after AI 6D');
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const fixture={version:4,clients:[{
