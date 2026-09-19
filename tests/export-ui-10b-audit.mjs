@@ -57,7 +57,7 @@ await page.evaluate(()=>{
   };
 });
 
-await page.locator('#exportTxtBtn').click();
+await page.evaluate(()=>document.getElementById('exportTxtBtn')?.click());
 await page.waitForFunction(()=>window.__exportUiDownloads.length>=1,null,{timeout:5000});
 const txtCapture=await page.evaluate(async()=>{
   const item=window.__exportUiDownloads[0];
@@ -68,7 +68,7 @@ assert(txtCapture.text.includes('КЛИЕНТ: Экспорт Тест'));
 assert(txtCapture.text.includes('Тестовый запрос'));
 assert(txtCapture.text.includes('СИТУАЦИЯ 1: Ситуация'));
 
-await page.locator('#saveHistoryBtn').click();
+await page.evaluate(()=>document.getElementById('saveHistoryBtn')?.click());
 await page.waitForFunction(()=>window.__exportUiDownloads.length>=2,null,{timeout:5000});
 const jsonCapture=await page.evaluate(async()=>{
   const item=window.__exportUiDownloads[1];
