@@ -1,0 +1,56 @@
+name: Release production smoke
+
+on:
+  push:
+    branches: [main, 'feature-release-*']
+    paths:
+      - 'index.html'
+      - 'RELEASE_NOTES.md'
+      - 'tests/release-*.mjs'
+      - '.github/workflows/release-production-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PRODUCTION_URL: https://inkermankirov-a11y.github.io/Diagnostika_SS/
+      REQUIRE_RELEASE_MARKER: ${{ github.ref == 'refs/heads/main' && '1' || '0' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static release checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/release-16a-production-smoke.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          index=Path('index.html').read_text(encoding='utf-8')
+          notes=Path('RELEASE_NOTES.md').read_text(encoding='utf-8')
+          errors=[]
+
+          if '<meta name="diagnostika-release" content="v1.0.0">' not in index:
+              errors.append('v1.0.0 release marker missing from index')
+          if '# Diagnostika v1.0.0' not in notes:
+              errors.append('v1.0.0 release notes missing')
+          if 'RELEASE 16A' not in notes:
+              errors.append('release acceptance section missing')
+
+          print('RELEASE_16A_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify deployed production user flow
+        run: node tests/release-16a-production-smoke.mjs
