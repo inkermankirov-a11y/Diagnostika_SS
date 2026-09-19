@@ -84,7 +84,12 @@
 
   function getState(){try{return typeof state!=='undefined'?state:null;}catch(_){return null;}}
   function clients(){const st=getState();return Array.isArray(st?.clients)?st.clients:[];}
-  function customEvents(){const st=getState();if(!st)return[];if(!Array.isArray(st.calendarEvents))st.calendarEvents=[];return st.calendarEvents;}
+  function customEvents(){
+    const api=window.DiagnostikaCalendar;
+    if(api?.moduleAware===true&&typeof api.list==='function')return api.list();
+    const st=getState();
+    return Array.isArray(st?.calendarEvents)?st.calendarEvents.map(e=>({...e})):[];
+  }
   function allEvents(){
     return customEvents()
       .map(e=>({...e,kind:'manual'}))
@@ -106,7 +111,12 @@
       row.className='cal-event';
       const meta=[e.clientName,e.meta,e.note].filter(Boolean).join(' • ');
       row.innerHTML=`<div class="cal-event-time">${esc(e.time||'—')}</div><div><div class="cal-event-title">${esc(e.title||e.type||'Запись')}</div><div class="cal-event-meta">${esc(meta)}</div></div><button type="button" class="tk-btn cal-delete" title="Удалить">×</button>`;
-      row.querySelector('.cal-delete').onclick=()=>{const arr=customEvents();const idx=arr.findIndex(x=>String(x.id)===String(e.id));if(idx>=0)arr.splice(idx,1);if(typeof save==='function')save();render();};
+      row.querySelector('.cal-delete').onclick=()=>{
+        const api=window.DiagnostikaCalendar;
+        if(api?.moduleAware!==true||typeof api.remove!=='function')return;
+        if(!api.remove(e.id,{source:'calendar-ui-delete'}))return;
+        render();
+      };
       eventsBox.appendChild(row);
     });
   }
@@ -158,9 +168,10 @@
     const c=clients().find(x=>String(x.id)===String(clientIdValue));
     const type=typeSelect.value||'Запись';
     const note=noteInput.value.trim();
-    const item={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,createdAt:new Date().toISOString()};
-    customEvents().push(item);
-    if(typeof save==='function')save();
+    const api=window.DiagnostikaCalendar;
+    if(api?.moduleAware!==true||typeof api.create!=='function')return;
+    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note};
+    if(!api.create(item,{source:'calendar-ui-create'}))return;
     noteInput.value='';
     selected=date;
     const d=new Date(date+'T12:00:00');cursor=new Date(d.getFullYear(),d.getMonth(),1);
