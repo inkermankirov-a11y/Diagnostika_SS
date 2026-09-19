@@ -1,0 +1,90 @@
+name: Export API audit
+
+on:
+  push:
+    branches: [main, 'feature-export-*']
+    paths:
+      - 'modules/export/**'
+      - 'export-api.js'
+      - 'export-txt-classic.js'
+      - 'app.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/export-*.mjs'
+      - '.github/workflows/export-api-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  export-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static Export boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/export/export-service.js
+          node --check modules/export/index.js
+          node --check export-api.js
+          node --check export-txt-classic.js
+          node --check app.js
+          node --check app-loader.js
+          node --check tests/export-module-10a-audit.mjs
+          node --check tests/export-ui-10b-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          service=Path('modules/export/export-service.js').read_text(encoding='utf-8')
+          module=Path('modules/export/index.js').read_text(encoding='utf-8')
+          api=Path('export-api.js').read_text(encoding='utf-8')
+          ui=Path('export-txt-classic.js').read_text(encoding='utf-8')
+          app=Path('app.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          errors=[]
+
+          for token in ['function safeName(','function dateTime(','function situationText(','function diagnosisTxt(','function stateBackup(']:
+              if token not in service:
+                  errors.append('ExportService method missing '+token)
+          for forbidden in ['querySelector(', 'createObjectURL']:
+              if forbidden in service:
+                  errors.append('ExportService browser/UI dependency '+forbidden)
+          if "MODULE_ID='export'" not in module:
+              errors.append('export module registration missing')
+          if "version:'10A'" not in api or 'moduleAware:true' not in api:
+              errors.append('export facade is not module-aware 10A')
+          for token in [
+              'modules/export/export-service.js?v=20260919-export10a',
+              'modules/export/index.js?v=20260919-export10a',
+              'export-api.js?v=20260919-export10a'
+          ]:
+              if token not in loader:
+                  errors.append('export loader missing/stale '+token)
+          if "source:'export-txt-ui'" not in ui or 'api.diagnosisTxt(c,r' not in ui:
+              errors.append('TXT UI ExportService boundary missing')
+          if "typeof download==='function'" in ui:
+              errors.append('TXT UI still calls legacy download')
+          if "source:'export-backup-ui'" not in app or 'api.stateBackup(snapshot' not in app:
+              errors.append('backup UI ExportService boundary missing')
+
+          print('EXPORT_10AB_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify Export 10A and 10B
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/export-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/export-module-10a-audit.mjs
+          node tests/export-ui-10b-audit.mjs
