@@ -15,7 +15,7 @@
   };
 
   window.DiagnostikaCalendar=Object.freeze({
-    version:'8A',
+    version:'8B',
     moduleAware:true,
     events:Object.freeze({
       created:'calendar:event-created',
