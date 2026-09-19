@@ -2,7 +2,7 @@ name: Session module audit
 
 on:
   push:
-    branches: [main, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, feature-payment-5a, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*' ]
+    branches: [main, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, feature-payment-5a, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
       - 'modules/sessions/**'
       - 'session-api.js'
