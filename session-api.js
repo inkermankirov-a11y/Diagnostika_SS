@@ -6,8 +6,9 @@
 
   const service=()=>platform.services?.sessions||null;
   const invoke=(name,args,failValue)=>{
+    if(platform.api?.invokeService)return platform.api.invokeService('sessions',name,args,failValue);
     const fn=service()?.[name];
-    return typeof fn==='function'?fn(...args):failValue;
+    try{return typeof fn==='function'?fn(...args):failValue;}catch(_){return failValue;}
   };
 
   window.DiagnostikaSessions=Object.freeze({
