@@ -211,27 +211,28 @@
       btn.onclick=()=>{
         if(typeof selected==='undefined' || selected?.type!=='feeling') return;
         const feeling=selected.obj;
-        const arr=feeling.deep||(feeling.deep=[]);
-        const deep=typeof newDeep==='function'
-          ? newDeep()
-          : {id:(typeof uid==='function'?uid():String(Date.now())),text:'',level:5,comment:'',instincts:[]};
-        arr.push(deep);
+        const c=typeof client==='function'?client():null;
+        const r=typeof request==='function'?request():null;
+        const api=window.DiagnostikaDiagnosis;
+        if(!c||!r||!api?.moduleAware)return;
+        const deep=api.addDeep(feeling.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-deep-add',render:false});
+        if(!deep)return;
 
         // При добавлении нового Убеждения 2 автоматически раскрываем
         // именно текущее вторичное чувство, чтобы новый элемент был виден.
         const s=typeof situation==='function'?situation():null;
         if(s){
           (s.beliefs||[]).forEach((belief,bi)=>{
-            const fi=(belief.feelings||[]).indexOf(feeling);
+            const liveFeeling=(belief.feelings||[]).find(x=>String(x.id)===String(feeling.id));
+            const fi=(belief.feelings||[]).indexOf(liveFeeling);
             if(fi>=0){
               expandedBeliefs.add(belief.id||String(bi));
-              expandedFeelings.add(feelingKey(belief,bi,feeling,fi));
+              expandedFeelings.add(feelingKey(belief,bi,liveFeeling,fi));
             }
           });
         }
 
-        selected={type:'deep',obj:deep,parent:feeling,index:arr.length-1};
-        if(typeof save==='function') save();
+        if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('deep',deep.id);
         if(typeof renderTree==='function') renderTree();
         setTimeout(()=>{
           const editor=document.querySelector('#editorText');
