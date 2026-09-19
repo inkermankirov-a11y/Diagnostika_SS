@@ -1,10 +1,15 @@
 'use strict';
 
 (() => {
-  const platform = window.DiagnostikaPlatform;
-  if (!platform || platform.db) return;
+  const platform = window.DiagnostikaPlatform || {
+    version: '0.2.0',
+    status: 'preloading',
+    bootstrappedAt: null
+  };
+  window.DiagnostikaPlatform = platform;
+  if (platform.db) return;
 
-  const VERSION = '14B';
+  const VERSION = '14C';
   const BACKEND = 'localStorage';
   const STATE_KEY = 'diagnostika-web-v1';
   const SCHEMA_VERSION = 4;

@@ -9,13 +9,13 @@ const clientSource=fs.readFileSync('modules/clients/client-service.js','utf8');
 const bootstrapSource=fs.readFileSync('core/bootstrap.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(dbSource.includes("const VERSION = '14B'"),'DB 14B version marker missing');
+assert(/const VERSION = '14[B-Z]';/.test(dbSource),'DB 14B+ version marker missing');
 assert(storeSource.includes('function persist(options = {})'),'Store DB persistence boundary missing');
 assert(storeSource.includes('db?.writeState'),'Store does not persist through DB adapter');
 assert(appSource.includes("source:options.source||'app-save'"),'app.js DB write source missing');
 assert(appSource.includes('db?.writeState'),'app.js does not prefer DB adapter');
 assert(clientSource.includes("platform.store?.legacySave?.({ source: 'client-service-persist' })"),'ClientService bypasses store persistence');
-assert(bootstrapSource.includes("core/database.js?v=20260919-db14b"),'DB 14B CORE marker missing');
+assert(/core\/database\.js\?v=20260919-db14[b-z]/.test(bootstrapSource),'DB 14B+ CORE marker missing');
 assert(bootstrapSource.includes("core/store-bridge.js?v=20260919-db14b"),'DB 14B store marker missing');
 
 const buildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
@@ -49,7 +49,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaDB?.version==='14B'
+  await page.waitForFunction(()=>/^14[B-Z]$/.test(window.DiagnostikaDB?.version||'')
     && window.DiagnostikaClients?.moduleAware===true
     && window.DiagnostikaPlatform?.store?.persist,
     null,{timeout:20000});
@@ -100,7 +100,7 @@ const persisted=await page.evaluate(()=>{
   };
 });
 
-assert.equal(persisted.db.version,'14B');
+assert(/^14[B-Z]$/.test(persisted.db.version),'DB write-path version is not 14B+');
 assert.equal(persisted.city,'DB City');
 assert.equal(persisted.title,'After DB 14B');
 assert(persisted.writes.some(x=>x.source==='client-service-persist'));
