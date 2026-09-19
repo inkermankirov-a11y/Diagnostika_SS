@@ -6,7 +6,6 @@
 
   const TOKEN_KEY='diagnostika-google-drive-token-v2';
   const FOLDER_KEY='diagnostika-google-drive-folder-v2';
-  const STATE_KEY='diagnostika-web-v1';
   const FOLDER_NAME='Diagnostika';
   const BACKUP_FOLDER_NAME='Backups';
   const SYNC_DB='diagnostika-google-sync-v1';
@@ -24,6 +23,13 @@
     if(typeof structuredClone==='function')return structuredClone(value);
     return JSON.parse(JSON.stringify(value));
   };
+  const databaseApi=()=>window.DiagnostikaDB||window.DiagnostikaPlatform?.db||null;
+  function readCanonicalDatabase(source){
+    try{return databaseApi()?.readState?.({source})||null;}catch{return null;}
+  }
+  function writeCanonicalDatabase(value,source){
+    try{return databaseApi()?.writeState?.(value,{source})===true;}catch{return false;}
+  }
 
   function getSession(key){try{return JSON.parse(sessionStorage.getItem(key)||'null');}catch{return null;}}
   function token(){
@@ -128,11 +134,8 @@
   }
 
   function currentDatabase(){
-    try{
-      const raw=localStorage.getItem(STATE_KEY);
-      const db=raw?JSON.parse(raw):null;
-      if(db&&Array.isArray(db.clients))return db;
-    }catch{}
+    const db=readCanonicalDatabase('google-drive-safe-current');
+    if(db&&Array.isArray(db.clients))return db;
     try{
       if(typeof state!=='undefined'&&state&&Array.isArray(state.clients))return clone(state);
     }catch{}
@@ -264,8 +267,7 @@
     await pause();
 
     setStatus('Сохраняю локальную копию…');
-    try{localStorage.setItem(STATE_KEY,JSON.stringify(merged));}
-    catch{throw new Error('Объединённая база уже сохранена в Google, но браузеру не хватило места для локальной копии. Не удаляй резервные копии в Diagnostika/Backups.');}
+    if(!writeCanonicalDatabase(merged,'google-drive-safe-sync'))throw new Error('Объединённая база уже сохранена в Google, но локальную копию сохранить не удалось. Не удаляй резервные копии в Diagnostika/Backups.');
     await setBase(merged);
     applyDatabaseToRuntime(merged);
 
@@ -292,8 +294,7 @@
     }
 
     setStatus('Сохраняю облачную базу в браузер…');
-    try{localStorage.setItem(STATE_KEY,JSON.stringify(remote.data));}
-    catch{throw new Error('Не удалось сохранить облачную базу в браузере. Текущая локальная база не изменена.');}
+    if(!writeCanonicalDatabase(remote.data,'google-drive-safe-restore'))throw new Error('Не удалось сохранить облачную базу в браузере. Текущая локальная база не изменена.');
     await setBase(remote.data);
     applyDatabaseToRuntime(remote.data);
     cleanupBackups(remote.folder.id);

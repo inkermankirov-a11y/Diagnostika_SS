@@ -1,5 +1,4 @@
 'use strict';
-const KEY='diagnostika-web-v1';
 const $=s=>document.querySelector(s);
 const INSTINCTS=['Бей / атаковать','Беги / убежать','Замри / спрятаться'];
 let state=loadState();
@@ -26,7 +25,7 @@ function migrate(c){
  return c;
 }
 function loadState(){const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;if(!db?.readState)throw new Error('DiagnostikaDB is required before app state initialization');const x=db.readState({source:'app-load'});if(x?.clients){x.clients=x.clients.map(migrate);return x}return{version:4,clients:[]}}
-function save(options={}){state.version=4;if(!options.forceLegacy){try{const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;if(db?.writeState)return db.writeState(state,{source:options.source||'app-save'})===true}catch(e){console.error('[Diagnostika] database save failed',e);return false}}try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){console.error('[Diagnostika] legacy save failed',e);return false}}
+function save(options={}){state.version=4;try{const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;if(!db?.writeState){console.error('[Diagnostika] database save unavailable');return false}return db.writeState(state,{source:options.source||'app-save'})===true}catch(e){console.error('[Diagnostika] database save failed',e);return false}}
 function client(){return state.clients.find(x=>x.id===clientId)||null}
 function request(){return client()?.requests.find(x=>x.id===requestId)||null}
 function situation(){return request()?.situations.find(x=>x.id===situationId)||null}

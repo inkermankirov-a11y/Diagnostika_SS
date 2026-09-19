@@ -5,7 +5,6 @@
   const HANDLE_STORE='handles';
   const HANDLE_KEY='data-root';
   const APP_DIR='Diagnostika';
-  const STATE_KEY='diagnostika-web-v1';
 
   let rootHandle=null;
   let appHandle=null;
@@ -13,6 +12,13 @@
   let syncing=false;
   let pendingSync=false;
   let folderState=null;
+
+  function writeCanonicalDatabase(value,source){
+    const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;
+    if(!db?.writeState)throw new Error('Слой базы данных недоступен.');
+    if(db.writeState(value,{source})!==true)throw new Error('Не удалось сохранить восстановленную базу в браузере.');
+    return true;
+  }
 
   function handleDb(){
     return new Promise((resolve,reject)=>{
@@ -251,8 +257,7 @@
     );
     if(!ok) return false;
 
-    try{ localStorage.setItem(STATE_KEY,JSON.stringify(folderState)); }
-    catch(e){ throw new Error('Не удалось сохранить восстановленную базу в браузере.'); }
+    writeCanonicalDatabase(folderState,'storage-manager-restore');
 
     await AppDialog.alert(`База восстановлена. Клиентов: ${count}.\nСтраница сейчас перезагрузится.`,'Готово');
     location.reload();

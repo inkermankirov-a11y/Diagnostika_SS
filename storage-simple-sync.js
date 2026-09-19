@@ -5,10 +5,16 @@
   const HANDLE_STORE='handles';
   const HANDLE_KEY='data-root';
   const APP_DIR='Diagnostika';
-  const STATE_KEY='diagnostika-web-v1';
   const BROWSER_UPDATED_KEY='diagnostika-browser-updated-at';
 
   const clone=v=>JSON.parse(JSON.stringify(v));
+
+  function writeCanonicalDatabase(value,source){
+    const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;
+    if(!db?.writeState)throw new Error('Слой базы данных недоступен.');
+    if(db.writeState(value,{source})!==true)throw new Error('Не удалось сохранить объединённую базу в браузере.');
+    return true;
+  }
 
   function isPlaceholderName(v){
     const s=String(v||'').trim().toLowerCase();
@@ -272,7 +278,7 @@
       merged=mergeStatesKeepClientSet(folderState,state);
     }
 
-    localStorage.setItem(STATE_KEY,JSON.stringify(merged));
+    writeCanonicalDatabase(merged,'storage-simple-sync');
     await writeStateTree(app,merged);
     localStorage.setItem(BROWSER_UPDATED_KEY,new Date().toISOString());
     return {

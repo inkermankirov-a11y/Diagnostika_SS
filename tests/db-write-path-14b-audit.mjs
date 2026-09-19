@@ -16,7 +16,7 @@ assert(appSource.includes("source:options.source||'app-save'"),'app.js DB write 
 assert(appSource.includes('db?.writeState'),'app.js does not prefer DB adapter');
 assert(clientSource.includes("platform.store?.legacySave?.({ source: 'client-service-persist' })"),'ClientService bypasses store persistence');
 assert(/core\/database\.js\?v=20260919-db14[b-z]/.test(bootstrapSource),'DB 14B+ CORE marker missing');
-assert(bootstrapSource.includes("core/store-bridge.js?v=20260919-db14b"),'DB 14B store marker missing');
+assert(/core\/store-bridge\.js\?v=20260919-db14[b-z]/.test(bootstrapSource),'DB 14B+ store marker missing');
 
 const buildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
 const bootstrapMatch=indexSource.match(/core\/bootstrap\.js\?v=([^"&]+)&api=13d/);

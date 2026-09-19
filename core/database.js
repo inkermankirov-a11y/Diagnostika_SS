@@ -9,7 +9,7 @@
   window.DiagnostikaPlatform = platform;
   if (platform.db) return;
 
-  const VERSION = '14C';
+  const VERSION = '14D';
   const BACKEND = 'localStorage';
   const STATE_KEY = 'diagnostika-web-v1';
   const SCHEMA_VERSION = 4;
@@ -30,25 +30,78 @@
     } catch (_) {}
   }
 
-  function storageRef() {
-    try {
-      return window.localStorage || null;
-    } catch (_) {
-      return null;
+  function createLocalStorageBackend() {
+    function storageRef() {
+      try {
+        return window.localStorage || null;
+      } catch (_) {
+        return null;
+      }
     }
+
+    function available() {
+      const storage = storageRef();
+      if (!storage) return false;
+      const key = '__diagnostika_db_probe__';
+      try {
+        storage.setItem(key, '1');
+        storage.removeItem(key);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function readRaw(key) {
+      const storage = storageRef();
+      if (!storage) return { ok: false, reason: 'storage-unavailable', value: null };
+      try {
+        return { ok: true, value: storage.getItem(key) };
+      } catch (error) {
+        return { ok: false, reason: 'read-failed', error, value: null };
+      }
+    }
+
+    function writeRaw(key, raw) {
+      const storage = storageRef();
+      if (!storage) return { ok: false, reason: 'storage-unavailable' };
+      try {
+        storage.setItem(key, raw);
+        return { ok: true };
+      } catch (error) {
+        return {
+          ok: false,
+          reason: error?.name === 'QuotaExceededError' ? 'quota-exceeded' : 'write-failed',
+          error
+        };
+      }
+    }
+
+    function removeRaw(key) {
+      const storage = storageRef();
+      if (!storage) return { ok: false, reason: 'storage-unavailable' };
+      try {
+        storage.removeItem(key);
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, reason: 'remove-failed', error };
+      }
+    }
+
+    return Object.freeze({
+      name: BACKEND,
+      synchronous: true,
+      available,
+      readRaw,
+      writeRaw,
+      removeRaw
+    });
   }
 
+  const backend = createLocalStorageBackend();
+
   function available() {
-    const storage = storageRef();
-    if (!storage) return false;
-    const key = '__diagnostika_db_probe__';
-    try {
-      storage.setItem(key, '1');
-      storage.removeItem(key);
-      return true;
-    } catch (_) {
-      return false;
-    }
+    return backend.available();
   }
 
   function clone(value) {
@@ -69,21 +122,23 @@
 
   function read(key, fallback = null, options = {}) {
     if (!validKey(key)) return clone(fallback);
-    const storage = storageRef();
-    if (!storage) {
+
+    const result = backend.readRaw(key);
+    if (!result.ok) {
       emit(EVENTS.error, {
         operation: 'read',
         key,
-        reason: 'storage-unavailable',
+        reason: result.reason,
+        name: result.error?.name || undefined,
         source: options.source
       });
       return clone(fallback);
     }
 
+    if (result.value === null) return clone(fallback);
+
     try {
-      const raw = storage.getItem(key);
-      if (raw === null) return clone(fallback);
-      const value = JSON.parse(raw);
+      const value = JSON.parse(result.value);
       emit(EVENTS.read, { operation: 'read', key, source: options.source });
       return value;
     } catch (error) {
@@ -100,16 +155,6 @@
 
   function write(key, value, options = {}) {
     if (!validKey(key)) return false;
-    const storage = storageRef();
-    if (!storage) {
-      emit(EVENTS.error, {
-        operation: 'write',
-        key,
-        reason: 'storage-unavailable',
-        source: options.source
-      });
-      return false;
-    }
 
     let raw;
     try {
@@ -135,40 +180,39 @@
       return false;
     }
 
-    try {
-      storage.setItem(key, raw);
-      emit(EVENTS.written, { operation: 'write', key, source: options.source });
-      return true;
-    } catch (error) {
+    const result = backend.writeRaw(key, raw);
+    if (!result.ok) {
       emit(EVENTS.error, {
         operation: 'write',
         key,
-        reason: error?.name === 'QuotaExceededError' ? 'quota-exceeded' : 'write-failed',
-        name: error?.name || 'Error',
+        reason: result.reason,
+        name: result.error?.name || undefined,
         source: options.source
       });
       return false;
     }
+
+    emit(EVENTS.written, { operation: 'write', key, source: options.source });
+    return true;
   }
 
   function remove(key, options = {}) {
     if (!validKey(key)) return false;
-    const storage = storageRef();
-    if (!storage) return false;
-    try {
-      storage.removeItem(key);
-      emit(EVENTS.removed, { operation: 'remove', key, source: options.source });
-      return true;
-    } catch (error) {
+
+    const result = backend.removeRaw(key);
+    if (!result.ok) {
       emit(EVENTS.error, {
         operation: 'remove',
         key,
-        reason: 'remove-failed',
-        name: error?.name || 'Error',
+        reason: result.reason,
+        name: result.error?.name || undefined,
         source: options.source
       });
       return false;
     }
+
+    emit(EVENTS.removed, { operation: 'remove', key, source: options.source });
+    return true;
   }
 
   function validState(value) {
@@ -215,7 +259,8 @@
       status: ready ? 'ready' : 'unavailable',
       ready,
       version: VERSION,
-      backend: BACKEND,
+      backend: backend.name,
+      backendSynchronous: backend.synchronous,
       stateKey: STATE_KEY,
       schemaVersion: SCHEMA_VERSION
     });
@@ -223,7 +268,7 @@
 
   const db = Object.freeze({
     version: VERSION,
-    backend: BACKEND,
+    backend: backend.name,
     stateKey: STATE_KEY,
     schemaVersion: SCHEMA_VERSION,
     events: EVENTS,
