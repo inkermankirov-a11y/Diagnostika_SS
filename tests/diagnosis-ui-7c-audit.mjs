@@ -45,8 +45,8 @@ assert.equal(collapseSource.includes('const arr=feeling.deep||(feeling.deep=[])'
 assert.equal(collapseSource.includes("typeof save==='function') save()"),false,'Context deep add persists directly');
 assert.equal(appSource.includes('arr.push(newInstinct())'),false,'renderEditor still creates instincts during read');
 
+assert(/app\.js\?v=20260919-(?:diagnosis7c|export10[a-d])/.test(indexSource),'Diagnosis 7C app.js cache marker missing');
 for(const token of [
-  'app.js?v=20260919-diagnosis7c',
   'diagnosis-add-focus.js?v=20260919-diagnosis7c',
   'secondary-feeling-hints.js?v=20260919-diagnosis7c',
   'feeling-collapse.js?v=20260919-diagnosis7c',
