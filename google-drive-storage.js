@@ -9,7 +9,6 @@
   const TOKEN_KEY='diagnostika-google-drive-token-v2';
   const FOLDER_KEY='diagnostika-google-drive-folder-v2';
   const USER_KEY='diagnostika-google-drive-user-v2';
-  const STATE_KEY='diagnostika-web-v1';
   const FOLDER_NAME='Diagnostika';
   const BACKUP_FOLDER_NAME='Backups';
   const SYNC_DB='diagnostika-google-sync-v1';
@@ -31,6 +30,13 @@
   const isObj=v=>v&&typeof v==='object'&&!Array.isArray(v);
   const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
   const stamp=()=>new Date().toISOString().replace(/[:.]/g,'-');
+  const databaseApi=()=>window.DiagnostikaDB||window.DiagnostikaPlatform?.db||null;
+  function readCanonicalDatabase(source){
+    try{return databaseApi()?.readState?.({source})||null;}catch{return null;}
+  }
+  function writeCanonicalDatabase(value,source){
+    try{return databaseApi()?.writeState?.(value,{source})===true;}catch{return false;}
+  }
 
   function getSession(key){try{return JSON.parse(sessionStorage.getItem(key)||'null');}catch{return null;}}
   function setSession(key,value){try{sessionStorage.setItem(key,JSON.stringify(value));}catch{}}
@@ -69,7 +75,7 @@
   async function downloadJson(fileId){const text=await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);try{return typeof text==='string'?JSON.parse(text):text;}catch{throw new Error('Файл базы на Google Drive повреждён.');}}
   async function remoteDatabase(){const folder=await ensureFolder(),file=await findFile(folder.id,'database.json');if(!file)return {folder,file:null,data:null};return {folder,file,data:await downloadJson(file.id)};}
 
-  function currentDatabase(){try{if(window.state&&Array.isArray(window.state.clients))return clone(window.state);}catch{}try{const raw=localStorage.getItem(STATE_KEY),db=raw?JSON.parse(raw):null;if(db&&Array.isArray(db.clients))return db;}catch{}return null;}
+  function currentDatabase(){try{if(window.state&&Array.isArray(window.state.clients))return clone(window.state);}catch{}const db=readCanonicalDatabase('google-drive-storage-current');return db&&Array.isArray(db.clients)?db:null;}
 
   function mergeArray(base,local,remote,path,conflicts){
     const b=Array.isArray(base)?base:[],l=Array.isArray(local)?local:[],r=Array.isArray(remote)?remote:[];
@@ -142,14 +148,14 @@
     if(remote.data)await backupSnapshot(remote.folder.id,'cloud-before-sync',remote.data);
     const {merged,conflicts}=mergeDatabases(base,local,remote.data||{version:4,clients:[]});
     await writeRemote(remote.folder,remote.file,merged);
-    try{localStorage.setItem(STATE_KEY,JSON.stringify(merged));}catch{throw new Error('Объединённая база сохранена в Google, но браузеру не хватило места для локальной копии. Перезагружать страницу не нужно.');}
+    if(!writeCanonicalDatabase(merged,'google-drive-storage-sync'))throw new Error('Объединённая база сохранена в Google, но локальную копию сохранить не удалось. Перезагружать страницу не нужно.');
     await setBase(merged);await cleanupBackups(remote.folder.id);
     return {merged,conflicts,localCount:local.clients.length,remoteCount:remote.data?.clients?.length||0};
   }
   async function safeRestore(){
     const local=currentDatabase(),remote=await remoteDatabase();if(!remote.data)throw new Error('На Google Drive ещё нет database.json.');
     if(local)await backupSnapshot(remote.folder.id,'local-before-restore',local);
-    try{localStorage.setItem(STATE_KEY,JSON.stringify(remote.data));}catch{throw new Error('Не удалось сохранить облачную базу в браузере. Текущая локальная база не изменена.');}
+    if(!writeCanonicalDatabase(remote.data,'google-drive-storage-restore'))throw new Error('Не удалось сохранить облачную базу в браузере. Текущая локальная база не изменена.');
     await setBase(remote.data);await cleanupBackups(remote.folder.id);return remote.data;
   }
 
