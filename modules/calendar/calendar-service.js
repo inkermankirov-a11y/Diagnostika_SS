@@ -43,15 +43,10 @@
   }
 
   function persist(){
-    try{
-      if(platform.store?.legacySave?.())return true;
-    }catch(_){}
-    try{
-      if(typeof save==='function'){save();return true;}
-    }catch(error){
+    try{return platform.store?.legacySave?.()===true;}catch(error){
       console.error('[DiagnostikaPlatform] calendar persistence failed',error);
+      return false;
     }
-    return false;
   }
 
   function emit(type,detail={}){
@@ -95,8 +90,10 @@
 
   function create(data={},options={}){
     if(!data||typeof data!=='object')return null;
-    const rows=eventsRef({create:true});
-    if(!rows)return null;
+    const st=stateRef();
+    if(!st)return null;
+    const hadEvents=Array.isArray(st.calendarEvents);
+    const rows=hadEvents?st.calendarEvents:(st.calendarEvents=[]);
 
     const created={...clone(data)};
     created.id=created.id||makeId();
@@ -107,6 +104,7 @@
     rows.push(created);
     if(!persist()){
       rows.pop();
+      if(!hadEvents)delete st.calendarEvents;
       return null;
     }
 
@@ -173,7 +171,8 @@
     const st=stateRef();
     if(!st)return null;
 
-    const before=clone(Array.isArray(st.calendarEvents)?st.calendarEvents:[])||[];
+    const hadEvents=Array.isArray(st.calendarEvents);
+    const before=clone(hadEvents?st.calendarEvents:[])||[];
     const next=clone(items)||[];
     const ids=new Set();
     for(const item of next){
@@ -188,7 +187,8 @@
 
     st.calendarEvents=next;
     if(!persist()){
-      st.calendarEvents=before;
+      if(hadEvents)st.calendarEvents=before;
+      else delete st.calendarEvents;
       return null;
     }
 
