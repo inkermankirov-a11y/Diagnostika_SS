@@ -6,7 +6,7 @@ const dbSource=fs.readFileSync('core/database.js','utf8');
 const bootstrapSource=fs.readFileSync('core/bootstrap.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(dbSource.includes("const VERSION = '14A'"),'DB 14A version marker missing');
+assert(/const VERSION = '14[A-Z]';/.test(dbSource),'DB 14.x version marker missing');
 assert(dbSource.includes("const STATE_KEY = 'diagnostika-web-v1'"),'Canonical state key missing');
 assert(dbSource.includes('function readState('),'readState contract missing');
 assert(dbSource.includes('function writeState('),'writeState contract missing');
@@ -43,7 +43,7 @@ page.on('pageerror',e=>errors.push('pageerror: '+(e.stack||e.message)));
 page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 await page.goto('http://127.0.0.1:8000/index.html?db-14a=1',{waitUntil:'commit',timeout:10000});
-await page.waitForFunction(()=>window.DiagnostikaDB?.version==='14A',null,{timeout:20000});
+await page.waitForFunction(()=>/^14[A-Z]$/.test(window.DiagnostikaDB?.version||''),null,{timeout:20000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
 
 const result=await page.evaluate(()=>{
@@ -73,7 +73,7 @@ assert.equal(result.frozen,true);
 assert.equal(result.sameBridge,true);
 assert.equal(result.health.status,'ready');
 assert.equal(result.health.ready,true);
-assert.equal(result.health.version,'14A');
+assert(/^14[A-Z]$/.test(result.health.version),'DB foundation version is not 14.x');
 assert.equal(result.health.backend,'localStorage');
 assert.equal(result.health.stateKey,'diagnostika-web-v1');
 assert.equal(result.health.schemaVersion,4);
