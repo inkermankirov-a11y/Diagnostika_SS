@@ -51,7 +51,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2';
+    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2&db=14b';
     serviceScript.setAttribute('data-clients-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
