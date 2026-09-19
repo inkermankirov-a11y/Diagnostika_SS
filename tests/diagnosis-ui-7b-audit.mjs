@@ -6,7 +6,7 @@ const appSource=fs.readFileSync('app.js','utf8');
 const apiSource=fs.readFileSync('diagnosis-api.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(apiSource.includes("version:'7B'"),'Diagnosis facade version is not 7B');
+assert(/version:'7[BC]'/.test(apiSource),'Diagnosis facade version is outside supported 7B-7C range');
 for(const token of [
   "source:'diagnosis-ui-situation-add'",
   "source:'diagnosis-ui-situation-edit'",
@@ -22,8 +22,8 @@ for(const forbidden of [
   'if(l!==null)s.level=lvl(l)'
 ])assert.equal(appSource.includes(forbidden),false,'Situation UI still mutates diagnosis state directly: '+forbidden);
 
-assert(indexSource.includes('app.js?v=20260919-diagnosis7b'),'app.js cache marker is stale');
-assert(indexSource.includes('diagnosis-api.js?v=20260919-diagnosis7b'),'diagnosis-api cache marker is stale');
+assert(indexSource.includes('app.js?v=20260919-diagnosis7c'),'app.js cache marker is stale');
+assert(indexSource.includes('diagnosis-api.js?v=20260919-diagnosis7c'),'diagnosis-api cache marker is stale');
 
 const fixture={version:4,clients:[{
   id:'diag-7b-client',
@@ -59,7 +59,7 @@ page.on('dialog',async d=>{
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaDiagnosis?.version==='7B'
+  await page.waitForFunction(()=>/^7[BC]$/.test(window.DiagnostikaDiagnosis?.version||'')
     && window.DiagnostikaDiagnosis?.moduleAware===true
     && window.DiagnostikaPlatform?.services?.diagnosis,
     null,{timeout:15000});
