@@ -1,0 +1,86 @@
+name: Files API audit
+
+on:
+  push:
+    branches: [main, 'feature-files-*']
+    paths:
+      - 'modules/files/**'
+      - 'files-api.js'
+      - 'session-attachments.js'
+      - 'storage-manager.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/files-*.mjs'
+      - '.github/workflows/files-api-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  files-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static Files boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/files/file-service.js
+          node --check modules/files/index.js
+          node --check files-api.js
+          node --check app-loader.js
+          node --check tests/files-module-9a-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          service=Path('modules/files/file-service.js').read_text(encoding='utf-8')
+          module=Path('modules/files/index.js').read_text(encoding='utf-8')
+          api=Path('files-api.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          errors=[]
+
+          for token in [
+              'async function get(','async function list(','async function put(',
+              'async function add(','async function remove(','async function removeForSession(',
+              'async function removeForClient('
+          ]:
+              if token not in service:
+                  errors.append('FileService method missing '+token)
+          for forbidden in ['querySelector(', "typeof save==='function'"]:
+              if forbidden in service:
+                  errors.append('FileService legacy/UI dependency '+forbidden)
+          if "const DB_NAME='diagnostika-session-media-v1'" not in service:
+              errors.append('FileService legacy DB compatibility missing')
+          if "MODULE_ID='files'" not in module:
+              errors.append('files module registration missing')
+          if "'session:deleted'" not in module or "'client:purged'" not in module:
+              errors.append('files lifecycle cleanup missing')
+          if "version:'9A'" not in api or 'moduleAware:true' not in api:
+              errors.append('files facade is not module-aware 9A')
+          for token in [
+              'modules/files/file-service.js?v=20260919-files9a',
+              'modules/files/index.js?v=20260919-files9a',
+              'files-api.js?v=20260919-files9a'
+          ]:
+              if token not in loader:
+                  errors.append('files loader missing/stale '+token)
+
+          print('FILES_9A_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify Files 9A foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/files-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/files-module-9a-audit.mjs
