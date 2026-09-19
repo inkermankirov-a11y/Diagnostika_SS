@@ -14,6 +14,7 @@ on:
       - 'tests/calendar-module-8a-audit.mjs'
       - 'tests/calendar-ui-8b-audit.mjs'
       - 'tests/calendar-session-8c-audit.mjs'
+      - 'tests/calendar-hardening-8d-audit.mjs'
       - '.github/workflows/calendar-api-audit.yml'
   workflow_dispatch:
 
@@ -38,6 +39,7 @@ jobs:
           node --check tests/calendar-module-8a-audit.mjs
           node --check tests/calendar-ui-8b-audit.mjs
           node --check tests/calendar-session-8c-audit.mjs
+          node --check tests/calendar-hardening-8d-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
@@ -49,6 +51,7 @@ jobs:
           index=Path('index.html').read_text(encoding='utf-8')
           ui=Path('client-calendar.js').read_text(encoding='utf-8')
           planning=Path('calendar-session-planning.js').read_text(encoding='utf-8')
+          google=Path('calendar-google-link.js').read_text(encoding='utf-8')
           errors=[]
 
           if 'services.calendar=Object.freeze' not in service:
@@ -68,14 +71,14 @@ jobs:
               errors.append('CalendarService does not persist through store bridge')
           if "MODULE_ID='calendar'" not in module:
               errors.append('calendar module registration missing')
-          if "version:'8B'" not in api or 'moduleAware:true' not in api:
-              errors.append('calendar facade is not module-aware 8B')
+          if "version:'8D'" not in api or 'moduleAware:true' not in api:
+              errors.append('calendar facade is not module-aware 8D')
           if 'window.DiagnostikaCalendar=Object.freeze({' not in api:
               errors.append('calendar facade is not frozen')
           for token in [
               'modules/calendar/calendar-service.js?v=20260919-calendar8a',
               'modules/calendar/index.js?v=20260919-calendar8a',
-              'calendar-api.js?v=20260919-calendar8b'
+              'calendar-api.js?v=20260919-calendar8d'
           ]:
               if token not in loader:
                   errors.append('calendar loader missing/stale: '+token)
@@ -87,8 +90,8 @@ jobs:
               errors.append('calendar build/app-loader marker missing')
           elif build_match.group(1)!=loader_match.group(1):
               errors.append('build marker and app-loader cache marker differ')
-          elif build_match.group(1)!='20260919-calendar8b':
-              errors.append('calendar 8B global loader marker is stale')
+          elif build_match.group(1)!='20260919-calendar8d':
+              errors.append('calendar 8D global loader marker is stale')
 
           for token in ['customEvents().push(item)', '.splice(idx,1)', "typeof save==='function'"]:
               if token in ui:
@@ -114,6 +117,19 @@ jobs:
           if 'calendar-session-planning.js?v=20260919-calendar8c' not in index:
               errors.append('calendar 8C planning cache marker is stale')
 
+          for token in ["version:'8D'", 'window.DiagnostikaCalendarUI=ui', "if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui", 'row.dataset.calendarEventId']:
+              if token not in ui:
+                  errors.append('calendar 8D UI hardening missing '+token)
+          for token in ["version:'8D'", 'calendarApi()?.get?.(id)', 'urlForRow:googleUrl']:
+              if token not in google:
+                  errors.append('calendar 8D Google bridge hardening missing '+token)
+          for token in [
+              'client-calendar.js?v=20260919-calendar8d',
+              'calendar-google-link.js?v=20260919-calendar8d'
+          ]:
+              if token not in index:
+                  errors.append('calendar 8D asset marker missing '+token)
+
           print('CALENDAR_8A_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
@@ -134,3 +150,4 @@ jobs:
           node tests/calendar-module-8a-audit.mjs
           node tests/calendar-ui-8b-audit.mjs
           node tests/calendar-session-8c-audit.mjs
+          node tests/calendar-hardening-8d-audit.mjs
