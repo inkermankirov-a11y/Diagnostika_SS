@@ -37,6 +37,7 @@ jobs:
           node --check roles-api.js
           node --check session-api.js
           node --check tests/api-contract-13a-audit.mjs
+          node --check tests/api-hardening-13d-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -46,7 +47,7 @@ jobs:
           errors=[]
 
           for token in [
-              "version:'13A'",
+              "version:'13D'",
               'window.DiagnostikaAPI=platform.api',
               'function invokeService(',
               'function invokeServiceAsync(',
@@ -56,7 +57,7 @@ jobs:
               if token not in registry:
                   errors.append('API registry missing '+token)
 
-          if "['api', 'core/api-registry.js?v=20260919-api13a']" not in bootstrap:
+          if "['api', 'core/api-registry.js?v=20260919-api13d']" not in bootstrap:
               errors.append('CORE API registry loader missing')
 
           for file in ['ai-api.js','calendar-api.js','session-api.js','payment-api.js','files-api.js','export-api.js']:
@@ -72,7 +73,7 @@ jobs:
               if 'function apiAllowed()' not in src:
                   errors.append(file+' lacks Roles-aware legacy guard')
 
-          print('API_13A_STATIC_ERRORS:',errors)
+          print('API_13D_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
           PY
@@ -83,10 +84,11 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Verify API 13A runtime
+      - name: Verify API 13A foundation and 13D hardening
         shell: bash
         run: |
           set -euo pipefail
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/api-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/api-contract-13a-audit.mjs
+          node tests/api-hardening-13d-audit.mjs
