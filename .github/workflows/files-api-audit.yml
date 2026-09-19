@@ -29,7 +29,10 @@ jobs:
           node --check modules/files/index.js
           node --check files-api.js
           node --check app-loader.js
+          node --check session-attachments.js
+          node --check storage-manager.js
           node --check tests/files-module-9a-audit.mjs
+          node --check tests/files-ui-9b-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -38,6 +41,8 @@ jobs:
           module=Path('modules/files/index.js').read_text(encoding='utf-8')
           api=Path('files-api.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
+          ui=Path('session-attachments.js').read_text(encoding='utf-8')
+          storage=Path('storage-manager.js').read_text(encoding='utf-8')
           errors=[]
 
           for token in [
@@ -66,7 +71,21 @@ jobs:
               if token not in loader:
                   errors.append('files loader missing/stale '+token)
 
-          print('FILES_9A_STATIC_ERRORS:',errors)
+          if 'function filesApi()' not in ui:
+              errors.append('session attachment Files bridge missing')
+          if 'indexedDB.open(SESSION_MEDIA_DB' in ui:
+              errors.append('session attachments still own IndexedDB')
+          for token in ["source:'session-attachment-add'","source:'session-attachment-delete'"]:
+              if token not in ui:
+                  errors.append('session attachment service source missing '+token)
+          for token in ["bus.on('file:created'","bus.on('file:deleted'",'api.list({sessionId:s.id})']:
+              if token not in storage:
+                  errors.append('storage file-event integration missing '+token)
+          for forbidden in ['mediaDbPut=async function','mediaDbDelete=async function']:
+              if forbidden in storage:
+                  errors.append('storage still monkey-patches legacy file DB '+forbidden)
+
+          print('FILES_9AB_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
           PY
@@ -84,3 +103,4 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/files-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/files-module-9a-audit.mjs
+          node tests/files-ui-9b-audit.mjs
