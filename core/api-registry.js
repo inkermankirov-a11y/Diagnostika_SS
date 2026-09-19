@@ -222,6 +222,7 @@
 
   platform.api=Object.freeze({
     version:'13A',
+    moduleAware:true,
     register,
     contract,
     facade,
@@ -234,6 +235,7 @@
     invokeService,
     invokeServiceAsync
   });
+  window.DiagnostikaAPI=platform.api;
 
   platform.events?.emit('api:ready',{version:'13A',contracts:contracts.size});
 })();
