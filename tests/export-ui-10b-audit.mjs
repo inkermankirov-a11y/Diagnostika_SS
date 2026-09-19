@@ -46,30 +46,48 @@ await page.goto('http://127.0.0.1:8000/index.html?export-10b=1',{waitUntil:'comm
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
 await page.waitForFunction(()=>window.DiagnostikaExport?.version==='10A',null,{timeout:15000});
 
-const txtDownloadPromise=page.waitForEvent('download');
-await page.locator('#exportTxtBtn').click();
-const txtDownload=await txtDownloadPromise;
-assert(txtDownload.suggestedFilename().endsWith('_диагностика.txt'));
-const txtPath=await txtDownload.path();
-const txt=fs.readFileSync(txtPath,'utf8');
-assert(txt.includes('КЛИЕНТ: Экспорт Тест'));
-assert(txt.includes('Тестовый запрос'));
-assert(txt.includes('СИТУАЦИЯ 1: Ситуация'));
+await page.evaluate(()=>{
+  window.__exportUiDownloads=[];
+  window.__exportUiOriginalRevoke=URL.revokeObjectURL;
+  URL.revokeObjectURL=()=>{};
+  const originalClick=HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click=function(){
+    window.__exportUiDownloads.push({filename:this.download,href:this.href});
+    return originalClick.call(this);
+  };
+});
 
-const jsonDownloadPromise=page.waitForEvent('download');
+await page.locator('#exportTxtBtn').click();
+await page.waitForFunction(()=>window.__exportUiDownloads.length>=1,null,{timeout:5000});
+const txtCapture=await page.evaluate(async()=>{
+  const item=window.__exportUiDownloads[0];
+  return {filename:item.filename,text:await (await fetch(item.href)).text()};
+});
+assert(txtCapture.filename.endsWith('_диагностика.txt'));
+assert(txtCapture.text.includes('КЛИЕНТ: Экспорт Тест'));
+assert(txtCapture.text.includes('Тестовый запрос'));
+assert(txtCapture.text.includes('СИТУАЦИЯ 1: Ситуация'));
+
 await page.locator('#saveHistoryBtn').click();
-const jsonDownload=await jsonDownloadPromise;
-assert(/^diagnostika-backup-\d{4}-\d{2}-\d{2}\.json$/.test(jsonDownload.suggestedFilename()));
-const jsonPath=await jsonDownload.path();
-const backup=JSON.parse(fs.readFileSync(jsonPath,'utf8'));
+await page.waitForFunction(()=>window.__exportUiDownloads.length>=2,null,{timeout:5000});
+const jsonCapture=await page.evaluate(async()=>{
+  const item=window.__exportUiDownloads[1];
+  return {filename:item.filename,text:await (await fetch(item.href)).text()};
+});
+assert(/^diagnostika-backup-\d{4}-\d{2}-\d{2}\.json$/.test(jsonCapture.filename));
+const backup=JSON.parse(jsonCapture.text);
 assert.equal(backup.clients[0].id,'export-ui-client');
+
+await page.evaluate(()=>{
+  if(window.__exportUiOriginalRevoke)URL.revokeObjectURL=window.__exportUiOriginalRevoke;
+});
 
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
 
 console.log('EXPORT_10B_SUCCESS',JSON.stringify({
-  txt:txtDownload.suggestedFilename(),
-  backup:jsonDownload.suggestedFilename()
+  txt:txtCapture.filename,
+  backup:jsonCapture.filename
 }));
 
 await context.close();
