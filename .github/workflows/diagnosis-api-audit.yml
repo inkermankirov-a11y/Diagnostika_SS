@@ -10,6 +10,8 @@ on:
       - 'feeling-collapse.js'
       - 'secondary-feeling-hints.js'
       - 'diagnosis-add-focus.js'
+      - 'tests/diagnosis-7d-hardening-audit.mjs'
+      - 'deep-context-button.js'
       - 'situation-unknown-level.js'
       - 'situation-create.js'
       - 'modules/diagnosis/**'
@@ -46,6 +48,8 @@ jobs:
           node --check feeling-collapse.js
           node --check secondary-feeling-hints.js
           node --check diagnosis-add-focus.js
+          node --check tests/diagnosis-7d-hardening-audit.mjs
+          node --check deep-context-button.js
           node --check situation-unknown-level.js
           node --check situation-create.js
           node --check modules/diagnosis/diagnosis-service.js
@@ -104,8 +108,8 @@ jobs:
           if not (order['request-select-labels.js'] < order['diagnosis-api.js'] < order['request-title-display.js']):
               raise SystemExit('Diagnosis API load order is unsafe')
 
-          if not re.search(r"version:'7[ABC]'",api) or 'moduleAware:true' not in api:
-              raise SystemExit('Diagnosis API is outside supported module-aware 7A-7C range')
+          if not re.search(r"version:'7[ABCD]'",api) or 'moduleAware:true' not in api:
+              raise SystemExit('Diagnosis API is outside supported module-aware 7A-7D range')
           for token in ['snapshot','situations','getSituation','findElement','addSituation','updateSituation','removeSituation','addBelief','addFeeling','replaceFeelings','addDeep','addInstinct','updateElement','removeElement']:
               if token not in service or token not in api:
                   raise SystemExit('Diagnosis 7A method missing '+token)
@@ -350,5 +354,13 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7c-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/diagnosis-ui-7c-audit.mjs
+
+      - name: Verify Diagnosis 7D repository hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7d-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-7d-hardening-audit.mjs
 
 # acceptance-ci-trigger: 20260918
