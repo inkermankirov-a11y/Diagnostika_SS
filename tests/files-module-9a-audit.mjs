@@ -107,9 +107,11 @@ await page.evaluate(async()=>{
   );
   window.DiagnostikaSessions.remove('files-s2',{clientId:'files-client',source:'files-9a-session-delete',render:false});
 });
-await page.waitForFunction(async()=>await window.DiagnostikaFiles.count({sessionId:'files-s2'})===0,null,{timeout:5000});
+await page.waitForFunction(()=>window.__files9aEvents.some(e=>e.type==='file:session-cleared'&&e.detail?.sessionId==='files-s2'),null,{timeout:5000});
+assert.equal(await page.evaluate(async()=>await window.DiagnostikaFiles.count({sessionId:'files-s2'})),0);
 
 await page.evaluate(async()=>{
+  await window.DiagnostikaFiles.remove('file-9a-1',{source:'files-9a-reset'});
   await window.DiagnostikaFiles.add(
     new Blob(['purge'],{type:'text/plain'}),
     {id:'file-9a-purge',clientId:'files-client',sessionId:'files-s1',name:'purge.txt'},
@@ -117,7 +119,7 @@ await page.evaluate(async()=>{
   );
   window.DiagnostikaPlatform.events.emit('client:purged',{clientId:'files-client',source:'files-9a-purge-event'});
 });
-await page.waitForFunction(async()=>await window.DiagnostikaFiles.count({clientId:'files-client'})===0,null,{timeout:5000});
+await page.waitForFunction(()=>window.__files9aEvents.some(e=>e.type==='file:client-cleared'&&e.detail?.clientId==='files-client'),null,{timeout:5000});
 
 const finalState=await page.evaluate(async()=>({
   count:await window.DiagnostikaFiles.count({clientId:'files-client'}),
