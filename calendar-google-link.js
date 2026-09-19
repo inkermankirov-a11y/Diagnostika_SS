@@ -16,6 +16,18 @@
   const pad=n=>String(n).padStart(2,'0');
   const clean=s=>String(s||'').trim();
 
+  function calendarApi(){
+    const facade=window.DiagnostikaCalendar;
+    if(facade?.moduleAware===true)return facade;
+    return window.DiagnostikaPlatform?.services?.calendar||null;
+  }
+
+  function eventForRow(row){
+    const id=clean(row?.dataset?.calendarEventId);
+    if(!id)return null;
+    try{return calendarApi()?.get?.(id)||null;}catch(_){return null;}
+  }
+
   function compactDate(date){return clean(date).replace(/-/g,'');}
 
   function timedStamp(date,time){
@@ -41,17 +53,17 @@
   }
 
   function googleUrl(row){
+    const event=eventForRow(row);
     const dialog=row.closest('#diagnostikaCalendarOverlay');
-    const date=clean(dialog?.querySelector('.cal-date')?.value);
+    const date=clean(event?.date)||clean(dialog?.querySelector('.cal-date')?.value);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
 
-    const rawTime=clean(row.querySelector('.cal-event-time')?.textContent);
+    const rawTime=clean(event?.time)||clean(row.querySelector('.cal-event-time')?.textContent);
     const time=/^\d{2}:\d{2}$/.test(rawTime)?rawTime:'';
-    const eventTitle=clean(row.querySelector('.cal-event-title')?.textContent)||'Запись';
-    const meta=clean(row.querySelector('.cal-event-meta')?.textContent);
-    const parts=meta.split(' • ').map(x=>x.trim()).filter(Boolean);
-    const clientName=parts.shift()||'';
-    const comment=parts.join(' • ');
+    const eventTitle=clean(event?.title||event?.type)||clean(row.querySelector('.cal-event-title')?.textContent)||'Запись';
+    const clientName=clean(event?.clientName);
+    const comment=[event?.meta,event?.note].map(clean).filter(Boolean).join(' • ')
+      ||clean(row.querySelector('.cal-event-meta')?.textContent);
 
     const text=clientName?`${eventTitle} — ${clientName}`:eventTitle;
     const details=[];
@@ -74,7 +86,6 @@
     });
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
-
   function attachRow(row){
     if(!row||row.dataset.googleCalendarReady==='1') return;
     row.dataset.googleCalendarReady='1';
@@ -112,7 +123,7 @@
   },true);
   setTimeout(sync,0);
 
-  window.DiagnostikaGoogleCalendarLink={refresh:sync};
+  window.DiagnostikaGoogleCalendarLink=Object.freeze({version:'8D',refresh:sync,urlForRow:googleUrl});
 })();
 
 // This is the final startup script in index.html. Reveal the UI only after all
