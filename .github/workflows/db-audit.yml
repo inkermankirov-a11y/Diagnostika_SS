@@ -1,0 +1,70 @@
+name: DB foundation audit
+
+on:
+  push:
+    branches: [main, 'feature-db-*']
+    paths:
+      - 'core/database.js'
+      - 'core/bootstrap.js'
+      - 'index.html'
+      - 'tests/db-*.mjs'
+      - '.github/workflows/db-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  db-foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static DB foundation check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check core/database.js
+          node --check core/bootstrap.js
+          node --check tests/db-foundation-14a-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          db=Path('core/database.js').read_text(encoding='utf-8')
+          bootstrap=Path('core/bootstrap.js').read_text(encoding='utf-8')
+          index=Path('index.html').read_text(encoding='utf-8')
+          errors=[]
+
+          for token in [
+              "const VERSION = '14A'",
+              "const STATE_KEY = 'diagnostika-web-v1'",
+              'function readState(',
+              'function writeState(',
+              'function health(',
+              'window.DiagnostikaDB = db'
+          ]:
+              if token not in db:
+                  errors.append('DB foundation missing '+token)
+
+          if "['db', 'core/database.js?v=20260919-db14a']" not in bootstrap:
+              errors.append('CORE DB loader missing')
+          if 'core/bootstrap.js?v=20260919-db14a&api=13d' not in index:
+              errors.append('index DB cache marker missing')
+
+          print('DB_14A_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify DB 14A runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/db-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/db-foundation-14a-audit.mjs
