@@ -18,6 +18,7 @@
 
   let runtimeRole = roles.specialist;
   let revision = 0;
+  let reconcileQueue = Promise.resolve([]);
 
   function isKnownRole(role) {
     return Object.values(roles).includes(role);
@@ -92,27 +93,47 @@
 
     platform.events?.emit('access:role-changed', detail);
 
-    Promise.resolve(platform.modules?.reconcileAccess?.(role, {
-      source: detail.source,
-      revision
-    })).catch(error => {
-      console.error('[DiagnostikaPlatform] role reconciliation failed', error);
-      platform.events?.emit('access:reconcile-error', {
-        role,
-        revision,
-        error,
-        source: detail.source
+    reconcileQueue = reconcileQueue
+      .catch(() => [])
+      .then(async () => {
+        if (runtimeRole !== role || revision !== detail.revision) return [];
+        const result = await platform.modules?.reconcileAccess?.(role, {
+          source: detail.source,
+          revision: detail.revision
+        });
+        if (runtimeRole === role && revision === detail.revision) {
+          platform.events?.emit('access:role-settled', {
+            role,
+            revision: detail.revision,
+            source: detail.source
+          });
+        }
+        return result || [];
+      })
+      .catch(error => {
+        console.error('[DiagnostikaPlatform] role reconciliation failed', error);
+        platform.events?.emit('access:reconcile-error', {
+          role,
+          revision: detail.revision,
+          error,
+          source: detail.source
+        });
+        throw error;
       });
-    });
 
     return runtimeRole;
   }
 
+  function whenSettled() {
+    return reconcileQueue.catch(() => []);
+  }
+
   platform.access = Object.freeze({
-    version: '11A',
+    version: '11D',
     roles,
     currentRole,
     roleRevision,
+    whenSettled,
     isKnownRole,
     permissions,
     can,
