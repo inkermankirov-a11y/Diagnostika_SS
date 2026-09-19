@@ -142,6 +142,34 @@
     return sessions.getDirectoryHandle(`session_${String(index+1).padStart(3,'0')}_${shortId(s.id)}`,{create:true});
   }
 
+  async function findClientDirById(clientId){
+    const app=await getExistingAppHandle();
+    if(!app)return null;
+    let clients;
+    try{clients=await app.getDirectoryHandle('clients',{create:false});}
+    catch(e){if(e?.name==='NotFoundError')return null;throw e;}
+
+    const suffix='_'+shortId(clientId);
+    for await(const [name,handle] of clients.entries()){
+      if(handle?.kind==='directory'&&name.endsWith(suffix))return handle;
+    }
+    return null;
+  }
+
+  async function findSessionDirById(clientId,sessionId){
+    const cd=await findClientDirById(clientId);
+    if(!cd)return null;
+    let sessions;
+    try{sessions=await cd.getDirectoryHandle('sessions',{create:false});}
+    catch(e){if(e?.name==='NotFoundError')return null;throw e;}
+
+    const suffix='_'+shortId(sessionId);
+    for await(const [name,handle] of sessions.entries()){
+      if(handle?.kind==='directory'&&name.endsWith(suffix))return handle;
+    }
+    return null;
+  }
+
   async function writeCoreState(){
     if(!rootHandle) return;
     const app=await getOrCreateAppHandle();
@@ -178,15 +206,14 @@
   async function removeMirroredRecord(rec){
     if(!rec || !rootHandle) return;
     try{
-      const c=(state.clients||[]).find(x=>x.id===rec.clientId);
-      if(!c) return;
-      const index=(c.sessions||[]).findIndex(x=>x.id===rec.sessionId);
-      if(index<0) return;
-      const sd=await ensureSessionDir(c,c.sessions[index],index);
-      const fd=await sd.getDirectoryHandle('files',{create:true});
+      const sd=await findSessionDirById(rec.clientId,rec.sessionId);
+      if(!sd)return;
+      let fd;
+      try{fd=await sd.getDirectoryHandle('files',{create:false});}
+      catch(e){if(e?.name==='NotFoundError')return;throw e;}
       await fd.removeEntry(`${shortId(rec.id)}_${safeName(rec.name,'file')}`);
     }catch(e){
-      console.warn('Не удалось удалить зеркальную копию файла',e);
+      if(e?.name!=='NotFoundError')console.warn('Не удалось удалить зеркальную копию файла',e);
     }
   }
 
