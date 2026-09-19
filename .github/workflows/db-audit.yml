@@ -5,6 +5,7 @@ on:
     branches: [main, 'feature-db-*']
     paths:
       - 'core/database.js'
+      - 'core/store-bridge.js'
       - 'app.js'
       - 'core/bootstrap.js'
       - 'index.html'
@@ -28,6 +29,7 @@ jobs:
           node --check tests/db-foundation-14a-audit.mjs
           node --check tests/db-write-path-14b-audit.mjs
           node --check tests/db-read-path-14c-audit.mjs
+          node --check tests/db-storage-boundary-14d-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
@@ -38,7 +40,7 @@ jobs:
           errors=[]
 
           for token in [
-              "const VERSION = '14C'",
+              "const VERSION = '14D'",
               "const STATE_KEY = 'diagnostika-web-v1'",
               'function readState(',
               'function writeState(',
@@ -48,7 +50,7 @@ jobs:
               if token not in db:
                   errors.append('DB foundation missing '+token)
 
-          if "['db', 'core/database.js?v=20260919-db14c']" not in bootstrap:
+          if "['db', 'core/database.js?v=20260919-db14d']" not in bootstrap:
               errors.append('CORE DB loader missing')
           build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
           bootstrap_match=re.search(r'core/bootstrap[.]js[?]v=([^"&]+)&api=13d',index)
@@ -58,7 +60,7 @@ jobs:
           elif len({build_match.group(1),bootstrap_match.group(1),loader_match.group(1)})!=1:
               errors.append('DB global runtime markers differ')
 
-          print('DB_14C_STATIC_ERRORS:',errors)
+          print('DB_14D_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
           PY
@@ -69,7 +71,7 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Verify DB 14A foundation, 14B writes and 14C reads
+      - name: Verify DB 14A foundation through 14D storage boundary
         shell: bash
         run: |
           set -euo pipefail
@@ -78,3 +80,4 @@ jobs:
           node tests/db-foundation-14a-audit.mjs
           node tests/db-write-path-14b-audit.mjs
           node tests/db-read-path-14c-audit.mjs
+          node tests/db-storage-boundary-14d-audit.mjs
