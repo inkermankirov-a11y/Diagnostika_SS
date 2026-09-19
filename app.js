@@ -26,7 +26,7 @@ function migrate(c){
  return c;
 }
 function loadState(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x?.clients){x.clients=x.clients.map(migrate);return x}}catch(e){}return{version:4,clients:[]}}
-function save(){state.version=4;localStorage.setItem(KEY,JSON.stringify(state))}
+function save(options={}){state.version=4;if(!options.forceLegacy){try{const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;if(db?.writeState)return db.writeState(state,{source:options.source||'app-save'})===true}catch(e){console.error('[Diagnostika] database save failed',e);return false}}try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){console.error('[Diagnostika] legacy save failed',e);return false}}
 function client(){return state.clients.find(x=>x.id===clientId)||null}
 function request(){return client()?.requests.find(x=>x.id===requestId)||null}
 function situation(){return request()?.situations.find(x=>x.id===situationId)||null}
