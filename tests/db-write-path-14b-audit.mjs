@@ -37,9 +37,9 @@ const fixture={version:4,clients:[{
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1280,height:900}});
 await context.addInitScript(data=>{
-  localStorage.setItem('diagnostika-web-v1',JSON.stringify(data));
-  localStorage.setItem('diagnostika-last-client-id','db14b-client');
-  localStorage.setItem('diagnostika-ui-language','ru');
+  if(!localStorage.getItem('diagnostika-web-v1'))localStorage.setItem('diagnostika-web-v1',JSON.stringify(data));
+  if(!localStorage.getItem('diagnostika-last-client-id'))localStorage.setItem('diagnostika-last-client-id','db14b-client');
+  if(!localStorage.getItem('diagnostika-ui-language'))localStorage.setItem('diagnostika-ui-language','ru');
 },fixture);
 
 const page=await context.newPage();
