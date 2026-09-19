@@ -14,6 +14,7 @@
     ['events', 'core/event-bus.js?v=20260917-core02a'],
     ['modules', 'core/module-registry.js?v=20260919-roles11d'],
     ['store', 'core/store-bridge.js?v=20260917-core02a'],
+    ['db', 'core/database.js?v=20260919-db14a'],
     ['access', 'core/access-control.js?v=20260919-roles11d'],
     ['api', 'core/api-registry.js?v=20260919-api13d'],
     ['legacyEvents', 'core/legacy-event-bridge.js?v=20260918-sessions4c'],
