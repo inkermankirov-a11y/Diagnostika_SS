@@ -14,11 +14,11 @@ assert(serviceSource.includes("services.export=Object.freeze({"),'ExportService 
 assert.equal(serviceSource.includes('querySelector('),false,'ExportService knows UI/HTML');
 assert.equal(serviceSource.includes('createObjectURL'),false,'ExportService owns browser download');
 assert(moduleSource.includes("MODULE_ID='export'"),'Export module registration missing');
-assert(apiSource.includes("version:'10A'"),'Export facade version is not 10A');
+assert(apiSource.includes("version:'10D'"),'Export facade version is not 10A');
 for(const marker of [
-  'modules/export/export-service.js?v=20260919-export10a',
-  'modules/export/index.js?v=20260919-export10a',
-  'export-api.js?v=20260919-export10a'
+  'modules/export/export-service.js?v=20260919-export10d',
+  'modules/export/index.js?v=20260919-export10d',
+  'export-api.js?v=20260919-export10d'
 ])assert(loaderSource.includes(marker),'Export loader missing '+marker);
 
 const fixture={version:4,clients:[{
@@ -70,7 +70,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 await page.goto('http://127.0.0.1:8000/index.html?export-10a=1',{waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-await page.waitForFunction(()=>window.DiagnostikaExport?.version==='10A'
+await page.waitForFunction(()=>window.DiagnostikaExport?.version==='10D'
   && window.DiagnostikaExport?.moduleAware===true
   && window.DiagnostikaPlatform?.services?.export
   && window.DiagnostikaPlatform?.modules?.get?.('export')?.status==='started',
