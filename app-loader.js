@@ -61,7 +61,7 @@
     if(window.DiagnostikaRoles?.moduleAware===true)return;
     if(document.querySelector('script[data-roles-api]'))return;
     const script=document.createElement('script');
-    script.src='roles-api.js?v=20260919-roles11c';
+    script.src='roles-api.js?v=20260919-roles11d';
     script.setAttribute('data-roles-api','1');
     document.body.appendChild(script);
   }
