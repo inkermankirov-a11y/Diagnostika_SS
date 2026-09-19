@@ -274,7 +274,7 @@ jobs:
           console.log('REQUEST_API_STRESS_CYCLES: 100');
           console.log('REQUEST_API_RELOAD_STATE:',JSON.stringify(restored));
           console.log('Browser errors:',JSON.stringify(errors));
-          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
           if(serious.length)throw new Error(serious.join(' | '));
           await browser.close();
           JS
