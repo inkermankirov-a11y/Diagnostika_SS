@@ -101,15 +101,17 @@ assert.equal(persisted.currentRequestId,'payment-5c-r1');
 
 await page.evaluate(()=>{
   window.__payment5cCalls=[];
-  const api=window.DiagnostikaPayments;
+  const originalApi=window.DiagnostikaPayments;
+  const api={...originalApi};
   for(const name of ['updateSession','replaceSession']){
-    const original=api[name].bind(api);
+    const original=originalApi[name].bind(originalApi);
     api[name]=function(...args){
       const options=args[args.length-1];
       window.__payment5cCalls.push({name,source:options?.source||''});
       return original(...args);
     };
   }
+  window.DiagnostikaPayments=api;
   const c=state.clients.find(x=>x.id==='payment-5c-client');
   const s=c.sessions.find(x=>x.id==='payment-5c-s1');
   if(typeof openSessionEditor!=='function')throw new Error('openSessionEditor unavailable');
