@@ -9,8 +9,9 @@
     : {};
   const service=()=>platform.services?.payments||null;
   const invoke=(name,args,failValue)=>{
+    if(platform.api?.invokeService)return platform.api.invokeService('payments',name,args,failValue);
     const fn=service()?.[name];
-    return typeof fn==='function'?fn(...args):failValue;
+    try{return typeof fn==='function'?fn(...args):failValue;}catch(_){return failValue;}
   };
 
   const facade={
@@ -34,5 +35,5 @@
     updateSession(sessionRef,changes={},options={}){return invoke('updateSession',[sessionRef,changes,options],null);}
   };
 
-  window.DiagnostikaPayments=facade;
+  window.DiagnostikaPayments=Object.freeze(facade);
 })();
