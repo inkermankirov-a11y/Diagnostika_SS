@@ -32,11 +32,18 @@
       btn.onclick=()=>{
         if(typeof selected==='undefined' || selected?.type!=='feeling')return;
         const feeling=selected.obj;
-        const arr=feeling.deep||(feeling.deep=[]);
-        const deep=typeof newDeep==='function'?newDeep():{id:(typeof uid==='function'?uid():Date.now()+''),text:'',level:5,comment:'',instincts:[]};
-        arr.push(deep);
-        selected={type:'deep',obj:deep,parent:feeling,index:arr.length-1};
-        if(typeof save==='function')save();
+        const c=typeof client==='function'?client():null;
+        const r=typeof request==='function'?request():null;
+        const api=window.DiagnostikaDiagnosis;
+        if(!c||!r||!api?.moduleAware)return;
+        const deep=api.addDeep(feeling.id,{},{
+          client:c,
+          requestId:r.id,
+          source:'diagnosis-ui-deep-add',
+          render:false
+        });
+        if(!deep)return;
+        if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('deep',deep.id);
         if(typeof renderTree==='function')renderTree();
         setTimeout(()=>{
           const editor=document.querySelector('#editorText');
