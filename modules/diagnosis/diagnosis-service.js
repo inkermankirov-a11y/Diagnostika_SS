@@ -257,6 +257,22 @@
     return clone(created);
   }
 
+  function replaceFeelings(beliefId,feelings=[],options={}){
+    if(!Array.isArray(feelings))return null;
+    const {r}=context(options);if(!r)return null;
+    const next=clone(Array.isArray(r.situations)?r.situations:[])||[];
+    const hit=findBeliefIn(next,beliefId);if(!hit)return null;
+    hit.b.feelings=clone(feelings)||[];
+    if(!commit(next,options,EVENTS.elementUpdated,{
+      type:'feeling-collection',
+      elementId:hit.b.id,
+      situationId:hit.s.id,
+      fields:['feelings'],
+      change:'replaced'
+    }))return null;
+    return clone(hit.b.feelings);
+  }
+
   function addDeep(feelingId,data={},options={}){
     const {r}=context(options);if(!r)return null;
     const next=clone(Array.isArray(r.situations)?r.situations:[])||[];
@@ -330,6 +346,7 @@
     removeSituation,
     addBelief,
     addFeeling,
+    replaceFeelings,
     addDeep,
     addInstinct,
     updateElement,
