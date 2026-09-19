@@ -15,12 +15,14 @@
   if(addBelief){
     addBelief.onclick=()=>{
       const s=typeof situation==='function'?situation():null;
+      const c=typeof client==='function'?client():null;
+      const r=typeof request==='function'?request():null;
+      const api=window.DiagnostikaDiagnosis;
       if(!s) return alert('Сначала выбери или добавь ситуацию.');
-      const b=newBelief();
-      const arr=s.beliefs||(s.beliefs=[]);
-      arr.push(b);
-      selected={type:'belief',obj:b,parent:s,index:arr.length-1};
-      if(typeof save==='function') save();
+      if(!c||!r||!api?.moduleAware)return;
+      const b=api.addBelief(s.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-belief-add',render:false});
+      if(!b)return;
+      if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('belief',b.id);
       if(typeof renderTree==='function') renderTree();
       focusEditor();
     };
@@ -30,12 +32,13 @@
   if(addFeeling){
     addFeeling.onclick=()=>{
       if(selected?.type!=='belief') return alert('Сначала выбери Убеждение 1.');
-      const parent=selected.obj;
-      const arr=parent.feelings||(parent.feelings=[]);
-      const f=newFeeling();
-      arr.push(f);
-      selected={type:'feeling',obj:f,parent,index:arr.length-1};
-      if(typeof save==='function') save();
+      const c=typeof client==='function'?client():null;
+      const r=typeof request==='function'?request():null;
+      const api=window.DiagnostikaDiagnosis;
+      if(!c||!r||!api?.moduleAware)return;
+      const f=api.addFeeling(selected.obj.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-feeling-add',render:false});
+      if(!f)return;
+      if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('feeling',f.id);
       if(typeof renderTree==='function') renderTree();
       focusEditor();
     };
@@ -45,12 +48,13 @@
   if(addDeep){
     addDeep.onclick=()=>{
       if(selected?.type!=='feeling') return alert('Сначала выбери вторичное чувство.');
-      const parent=selected.obj;
-      const arr=parent.deep||(parent.deep=[]);
-      const d=newDeep();
-      arr.push(d);
-      selected={type:'deep',obj:d,parent,index:arr.length-1};
-      if(typeof save==='function') save();
+      const c=typeof client==='function'?client():null;
+      const r=typeof request==='function'?request():null;
+      const api=window.DiagnostikaDiagnosis;
+      if(!c||!r||!api?.moduleAware)return;
+      const d=api.addDeep(selected.obj.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-deep-add',render:false});
+      if(!d)return;
+      if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('deep',d.id);
       if(typeof renderTree==='function') renderTree();
       focusEditor();
     };
