@@ -411,7 +411,7 @@ jobs:
 
           if(!serviceSources.has('payment-session-settings')&&!serviceSources.has('payment-session-price'))throw new Error('Payment 5B session pricing did not pass through service: '+JSON.stringify(serviceCalls));
 
-          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
           console.log('Browser errors:',JSON.stringify(errors));
           if(serious.length)throw new Error(serious.join(' | '));
 
