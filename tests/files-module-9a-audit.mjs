@@ -18,7 +18,7 @@ assert.equal(serviceSource.includes("typeof save==='function'"),false,'FileServi
 assert(moduleSource.includes("MODULE_ID='files'"),'Files module registration missing');
 assert(moduleSource.includes("'session:deleted'"),'Files module does not clean deleted sessions');
 assert(moduleSource.includes("'client:purged'"),'Files module does not clean purged clients');
-assert(apiSource.includes("version:'9A'"),'Files facade version is not 9A');
+assert(apiSource.includes("version:'9D'"),'Files facade version is not 9D');
 for(const marker of [
   'modules/files/file-service.js?v=20260919-files9d',
   'modules/files/index.js?v=20260919-files9d',
