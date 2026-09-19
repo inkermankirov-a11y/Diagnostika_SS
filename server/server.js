@@ -9,6 +9,29 @@ const __dirname=path.dirname(__filename);
 const ROOT=path.resolve(__dirname,'..');
 const DATA_DIR=path.join(__dirname,'data');
 const CONNECTIONS_FILE=path.join(DATA_DIR,'google-drive-connections.json');
+const ENV_FILE=path.join(__dirname,'.env');
+
+function loadEnvFile(file=ENV_FILE){
+  if(!fs.existsSync(file))return false;
+  const text=fs.readFileSync(file,'utf8');
+  for(const rawLine of text.split(/\r?\n/)){
+    const line=rawLine.trim();
+    if(!line||line.startsWith('#'))continue;
+    const normalized=line.startsWith('export ')?line.slice(7).trim():line;
+    const i=normalized.indexOf('=');
+    if(i<=0)continue;
+    const key=normalized.slice(0,i).trim();
+    if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)||process.env[key]!==undefined)continue;
+    let value=normalized.slice(i+1).trim();
+    if((value.startsWith('"')&&value.endsWith('"'))||(value.startsWith("'")&&value.endsWith("'"))){
+      value=value.slice(1,-1);
+    }
+    process.env[key]=value;
+  }
+  return true;
+}
+
+loadEnvFile();
 
 const PORT=Number(process.env.PORT||3000);
 const PUBLIC_BASE_URL=String(process.env.PUBLIC_BASE_URL||'').replace(/\/$/,'');
@@ -20,14 +43,40 @@ const SECURE_COOKIE=process.env.NODE_ENV==='production';
 const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
 const FOLDER_NAME='Diagnostika';
 const COOKIE_NAME='diagnostika_sid';
-const SERVER_VERSION='12A';
+const SERVER_VERSION='12C';
 const INTERNAL_STATIC_ROOTS=new Set(['server','.git','.github','tests','n8n']);
+
+if(!Number.isInteger(PORT)||PORT<1||PORT>65535){
+  throw new Error('PORT must be an integer between 1 and 65535.');
+}
+
+function validPublicBaseUrl(value){
+  if(!value)return false;
+  try{
+    const url=new URL(value);
+    return url.protocol==='http:'||url.protocol==='https:';
+  }catch{
+    return false;
+  }
+}
+
+if(PUBLIC_BASE_URL&&!validPublicBaseUrl(PUBLIC_BASE_URL)){
+  throw new Error('PUBLIC_BASE_URL must be a valid http(s) URL.');
+}
+if(process.env.NODE_ENV==='production'&&PUBLIC_BASE_URL&&!PUBLIC_BASE_URL.startsWith('https://')){
+  throw new Error('PUBLIC_BASE_URL must use https:// in production.');
+}
 
 for(const [name,value] of Object.entries({PUBLIC_BASE_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SESSION_SECRET,TOKEN_ENCRYPTION_KEY})){
   if(!value) console.warn(`[config] ${name} is not configured`);
 }
 if(TOKEN_ENCRYPTION_KEY && !/^[a-fA-F0-9]{64}$/.test(TOKEN_ENCRYPTION_KEY)){
   throw new Error('TOKEN_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes).');
+}
+
+const GOOGLE_OAUTH_CONFIGURED=Boolean(PUBLIC_BASE_URL&&GOOGLE_CLIENT_ID&&GOOGLE_CLIENT_SECRET&&SESSION_SECRET&&TOKEN_ENCRYPTION_KEY);
+if(GOOGLE_OAUTH_CONFIGURED&&SESSION_SECRET.length<32){
+  throw new Error('SESSION_SECRET must be at least 32 characters when Google OAuth is enabled.');
 }
 
 fs.mkdirSync(DATA_DIR,{recursive:true,mode:0o700});
@@ -233,7 +282,7 @@ async function downloadJsonFile(accessToken,folderId,name){
 }
 
 app.get('/auth/google',(req,res)=>{
-  if(!PUBLIC_BASE_URL||!GOOGLE_CLIENT_ID||!GOOGLE_CLIENT_SECRET||!SESSION_SECRET||!TOKEN_ENCRYPTION_KEY){
+  if(!GOOGLE_OAUTH_CONFIGURED){
     return res.status(503).send('Google OAuth is not configured on the server.');
   }
   const sid=getOrCreateSid(req,res);
@@ -349,7 +398,7 @@ app.get('/api/health',(req,res)=>res.json({
   ok:true,
   service:'diagnostika-ss',
   version:SERVER_VERSION,
-  googleOAuthConfigured:Boolean(PUBLIC_BASE_URL&&GOOGLE_CLIENT_ID&&GOOGLE_CLIENT_SECRET&&SESSION_SECRET&&TOKEN_ENCRYPTION_KEY)
+  googleOAuthConfigured:GOOGLE_OAUTH_CONFIGURED
 }));
 
 app.use('/api',(req,res)=>{
