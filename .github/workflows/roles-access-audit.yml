@@ -29,7 +29,7 @@ jobs:
           node --check core/module-registry.js
           node --check roles-api.js
           node --check app-loader.js
-          node --check tests/roles-11c-audit.mjs
+          node --check tests/roles-11d-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import sys
@@ -40,15 +40,15 @@ jobs:
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           errors=[]
 
-          for token in ["version: '11A'",'function moduleAllowed(','function requireModule(','function setRuntimeRole(']:
+          for token in ["version: '11D'",'function moduleAllowed(','function requireModule(','function setRuntimeRole(']:
               if token not in access:
                   errors.append('AccessControl authority missing '+token)
-          for token in ["version: '11B'",'async function reconcileAccess(',"record.status = 'blocked'","'module:access-denied'"]:
+          for token in ["version: '11D'",'async function reconcileAccess(',"record.status = 'blocked'","'module:access-denied'"]:
               if token not in registry:
                   errors.append('ModuleRegistry roles enforcement missing '+token)
-          if "version:'11C'" not in api or 'moduleAware:true' not in api:
-              errors.append('roles facade is not module-aware 11C')
-          if 'roles-api.js?v=20260919-roles11c' not in loader:
+          if "version:'11D'" not in api or 'moduleAware:true' not in api:
+              errors.append('roles facade is not module-aware 11D')
+          if 'roles-api.js?v=20260919-roles11d' not in loader:
               errors.append('roles facade loader marker missing')
 
           module_indexes=list(Path('modules').glob('*/index.js'))
@@ -57,7 +57,7 @@ jobs:
               if 'platform.modules.register' in src and "roles:['specialist','admin']" not in src and "roles: ['specialist', 'admin']" not in src:
                   errors.append(str(path)+' has no explicit specialist/admin roles')
 
-          print('ROLES_11C_STATIC_ERRORS:',errors)
+          print('ROLES_11D_STATIC_ERRORS:',errors)
           if errors:
               sys.exit(1)
           PY
@@ -74,4 +74,4 @@ jobs:
           set -euo pipefail
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/roles-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
-          node tests/roles-11c-audit.mjs
+          node tests/roles-11d-audit.mjs
