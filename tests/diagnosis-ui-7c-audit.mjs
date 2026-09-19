@@ -10,7 +10,7 @@ const feelingsSource=fs.readFileSync('secondary-feeling-hints.js','utf8');
 const collapseSource=fs.readFileSync('feeling-collapse.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(apiSource.includes("version:'7C'"),'Diagnosis facade version is not 7C');
+assert(/version:'7[CD]'/.test(apiSource),'Diagnosis facade version is outside supported 7C-7D range');
 assert(apiSource.includes('replaceFeelings'),'Diagnosis facade missing replaceFeelings');
 assert(serviceSource.includes('function replaceFeelings'),'DiagnosisService missing replaceFeelings');
 
@@ -82,7 +82,7 @@ page.on('dialog',d=>d.accept().catch(()=>{}));
 
 async function ready(){
   await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-  await page.waitForFunction(()=>window.DiagnostikaDiagnosis?.version==='7C'
+  await page.waitForFunction(()=>/^7[CD]$/.test(window.DiagnostikaDiagnosis?.version||'')
     && window.DiagnostikaDiagnosis?.moduleAware===true
     && window.DiagnostikaPlatform?.services?.diagnosis,
     null,{timeout:15000});
