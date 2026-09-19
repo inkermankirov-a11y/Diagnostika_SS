@@ -66,6 +66,12 @@
     return String(v||'id').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,8)||'id';
   }
 
+  function filesApi(){
+    const facade=window.DiagnostikaFiles;
+    if(facade?.moduleAware===true)return facade;
+    return window.DiagnostikaPlatform?.services?.files||null;
+  }
+
   async function permission(handle,ask=false){
     if(!handle) return 'denied';
     const opts={mode:'readwrite'};
@@ -136,6 +142,34 @@
     return sessions.getDirectoryHandle(`session_${String(index+1).padStart(3,'0')}_${shortId(s.id)}`,{create:true});
   }
 
+  async function findClientDirById(clientId){
+    const app=await getExistingAppHandle();
+    if(!app)return null;
+    let clients;
+    try{clients=await app.getDirectoryHandle('clients',{create:false});}
+    catch(e){if(e?.name==='NotFoundError')return null;throw e;}
+
+    const suffix='_'+shortId(clientId);
+    for await(const [name,handle] of clients.entries()){
+      if(handle?.kind==='directory'&&name.endsWith(suffix))return handle;
+    }
+    return null;
+  }
+
+  async function findSessionDirById(clientId,sessionId){
+    const cd=await findClientDirById(clientId);
+    if(!cd)return null;
+    let sessions;
+    try{sessions=await cd.getDirectoryHandle('sessions',{create:false});}
+    catch(e){if(e?.name==='NotFoundError')return null;throw e;}
+
+    const suffix='_'+shortId(sessionId);
+    for await(const [name,handle] of sessions.entries()){
+      if(handle?.kind==='directory'&&name.endsWith(suffix))return handle;
+    }
+    return null;
+  }
+
   async function writeCoreState(){
     if(!rootHandle) return;
     const app=await getOrCreateAppHandle();
@@ -172,24 +206,24 @@
   async function removeMirroredRecord(rec){
     if(!rec || !rootHandle) return;
     try{
-      const c=(state.clients||[]).find(x=>x.id===rec.clientId);
-      if(!c) return;
-      const index=(c.sessions||[]).findIndex(x=>x.id===rec.sessionId);
-      if(index<0) return;
-      const sd=await ensureSessionDir(c,c.sessions[index],index);
-      const fd=await sd.getDirectoryHandle('files',{create:true});
+      const sd=await findSessionDirById(rec.clientId,rec.sessionId);
+      if(!sd)return;
+      let fd;
+      try{fd=await sd.getDirectoryHandle('files',{create:false});}
+      catch(e){if(e?.name==='NotFoundError')return;throw e;}
       await fd.removeEntry(`${shortId(rec.id)}_${safeName(rec.name,'file')}`);
     }catch(e){
-      console.warn('Не удалось удалить зеркальную копию файла',e);
+      if(e?.name!=='NotFoundError')console.warn('Не удалось удалить зеркальную копию файла',e);
     }
   }
 
   async function fullExport(){
     await writeCoreState();
-    if(typeof mediaDbList==='function'){
+    const api=filesApi();
+    if(api?.list){
       for(const c of state.clients||[]){
         for(const s of c.sessions||[]){
-          const files=await mediaDbList(s.id);
+          const files=await api.list({sessionId:s.id});
           for(const rec of files) await mirrorRecord(rec);
         }
       }
@@ -427,25 +461,33 @@
     if(rootHandle && folderState) scheduleSync();
   };
 
-  if(typeof mediaDbPut==='function'){
-    const originalPut=mediaDbPut;
-    mediaDbPut=async function(record){
-      const result=await originalPut(record);
-      try{if(rootHandle) await mirrorRecord(record);}catch(e){console.warn('Файл сохранён в браузере, но не скопирован в папку',e);}
-      return result;
-    };
+  let fileEventsBound=false;
+  function bindFileEvents(){
+    if(fileEventsBound)return true;
+    const bus=window.DiagnostikaPlatform?.events;
+    if(!bus?.on)return false;
+
+    bus.on('file:created',detail=>{
+      Promise.resolve().then(async()=>{
+        if(!rootHandle)return;
+        const rec=detail?.record||await filesApi()?.get?.(detail?.fileId);
+        if(rec)await mirrorRecord(rec);
+      }).catch(e=>console.warn('Файл сохранён в браузере, но не скопирован в папку',e));
+    });
+
+    bus.on('file:deleted',detail=>{
+      Promise.resolve().then(async()=>{
+        if(!rootHandle||!detail?.record)return;
+        await removeMirroredRecord(detail.record);
+      }).catch(e=>console.warn('Файл удалён из браузера, но зеркальная копия не удалена',e));
+    });
+
+    fileEventsBound=true;
+    return true;
   }
 
-  if(typeof mediaDbDelete==='function'){
-    const originalDelete=mediaDbDelete;
-    mediaDbDelete=async function(id){
-      let rec=null;
-      try{if(typeof mediaDbGet==='function') rec=await mediaDbGet(id);}catch(e){}
-      const result=await originalDelete(id);
-      if(rec && rootHandle) await removeMirroredRecord(rec);
-      return result;
-    };
-  }
+  bindFileEvents();
+  Promise.resolve(window.DiagnostikaPlatform?.ready).then(bindFileEvents).catch(()=>{});
 
   (async()=>{
     if(!('showDirectoryPicker' in window)) return;

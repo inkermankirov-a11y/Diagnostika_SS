@@ -1,65 +1,36 @@
 'use strict';
 
-const SESSION_MEDIA_DB='diagnostika-session-media-v1';
-const SESSION_MEDIA_STORE='files';
-
-function mediaDbOpen(){
-  return new Promise((resolve,reject)=>{
-    const req=indexedDB.open(SESSION_MEDIA_DB,1);
-    req.onupgradeneeded=()=>{
-      const db=req.result;
-      if(!db.objectStoreNames.contains(SESSION_MEDIA_STORE)){
-        const store=db.createObjectStore(SESSION_MEDIA_STORE,{keyPath:'id'});
-        store.createIndex('sessionId','sessionId',{unique:false});
-        store.createIndex('clientId','clientId',{unique:false});
-      }
-    };
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
+function filesApi(){
+  const facade=window.DiagnostikaFiles;
+  if(facade?.moduleAware===true)return facade;
+  return window.DiagnostikaPlatform?.services?.files||null;
 }
 
+// Compatibility wrappers for older storage code. Persistence ownership lives in FileService.
 async function mediaDbPut(record){
-  const db=await mediaDbOpen();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(SESSION_MEDIA_STORE,'readwrite');
-    tx.objectStore(SESSION_MEDIA_STORE).put(record);
-    tx.oncomplete=()=>{db.close();resolve();};
-    tx.onerror=()=>{db.close();reject(tx.error);};
-  });
+  const api=filesApi();
+  if(!api?.put)throw new Error('Модуль файлов ещё загружается.');
+  const saved=await api.put(record,{source:'session-attachment-compat-put',overwrite:true});
+  if(!saved)throw new Error('Не удалось сохранить файл.');
+  return saved;
 }
 
 async function mediaDbGet(id){
-  const db=await mediaDbOpen();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(SESSION_MEDIA_STORE,'readonly');
-    const req=tx.objectStore(SESSION_MEDIA_STORE).get(id);
-    req.onsuccess=()=>resolve(req.result||null);
-    req.onerror=()=>reject(req.error);
-    tx.oncomplete=()=>db.close();
-  });
+  const api=filesApi();
+  if(!api?.get)return null;
+  return api.get(id);
 }
 
 async function mediaDbList(sessionId){
-  const db=await mediaDbOpen();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(SESSION_MEDIA_STORE,'readonly');
-    const index=tx.objectStore(SESSION_MEDIA_STORE).index('sessionId');
-    const req=index.getAll(IDBKeyRange.only(sessionId));
-    req.onsuccess=()=>resolve((req.result||[]).sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||'')));
-    req.onerror=()=>reject(req.error);
-    tx.oncomplete=()=>db.close();
-  });
+  const api=filesApi();
+  if(!api?.list)return [];
+  return api.list({sessionId});
 }
 
 async function mediaDbDelete(id){
-  const db=await mediaDbOpen();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(SESSION_MEDIA_STORE,'readwrite');
-    tx.objectStore(SESSION_MEDIA_STORE).delete(id);
-    tx.oncomplete=()=>{db.close();resolve();};
-    tx.onerror=()=>{db.close();reject(tx.error);};
-  });
+  const api=filesApi();
+  if(!api?.remove)return null;
+  return api.remove(id,{source:'session-attachment-compat-delete'});
 }
 
 function attachmentKind(file){
@@ -95,7 +66,7 @@ function normalizeYoutubeUrl(value){
 
 async function openAttachmentRecord(id){
   try{
-    const rec=await mediaDbGet(id);
+    const rec=await filesApi()?.get?.(id);
     if(!rec?.blob) return alert('Файл не найден в локальном хранилище.');
     const url=URL.createObjectURL(rec.blob);
     const a=document.createElement('a');
@@ -112,21 +83,24 @@ async function openAttachmentRecord(id){
 
 async function addSessionFiles(c,s,files){
   const list=[...files];
-  if(!list.length) return;
+  if(!list.length) return [];
+  const api=filesApi();
+  if(!api?.add)throw new Error('Модуль файлов ещё загружается.');
+
+  const saved=[];
   try{
-    if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{});
     for(const file of list){
-      await mediaDbPut({
-        id:uid(),
+      const record=await api.add(file,{
         clientId:c.id,
         sessionId:s.id,
         name:file.name||'Файл',
         type:file.type||'application/octet-stream',
-        size:file.size||0,
-        createdAt:new Date().toISOString(),
-        blob:file
-      });
+        size:file.size||0
+      },{source:'session-attachment-add'});
+      if(!record)throw new Error('FileService rejected attachment.');
+      saved.push(record);
     }
+    return saved;
   }catch(e){
     console.error(e);
     throw new Error('Не удалось сохранить файл. Возможно, в браузере закончилось место.');
@@ -155,7 +129,8 @@ function makeAttachmentChip(rec,editable,onChanged){
     remove.onclick=async e=>{
       e.stopPropagation();
       if(!confirm(`Удалить файл «${rec.name}» из этой сессии?`)) return;
-      await mediaDbDelete(rec.id);
+      const removed=await filesApi()?.remove?.(rec.id,{source:'session-attachment-delete'});
+      if(!removed)return;
       if(onChanged) onChanged();
     };
     chip.append(remove);
@@ -165,7 +140,7 @@ function makeAttachmentChip(rec,editable,onChanged){
 
 async function fillSessionAttachmentPreview(container,sessionId){
   try{
-    const files=await mediaDbList(sessionId);
+    const files=await (filesApi()?.list?.({sessionId})||[]);
     if(!files.length){container.remove();return;}
     const title=document.createElement('div');title.className='session-attachments-title';title.textContent=`Материалы · ${files.length}`;
     const list=document.createElement('div');list.className='session-attachments-list';
@@ -209,7 +184,7 @@ function openSessionEditor(c,s,number){
   mediaBlock.append(mediaHead,drop,mediaList);
 
   const refreshMedia=async()=>{
-    const files=await mediaDbList(s.id);
+    const files=await (filesApi()?.list?.({sessionId:s.id})||[]);
     mediaList.innerHTML='';
     if(!files.length){mediaList.innerHTML='<div class="session-media-empty">Файлов пока нет</div>';return;}
     files.forEach(rec=>mediaList.appendChild(makeAttachmentChip(rec,true,refreshMedia)));
@@ -228,7 +203,7 @@ function openSessionEditor(c,s,number){
   drop.onclick=()=>fileInput.click();
   refreshMedia();
 
-  const localHint=document.createElement('div');localHint.className='session-media-local-hint';localHint.textContent='Файлы хранятся локально в этом браузере и не попадают в GitHub.';
+  const localHint=document.createElement('div');localHint.className='session-media-local-hint';localHint.textContent='Основная копия файлов хранится локально в этом браузере. При подключённой папке создаётся зеркальная копия.';
 
   const actions=document.createElement('div');actions.className='session-edit-actions';
   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Отмена';

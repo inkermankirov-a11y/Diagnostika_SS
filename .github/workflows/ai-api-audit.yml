@@ -2,7 +2,7 @@ name: AI API audit
 
 on:
   push:
-    branches: [ main, 'feature-ai-*' ]
+    branches: [ main, 'feature-ai-*', 'feature-files-*' ]
     paths:
       - 'modules/ai/**'
       - 'ai-api.js'

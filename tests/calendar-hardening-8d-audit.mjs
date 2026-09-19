@@ -18,9 +18,9 @@ assert(googleSource.includes('calendarApi()?.get?.(id)'),'Google Calendar link d
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade cache marker is stale');
 for(const marker of [
   'client-calendar.js?v=20260919-calendar8d',
-  'calendar-google-link.js?v=20260919-calendar8d',
-  'app-loader.js?v=20260919-calendar8d'
+  'calendar-google-link.js?v=20260919-calendar8d'
 ])assert(indexSource.includes(marker),'Calendar 8D marker missing '+marker);
+assert(/app-loader\.js\?v=20260919-(?:calendar8d|files9[a-d])/.test(indexSource),'Calendar-compatible global app-loader marker is stale');
 
 const fixture={version:4,calendarEvents:[{
   id:'cal-8d-existing',

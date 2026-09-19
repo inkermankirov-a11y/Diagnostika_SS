@@ -1,0 +1,110 @@
+name: Files API audit
+
+on:
+  push:
+    branches: [main, 'feature-files-*']
+    paths:
+      - 'modules/files/**'
+      - 'files-api.js'
+      - 'session-attachments.js'
+      - 'storage-manager.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/files-*.mjs'
+      - '.github/workflows/files-api-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  files-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static Files boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/files/file-service.js
+          node --check modules/files/index.js
+          node --check files-api.js
+          node --check app-loader.js
+          node --check session-attachments.js
+          node --check storage-manager.js
+          node --check tests/files-module-9a-audit.mjs
+          node --check tests/files-ui-9b-audit.mjs
+          node --check tests/files-hardening-9d-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          service=Path('modules/files/file-service.js').read_text(encoding='utf-8')
+          module=Path('modules/files/index.js').read_text(encoding='utf-8')
+          api=Path('files-api.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          ui=Path('session-attachments.js').read_text(encoding='utf-8')
+          storage=Path('storage-manager.js').read_text(encoding='utf-8')
+          errors=[]
+
+          for token in [
+              'async function get(','async function list(','async function put(',
+              'async function add(','async function remove(','async function removeForSession(',
+              'async function removeForClient('
+          ]:
+              if token not in service:
+                  errors.append('FileService method missing '+token)
+          for forbidden in ['querySelector(', "typeof save==='function'"]:
+              if forbidden in service:
+                  errors.append('FileService legacy/UI dependency '+forbidden)
+          if "const DB_NAME='diagnostika-session-media-v1'" not in service:
+              errors.append('FileService legacy DB compatibility missing')
+          if "MODULE_ID='files'" not in module:
+              errors.append('files module registration missing')
+          if "'session:deleted'" not in module or "'client:purged'" not in module:
+              errors.append('files lifecycle cleanup missing')
+          if "version:'9D'" not in api or 'moduleAware:true' not in api:
+              errors.append('files facade is not module-aware 9D')
+          if "version:'9D'" not in service:
+              errors.append('FileService is not hardened 9D')
+          for token in [
+              'modules/files/file-service.js?v=20260919-files9d',
+              'modules/files/index.js?v=20260919-files9d',
+              'files-api.js?v=20260919-files9d'
+          ]:
+              if token not in loader:
+                  errors.append('files loader missing/stale '+token)
+
+          if 'function filesApi()' not in ui:
+              errors.append('session attachment Files bridge missing')
+          if 'indexedDB.open(SESSION_MEDIA_DB' in ui:
+              errors.append('session attachments still own IndexedDB')
+          for token in ["source:'session-attachment-add'","source:'session-attachment-delete'"]:
+              if token not in ui:
+                  errors.append('session attachment service source missing '+token)
+          for token in ["bus.on('file:created'","bus.on('file:deleted'",'api.list({sessionId:s.id})']:
+              if token not in storage:
+                  errors.append('storage file-event integration missing '+token)
+          for forbidden in ['mediaDbPut=async function','mediaDbDelete=async function']:
+              if forbidden in storage:
+                  errors.append('storage still monkey-patches legacy file DB '+forbidden)
+
+          print('FILES_9AB_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify Files 9A foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/files-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/files-module-9a-audit.mjs
+          node tests/files-ui-9b-audit.mjs
+          node tests/files-hardening-9d-audit.mjs
