@@ -4,7 +4,7 @@ Release date: 2026-09-19
 
 ## Status
 
-This release is the first architecture-complete stable release candidate of the Diagnostika web application.
+This release is the first architecture-complete stable release of the Diagnostika web application.
 
 The application is organized around a shared platform core, domain services, module lifecycle management, public API facades, role/access control, a canonical database boundary, and a unified runtime health contract.
 
