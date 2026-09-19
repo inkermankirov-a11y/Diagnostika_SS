@@ -340,7 +340,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='calendar-api.js?v=20260919-calendar8a';
+      api.src='calendar-api.js?v=20260919-calendar8b';
       api.setAttribute('data-calendar-api','1');
       api.onload=loadPaymentApi;
       document.body.appendChild(api);
