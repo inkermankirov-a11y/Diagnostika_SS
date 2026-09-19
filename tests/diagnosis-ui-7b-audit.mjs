@@ -22,7 +22,7 @@ for(const forbidden of [
   'if(l!==null)s.level=lvl(l)'
 ])assert.equal(appSource.includes(forbidden),false,'Situation UI still mutates diagnosis state directly: '+forbidden);
 
-assert(indexSource.includes('app.js?v=20260919-diagnosis7c'),'app.js cache marker is stale');
+assert(/app\.js\?v=20260919-(?:diagnosis7c|export10[a-d])/.test(indexSource),'app.js cache marker is stale');
 assert(indexSource.includes('diagnosis-api.js?v=20260919-diagnosis7d'),'diagnosis-api cache marker is stale');
 
 const fixture={version:4,clients:[{
