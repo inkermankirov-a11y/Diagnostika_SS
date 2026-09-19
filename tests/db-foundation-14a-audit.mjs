@@ -12,7 +12,7 @@ assert(dbSource.includes('function readState('),'readState contract missing');
 assert(dbSource.includes('function writeState('),'writeState contract missing');
 assert(dbSource.includes('function health('),'DB health contract missing');
 assert(dbSource.includes('window.DiagnostikaDB = db'),'DiagnostikaDB global bridge missing');
-assert(bootstrapSource.includes("['db', 'core/database.js?v=20260919-db14a']"),'DB CORE loader missing');
+assert(/\['db', 'core\/database\.js\?v=20260919-db14[a-z]'\]/.test(bootstrapSource),'DB CORE loader missing');
 const dbBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
 const dbBootstrapMatch=indexSource.match(/core\/bootstrap\.js\?v=([^"&]+)&api=13d/);
 const dbLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)&api=13d/);
