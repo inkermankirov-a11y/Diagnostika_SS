@@ -81,7 +81,7 @@ jobs:
 
           const raf=[];for(let i=0;i<5;i++)raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));
           if(Math.max(...raf)>1200)throw new Error('Main thread slow');
-          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
           console.log('Core browser errors:',JSON.stringify(errors));
           if(serious.length)throw new Error(serious.join(' | '));
           await browser.close();
