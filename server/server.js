@@ -43,7 +43,7 @@ const SECURE_COOKIE=process.env.NODE_ENV==='production';
 const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
 const FOLDER_NAME='Diagnostika';
 const COOKIE_NAME='diagnostika_sid';
-const SERVER_VERSION='12C';
+const SERVER_VERSION='12D';
 const INTERNAL_STATIC_ROOTS=new Set(['server','.git','.github','tests','n8n']);
 
 if(!Number.isInteger(PORT)||PORT<1||PORT>65535){
@@ -94,6 +94,7 @@ app.use((req,res,next)=>{
   res.setHeader('X-Content-Type-Options','nosniff');
   res.setHeader('Referrer-Policy','same-origin');
   res.setHeader('X-Frame-Options','DENY');
+  res.setHeader('Content-Security-Policy',"frame-ancestors 'none'");
   res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
   if(SECURE_COOKIE)res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');
   if(req.path.startsWith('/api/'))res.setHeader('Cache-Control','no-store');
@@ -198,7 +199,17 @@ function dec(value){
   return Buffer.concat([decipher.update(Buffer.from(dataB64,'base64url')),decipher.final()]).toString('utf8');
 }
 function loadConnections(){
-  try{return JSON.parse(fs.readFileSync(CONNECTIONS_FILE,'utf8'))||{};}catch{return {};}
+  const raw=fs.readFileSync(CONNECTIONS_FILE,'utf8');
+  if(!raw.trim())return {};
+  try{
+    const parsed=JSON.parse(raw);
+    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('Connection store root must be an object.');
+    return parsed;
+  }catch(error){
+    const wrapped=new Error('Google Drive connection store is corrupted; refusing to overwrite it.');
+    wrapped.cause=error;
+    throw wrapped;
+  }
 }
 function saveConnections(data){
   const tmp=`${CONNECTIONS_FILE}.tmp`;
@@ -403,6 +414,10 @@ app.get('/api/health',(req,res)=>res.json({
 
 app.use('/api',(req,res)=>{
   res.status(404).json({error:'API route not found.'});
+});
+
+app.use('/auth',(req,res)=>{
+  res.status(404).type('text/plain').send('Auth route not found.');
 });
 
 app.use(express.static(ROOT,{
