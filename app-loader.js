@@ -190,6 +190,38 @@
 
 
 
+  function ensureFilesFoundation(next){
+    const loadModule=()=>{
+      if(document.querySelector('script[data-files-module]')){
+        next();
+        return;
+      }
+      const moduleScript=document.createElement('script');
+      moduleScript.src='modules/files/index.js?v=20260919-files9a';
+      moduleScript.setAttribute('data-files-module','1');
+      moduleScript.onload=next;
+      document.body.appendChild(moduleScript);
+    };
+
+    if(window.DiagnostikaPlatform?.services?.files){
+      loadModule();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-files-service]');
+    if(existing){
+      existing.addEventListener('load',loadModule,{once:true});
+      return;
+    }
+
+    const serviceScript=document.createElement('script');
+    serviceScript.src='modules/files/file-service.js?v=20260919-files9a';
+    serviceScript.setAttribute('data-files-service','1');
+    serviceScript.onload=loadModule;
+    document.body.appendChild(serviceScript);
+  }
+
+
   function ensureCalendarFoundation(next){
     const loadModule=()=>{
       if(document.querySelector('script[data-calendar-module]')){
@@ -347,23 +379,44 @@
     });
   }
 
-  function loadSessionsApi(){
-    ensureSessionsFoundation(()=>{
-      if(window.DiagnostikaSessions?.moduleAware===true){
+  function loadFilesApi(){
+    ensureFilesFoundation(()=>{
+      if(window.DiagnostikaFiles?.moduleAware===true){
         loadCalendarApi();
         return;
       }
 
-      const existing=document.querySelector('script[data-session-api]');
+      const existing=document.querySelector('script[data-files-api]');
       if(existing){
         existing.addEventListener('load',loadCalendarApi,{once:true});
         return;
       }
 
       const api=document.createElement('script');
+      api.src='files-api.js?v=20260919-files9a';
+      api.setAttribute('data-files-api','1');
+      api.onload=loadCalendarApi;
+      document.body.appendChild(api);
+    });
+  }
+
+  function loadSessionsApi(){
+    ensureSessionsFoundation(()=>{
+      if(window.DiagnostikaSessions?.moduleAware===true){
+        loadFilesApi();
+        return;
+      }
+
+      const existing=document.querySelector('script[data-session-api]');
+      if(existing){
+        existing.addEventListener('load',loadFilesApi,{once:true});
+        return;
+      }
+
+      const api=document.createElement('script');
       api.src='session-api.js?v=20260918-sessions4c';
       api.setAttribute('data-session-api','1');
-      api.onload=loadCalendarApi;
+      api.onload=loadFilesApi;
       document.body.appendChild(api);
     });
   }
