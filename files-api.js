@@ -11,7 +11,7 @@
   };
 
   window.DiagnostikaFiles=Object.freeze({
-    version:'9A',
+    version:'9D',
     moduleAware:true,
     events:Object.freeze({
       created:'file:created',
