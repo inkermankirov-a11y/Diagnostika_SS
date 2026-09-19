@@ -2,7 +2,7 @@ name: Calendar API audit
 
 on:
   push:
-    branches: [main, 'feature-calendar-*', 'feature-ai-*']
+    branches: [main, 'feature-calendar-*', 'feature-ai-*', 'feature-files-*']
     paths:
       - 'modules/calendar/**'
       - 'calendar-api.js'
@@ -90,8 +90,8 @@ jobs:
               errors.append('calendar build/app-loader marker missing')
           elif build_match.group(1)!=loader_match.group(1):
               errors.append('build marker and app-loader cache marker differ')
-          elif build_match.group(1)!='20260919-calendar8d':
-              errors.append('calendar 8D global loader marker is stale')
+          elif not re.fullmatch(r'20260919-(?:calendar8d|files9[a-d])',build_match.group(1)):
+              errors.append('calendar-compatible global loader marker is stale')
 
           for token in ['customEvents().push(item)', '.splice(idx,1)', "typeof save==='function'"]:
               if token in ui:
