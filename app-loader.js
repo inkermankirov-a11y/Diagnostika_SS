@@ -335,7 +335,7 @@
 
       const existing=document.querySelector('script[data-calendar-api]');
       if(existing){
-        existing.addEventListener('load',loadCalendarApi,{once:true});
+        existing.addEventListener('load',loadPaymentApi,{once:true});
         return;
       }
 
@@ -356,7 +356,7 @@
 
       const existing=document.querySelector('script[data-session-api]');
       if(existing){
-        existing.addEventListener('load',loadPaymentApi,{once:true});
+        existing.addEventListener('load',loadCalendarApi,{once:true});
         return;
       }
 
