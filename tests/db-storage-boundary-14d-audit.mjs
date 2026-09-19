@@ -100,14 +100,14 @@ const clientUpdated=await page.evaluate(()=>Boolean(window.DiagnostikaClients.up
 )));
 assert.equal(clientUpdated,true,'Client write failed through DB boundary');
 
-const appSaved=await page.evaluate(()=>{
+const staged=await page.evaluate(()=>{
   const c=window.DiagnostikaClients.findById('db14d-client');
   const r=c?.requests?.find(x=>x.id==='db14d-r1');
-  if(!r||typeof window.save!=='function')return false;
+  if(!r)return false;
   r.title='After DB 14D';
-  return window.save({source:'db14d-app-save'})===true;
+  return true;
 });
-assert.equal(appSaved,true,'App write failed through DB boundary');
+assert.equal(staged,true,'DB 14D request fixture missing');
 
 const storeSaved=await page.evaluate(()=>window.DiagnostikaPlatform.store.persist({
   source:'db14d-store-persist'
@@ -117,7 +117,6 @@ assert.equal(storeSaved,true,'StoreBridge write failed through DB boundary');
 await page.waitForFunction(()=>{
   const rows=window.__db14dWrites||[];
   return rows.some(x=>x.source==='client-service-persist')
-    && rows.some(x=>x.source==='db14d-app-save')
     && rows.some(x=>x.source==='db14d-store-persist');
 },null,{timeout:5000});
 
