@@ -1,0 +1,112 @@
+name: Calendar API audit
+
+on:
+  push:
+    branches: [main, 'feature-calendar-*', 'feature-ai-*']
+    paths:
+      - 'modules/calendar/**'
+      - 'calendar-api.js'
+      - 'client-calendar.js'
+      - 'calendar-session-planning.js'
+      - 'calendar-google-link.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/calendar-module-8a-audit.mjs'
+      - '.github/workflows/calendar-api-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  calendar-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static CalendarService boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/calendar/calendar-service.js
+          node --check modules/calendar/index.js
+          node --check calendar-api.js
+          node --check client-calendar.js
+          node --check calendar-session-planning.js
+          node --check calendar-google-link.js
+          node --check app-loader.js
+          node --check tests/calendar-module-8a-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,sys
+
+          service=Path('modules/calendar/calendar-service.js').read_text(encoding='utf-8')
+          module=Path('modules/calendar/index.js').read_text(encoding='utf-8')
+          api=Path('calendar-api.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          index=Path('index.html').read_text(encoding='utf-8')
+          ui=Path('client-calendar.js').read_text(encoding='utf-8')
+          planning=Path('calendar-session-planning.js').read_text(encoding='utf-8')
+          errors=[]
+
+          if 'services.calendar=Object.freeze' not in service:
+              errors.append('CalendarService export missing')
+          for token in [
+              'function list(','function get(','function forDate(','function forClient(',
+              'function create(','function update(','function remove(','function replace('
+          ]:
+              if token not in service:
+                  errors.append('CalendarService method missing '+token)
+          for forbidden in ['querySelector(', 'diagnostikaCalendarOverlay', '.cal-']:
+              if forbidden in service:
+                  errors.append('CalendarService knows UI/HTML: '+forbidden)
+          if "typeof save==='function'" in service:
+              errors.append('CalendarService calls global save directly')
+          if 'platform.store?.legacySave?.()===true' not in service:
+              errors.append('CalendarService does not persist through store bridge')
+          if "MODULE_ID='calendar'" not in module:
+              errors.append('calendar module registration missing')
+          if "version:'8A'" not in api or 'moduleAware:true' not in api:
+              errors.append('calendar facade is not module-aware 8A')
+          if 'window.DiagnostikaCalendar=Object.freeze({' not in api:
+              errors.append('calendar facade is not frozen')
+          for token in [
+              'modules/calendar/calendar-service.js?v=20260919-calendar8a',
+              'modules/calendar/index.js?v=20260919-calendar8a',
+              'calendar-api.js?v=20260919-calendar8a'
+          ]:
+              if token not in loader:
+                  errors.append('calendar loader missing/stale: '+token)
+          if 'loadCalendarApi()' not in loader:
+              errors.append('calendar API is not in application loader chain')
+          build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
+          loader_match=re.search(r'app-loader[.]js[?]v=([^"]+)',index)
+          if not build_match or not loader_match:
+              errors.append('calendar build/app-loader marker missing')
+          elif build_match.group(1)!=loader_match.group(1):
+              errors.append('build marker and app-loader cache marker differ')
+          elif build_match.group(1)!='20260919-calendar8a':
+              errors.append('calendar 8A global loader marker is stale')
+
+          # 8A foundation intentionally leaves these UI writers for 8B/8C.
+          if 'customEvents().push(item)' not in ui or "typeof save==='function'" not in ui:
+              errors.append('calendar 8A legacy UI baseline changed unexpectedly')
+          if 'normalizePlannedSessions' not in planning:
+              errors.append('calendar session planning baseline missing')
+
+          print('CALENDAR_8A_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify Calendar 8A foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/calendar-8a-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/calendar-module-8a-audit.mjs
