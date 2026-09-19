@@ -30,8 +30,12 @@ if(TOKEN_ENCRYPTION_KEY && !/^[a-fA-F0-9]{64}$/.test(TOKEN_ENCRYPTION_KEY)){
   throw new Error('TOKEN_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes).');
 }
 
-fs.mkdirSync(DATA_DIR,{recursive:true});
-if(!fs.existsSync(CONNECTIONS_FILE)) fs.writeFileSync(CONNECTIONS_FILE,'{}','utf8');
+fs.mkdirSync(DATA_DIR,{recursive:true,mode:0o700});
+try{fs.chmodSync(DATA_DIR,0o700);}catch{}
+if(!fs.existsSync(CONNECTIONS_FILE)){
+  fs.writeFileSync(CONNECTIONS_FILE,'{}',{encoding:'utf8',mode:0o600});
+}
+try{fs.chmodSync(CONNECTIONS_FILE,0o600);}catch{}
 
 const app=express();
 app.disable('x-powered-by');
@@ -42,6 +46,7 @@ app.use((req,res,next)=>{
   res.setHeader('Referrer-Policy','same-origin');
   res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+  if(SECURE_COOKIE)res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');
   if(req.path.startsWith('/api/'))res.setHeader('Cache-Control','no-store');
   next();
 });
@@ -58,11 +63,30 @@ function firstPathSegment(reqPath){
 }
 
 function internalPathBlocked(reqPath){
-  return INTERNAL_STATIC_ROOTS.has(firstPathSegment(reqPath));
+  const first=firstPathSegment(reqPath);
+  return first.startsWith('.')||INTERNAL_STATIC_ROOTS.has(first);
+}
+
+function configuredOrigin(){
+  if(!PUBLIC_BASE_URL)return '';
+  try{return new URL(PUBLIC_BASE_URL).origin;}catch{return '';}
 }
 
 app.use((req,res,next)=>{
   if(internalPathBlocked(req.path))return res.status(404).type('text/plain').send('Not found');
+  next();
+});
+
+app.use('/api',(req,res,next)=>{
+  if(!['POST','PUT','PATCH','DELETE'].includes(req.method))return next();
+  const origin=String(req.headers.origin||'').trim();
+  const allowed=configuredOrigin();
+  if(!origin||!allowed)return next();
+  try{
+    if(new URL(origin).origin!==allowed)return res.status(403).json({error:'Origin not allowed.'});
+  }catch{
+    return res.status(403).json({error:'Origin not allowed.'});
+  }
   next();
 });
 
@@ -129,8 +153,9 @@ function loadConnections(){
 }
 function saveConnections(data){
   const tmp=`${CONNECTIONS_FILE}.tmp`;
-  fs.writeFileSync(tmp,JSON.stringify(data,null,2),'utf8');
+  fs.writeFileSync(tmp,JSON.stringify(data,null,2),{encoding:'utf8',mode:0o600});
   fs.renameSync(tmp,CONNECTIONS_FILE);
+  try{fs.chmodSync(CONNECTIONS_FILE,0o600);}catch{}
 }
 function getConnection(sid){return loadConnections()[sid]||null;}
 function putConnection(sid,value){const all=loadConnections();all[sid]=value;saveConnections(all);}
