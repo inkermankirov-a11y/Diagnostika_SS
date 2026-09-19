@@ -7,6 +7,7 @@ const ROOT=process.cwd();
 const SERVER_DIR=path.join(ROOT,'server');
 const DATA_DIR=path.join(SERVER_DIR,'data');
 const CONNECTIONS_FILE=path.join(DATA_DIR,'google-drive-connections.json');
+const ENV_FILE=path.join(SERVER_DIR,'.env');
 const PORT=32187;
 const BASE=`http://127.0.0.1:${PORT}`;
 
@@ -19,18 +20,25 @@ fs.writeFileSync(CONNECTIONS_FILE,JSON.stringify({
   }
 },null,2),'utf8');
 
+const previousEnvFile=fs.existsSync(ENV_FILE)?fs.readFileSync(ENV_FILE,'utf8'):null;
+fs.writeFileSync(ENV_FILE,[
+  `PORT=${PORT}`,
+  `PUBLIC_BASE_URL=${BASE}`,
+  'GOOGLE_CLIENT_ID=test-client-id',
+  'GOOGLE_CLIENT_SECRET=test-client-secret',
+  'SESSION_SECRET=0123456789abcdef0123456789abcdef',
+  `TOKEN_ENCRYPTION_KEY=${'11'.repeat(32)}`,
+  'NODE_ENV=test'
+].join('\n')+'\n','utf8');
+
+const childEnv={...process.env};
+for(const key of ['PORT','PUBLIC_BASE_URL','GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET','SESSION_SECRET','TOKEN_ENCRYPTION_KEY','NODE_ENV']){
+  delete childEnv[key];
+}
+
 const child=spawn(process.execPath,['server/server.js'],{
   cwd:ROOT,
-  env:{
-    ...process.env,
-    PORT:String(PORT),
-    PUBLIC_BASE_URL:BASE,
-    GOOGLE_CLIENT_ID:'test-client-id',
-    GOOGLE_CLIENT_SECRET:'test-client-secret',
-    SESSION_SECRET:'0123456789abcdef0123456789abcdef',
-    TOKEN_ENCRYPTION_KEY:'11'.repeat(32),
-    NODE_ENV:'test'
-  },
+  env:childEnv,
   stdio:['ignore','pipe','pipe']
 });
 
@@ -62,7 +70,7 @@ try{
   assert.deepEqual(health,{
     ok:true,
     service:'diagnostika-ss',
-    version:'12A',
+    version:'12C',
     googleOAuthConfigured:true
   });
   assert.equal(healthRes.headers.get('cache-control'),'no-store');
@@ -133,7 +141,7 @@ try{
     assert.equal(mode,0o600,`Expected token store mode 0600, got ${mode.toString(8)}`);
   }
 
-  console.log('SERVER_12AB_SUCCESS',JSON.stringify({
+  console.log('SERVER_12ABC_SUCCESS',JSON.stringify({
     health:true,
     internalStaticBlocked:true,
     apiBoundary:true,
@@ -147,6 +155,10 @@ try{
     new Promise(resolve=>setTimeout(resolve,3000))
   ]);
   try{fs.rmSync(DATA_DIR,{recursive:true,force:true});}catch{}
+  try{
+    if(previousEnvFile===null)fs.rmSync(ENV_FILE,{force:true});
+    else fs.writeFileSync(ENV_FILE,previousEnvFile,'utf8');
+  }catch{}
 }
 
 if(child.exitCode&&child.exitCode!==0){
