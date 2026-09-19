@@ -70,12 +70,13 @@ try{
   assert.deepEqual(health,{
     ok:true,
     service:'diagnostika-ss',
-    version:'12C',
+    version:'12D',
     googleOAuthConfigured:true
   });
   assert.equal(healthRes.headers.get('cache-control'),'no-store');
   assert.equal(healthRes.headers.get('x-content-type-options'),'nosniff');
   assert.equal(healthRes.headers.get('x-frame-options'),'DENY');
+  assert.equal(healthRes.headers.get('content-security-policy'),"frame-ancestors 'none'");
   assert.match(healthRes.headers.get('permissions-policy')||'',/camera=\(\)/);
 
   const root=await request('/');
@@ -106,6 +107,10 @@ try{
   assert.equal(api404.status,404);
   assert.match(api404.headers.get('content-type')||'',/application\/json/);
   assert.deepEqual(await api404.json(),{error:'API route not found.'});
+
+  const auth404=await request('/auth/does-not-exist');
+  assert.equal(auth404.status,404);
+  assert.equal((await auth404.text()).includes('<title>Психологическая диагностика</title>'),false);
 
   const evil=await request('/api/google-drive/disconnect',{
     method:'POST',
@@ -141,11 +146,21 @@ try{
     assert.equal(mode,0o600,`Expected token store mode 0600, got ${mode.toString(8)}`);
   }
 
-  console.log('SERVER_12ABC_SUCCESS',JSON.stringify({
+  const corrupt='{BROKEN_CONNECTION_STORE';
+  fs.writeFileSync(CONNECTIONS_FILE,corrupt,'utf8');
+  const corruptStatus=await request('/api/google-drive/status');
+  assert.equal(corruptStatus.status,500);
+  assert.deepEqual(await corruptStatus.json(),{error:'Internal server error.'});
+  assert.equal(fs.readFileSync(CONNECTIONS_FILE,'utf8'),corrupt,'Corrupted store was unexpectedly overwritten');
+
+  console.log('SERVER_12D_SUCCESS',JSON.stringify({
     health:true,
+    envFileLoaded:true,
     internalStaticBlocked:true,
     apiBoundary:true,
+    authBoundary:true,
     originGuard:true,
+    corruptedStoreProtected:true,
     tokenStoreMode:process.platform==='win32'?'n/a':'0600'
   }));
 }finally{
