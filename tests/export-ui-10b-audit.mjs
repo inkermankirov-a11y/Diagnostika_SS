@@ -44,7 +44,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 await page.goto('http://127.0.0.1:8000/index.html?export-10b=1',{waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-await page.waitForFunction(()=>window.DiagnostikaExport?.version==='10A',null,{timeout:15000});
+await page.waitForFunction(()=>window.DiagnostikaExport?.version==='10D',null,{timeout:15000});
 
 await page.evaluate(()=>{
   window.__exportUiDownloads=[];
