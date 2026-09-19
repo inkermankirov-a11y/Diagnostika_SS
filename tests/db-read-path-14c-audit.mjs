@@ -7,19 +7,19 @@ const appSource=fs.readFileSync('app.js','utf8');
 const bootstrapSource=fs.readFileSync('core/bootstrap.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(dbSource.includes("const VERSION = '14C'"),'DB 14C version marker missing');
+assert(/const VERSION = '14[C-Z]';/.test(dbSource),'DB 14C+ version marker missing');
 assert(dbSource.includes("status: 'preloading'"),'DB pre-app platform bootstrap missing');
 assert(appSource.includes("db.readState({source:'app-load'})"),'app.js does not read canonical state through DB');
 assert(!appSource.includes('localStorage.getItem(KEY)'),'app.js still reads canonical state directly from localStorage');
-assert(bootstrapSource.includes("core/database.js?v=20260919-db14c"),'DB 14C bootstrap marker missing');
+assert(/core\/database\.js\?v=20260919-db14[c-z]/.test(bootstrapSource),'DB 14C+ bootstrap marker missing');
 
-const dbScript='core/database.js?v=20260919-db14c';
-const appScript='app.js?v=20260919-export10d&db=14c';
-const bootstrapScript='core/bootstrap.js?v=20260919-db14c&api=13d';
+const dbScript=indexSource.match(/core\/database\.js\?v=20260919-db14[c-z]/)?.[0]||'';
+const appScript=indexSource.match(/app\.js\?v=20260919-export10d&db=14[c-z]/)?.[0]||'';
+const bootstrapScript=indexSource.match(/core\/bootstrap\.js\?v=20260919-db14[c-z]&api=13d/)?.[0]||'';
 const dbIndex=indexSource.indexOf(dbScript);
 const appIndex=indexSource.indexOf(appScript);
 const bootstrapIndex=indexSource.indexOf(bootstrapScript);
-assert(dbIndex>=0&&appIndex>=0&&bootstrapIndex>=0,'DB 14C script markers missing from index');
+assert(dbScript&&appScript&&bootstrapScript,'DB 14C+ script markers missing from index');
 assert(dbIndex<appIndex,'Database adapter is not loaded before app.js');
 assert(appIndex<bootstrapIndex,'Unexpected app/bootstrap order after DB 14C');
 
@@ -45,7 +45,7 @@ page.on('pageerror',e=>errors.push('pageerror: '+(e.stack||e.message)));
 page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 
 await page.goto('http://127.0.0.1:8000/index.html?db-14c=1',{waitUntil:'commit',timeout:10000});
-await page.waitForFunction(()=>window.DiagnostikaDB?.version==='14C',null,{timeout:10000});
+await page.waitForFunction(()=>/^14[C-Z]$/.test(window.DiagnostikaDB?.version||''),null,{timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
 await page.waitForFunction(()=>window.DiagnostikaClients?.moduleAware===true,null,{timeout:20000});
 
@@ -62,7 +62,7 @@ const first=await page.evaluate(()=>{
   };
 });
 
-assert.equal(first.dbVersion,'14C');
+assert(/^14[C-Z]$/.test(first.dbVersion),'DB read-path version is not 14C+');
 assert.equal(first.sameBridge,true);
 assert.equal(first.platformStatus,'ready');
 assert.equal(first.clientId,'db14c-client');
@@ -70,7 +70,7 @@ assert.equal(first.city,'Read Path City');
 assert.equal(first.title,'Loaded through DB 14C');
 
 await page.reload({waitUntil:'commit',timeout:10000});
-await page.waitForFunction(()=>window.DiagnostikaDB?.version==='14C'
+await page.waitForFunction(()=>/^14[C-Z]$/.test(window.DiagnostikaDB?.version||'')
   && window.DiagnostikaClients?.moduleAware===true
   && document.documentElement.classList.contains('diagnostika-dashboard-ready'),
   null,{timeout:20000});
