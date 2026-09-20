@@ -7,6 +7,7 @@ const sessionSource=fs.readFileSync('session-ai-chat.js','utf8');
 const apiSource=fs.readFileSync('ai-api.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
+// NOTES 17A cache-marker compatibility
 
 assert.equal(clientSource.includes('c.aiChat'),false,'Client AI UI still accesses client.aiChat directly');
 assert.equal(sessionSource.includes('c.aiChat'),false,'Session AI compatibility UI still accesses client.aiChat directly');
