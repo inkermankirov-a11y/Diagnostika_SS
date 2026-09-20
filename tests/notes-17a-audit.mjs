@@ -76,10 +76,10 @@ const legacyGeneral=[{
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:1050}});
 await context.addInitScript(({fixture,legacyGeneral})=>{
-  localStorage.setItem('diagnostika-web-v1',JSON.stringify(fixture));
-  localStorage.setItem('diagnostika-last-client-id','notes17a-alpha');
-  localStorage.setItem('diagnostika-ui-language','ru');
-  localStorage.setItem('diagnostika-quick-notes-v1',JSON.stringify(legacyGeneral));
+  if(!localStorage.getItem('diagnostika-web-v1'))localStorage.setItem('diagnostika-web-v1',JSON.stringify(fixture));
+  if(!localStorage.getItem('diagnostika-last-client-id'))localStorage.setItem('diagnostika-last-client-id','notes17a-alpha');
+  if(!localStorage.getItem('diagnostika-ui-language'))localStorage.setItem('diagnostika-ui-language','ru');
+  if(!localStorage.getItem('diagnostika-quick-notes-v1'))localStorage.setItem('diagnostika-quick-notes-v1',JSON.stringify(legacyGeneral));
 },{fixture,legacyGeneral});
 
 const page=await context.newPage();
