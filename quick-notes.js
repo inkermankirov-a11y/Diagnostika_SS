@@ -5,11 +5,11 @@
   if(document.getElementById('quickNotesBtn')) return;
 
   const TEXT={
-    ru:{button:'Заметки',title:'Быстрые заметки',placeholder:'Запишите мысль, идею или то, что нужно не забыть…',add:'Сохранить заметку',update:'Сохранить изменения',newNote:'Новая заметка',empty:'Заметок пока нет',delete:'Удалить',close:'Закрыть'},
-    en:{button:'Notes',title:'Quick notes',placeholder:'Write down a thought, idea, or something to remember…',add:'Save note',update:'Save changes',newNote:'New note',empty:'No notes yet',delete:'Delete',close:'Close'},
-    fr:{button:'Notes',title:'Notes rapides',placeholder:'Notez une pensée, une idée ou quelque chose à retenir…',add:'Enregistrer',update:'Enregistrer les modifications',newNote:'Nouvelle note',empty:'Aucune note',delete:'Supprimer',close:'Fermer'},
-    de:{button:'Notizen',title:'Schnelle Notizen',placeholder:'Gedanke, Idee oder Erinnerung notieren…',add:'Notiz speichern',update:'Änderungen speichern',newNote:'Neue Notiz',empty:'Noch keine Notizen',delete:'Löschen',close:'Schließen'},
-    it:{button:'Note',title:'Note rapide',placeholder:'Scrivi un pensiero, un’idea o qualcosa da ricordare…',add:'Salva nota',update:'Salva modifiche',newNote:'Nuova nota',empty:'Nessuna nota',delete:'Elimina',close:'Chiudi'}
+    ru:{button:'Заметки',title:'Общие заметки',placeholder:'Запишите мысль, идею или то, что нужно не забыть…',add:'Сохранить заметку',update:'Сохранить изменения',newNote:'Новая заметка',empty:'Заметок пока нет',delete:'Удалить',close:'Закрыть'},
+    en:{button:'Notes',title:'General notes',placeholder:'Write down a thought, idea, or something to remember…',add:'Save note',update:'Save changes',newNote:'New note',empty:'No notes yet',delete:'Delete',close:'Close'},
+    fr:{button:'Notes',title:'Notes générales',placeholder:'Notez une pensée, une idée ou quelque chose à retenir…',add:'Enregistrer',update:'Enregistrer les modifications',newNote:'Nouvelle note',empty:'Aucune note',delete:'Supprimer',close:'Fermer'},
+    de:{button:'Notizen',title:'Allgemeine Notizen',placeholder:'Gedanke, Idee oder Erinnerung notieren…',add:'Notiz speichern',update:'Änderungen speichern',newNote:'Neue Notiz',empty:'Noch keine Notizen',delete:'Löschen',close:'Schließen'},
+    it:{button:'Note',title:'Note generali',placeholder:'Scrivi un pensiero, un’idea o qualcosa da ricordare…',add:'Salva nota',update:'Salva modifiche',newNote:'Nuova nota',empty:'Nessuna nota',delete:'Elimina',close:'Chiudi'}
   };
   const lang=()=>window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';
   const tr=()=>TEXT[lang()]||TEXT.en;
