@@ -28,7 +28,7 @@ for(const token of [
   'ai-api.js?v=20260919-ai6d'
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
-  'client-ai-chat.js?v=20260919-ai6d',
+  'client-ai-chat.js?v=20260920-notes17a1&ai=6d',
   'client-ai-full-context.js?v=20260919-ai6d',
   'session-ai-chat.js?v=20260919-ai6d'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
