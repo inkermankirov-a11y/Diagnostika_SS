@@ -15,7 +15,7 @@
   function currentClient(){
     try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
   }
-  function persist(){try{if(typeof save==='function')save();}catch(err){console.warn('Client data save failed',err);}}
+  function persist(source='client-notes'){try{if(typeof save==='function')return save({source})!==false;}catch(err){console.warn('Client data save failed',err);}return false;}
   function notesOf(c){if(!c)return[];if(!Array.isArray(c.quickNotes))c.quickNotes=[];return c.quickNotes;}
   function chatOf(c){
     if(!c)return[];
@@ -46,7 +46,7 @@
     const c=currentClient();
     if(!c){window.AppDialog?.alert?.('Сначала выберите клиента.','Заметки клиента');return;}
     notesClientId=String(c.id);editingNoteId=null;
-    notesOverlay.innerHTML=`<section class="client-notes-panel"><div class="client-notes-head"><h2>📝 Заметки — ${esc(c.name||'Клиент')}</h2><button type="button" class="tk-btn client-notes-close">×</button></div><div class="client-notes-editor"><textarea class="client-notes-text" placeholder="Общие заметки только по этому клиенту…"></textarea><div class="client-notes-actions"><button type="button" class="tk-btn client-notes-new">Новая заметка</button><button type="button" class="tk-btn client-notes-save">Сохранить заметку</button></div></div><div class="client-notes-list"></div></section>`;
+    notesOverlay.innerHTML=`<section class="client-notes-panel"><div class="client-notes-head"><h2>📝 Заметки — ${esc(c.name||'Клиент')}</h2><button type="button" class="tk-btn client-notes-close">×</button></div><div class="client-notes-editor"><textarea class="client-notes-text" placeholder="Заметки только по этому клиенту…"></textarea><div class="client-notes-actions"><button type="button" class="tk-btn client-notes-new">Новая заметка</button><button type="button" class="tk-btn client-notes-save">Сохранить заметку</button></div></div><div class="client-notes-list"></div></section>`;
     notesOverlay.hidden=false;document.documentElement.style.overflow='hidden';
     notesOverlay.querySelector('.client-notes-close').onclick=closeNotes;
     const input=notesOverlay.querySelector('.client-notes-text');
@@ -60,16 +60,18 @@
       notes.forEach(note=>{
         const row=document.createElement('div');row.className='client-note-item';
         row.innerHTML=`<div><div class="client-note-content">${esc(note.text)}</div><div class="client-note-date">${esc(fmt(note.updatedAt||note.createdAt))}</div></div><button type="button" class="tk-btn client-note-delete">Удалить</button>`;
-        row.querySelector('.client-note-delete').onclick=e=>{e.stopPropagation();target.quickNotes=notesOf(target).filter(x=>x.id!==note.id);persist();if(editingNoteId===note.id)reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));};
+        row.querySelector('.client-note-delete').onclick=e=>{e.stopPropagation();const before=[...notesOf(target)];target.quickNotes=before.filter(x=>x.id!==note.id);if(!persist('client-notes-delete')){target.quickNotes=before;return;}if(editingNoteId===note.id)reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));};
         row.onclick=()=>{editingNoteId=note.id;input.value=note.text||'';saveBtn.textContent='Сохранить изменения';input.focus();};list.appendChild(row);
       });
     }
     notesOverlay.querySelector('.client-notes-new').onclick=reset;
     saveBtn.onclick=()=>{
-      const text=input.value.trim();if(!text)return;const target=liveClient();if(!target)return;const notes=notesOf(target),now=Date.now();
+      const text=input.value.trim();if(!text)return;const target=liveClient();if(!target)return;
+      const before=notesOf(target).map(n=>({...n})),notes=notesOf(target),now=Date.now(),wasEditing=Boolean(editingNoteId);
       if(editingNoteId){const n=notes.find(x=>x.id===editingNoteId);if(n){n.text=text;n.updatedAt=now;}}
       else notes.push({id:uid('note'),text,createdAt:now,updatedAt:now});
-      persist();reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));
+      if(!persist(wasEditing?'client-notes-update':'client-notes-create')){target.quickNotes=before;return;}
+      reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));
     };
     input.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveBtn.click();}});
     render();setTimeout(()=>input.focus(),0);
@@ -148,6 +150,13 @@
 
   function renderNotesPreview(){
     const dash=document.querySelector('.home-dashboard');if(!dash)return;const box=dash.querySelector('#hdOpenNotes');if(!box)return;
+    box.onclick=e=>{e?.preventDefault?.();e?.stopPropagation?.();openNotes();};
+    box.setAttribute('role','button');
+    box.setAttribute('tabindex','0');
+    if(box.dataset.clientNotesKeyboard!=='1'){
+      box.dataset.clientNotesKeyboard='1';
+      box.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openNotes();}});
+    }
     const title=box.closest('.hd-widget')?.querySelector('.hd-widget-title span:last-child');if(title)title.textContent='Заметки клиента';
     const c=currentClient();
     if(!c){box.innerHTML='<div class="hd-note-preview-head">Клиент не выбран</div><div>Выберите клиента слева, чтобы открыть его заметки.</div>';return;}
@@ -214,7 +223,6 @@
   }
 
   function refresh(){renderNotesPreview();renderChat();}
-  function hookQuickNotes(){const btn=document.getElementById('quickNotesBtn');if(!btn)return false;btn.onclick=e=>{e?.preventDefault?.();e?.stopPropagation?.();openNotes();};return true;}
   function hookDashboard(){
     const hd=window.DiagnostikaHomeDashboard;
     if(hd?.refresh&&!hd.refresh.__clientWidgetsWrapped){const prev=hd.refresh;const wrapped=function(){const out=prev.apply(this,arguments);setTimeout(refresh,0);return out;};wrapped.__clientWidgetsWrapped=true;hd.refresh=wrapped;}
@@ -233,12 +241,11 @@
     return true;
   }
   function init(){
-    const a=hookQuickNotes();
     const b=buildWidget()||!!widget;
     hookDashboard();
     const e=hookAIEvents();
     refresh();
-    if(a&&b&&e)return;
+    if(b&&e)return;
     initAttempts++;
     if(initAttempts<40)setTimeout(init,250);
   }

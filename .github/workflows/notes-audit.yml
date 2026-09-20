@@ -1,0 +1,43 @@
+name: Notes scope and sync audit
+
+on:
+  push:
+    branches: [main, 'feature-notes-*']
+    paths:
+      - 'quick-notes.js'
+      - 'client-ai-chat.js'
+      - 'google-drive-merge-worker.js'
+      - 'storage-simple-sync.js'
+      - 'index.html'
+      - 'tests/notes-*.mjs'
+      - '.github/workflows/notes-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  notes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static notes checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check quick-notes.js
+          node --check client-ai-chat.js
+          node --check tests/notes-17a-audit.mjs
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify NOTES 17A runtime and sync boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/notes17a-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/notes-17a-audit.mjs
