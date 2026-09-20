@@ -46,7 +46,7 @@
     const c=currentClient();
     if(!c){window.AppDialog?.alert?.('Сначала выберите клиента.','Заметки клиента');return;}
     notesClientId=String(c.id);editingNoteId=null;
-    notesOverlay.innerHTML=`<section class="client-notes-panel"><div class="client-notes-head"><h2>📝 Заметки — ${esc(c.name||'Клиент')}</h2><button type="button" class="tk-btn client-notes-close">×</button></div><div class="client-notes-editor"><textarea class="client-notes-text" placeholder="Общие заметки только по этому клиенту…"></textarea><div class="client-notes-actions"><button type="button" class="tk-btn client-notes-new">Новая заметка</button><button type="button" class="tk-btn client-notes-save">Сохранить заметку</button></div></div><div class="client-notes-list"></div></section>`;
+    notesOverlay.innerHTML=`<section class="client-notes-panel"><div class="client-notes-head"><h2>📝 Заметки — ${esc(c.name||'Клиент')}</h2><button type="button" class="tk-btn client-notes-close">×</button></div><div class="client-notes-editor"><textarea class="client-notes-text" placeholder="Заметки только по этому клиенту…"></textarea><div class="client-notes-actions"><button type="button" class="tk-btn client-notes-new">Новая заметка</button><button type="button" class="tk-btn client-notes-save">Сохранить заметку</button></div></div><div class="client-notes-list"></div></section>`;
     notesOverlay.hidden=false;document.documentElement.style.overflow='hidden';
     notesOverlay.querySelector('.client-notes-close').onclick=closeNotes;
     const input=notesOverlay.querySelector('.client-notes-text');
@@ -66,10 +66,12 @@
     }
     notesOverlay.querySelector('.client-notes-new').onclick=reset;
     saveBtn.onclick=()=>{
-      const text=input.value.trim();if(!text)return;const target=liveClient();if(!target)return;const notes=notesOf(target),now=Date.now();
+      const text=input.value.trim();if(!text)return;const target=liveClient();if(!target)return;
+      const before=notesOf(target).map(n=>({...n})),notes=notesOf(target),now=Date.now(),wasEditing=Boolean(editingNoteId);
       if(editingNoteId){const n=notes.find(x=>x.id===editingNoteId);if(n){n.text=text;n.updatedAt=now;}}
       else notes.push({id:uid('note'),text,createdAt:now,updatedAt:now});
-      if(!persist(editingNoteId?'client-notes-update':'client-notes-create'))return;reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));
+      if(!persist(wasEditing?'client-notes-update':'client-notes-create')){target.quickNotes=before;return;}
+      reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));
     };
     input.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveBtn.click();}});
     render();setTimeout(()=>input.focus(),0);
