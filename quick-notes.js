@@ -1,7 +1,7 @@
 'use strict';
 
 (() => {
-  const KEY='diagnostika-quick-notes-v1';
+  const LEGACY_KEY='diagnostika-quick-notes-v1';
   if(document.getElementById('quickNotesBtn')) return;
 
   const TEXT={
@@ -13,8 +13,41 @@
   };
   const lang=()=>window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';
   const tr=()=>TEXT[lang()]||TEXT.en;
-  const load=()=>{try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch(_){return[]}};
-  const save=v=>localStorage.setItem(KEY,JSON.stringify(v));
+  const appState=()=>{try{return typeof state!=='undefined'&&state&&typeof state==='object'?state:null;}catch(_){return null;}};
+  const legacyLoad=()=>{try{const v=JSON.parse(localStorage.getItem(LEGACY_KEY)||'[]');return Array.isArray(v)?v:[]}catch(_){return[]}};
+  const clone=v=>{try{return typeof structuredClone==='function'?structuredClone(v):JSON.parse(JSON.stringify(v));}catch(_){return Array.isArray(v)?v.map(x=>({...x})):[];}};
+  function persistState(source){
+    try{
+      if(typeof save==='function')return save({source})!==false;
+      const st=appState(),db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;
+      return !!(st&&db?.writeState&&db.writeState(st,{source})===true);
+    }catch(error){
+      console.error('[Diagnostika] general notes persistence failed',error);
+      return false;
+    }
+  }
+  function load(){
+    const st=appState();
+    if(!st)return [];
+    if(Array.isArray(st.generalNotes))return clone(st.generalNotes);
+    const legacy=legacyLoad();
+    st.generalNotes=clone(legacy);
+    if(legacy.length)persistState('general-notes-legacy-migration');
+    return clone(st.generalNotes);
+  }
+  function saveNotes(next,source='general-notes-save'){
+    const st=appState();
+    if(!st)return false;
+    const before=Array.isArray(st.generalNotes)?clone(st.generalNotes):undefined;
+    st.generalNotes=clone(Array.isArray(next)?next:[]);
+    if(persistState(source)){
+      window.dispatchEvent(new CustomEvent('diagnostika-general-notes-changed',{detail:{count:st.generalNotes.length}}));
+      return true;
+    }
+    if(before===undefined)delete st.generalNotes;
+    else st.generalNotes=before;
+    return false;
+  }
   const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
   const style=document.createElement('style');
@@ -57,7 +90,7 @@
       notes.sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).forEach(note=>{
         const row=document.createElement('div');row.className='quick-note-item';
         row.innerHTML=`<div><div class="quick-note-content">${esc(note.text)}</div><div class="quick-note-date">${fmtDate(note.updatedAt||note.createdAt)}</div></div><button type="button" class="tk-btn quick-note-delete">${t.delete}</button>`;
-        row.querySelector('.quick-note-delete').onclick=e=>{e.stopPropagation();save(load().filter(x=>x.id!==note.id));if(editingId===note.id)reset();render();};
+        row.querySelector('.quick-note-delete').onclick=e=>{e.stopPropagation();if(!saveNotes(load().filter(x=>x.id!==note.id),'general-notes-delete'))return;if(editingId===note.id)reset();render();};
         row.onclick=()=>{editingId=note.id;input.value=note.text||'';saveBtn.textContent=t.update;input.focus();};
         list.appendChild(row);
       });
@@ -67,7 +100,7 @@
       const notes=load(),now=Date.now();
       if(editingId){const n=notes.find(x=>x.id===editingId);if(n){n.text=text;n.updatedAt=now;}}
       else notes.push({id:'n_'+now+'_'+Math.random().toString(36).slice(2,7),text,createdAt:now,updatedAt:now});
-      save(notes);reset();render();
+      if(!saveNotes(notes,editingId?'general-notes-update':'general-notes-create'))return;reset();render();
     };
     input.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveBtn.click();}});
     render();setTimeout(()=>input.focus(),0);
