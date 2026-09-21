@@ -104,3 +104,16 @@
   .situation-buttons{grid-template-columns:1fr!important}
   .feeling-select-row{grid-template-columns:34px minmax(0,1fr) 66px!important}
 }
+
+
+@media (max-width: 960px){
+  html,body,.desktop-app,.home-dashboard{max-width:100%;min-width:0;box-sizing:border-box}
+  .desktop-app{overflow-x:hidden}
+  .app-header{height:auto!important;min-height:0!important;display:flex!important;flex-wrap:wrap!important;gap:10px;padding-top:10px!important;padding-bottom:8px!important}
+  .app-header h1{min-width:0;max-width:100%}
+  .header-buttons{width:100%;display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+  .header-btn{min-width:0!important;flex:1 1 150px}
+  .home-dashboard>*{min-width:0;max-width:100%}
+  .hd-client-row{grid-template-columns:48px minmax(0,1fr) auto}
+  .hd-client-menu{max-width:calc(100vw - 16px)}
+}

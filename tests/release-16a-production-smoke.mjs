@@ -73,7 +73,10 @@ const launch=await page.evaluate(async()=>{
     release:document.querySelector('meta[name="diagnostika-release"]')?.content||null,
     runtime:report,
     dashboardPresent:Boolean(dashboard),
-    dashboardVisible:Boolean(dashboard&&!dashboard.hidden&&getComputedStyle(dashboard).display!=='none')
+    dashboardVisible:Boolean(dashboard&&!dashboard.hidden&&getComputedStyle(dashboard).display!=='none'),
+    runtimeGate:window.DiagnostikaRuntimeGate?.status||null,
+    testButtonPresent:Boolean(document.getElementById('testFillBtn')),
+    repairStatusPresent:Boolean(document.getElementById('diagnostikaRepairStatus'))
   };
 });
 
@@ -84,6 +87,9 @@ assert.equal(launch.runtime.versions.api,'13D');
 assert.equal(launch.runtime.role,'specialist');
 assert.equal(launch.dashboardPresent,true);
 assert.equal(launch.dashboardVisible,true);
+assert.equal(launch.runtimeGate,'ready');
+assert.equal(launch.testButtonPresent,false,'Production exposed the destructive TEST control');
+assert.equal(launch.repairStatusPresent,false,'Production still renders the obsolete repair banner');
 
 const mutated=await page.evaluate(async()=>{
   const clients=window.DiagnostikaClients;
@@ -260,4 +266,48 @@ console.log('RELEASE_16A_PRODUCTION_SUCCESS',JSON.stringify({
 }));
 
 await context.close();
+
+async function verifyResponsiveProduction(name, viewport){
+  const c=await browser.newContext({viewport});
+  await c.addInitScript(data=>{
+    localStorage.setItem('diagnostika-web-v1',JSON.stringify(data));
+    localStorage.setItem('diagnostika-last-client-id','release16a-client');
+    localStorage.setItem('diagnostika-ui-language','ru');
+  },fixture);
+  const p=await c.newPage();
+  const pageErrors=[];
+  p.on('pageerror',e=>pageErrors.push(e.message));
+  await p.goto(base+'/?responsive-'+name+'='+Date.now(),{waitUntil:'commit',timeout:20000});
+  await p.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:30000});
+  await p.waitForFunction(()=>window.DiagnostikaRuntimeGate?.status==='ready',null,{timeout:30000});
+
+  const layout=await p.evaluate(()=>({
+    innerWidth:window.innerWidth,
+    scrollWidth:document.documentElement.scrollWidth,
+    dashboardVisible:Boolean(document.querySelector('.home-dashboard')&&getComputedStyle(document.querySelector('.home-dashboard')).display!=='none'),
+    testButtonPresent:Boolean(document.getElementById('testFillBtn')),
+    repairStatusPresent:Boolean(document.getElementById('diagnostikaRepairStatus'))
+  }));
+  assert.equal(layout.dashboardVisible,true,name+' dashboard hidden');
+  assert.equal(layout.testButtonPresent,false,name+' exposed TEST control');
+  assert.equal(layout.repairStatusPresent,false,name+' repair banner present');
+  assert(layout.scrollWidth<=layout.innerWidth+2,`${name} horizontal overflow: ${layout.scrollWidth} > ${layout.innerWidth}`);
+
+  const more=p.locator('.hd-client-more').first();
+  await more.waitFor({state:'visible',timeout:5000});
+  await more.click();
+  const menu=p.locator('.hd-client-menu');
+  await menu.waitFor({state:'visible',timeout:5000});
+  const bounds=await menu.boundingBox();
+  assert(bounds,name+' client menu has no bounds');
+  assert(bounds.x>=-1,name+' menu exceeds left edge');
+  assert(bounds.x+bounds.width<=viewport.width+1,name+' menu exceeds right edge');
+  assert(bounds.y>=-1,name+' menu exceeds top edge');
+  assert(bounds.y+bounds.height<=viewport.height+1,name+' menu exceeds bottom edge');
+  assert.deepEqual(pageErrors,[],name+' page errors');
+  await c.close();
+}
+
+await verifyResponsiveProduction('tablet',{width:820,height:1180});
+await verifyResponsiveProduction('mobile',{width:390,height:844});
 await browser.close();

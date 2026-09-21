@@ -358,24 +358,60 @@
     document.body.appendChild(serviceScript);
   }
 
+  function publishRuntimeGate(status, report = null, error = null){
+    const snapshot=Object.freeze({
+      status,
+      checkedAt:new Date().toISOString(),
+      issues:Object.freeze([...(report?.issues||[])]),
+      error:error?String(error?.message||error):null
+    });
+    window.DiagnostikaRuntimeGate=snapshot;
+    return snapshot;
+  }
+
+  async function verifyRuntimeContract(){
+    publishRuntimeGate('checking');
+    try{
+      const runtime=window.DiagnostikaRuntime;
+      if(!runtime?.refresh)throw new Error('runtime-contract-missing');
+      const report=await runtime.refresh({source:'app-loader-health-gate',timeoutMs:10000});
+      if(report?.ready!==true){
+        publishRuntimeGate('unhealthy',report);
+        window.dispatchEvent(new CustomEvent('diagnostika:runtime-unhealthy',{detail:{issues:[...(report?.issues||[])]}}));
+        return;
+      }
+      publishRuntimeGate('ready',report);
+      loadDashboard();
+    }catch(error){
+      publishRuntimeGate('error',null,error);
+      window.dispatchEvent(new CustomEvent('diagnostika:runtime-error',{detail:{message:String(error?.message||error)}}));
+    }
+  }
+
   function loadRuntimeContract(){
-    const finish=()=>loadDashboard();
     if(window.DiagnostikaRuntime?.version==='15A'){
-      finish();
+      verifyRuntimeContract();
       return;
     }
 
     const existing=document.querySelector('script[data-runtime-contract]');
     if(existing){
-      existing.addEventListener('load',finish,{once:true});
+      existing.addEventListener('load',verifyRuntimeContract,{once:true});
+      existing.addEventListener('error',()=> {
+        publishRuntimeGate('error',null,new Error('runtime-contract-load-failed'));
+        window.dispatchEvent(new CustomEvent('diagnostika:runtime-error',{detail:{message:'runtime-contract-load-failed'}}));
+      },{once:true});
       return;
     }
 
     const runtime=document.createElement('script');
-    runtime.src='core/runtime-contract.js?v=20260919-final15a';
+    runtime.src='core/runtime-contract.js?v=20260919-final15a&hardening=19a';
     runtime.setAttribute('data-runtime-contract','1');
-    runtime.onload=finish;
-    runtime.onerror=finish;
+    runtime.onload=verifyRuntimeContract;
+    runtime.onerror=()=>{
+      publishRuntimeGate('error',null,new Error('runtime-contract-load-failed'));
+      window.dispatchEvent(new CustomEvent('diagnostika:runtime-error',{detail:{message:'runtime-contract-load-failed'}}));
+    };
     document.body.appendChild(runtime);
   }
 
