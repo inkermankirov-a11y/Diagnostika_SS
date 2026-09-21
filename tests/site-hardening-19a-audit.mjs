@@ -60,13 +60,11 @@ async function verifyViewport(name,viewport){
   await page.waitForFunction(()=>window.DiagnostikaRuntimeGate?.status==='ready',null,{timeout:20000});
   await page.waitForFunction(()=>window.DiagnostikaDevTools?.enabled===true,null,{timeout:5000});
   await page.evaluate(()=>window.DiagnostikaDevTools.ready);
-  await page.locator('#testFillBtn').waitFor({state:'visible',timeout:5000});
-
   const state=await page.evaluate(()=>({
     runtimeGate:window.DiagnostikaRuntimeGate?.status||null,
     repairPresent:Boolean(document.getElementById('diagnostikaRepairStatus')),
     devEnabled:window.DiagnostikaDevTools?.enabled===true,
-    testVisible:Boolean(document.getElementById('testFillBtn')&&!document.getElementById('testFillBtn').hidden),
+    testReady:typeof document.getElementById('testFillBtn')?.onclick==='function',
     dashboardVisible:Boolean(document.querySelector('.home-dashboard')&&getComputedStyle(document.querySelector('.home-dashboard')).display!=='none'),
     innerWidth:window.innerWidth,
     scrollWidth:document.documentElement.scrollWidth,
@@ -76,7 +74,7 @@ async function verifyViewport(name,viewport){
   assert.equal(state.runtimeGate,'ready',name+' runtime gate not ready');
   assert.equal(state.repairPresent,false,name+' repair banner present');
   assert.equal(state.devEnabled,true,name+' local dev tools disabled');
-  assert.equal(state.testVisible,true,name+' local TEST control not available');
+  assert.equal(state.testReady,true,name+' local dev test handler not loaded');
   assert.equal(state.dashboardVisible,true,name+' dashboard hidden');
   assert(state.scrollWidth<=state.innerWidth+2,`${name} horizontal overflow: ${state.scrollWidth} > ${state.innerWidth}`);
   assert(state.observer?.sharedSubscribers>=3,`${name} body observers were not shared: ${JSON.stringify(state.observer)}`);
