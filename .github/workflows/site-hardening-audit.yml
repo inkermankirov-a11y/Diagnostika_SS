@@ -1,0 +1,49 @@
+name: Site hardening audit
+
+on:
+  push:
+    branches: [main, 'feature-site-hardening-*']
+    paths:
+      - 'index.html'
+      - 'dev-tools-loader.js'
+      - 'app-loader.js'
+      - 'app-startup.js'
+      - 'i18n-observer-guard.js'
+      - 'mobile-responsive.css'
+      - 'tests/site-hardening-19a-audit.mjs'
+      - 'tests/release-16a-production-smoke.mjs'
+      - '.github/workflows/site-hardening-audit.yml'
+      - '.github/workflows/release-production-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  hardening:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check dev-tools-loader.js
+          node --check app-loader.js
+          node --check app-startup.js
+          node --check i18n-observer-guard.js
+          node --check tests/site-hardening-19a-audit.mjs
+          node --check tests/release-16a-production-smoke.mjs
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify production isolation, fail-closed runtime and responsive layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/site-hardening-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/site-hardening-19a-audit.mjs
