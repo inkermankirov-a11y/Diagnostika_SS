@@ -163,14 +163,88 @@
     document.dispatchEvent(new CustomEvent('diagnostika:quick-notes-open'));
   }
 
+  let clientMenu=null;
+  let clientMenuButton=null;
+
+  function closeClientMenu(){
+    if(clientMenu)clientMenu.hidden=true;
+    if(clientMenuButton)clientMenuButton.setAttribute('aria-expanded','false');
+    clientMenuButton=null;
+  }
+
+  function ensureClientMenu(){
+    if(clientMenu)return clientMenu;
+    clientMenu=document.createElement('div');
+    clientMenu.className='hd-client-menu';
+    clientMenu.hidden=true;
+    clientMenu.setAttribute('role','menu');
+    document.body.appendChild(clientMenu);
+    return clientMenu;
+  }
+
+  function placeClientMenu(button){
+    if(!clientMenu||!button)return;
+    const rect=button.getBoundingClientRect();
+    const width=clientMenu.offsetWidth||210;
+    const left=Math.max(8,Math.min(window.innerWidth-width-8,rect.right-width));
+    const top=Math.min(window.innerHeight-(clientMenu.offsetHeight||48)-8,rect.bottom+6);
+    clientMenu.style.left=`${left}px`;
+    clientMenu.style.top=`${Math.max(8,top)}px`;
+  }
+
+  function openClientMenu(c,button){
+    const api=clientsApi();
+    if(!api?.pin||!api?.unpin||!api?.isPinned){
+      unavailable('Модуль закрепления клиентов не загрузился. Обновите страницу.','Клиенты');
+      return;
+    }
+
+    const menu=ensureClientMenu();
+    const pinned=api.isPinned(c.id);
+    closeClientMenu();
+    clientMenuButton=button;
+    button.setAttribute('aria-expanded','true');
+    menu.innerHTML=`<button type="button" class="hd-client-menu-item" role="menuitem"><span class="hd-client-menu-icon">📌</span><span>${pinned?'Открепить клиента':'Закрепить клиента'}</span></button>`;
+    menu.hidden=false;
+    placeClientMenu(button);
+
+    menu.querySelector('.hd-client-menu-item').onclick=e=>{
+      e.stopPropagation();
+      const result=pinned
+        ? api.unpin(c.id,{source:'home-dashboard-unpin'})
+        : api.pin(c.id,{source:'home-dashboard-pin'});
+      closeClientMenu();
+      if(!result?.ok){
+        if(result?.reason==='limit'){
+          unavailable(`Можно закрепить не больше ${result.limit||10} клиентов. Сначала открепите одного из уже закреплённых.`,'Закрепление клиентов');
+        }else{
+          unavailable('Не удалось изменить закрепление клиента.','Закрепление клиентов');
+        }
+        return;
+      }
+      renderClients();
+    };
+  }
+
   function renderClients(){
     const q=(search.value||'').trim().toLowerCase();
     const all=allClients();
     const activeId=currentClientId();
-    const clients=all.filter(c=>{
-      if(!q)return true;
-      return [c.name,c.city,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(q));
-    });
+    const pinOrder=clientsApi()?.pinnedIds?.()||[];
+    const pinRank=new Map(pinOrder.map((id,index)=>[String(id),index]));
+    const clients=all
+      .map((c,index)=>({c,index}))
+      .filter(({c})=>{
+        if(!q)return true;
+        return [c.name,c.city,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(q));
+      })
+      .sort((a,b)=>{
+        const ar=pinRank.has(String(a.c.id))?pinRank.get(String(a.c.id)):Number.POSITIVE_INFINITY;
+        const br=pinRank.has(String(b.c.id))?pinRank.get(String(b.c.id)):Number.POSITIVE_INFINITY;
+        if(ar!==br)return ar-br;
+        return a.index-b.index;
+      })
+      .map(({c})=>c);
     list.innerHTML='';
     if(!clients.length) list.innerHTML='<div class="hd-empty-list">Ничего не найдено</div>';
     clients.forEach(c=>{
@@ -181,9 +255,12 @@
       const unpaid=unpaidSessionCount(c);
       const flag=unpaid?`<span class="hd-unpaid-flag" aria-label="Есть неоплаченные сессии" title="Есть неоплаченные сессии">⚑</span>`:'';
       const newClientDot=isNewClient(c)?`<span class="hd-new-client-dot" aria-label="Новый клиент" title="Новый клиент"></span>`:'';
-      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools">${newClientDot}${flag}<button class="hd-client-more" type="button" title="База клиентов">⋮</button></div>`;
+      const pinned=pinRank.has(String(c.id));
+      const pin=pinned?`<span class="hd-client-pin" aria-label="Закреплённый клиент" title="Закреплён">📌</span>`:'';
+      row.classList.toggle('pinned',pinned);
+      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools">${pin}${newClientDot}${flag}<button class="hd-client-more" type="button" title="Действия с клиентом" aria-haspopup="menu" aria-expanded="false">⋮</button></div>`;
       row.onclick=e=>{if(e.target.closest('.hd-client-more'))return;selectClient(c.id);};
-      row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();selectClient(c.id);openClientDatabase();};
+      row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();openClientMenu(c,e.currentTarget);};
       list.appendChild(row);
     });
     count.textContent=`Клиентов: ${all.length}`;
@@ -243,6 +320,14 @@
   search.addEventListener('input',renderClients);
   $('#hdOpenNotes').onclick=openQuickNotes;
   $('#hdPlanBtn').onclick=openQuickNotes;
+
+  document.addEventListener('click',e=>{
+    if(e.target?.closest?.('.hd-client-menu')||e.target?.closest?.('.hd-client-more'))return;
+    closeClientMenu();
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeClientMenu();});
+  list.addEventListener('scroll',closeClientMenu,{passive:true});
+  window.addEventListener('resize',closeClientMenu,{passive:true});
 
   const dashboardEvents=[
     'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged',
