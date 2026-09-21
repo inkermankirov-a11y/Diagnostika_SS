@@ -51,7 +51,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2&db=14b';
+    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a';
     serviceScript.setAttribute('data-clients-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -80,13 +80,13 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const l=document.createElement('link');
       l.rel='stylesheet';
-      l.href='home-dashboard.css?v=20260916-newui1';
+      l.href='home-dashboard.css?v=20260916-newui1&pin=18a';
       l.setAttribute('data-home-dashboard','1');
       document.head.appendChild(l);
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20260918-clients2d';
+      s.src='home-dashboard.js?v=20260918-clients2d&pin=18a';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
@@ -559,7 +559,7 @@
   }
 
   const api=document.createElement('script');
-  api.src='client-api.js?v=20260918-clients2b2&api=13d';
+  api.src='client-api.js?v=20260918-clients2b2&api=13d&pin=18a';
   api.setAttribute('data-client-api','1');
   api.onload=loadRequestApi;
   document.body.appendChild(api);

@@ -13,6 +13,7 @@
     restored: 'client:restored',
     purged: 'client:purged'
   });
+  const PIN_LIMIT=10;
 
   function apiAllowed(){
     const api=window.DiagnostikaPlatform?.api;
@@ -42,6 +43,80 @@
     if(!apiAllowed())return null;
     try { return typeof clientId !== 'undefined' ? clientId : null; }
     catch (_) { return null; }
+  }
+
+  function legacyPinnedIds(){
+    if(!apiAllowed())return [];
+    try{
+      const active=new Map(legacyList().filter(c=>c?.id!=null).map(c=>[String(c.id),c.id]));
+      const raw=Array.isArray(state?.pinnedClientIds)?state.pinnedClientIds:[];
+      const out=[],seen=new Set();
+      for(const value of raw){
+        const key=String(value);
+        if(seen.has(key)||!active.has(key))continue;
+        seen.add(key);out.push(active.get(key));
+        if(out.length>=PIN_LIMIT)break;
+      }
+      return out;
+    }catch(_){return [];}
+  }
+
+  function pinnedIds(){
+    const moduleService=service();
+    return moduleService?.pinnedIds?.()||legacyPinnedIds();
+  }
+
+  function isPinned(id){
+    const moduleService=service();
+    if(moduleService?.isPinned)return moduleService.isPinned(id);
+    const key=String(id??'');
+    return key!==''&&legacyPinnedIds().some(value=>String(value)===key);
+  }
+
+  function legacyPin(id,options={}){
+    if(!apiAllowed())return {ok:false,reason:'blocked',limit:PIN_LIMIT};
+    const target=findById(id);
+    if(!target)return {ok:false,reason:'missing',limit:PIN_LIMIT};
+    const current=legacyPinnedIds(),key=String(target.id),already=current.some(v=>String(v)===key);
+    if(!already&&current.length>=PIN_LIMIT)return {ok:false,reason:'limit',limit:PIN_LIMIT,pinnedIds:current};
+    const before=Array.isArray(state?.pinnedClientIds)?[...state.pinnedClientIds]:null;
+    const next=[target.id,...current.filter(v=>String(v)!==key)].slice(0,PIN_LIMIT);
+    state.pinnedClientIds=next;
+    if(!legacyPersist()){
+      if(before)state.pinnedClientIds=before;else delete state.pinnedClientIds;
+      return {ok:false,reason:'persist',limit:PIN_LIMIT};
+    }
+    emit(EVENT_NAMES.updated,{clientId:target.id,fields:['pinnedClientIds'],change:'pinned',source:options.source||'client-api-fallback-pin'});
+    return {ok:true,changed:!already||String(current[0]??'')!==key,clientId:target.id,limit:PIN_LIMIT,pinnedIds:[...next]};
+  }
+
+  function pin(id,options={}){
+    const moduleService=service();
+    if(moduleService?.pin)return moduleService.pin(id,options);
+    return legacyPin(id,options);
+  }
+
+  function legacyUnpin(id,options={}){
+    if(!apiAllowed())return {ok:false,reason:'blocked',limit:PIN_LIMIT};
+    const target=findById(id);
+    if(!target)return {ok:false,reason:'missing',limit:PIN_LIMIT};
+    const current=legacyPinnedIds(),key=String(target.id);
+    if(!current.some(v=>String(v)===key))return {ok:true,changed:false,clientId:target.id,limit:PIN_LIMIT,pinnedIds:current};
+    const before=Array.isArray(state?.pinnedClientIds)?[...state.pinnedClientIds]:null;
+    const next=current.filter(v=>String(v)!==key);
+    state.pinnedClientIds=next;
+    if(!legacyPersist()){
+      if(before)state.pinnedClientIds=before;else delete state.pinnedClientIds;
+      return {ok:false,reason:'persist',limit:PIN_LIMIT};
+    }
+    emit(EVENT_NAMES.updated,{clientId:target.id,fields:['pinnedClientIds'],change:'unpinned',source:options.source||'client-api-fallback-unpin'});
+    return {ok:true,changed:true,clientId:target.id,limit:PIN_LIMIT,pinnedIds:[...next]};
+  }
+
+  function unpin(id,options={}){
+    const moduleService=service();
+    if(moduleService?.unpin)return moduleService.unpin(id,options);
+    return legacyUnpin(id,options);
   }
 
   function legacyPersist(){
@@ -341,6 +416,11 @@
     remove,
     restore,
     purge,
+    pinLimit:PIN_LIMIT,
+    pinnedIds,
+    isPinned,
+    pin,
+    unpin,
     openDatabase
   });
   window.DiagnostikaClients=api;
