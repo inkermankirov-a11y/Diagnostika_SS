@@ -16,6 +16,7 @@
     restored: 'client:restored',
     purged: 'client:purged'
   });
+  const PIN_LIMIT = 10;
 
   function list() {
     try {
@@ -43,6 +44,98 @@
     } catch (_) {
       return null;
     }
+  }
+
+  function pinnedIds() {
+    const root = stateRef();
+    if (!root) return [];
+    const active = new Map(list().filter(item => item?.id != null).map(item => [String(item.id), item.id]));
+    const raw = Array.isArray(root.pinnedClientIds) ? root.pinnedClientIds : [];
+    const seen = new Set();
+    const out = [];
+    for (const value of raw) {
+      const key = String(value);
+      if (seen.has(key) || !active.has(key)) continue;
+      seen.add(key);
+      out.push(active.get(key));
+      if (out.length >= PIN_LIMIT) break;
+    }
+    return out;
+  }
+
+  function isPinned(id) {
+    if (id === undefined || id === null || id === '') return false;
+    const key = String(id);
+    return pinnedIds().some(value => String(value) === key);
+  }
+
+  function pin(id, options = {}) {
+    const target = findById(id);
+    const root = stateRef();
+    if (!target || !root) return Object.freeze({ ok: false, reason: 'missing', limit: PIN_LIMIT });
+
+    const current = pinnedIds();
+    const key = String(target.id);
+    const alreadyPinned = current.some(value => String(value) === key);
+    if (!alreadyPinned && current.length >= PIN_LIMIT) {
+      return Object.freeze({ ok: false, reason: 'limit', limit: PIN_LIMIT, pinnedIds: Object.freeze([...current]) });
+    }
+
+    const next = [target.id, ...current.filter(value => String(value) !== key)].slice(0, PIN_LIMIT);
+    if (alreadyPinned && String(current[0] ?? '') === key) {
+      return Object.freeze({ ok: true, changed: false, clientId: target.id, limit: PIN_LIMIT, pinnedIds: Object.freeze([...current]) });
+    }
+
+    const hadState = Array.isArray(root.pinnedClientIds);
+    const before = hadState ? [...root.pinnedClientIds] : null;
+    root.pinnedClientIds = next;
+
+    if (!persist()) {
+      if (hadState) root.pinnedClientIds = before;
+      else delete root.pinnedClientIds;
+      return Object.freeze({ ok: false, reason: 'persist', limit: PIN_LIMIT });
+    }
+
+    emit(EVENTS.updated, {
+      clientId: target.id,
+      fields: ['pinnedClientIds'],
+      change: 'pinned',
+      source: options.source || 'client-service-pin'
+    });
+
+    return Object.freeze({ ok: true, changed: true, clientId: target.id, limit: PIN_LIMIT, pinnedIds: Object.freeze([...next]) });
+  }
+
+  function unpin(id, options = {}) {
+    const target = findById(id);
+    const root = stateRef();
+    if (!target || !root) return Object.freeze({ ok: false, reason: 'missing', limit: PIN_LIMIT });
+
+    const current = pinnedIds();
+    const key = String(target.id);
+    if (!current.some(value => String(value) === key)) {
+      return Object.freeze({ ok: true, changed: false, clientId: target.id, limit: PIN_LIMIT, pinnedIds: Object.freeze([...current]) });
+    }
+
+    const hadState = Array.isArray(root.pinnedClientIds);
+    const before = hadState ? [...root.pinnedClientIds] : null;
+    const next = current.filter(value => String(value) !== key);
+    root.pinnedClientIds = next;
+
+    if (!persist()) {
+      if (hadState) root.pinnedClientIds = before;
+      else delete root.pinnedClientIds;
+      return Object.freeze({ ok: false, reason: 'persist', limit: PIN_LIMIT });
+    }
+
+    emit(EVENTS.updated, {
+      clientId: target.id,
+      fields: ['pinnedClientIds'],
+      change: 'unpinned',
+      source: options.source || 'client-service-unpin'
+    });
+
+    return Object.freeze({ ok: true, changed: true, clientId: target.id, limit: PIN_LIMIT, pinnedIds: Object.freeze([...next]) });
   }
 
   function ensureTrashState(options = {}) {
@@ -445,6 +538,11 @@
     findDeletedById,
     remove,
     restore,
-    purge
+    purge,
+    pinLimit: PIN_LIMIT,
+    pinnedIds,
+    isPinned,
+    pin,
+    unpin
   });
 })();
