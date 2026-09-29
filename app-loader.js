@@ -51,7 +51,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a';
+    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23a';
     serviceScript.setAttribute('data-clients-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -576,7 +576,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='request-api.js?v=20260918-requests3d&api=13d';
+      api.src='request-api.js?v=20260918-requests3d&api=13d&cleanup=23a';
       api.setAttribute('data-request-api','1');
       api.onload=loadDiagnosisApi;
       document.body.appendChild(api);
@@ -595,7 +595,7 @@
   }
 
   const api=document.createElement('script');
-  api.src='client-api.js?v=20260918-clients2b2&api=13d&pin=18a';
+  api.src='client-api.js?v=20260918-clients2b2&api=13d&pin=18a&cleanup=23a';
   api.setAttribute('data-client-api','1');
   api.onload=loadRequestApi;
   document.body.appendChild(api);
