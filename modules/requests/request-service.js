@@ -36,8 +36,7 @@
     }
     const current=clientsService()?.current?.();
     if(current)return current;
-    try{return platform.store?.currentClient?.()||null;}catch(_){}
-    try{return typeof client==='function'?client():null;}catch(_){return null;}
+    try{return platform.store?.currentClient?.()||null;}catch(_){return null;}
   }
 
   function list(clientRef){
@@ -50,14 +49,14 @@
     return list(clientRef).find(r=>r&&String(r.id)===String(id))||null;
   }
 
-  function legacyViewedId(){
-    try{return typeof requestId!=='undefined'?requestId:null;}catch(_){return null;}
+  function shellViewedId(){
+    return platform.shell?.currentRequestId?.()??null;
   }
 
   function viewed(clientRef){
     const c=resolveClient(clientRef);
     if(!c)return null;
-    return get(legacyViewedId(),c);
+    return get(shellViewedId(),c);
   }
 
   function viewedId(clientRef){
@@ -84,15 +83,11 @@
   }
 
   function freshRequest(data={}){
-    let base=null;
-    try{if(typeof newRequest==='function')base=newRequest();}catch(_){}
-    if(!base){
-      base={
-        id:crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2),
-        title:'Новый запрос',
-        situations:[]
-      };
-    }
+    const base={
+      id:crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2),
+      title:'Новый запрос',
+      situations:[]
+    };
     const incoming=clone(data)||{};
     const created={...base,...incoming};
     if(!created.id)created.id=base.id;
@@ -106,21 +101,17 @@
 
   function persist(){
     try{
-      if(platform.store?.legacySave?.())return true;
-    }catch(_){}
-    try{if(typeof save==='function'){save();return true;}}catch(error){
+      return platform.store?.persist?.({source:'request-service-persist'})===true;
+    }catch(error){
       console.error('[DiagnostikaPlatform] request persistence failed',error);
+      return false;
     }
-    return false;
   }
 
   function render(){
-    try{if(typeof renderRequests==='function')renderRequests();}catch(error){
-      console.error('[DiagnostikaPlatform] request render failed',error);
-      return false;
-    }
+    const rendered=platform.shell?.renderRequests?.()===true;
     try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
-    return true;
+    return rendered;
   }
 
   function emit(type,detail={}){
@@ -133,15 +124,7 @@
   }
 
   function setLegacyView(id){
-    try{
-      requestId=id||null;
-      situationId=null;
-      selected=null;
-      return true;
-    }catch(error){
-      console.error('[DiagnostikaPlatform] request view selection failed',error);
-      return false;
-    }
+    return platform.shell?.viewRequest?.(id??null)===true;
   }
 
   function view(id,options={}){
