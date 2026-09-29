@@ -21,7 +21,7 @@
   const now=()=>new Date().toISOString();
 
   function clientsService(){
-    return platform.services?.clients||window.DiagnostikaClients||null;
+    return platform.services?.clients||null;
   }
 
   function resolveClient(clientRef){
@@ -110,7 +110,7 @@
 
   function render(){
     const rendered=platform.shell?.renderRequests?.()===true;
-    try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
+    platform.shell?.refreshDashboard?.();
     return rendered;
   }
 
