@@ -84,7 +84,7 @@
     openDatabase
   });
 
-  window.DiagnostikaClients = api;
+  window.DiagnostikaClients=api;
 
   // Old dialog button remains in markup, but creation now always goes through ClientService.
   const addButton = document.querySelector('#dialogAddClientBtn');
