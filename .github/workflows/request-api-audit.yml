@@ -40,6 +40,8 @@ jobs:
           index=Path('index.html').read_text(encoding='utf-8')
           test_data=Path('test-data.js').read_text(encoding='utf-8')
           errors=[]
+          for token in ['typeof client','typeof requestId','renderRequests','window.renderClient','fallbackList','syncActiveView','...legacy']:
+              if token in api: errors.append('request API reintroduced legacy state/render fallback: '+token)
           if 'window.DiagnostikaRequests=Object.freeze' not in api: errors.append('request API export missing')
           if "moduleAware:true" not in api or "version:'3A'" not in api: errors.append('request facade is not module-aware 3A')
           if 'services.requests=Object.freeze' not in service: errors.append('RequestService export missing')
