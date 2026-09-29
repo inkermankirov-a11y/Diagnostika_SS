@@ -182,6 +182,43 @@ async function makePage({mode='city',cache=null,handler}={}){
   await context.close();
 }
 
+
+// Production weather diagnostic against deployed GitHub Pages.
+{
+  const context=await browser.newContext({viewport:{width:1440,height:1000}});
+  await context.addInitScript(()=>{
+    localStorage.setItem('diagnostika-ui-language','ru');
+    localStorage.setItem('diagnostika-weather-mode','city');
+    localStorage.setItem('diagnostika-weather-city',JSON.stringify({name:'Киров',latitude:58.6036,longitude:49.6680}));
+    localStorage.removeItem('diagnostika-weather-cache-v2');
+  });
+  const page=await context.newPage();
+  const consoleErrors=[];
+  const failed=[];
+  page.on('console',m=>{ if(m.type()==='error') consoleErrors.push(m.text()); });
+  page.on('requestfailed',req=>failed.push({url:req.url(),failure:req.failure()?.errorText||''}));
+  page.on('response',res=>{
+    if(res.url().includes('open-meteo')||res.url().includes('bigdatacloud')||res.url().includes('header-utilities')){
+      console.log('WEATHER_PROD_RESPONSE',res.status(),res.url());
+    }
+  });
+  await page.goto('https://inkermankirov-a11y.github.io/Diagnostika_SS/?weather-prod='+Date.now(),{waitUntil:'commit',timeout:20000});
+  await page.waitForFunction(()=>window.DiagnostikaWeather?.state,null,{timeout:20000});
+  await page.waitForTimeout(10000);
+  const state=await page.evaluate(()=>({
+    weather:window.DiagnostikaWeather.state(),
+    main:document.querySelector('#headerWeatherBtn .hu-main')?.textContent||'',
+    sub:document.querySelector('#headerWeatherBtn .hu-sub')?.textContent||'',
+    title:document.querySelector('#headerWeatherBtn')?.title||'',
+    hasButton:Boolean(document.querySelector('#headerWeatherBtn')),
+    readyClass:document.documentElement.classList.contains('diagnostika-dashboard-ready')
+  }));
+  console.log('WEATHER_PROD_STATE',JSON.stringify(state));
+  console.log('WEATHER_PROD_FAILED',JSON.stringify(failed));
+  console.log('WEATHER_PROD_CONSOLE_ERRORS',JSON.stringify(consoleErrors));
+  await context.close();
+}
+
 await browser.close();
 console.log('WEATHER_21A_SUCCESS',JSON.stringify({
   modern:true,
