@@ -2,7 +2,7 @@ name: Site hardening audit
 
 on:
   push:
-    branches: [main, 'feature-site-hardening-*']
+    branches: [main, 'feature-site-hardening-*', 'feature-api-*']
     paths:
       - 'index.html'
       - 'dev-tools-loader.js'

@@ -51,7 +51,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23a';
+    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23b';
     serviceScript.setAttribute('data-clients-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -65,9 +65,6 @@
     script.setAttribute('data-roles-api','1');
     document.body.appendChild(script);
   }
-
-  ensureRolesFacade();
-  ensureClientsModule();
 
   function loadDashboard(){
     if(!document.querySelector('link[data-brand-icon]')){
@@ -130,7 +127,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/requests/request-service.js?v=20260918-requests3d';
+    serviceScript.src='modules/requests/request-service.js?v=20260918-requests3d&cleanup=23b';
     serviceScript.setAttribute('data-requests-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -576,27 +573,39 @@
       }
 
       const api=document.createElement('script');
-      api.src='request-api.js?v=20260918-requests3d&api=13d&cleanup=23a';
+      api.src='request-api.js?v=20260918-requests3d&api=13d&cleanup=23b';
       api.setAttribute('data-request-api','1');
       api.onload=loadDiagnosisApi;
       document.body.appendChild(api);
     });
   }
 
-  if(window.DiagnostikaClients?.select){
-    loadRequestApi();
-    return;
+  function startModuleChain(){
+    ensureRolesFacade();
+    ensureClientsModule();
+
+    if(window.DiagnostikaClients?.select){
+      loadRequestApi();
+      return;
+    }
+
+    const existing=document.querySelector('script[data-client-api]');
+    if(existing){
+      existing.addEventListener('load',loadRequestApi,{once:true});
+      return;
+    }
+
+    const api=document.createElement('script');
+    api.src='client-api.js?v=20260918-clients2b2&api=13d&pin=18a&cleanup=23b';
+    api.setAttribute('data-client-api','1');
+    api.onload=loadRequestApi;
+    document.body.appendChild(api);
   }
 
-  const existing=document.querySelector('script[data-client-api]');
-  if(existing){
-    existing.addEventListener('load',loadRequestApi,{once:true});
-    return;
-  }
-
-  const api=document.createElement('script');
-  api.src='client-api.js?v=20260918-clients2b2&api=13d&pin=18a&cleanup=23a';
-  api.setAttribute('data-client-api','1');
-  api.onload=loadRequestApi;
-  document.body.appendChild(api);
+  Promise.resolve(window.DiagnostikaPlatform?.ready)
+    .then(startModuleChain)
+    .catch(error=>{
+      console.error('[DiagnostikaPlatform] module chain failed to start',error);
+      window.dispatchEvent(new CustomEvent('diagnostika:runtime-error',{detail:{message:'module-chain-start-failed'}}));
+    });
 })();

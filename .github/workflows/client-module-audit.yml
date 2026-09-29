@@ -2,7 +2,7 @@ name: Client module audit
 
 on:
   push:
-    branches: [main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance, feature-requests-3a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
+    branches: [main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance, feature-requests-3a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
@@ -42,6 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           node --check modules/clients/client-service.js
+          node --check core/shell-bridge.js
           node --check modules/clients/index.js
           node --check client-api.js
           node --check client-card-window.js
@@ -63,7 +64,7 @@ jobs:
           node --check tests/client-acceptance-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
-          import sys
+          import sys,re
           service=Path('modules/clients/client-service.js').read_text(encoding='utf-8')
           module=Path('modules/clients/index.js').read_text(encoding='utf-8')
           api=Path('client-api.js').read_text(encoding='utf-8')
@@ -79,6 +80,12 @@ jobs:
           ai_settings=Path('ai-settings-button.js').read_text(encoding='utf-8')
           home_dashboard=Path('home-dashboard.js').read_text(encoding='utf-8')
           errors=[]
+          for token in ['typeof state','typeof clientId','typeof requestId','typeof situationId','typeof selected','typeof mode','save(','renderClient(','newClient(']:
+              if token in service: errors.append('ClientService bypasses shell/store bridge: '+token)
+          if re.search(r'(?<![\w.])(?:state|clientId|requestId|situationId|selected|mode)\s*=',service):
+              errors.append('ClientService directly assigns legacy navigation/state')
+          if 'platform.shell?.selectClient?.' not in service: errors.append('ClientService does not select through shell bridge')
+          if 'platform.store?.persist?.' not in service: errors.append('ClientService does not persist through store bridge')
           for token in ["created: 'client:created'","selected: 'client:selected'","updated: 'client:updated'","deleted: 'client:deleted'","restored: 'client:restored'"]:
               if token not in service: errors.append('service contract missing '+token)
           for token in ['function create(', 'function update(', 'function trashList(', 'function remove(', 'function restore(', 'function purge(', 'create,', 'update,', 'trashList,', 'remove,', 'restore,', 'purge']:
