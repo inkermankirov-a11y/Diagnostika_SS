@@ -242,7 +242,7 @@ function openSessionEditor(c,s,number){
   };
   actions.append(cancel,saveBtn);
   wrap.append(h,grid,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
-  dlg.addEventListener('close',()=>dlg.remove(),{once:true});
+  dlg.addEventListener('close',()=>dlg.remove());
   dlg.showModal();
   document.dispatchEvent(new CustomEvent('diagnostika:session-editor-opened',{
     detail:{client:c,session:s,number,dialog:dlg}
