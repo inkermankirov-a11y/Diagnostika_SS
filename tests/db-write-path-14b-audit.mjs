@@ -14,7 +14,7 @@ assert(storeSource.includes('function persist(options = {})'),'Store DB persiste
 assert(storeSource.includes('db?.writeState'),'Store does not persist through DB adapter');
 assert(appSource.includes("source:options.source||'app-save'"),'app.js DB write source missing');
 assert(appSource.includes('db?.writeState'),'app.js does not prefer DB adapter');
-assert(clientSource.includes("platform.store?.legacySave?.({ source: 'client-service-persist' })"),'ClientService bypasses store persistence');
+assert(clientSource.includes("platform.store?.persist?.({ source: 'client-service-persist' })"),'ClientService bypasses store persistence');
 assert(/core\/database\.js\?v=20260919-db14[b-z]/.test(bootstrapSource),'DB 14B+ CORE marker missing');
 assert(/core\/store-bridge\.js\?v=20260919-db14[b-z]/.test(bootstrapSource),'DB 14B+ store marker missing');
 
