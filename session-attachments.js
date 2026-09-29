@@ -2,8 +2,11 @@
 
 function filesApi(){
   const facade=window.DiagnostikaFiles;
-  if(facade?.moduleAware===true)return facade;
-  return window.DiagnostikaPlatform?.services?.files||null;
+  return facade?.moduleAware===true?facade:null;
+}
+
+function sessionToday(){
+  return new Date().toISOString().slice(0,10);
 }
 
 // Compatibility wrappers for older storage code. Persistence ownership lives in FileService.
@@ -158,7 +161,7 @@ function openSessionEditor(c,s,number){
   const wrap=document.createElement('div');wrap.className='session-edit-card';
   const h=document.createElement('div');h.className='session-edit-title';h.textContent=`Сессия №${number}`;
   const grid=document.createElement('div');grid.className='session-edit-grid';
-  const dateInput=document.createElement('input');dateInput.type='date';dateInput.value=s.date||today();
+  const dateInput=document.createElement('input');dateInput.type='date';dateInput.value=s.date||sessionToday();
   const link=document.createElement('select');link.innerHTML='<option value="">— Без связи —</option>';
   c.requests.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.title||'Без названия';link.appendChild(o);});
   link.value=s.requestId||'';
@@ -213,15 +216,13 @@ function openSessionEditor(c,s,number){
     const youtube=normalizeYoutubeUrl(youtubeInput.value);
     if(youtube===null) return alert('Проверь ссылку: сейчас принимаются ссылки YouTube и youtu.be.');
 
-    const api=window.DiagnostikaSessions?.moduleAware===true
-      ? window.DiagnostikaSessions
-      : window.DiagnostikaPlatform?.services?.sessions||null;
+    const api=window.DiagnostikaSessions?.moduleAware===true?window.DiagnostikaSessions:null;
     if(!api?.update)return alert('Модуль сессий ещё загружается.');
 
     const formatSelect=dlg.querySelector('.session-format-select');
     const formatOther=dlg.querySelector('.session-format-other');
     const changes={
-      date:dateInput.value||today(),
+      date:dateInput.value||sessionToday(),
       requestId:link.value,
       notes:ta.value,
       youtubeUrl:youtube
@@ -241,5 +242,9 @@ function openSessionEditor(c,s,number){
   };
   actions.append(cancel,saveBtn);
   wrap.append(h,grid,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
-  dlg.addEventListener('close',()=>dlg.remove(),{once:true});dlg.showModal();
+  dlg.addEventListener('close',()=>dlg.remove(),{once:true});
+  dlg.showModal();
+  document.dispatchEvent(new CustomEvent('diagnostika:session-editor-opened',{
+    detail:{client:c,session:s,number,dialog:dlg}
+  }));
 }
