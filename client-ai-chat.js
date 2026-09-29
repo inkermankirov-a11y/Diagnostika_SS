@@ -13,6 +13,10 @@
   let initAttempts=0;
 
   function currentClient(){
+    try{
+      const viaApi=window.DiagnostikaClients?.current?.();
+      if(viaApi)return viaApi;
+    }catch(_){}
     try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
   }
   function persist(source='client-notes'){try{if(typeof save==='function')return save({source})!==false;}catch(err){console.warn('Client data save failed',err);}return false;}
@@ -227,9 +231,9 @@
     const hd=window.DiagnostikaHomeDashboard;
     if(hd?.refresh&&!hd.refresh.__clientWidgetsWrapped){const prev=hd.refresh;const wrapped=function(){const out=prev.apply(this,arguments);setTimeout(refresh,0);return out;};wrapped.__clientWidgetsWrapped=true;hd.refresh=wrapped;}
   }
-  let aiEventsHooked=false;
-  function hookAIEvents(){
-    if(aiEventsHooked)return true;
+  let platformEventsHooked=false;
+  function hookPlatformEvents(){
+    if(platformEventsHooked)return true;
     const events=window.DiagnostikaPlatform?.events;
     if(!events?.on)return false;
     events.on('ai-client-chat:updated',detail=>{
@@ -237,13 +241,16 @@
       if(!c||String(detail?.clientId)!==String(c.id))return;
       setTimeout(refresh,0);
     });
-    aiEventsHooked=true;
+    for(const type of ['client:selected','client:updated','client:created','client:restored','client:deleted']){
+      events.on(type,()=>setTimeout(refresh,0));
+    }
+    platformEventsHooked=true;
     return true;
   }
   function init(){
     const b=buildWidget()||!!widget;
     hookDashboard();
-    const e=hookAIEvents();
+    const e=hookPlatformEvents();
     refresh();
     if(b&&e)return;
     initAttempts++;
