@@ -18,7 +18,8 @@
     if(!c||!s||s.requestId)return;
     const active=currentActiveRequest(c);
     if(!active)return;
-    const updated=sessionsApi()?.update?.(s.id,{requestId:active.id},{
+    const api=sessionsApi();
+    const updated=api?.update?.(s.id,{requestId:active.id},{
       client:c,
       source:'session-active-request',
       render:false
