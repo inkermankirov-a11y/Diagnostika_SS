@@ -22,10 +22,10 @@ on:
       - 'payment-consistency-core.js'
       - 'payment-save-guard.js'
       - 'home-dashboard-sessions.js'
-      - 'session-attachments.js'
-      - 'session-interactions.js'
-      - 'session-active-request.js'
-      - 'session-format.js'
+      - 'modules/sessions/ui/editor.js'
+      - 'modules/sessions/ui/interactions.js'
+      - 'modules/sessions/ui/active-request.js'
+      - 'modules/sessions/ui/format.js'
       - '.github/workflows/session-module-audit.yml'
   workflow_dispatch:
 
@@ -56,10 +56,10 @@ jobs:
           node --check payment-consistency-core.js
           node --check payment-save-guard.js
           node --check home-dashboard-sessions.js
-          node --check session-attachments.js
-          node --check session-interactions.js
-          node --check session-active-request.js
-          node --check session-format.js
+          node --check modules/sessions/ui/editor.js
+          node --check modules/sessions/ui/interactions.js
+          node --check modules/sessions/ui/active-request.js
+          node --check modules/sessions/ui/format.js
           python3 - <<'PY'
           from pathlib import Path
           import sys,re
@@ -70,10 +70,10 @@ jobs:
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           index=Path('index.html').read_text(encoding='utf-8')
           dashboard=Path('home-dashboard-sessions.js').read_text(encoding='utf-8')
-          editor=Path('session-attachments.js').read_text(encoding='utf-8')
-          interactions=Path('session-interactions.js').read_text(encoding='utf-8')
-          active=Path('session-active-request.js').read_text(encoding='utf-8')
-          format_ui=Path('session-format.js').read_text(encoding='utf-8')
+          editor=Path('modules/sessions/ui/editor.js').read_text(encoding='utf-8')
+          interactions=Path('modules/sessions/ui/interactions.js').read_text(encoding='utf-8')
+          active=Path('modules/sessions/ui/active-request.js').read_text(encoding='utf-8')
+          format_ui=Path('modules/sessions/ui/format.js').read_text(encoding='utf-8')
           legacy=Path('core/legacy-event-bridge.js').read_text(encoding='utf-8')
           test_data=Path('test-data.js').read_text(encoding='utf-8')
           payment_paths=[
