@@ -19,31 +19,16 @@
   const PIN_LIMIT = 10;
 
   function list() {
-    try {
-      const clients = platform.store?.clients?.();
-      if (Array.isArray(clients)) return clients;
-    } catch (_) {}
-    try {
-      return typeof state !== 'undefined' && Array.isArray(state?.clients) ? state.clients : [];
-    } catch (_) {
-      return [];
-    }
+    const clients = platform.store?.clients?.();
+    return Array.isArray(clients) ? clients : [];
   }
 
   function currentId() {
-    try {
-      return typeof clientId !== 'undefined' ? clientId : null;
-    } catch (_) {
-      return null;
-    }
+    return platform.shell?.currentClientId?.() ?? null;
   }
 
   function stateRef() {
-    try {
-      return typeof state !== 'undefined' && state && typeof state === 'object' ? state : null;
-    } catch (_) {
-      return null;
-    }
+    return platform.store?.state?.() || null;
   }
 
   function pinnedIds() {
@@ -179,13 +164,7 @@
   }
 
   function current() {
-    const byId = findById(currentId());
-    if (byId) return byId;
-    try {
-      return typeof client === 'function' ? client() : null;
-    } catch (_) {
-      return null;
-    }
+    return findById(currentId());
   }
 
   function emit(type, detail = {}) {
@@ -199,31 +178,15 @@
 
   function persist() {
     try {
-      if (platform.store?.legacySave?.({ source: 'client-service-persist' })) return true;
-    } catch (error) {
-      console.error('[DiagnostikaPlatform] client store persistence failed', error);
-      return false;
-    }
-
-    try {
-      if (typeof save === 'function') return save({
-        forceLegacy: true,
-        source: 'client-service-legacy-fallback'
-      }) !== false;
+      return platform.store?.persist?.({ source: 'client-service-persist' }) === true;
     } catch (error) {
       console.error('[DiagnostikaPlatform] client persistence failed', error);
+      return false;
     }
-    return false;
   }
 
   function render() {
-    try {
-      if (typeof renderClient === 'function') renderClient();
-      return true;
-    } catch (error) {
-      console.error('[DiagnostikaPlatform] client render failed', error);
-      return false;
-    }
+    return platform.shell?.renderClient?.() === true;
   }
 
   function clone(value) {
@@ -239,25 +202,19 @@
   }
 
   function freshClient(data = {}) {
-    let base = null;
-    try {
-      if (typeof newClient === 'function') base = newClient();
-    } catch (_) {}
-    if (!base) {
-      base = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2),
-        name: 'Новый клиент',
-        city: '',
-        age: '',
-        birth: '',
-        photoData: '',
-        vk: '',
-        telegram: '',
-        max: '',
-        sessions: [],
-        requests: []
-      };
-    }
+    const base = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2),
+      name: 'Новый клиент',
+      city: '',
+      age: '',
+      birth: '',
+      photoData: '',
+      vk: '',
+      telegram: '',
+      max: '',
+      sessions: [],
+      requests: []
+    };
 
     const incoming = clone(data) || {};
     const created = { ...base, ...incoming };
@@ -273,16 +230,12 @@
     if (!target) return false;
 
     const previousClientId = currentId();
-    try {
-      clientId = target.id;
-      const requests = Array.isArray(target.requests) ? target.requests : [];
-      const preferredRequestId = target.currentRequestId ?? target.lastDiagnosisRequestId ?? null;
-      const preferredExists = preferredRequestId != null && requests.some(item => item && String(item.id) === String(preferredRequestId));
-      requestId = preferredExists ? preferredRequestId : (requests[0]?.id ?? null);
-      situationId = null;
-      selected = null;
-    } catch (error) {
-      console.error('[DiagnostikaPlatform] client selection failed', error);
+    const requests = Array.isArray(target.requests) ? target.requests : [];
+    const preferredRequestId = target.currentRequestId ?? target.lastDiagnosisRequestId ?? null;
+    const preferredExists = preferredRequestId != null && requests.some(item => item && String(item.id) === String(preferredRequestId));
+    const nextRequestId = preferredExists ? preferredRequestId : (requests[0]?.id ?? null);
+    if (platform.shell?.selectClient?.(target.id, { requestId: nextRequestId }) !== true) {
+      console.error('[DiagnostikaPlatform] client selection failed');
       return false;
     }
 
@@ -372,17 +325,7 @@
     const deletedBefore = clone(trash.deletedClients) || [];
     const tombstonesBefore = [...trash.tombstones];
     const previousClientId = currentId();
-    let previousRequestId = null;
-    let previousSituationId = null;
-    let previousSelected = null;
-    let previousMode = null;
-
-    try {
-      previousRequestId = typeof requestId !== 'undefined' ? requestId : null;
-      previousSituationId = typeof situationId !== 'undefined' ? situationId : null;
-      previousSelected = typeof selected !== 'undefined' ? selected : null;
-      previousMode = typeof mode !== 'undefined' ? mode : null;
-    } catch (_) {}
+    const previousNavigation = platform.shell?.navigationSnapshot?.() || null;
 
     const target = clients[index];
     const archived = clone(target) || {};
@@ -399,38 +342,23 @@
     if (!clients.length) {
       const replacement = freshClient();
       clients.push(replacement);
-      try { clientId = replacement.id; } catch (_) {}
+      if (platform.shell?.selectClient?.(replacement.id, { requestId: null, mode: 'card' }) !== true) return null;
       replacementCreated = true;
       selectionChanged = String(previousClientId ?? '') !== String(replacement.id);
     } else {
       const currentStillExists = clients.some(item => item && String(item.id) === String(previousClientId));
       if (!currentStillExists) {
         const replacement = clients[Math.min(index, clients.length - 1)];
-        try { clientId = replacement?.id ?? null; } catch (_) {}
+        if (platform.shell?.selectClient?.(replacement?.id ?? null, { requestId: null, mode: 'card' }) !== true) return null;
         selectionChanged = String(previousClientId ?? '') !== String(replacement?.id ?? '');
       }
-    }
-
-    if (selectionChanged) {
-      try {
-        requestId = null;
-        situationId = null;
-        selected = null;
-        mode = 'card';
-      } catch (_) {}
     }
 
     if (!persist()) {
       clients.splice(0, clients.length, ...activeBefore);
       trash.root.deletedClients = deletedBefore;
       trash.root.deletedClientTombstones = tombstonesBefore;
-      try {
-        clientId = previousClientId;
-        requestId = previousRequestId;
-        situationId = previousSituationId;
-        selected = previousSelected;
-        mode = previousMode;
-      } catch (_) {}
+      platform.shell?.restoreNavigation?.(previousNavigation);
       return null;
     }
 
