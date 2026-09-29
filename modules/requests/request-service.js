@@ -505,4 +505,14 @@
     requestNumber,
     refresh
   });
+
+  // On reload, restore the legacy view pointer from the canonical active request.
+  // This replaces the old request-api renderClient monkey-patch.
+  try{
+    const c=resolveClient();
+    const activeRequest=active(c);
+    if(c&&activeRequest&&String(viewedId(c)??'')!==String(activeRequest.id)){
+      setLegacyView(activeRequest.id);
+    }
+  }catch(_){}
 })();
