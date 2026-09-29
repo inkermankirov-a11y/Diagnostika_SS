@@ -226,3 +226,5 @@ console.log('WEATHER_21A_SUCCESS',JSON.stringify({
   cachedFallback:true,
   explicitFailure:true
 }));
+
+// rerun production weather diagnostic after WEATHER 21B deploy
