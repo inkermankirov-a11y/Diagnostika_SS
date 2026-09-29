@@ -22,6 +22,12 @@ assert(observerGuard.includes('sharedSubscribers'),'Observer sharing stats missi
 assert(mobileCss.includes('@media (max-width: 960px)'),'Tablet hardening CSS missing');
 assert(!/push:[\s\S]{0,180}?paths:/m.test(releaseWorkflow),'Production smoke is still path-filtered');
 assert(releaseWorkflow.includes('Wait for this commit to reach GitHub Pages'),'Production smoke does not wait for same-SHA deployment');
+const staticExternalScripts=[...index.matchAll(/<script\\b[^>]*\\bsrc=["'][^"']+["'][^>]*>/g)].map(match=>match[0]);
+const blockingStaticScripts=staticExternalScripts.filter(tag=>!(/\\bdefer\\b/.test(tag)));
+assert.deepEqual(blockingStaticScripts,[],'Blocking static scripts reintroduced: '+blockingStaticScripts.slice(0,5).join(' | '));
+assert(index.includes('startup-performance-22a'),'Startup performance marker missing');
+assert(index.includes('rel="prefetch" href="core/runtime-contract.js?v=20260919-final15a&hardening=19a"'),'Runtime prefetch missing');
+assert(index.includes('rel="prefetch" href="home-dashboard.js?v=20260918-clients2d&pin=18a"'),'Dashboard prefetch missing');
 
 const fixture={
   version:4,

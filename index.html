@@ -15,6 +15,21 @@
     #appStartupStatus{margin:24px auto;padding:24px;max-width:640px;background:#fff;border:1px solid #d7dbe0;border-radius:12px}
   </style>
   <script src="app-startup.js?v=20260921-hardening19a" defer></script>
+  <!-- startup-performance-22a: warm dynamic startup resources without changing execution order -->
+  <link rel="prefetch" href="modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a" as="script">
+  <link rel="prefetch" href="modules/clients/index.js?v=20260918-clients2b2" as="script">
+  <link rel="prefetch" href="client-api.js?v=20260918-clients2b2&api=13d&pin=18a" as="script">
+  <link rel="prefetch" href="modules/requests/request-service.js?v=20260918-requests3d" as="script">
+  <link rel="prefetch" href="modules/requests/index.js?v=20260918-requests3d" as="script">
+  <link rel="prefetch" href="request-api.js?v=20260918-requests3d&api=13d" as="script">
+  <link rel="prefetch" href="modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c" as="script">
+  <link rel="prefetch" href="modules/diagnosis/index.js?v=20260919-diagnosis7c" as="script">
+  <link rel="prefetch" href="modules/sessions/session-service.js?v=20260918-sessions4c" as="script">
+  <link rel="prefetch" href="modules/sessions/index.js?v=20260918-sessions4c" as="script">
+  <link rel="prefetch" href="core/runtime-contract.js?v=20260919-final15a&hardening=19a" as="script">
+  <link rel="prefetch" href="home-dashboard.css?v=20260916-newui1&pin=18a" as="style">
+  <link rel="prefetch" href="home-dashboard.js?v=20260918-clients2d&pin=18a" as="script">
+  <link rel="prefetch" href="home-dashboard-sessions.js?v=20260918-sessions4c" as="script">
   <link rel="stylesheet" href="styles.css?v=20260916-newui1">
   <link rel="stylesheet" href="ui-fixes.css?v=20260911-8">
   <link rel="stylesheet" href="session-attachments.css?v=20260917-payjitter2">
@@ -72,88 +87,88 @@
   </main>
 </div>
 <dialog id="clientDialog" class="client-dialog"><form method="dialog" class="dialog-card"><div class="dialog-title">БАЗА КЛИЕНТОВ</div><div id="clientDatabaseList" class="client-database-list"></div><div class="dialog-actions"><button id="dialogAddClientBtn" type="button" class="tk-btn">+ Новый клиент</button><button value="cancel" class="tk-btn">Закрыть</button></div></form></dialog>
-<script src="i18n-observer-guard.js?v=20260921-hardening19a"></script>
-<script src="core/database.js?v=20260919-db14d" data-diagnostika-core-part="db"></script>
-<script src="app.js?v=20260919-export10d&db=14d"></script>
-<script src="core/bootstrap.js?v=20260919-db14d&api=13d"></script>
-<script src="delete-client.js?v=20260918-clients2b2"></script>
-<script src="dev-tools-loader.js?v=20260921-hardening19a"></script>
-<script src="diagnosis-navigation.js?v=20260918-requests3c"></script>
-<script src="ui-fixes.js?v=20260918-clients2c1"></script>
-<script src="client-card-window.js?v=20260918-clients2b1"></script>
-<script src="request-ai-n8n.js?v=20260913-122"></script>
-<script src="free-consultation-request-builder.js?v=20260918-requests3c"></script>
-<script src="free-consultation-v2.js?v=20260919-diagnosis7b"></script>
-<script src="free-consultation-client-card-sync.js?v=20260918-clients2c2"></script>
-<script src="ai-settings-button.js?v=20260918-ai6a"></script>
-<script src="ai-processing-indicator.js?v=20260914-audit1"></script>
-<script src="stability-fixes.js?v=20260916-audit1"></script>
-<script src="questionnaire-compact-lock.js?v=20260914-1"></script>
-<script src="session-attachments.js?v=20260919-files9d"></script>
-<script src="last-client.js?v=20260918-clients2c1"></script>
-<script src="app-dialogs.js?v=20260911-8"></script>
-<script src="storage-manager.js?v=20260919-files9d&db=14d"></script>
-<script src="google-drive-lazy-loader.js?v=20260914-3&db=14d"></script>
-<script src="help-tooltips.js?v=20260911-8"></script>
-<script src="session-format.js?v=20260918-sessions4b"></script>
-<script src="client-db-enhancements.js?v=20260918-clients2b2"></script>
-<script src="client-trash.js?v=20260918-clients2b2"></script>
-<script src="modal-and-history-fixes.js?v=20260914-repair1"></script>
-<script src="session-interactions.js?v=20260918-sessions4b"></script>
-<script src="export-txt-classic.js?v=20260919-export10d"></script>
-<script src="situation-create.js?v=20260919-diagnosis7b"></script>
-<script src="diagnosis-add-focus.js?v=20260919-diagnosis7c"></script>
-<script src="belief-hints.js?v=20260911-8"></script>
-<script src="belief-hints-layout-fix.js?v=20260911-8"></script>
-<script src="secondary-feeling-hints.js?v=20260919-diagnosis7c"></script>
-<script src="feeling-tooltip-fix.js?v=20260911-8"></script>
-<script src="feeling-collapse.js?v=20260919-diagnosis7c"></script>
-<script src="deep-belief-hints.js?v=20260911-8"></script>
-<script src="dynamic-save-labels.js?v=20260911-8"></script>
-<script src="i18n.js?v=20260911-8"></script>
-<script src="language-flags-fix.js?v=20260911-8"></script>
-<script src="secondary-feelings-i18n.js?v=20260911-8"></script>
-<script src="beliefs-i18n.js?v=20260911-8"></script>
-<script src="settings-menu.js?v=20260916-audit1"></script>
-<script src="account-settings.js?v=20260914-safe1"></script>
-<script src="about-program.js?v=20260912-19"></script>
-<script src="header-utilities.js?v=20260929-weather21a"></script>
-<script src="header-currency-display.js?v=20260914-audit1"></script>
-<script src="currency-tools-fix.js?v=20260914-clean1"></script>
-<script src="currency-safe-style.js?v=20260912-25"></script>
-<script src="quick-notes.js?v=20260920-notes17a1"></script>
-<script src="client-ai-chat.js?v=20260920-notes17a1&ai=6d"></script>
-<script src="client-ai-full-context.js?v=20260919-ai6d"></script>
-<script src="client-transfer.js?v=20260929-specialists20b"></script>
-<script src="request-select-labels.js?v=20260918-requests3c"></script>
-<script src="diagnosis-api.js?v=20260919-diagnosis7d&api=13d"></script>
-<script src="payment-system.js?v=20260918-payment5d"></script>
-<script src="payment-status-semantic-rule.js?v=20260917-paystatus1"></script>
-<script src="dialog-backdrop-close.js?v=20260911-8"></script>
-<script src="session-active-request.js?v=20260918-sessions4b"></script>
-<script src="request-date-unsaved.js?v=20260918-requests3b"></script>
-<script src="session-payment-status.js?v=20260918-payment5d"></script>
-<script src="payment-enhancements.js?v=20260918-payment5d"></script>
-<script src="payment-session-fix.js?v=20260918-payment5d"></script>
-<script src="session-payment-editor.js?v=20260918-payment5d"></script>
-<script src="session-payment-motion-lock.js?v=20260917-payjitter3"></script>
-<script src="session-ledger-current-request.js?v=20260917-ledgerrestore1"></script>
-<script src="diagnosis-compact-client.js?v=20260918-requests3c"></script>
-<script src="request-title-display.js?v=20260918-requests3b"></script>
-<script src="payment-save-guard.js?v=20260918-payment5d"></script>
-<script src="session-payment-ui-sync.js?v=20260918-payment5d"></script>
-<script src="client-payment-flag-rule.js?v=20260917-retire1"></script>
-<script src="client-list-cleanup.js?v=20260917-retire1"></script>
-<script src="session-payment-button-authority.js?v=20260918-payment5d"></script>
-<script src="payment-consistency-core.js?v=20260918-payment5d"></script>
-<script src="payment-total-input-stability.js?v=20260918-payment5d"></script>
-<script src="currency-calculator-direct.js?v=20260913-101"></script>
-<script src="calculator-digit-grouping.js?v=20260913-102"></script>
-<script src="client-calendar.js?v=20260919-calendar8d"></script>
-<script src="calendar-session-planning.js?v=20260919-calendar8c"></script>
-<script src="calendar-google-link.js?v=20260919-calendar8d"></script>
-<script src="session-ai-chat.js?v=20260919-ai6d"></script>
-<script src="app-loader.js?v=20260919-db14d&api=13d&final=15a&hardening=19a"></script>
+<script defer src="i18n-observer-guard.js?v=20260921-hardening19a"></script>
+<script defer src="core/database.js?v=20260919-db14d" data-diagnostika-core-part="db"></script>
+<script defer src="app.js?v=20260919-export10d&db=14d"></script>
+<script defer src="core/bootstrap.js?v=20260919-db14d&api=13d"></script>
+<script defer src="delete-client.js?v=20260918-clients2b2"></script>
+<script defer src="dev-tools-loader.js?v=20260921-hardening19a"></script>
+<script defer src="diagnosis-navigation.js?v=20260918-requests3c"></script>
+<script defer src="ui-fixes.js?v=20260918-clients2c1"></script>
+<script defer src="client-card-window.js?v=20260918-clients2b1"></script>
+<script defer src="request-ai-n8n.js?v=20260913-122"></script>
+<script defer src="free-consultation-request-builder.js?v=20260918-requests3c"></script>
+<script defer src="free-consultation-v2.js?v=20260919-diagnosis7b"></script>
+<script defer src="free-consultation-client-card-sync.js?v=20260918-clients2c2"></script>
+<script defer src="ai-settings-button.js?v=20260918-ai6a"></script>
+<script defer src="ai-processing-indicator.js?v=20260914-audit1"></script>
+<script defer src="stability-fixes.js?v=20260916-audit1"></script>
+<script defer src="questionnaire-compact-lock.js?v=20260914-1"></script>
+<script defer src="session-attachments.js?v=20260919-files9d"></script>
+<script defer src="last-client.js?v=20260918-clients2c1"></script>
+<script defer src="app-dialogs.js?v=20260911-8"></script>
+<script defer src="storage-manager.js?v=20260919-files9d&db=14d"></script>
+<script defer src="google-drive-lazy-loader.js?v=20260914-3&db=14d"></script>
+<script defer src="help-tooltips.js?v=20260911-8"></script>
+<script defer src="session-format.js?v=20260918-sessions4b"></script>
+<script defer src="client-db-enhancements.js?v=20260918-clients2b2"></script>
+<script defer src="client-trash.js?v=20260918-clients2b2"></script>
+<script defer src="modal-and-history-fixes.js?v=20260914-repair1"></script>
+<script defer src="session-interactions.js?v=20260918-sessions4b"></script>
+<script defer src="export-txt-classic.js?v=20260919-export10d"></script>
+<script defer src="situation-create.js?v=20260919-diagnosis7b"></script>
+<script defer src="diagnosis-add-focus.js?v=20260919-diagnosis7c"></script>
+<script defer src="belief-hints.js?v=20260911-8"></script>
+<script defer src="belief-hints-layout-fix.js?v=20260911-8"></script>
+<script defer src="secondary-feeling-hints.js?v=20260919-diagnosis7c"></script>
+<script defer src="feeling-tooltip-fix.js?v=20260911-8"></script>
+<script defer src="feeling-collapse.js?v=20260919-diagnosis7c"></script>
+<script defer src="deep-belief-hints.js?v=20260911-8"></script>
+<script defer src="dynamic-save-labels.js?v=20260911-8"></script>
+<script defer src="i18n.js?v=20260911-8"></script>
+<script defer src="language-flags-fix.js?v=20260911-8"></script>
+<script defer src="secondary-feelings-i18n.js?v=20260911-8"></script>
+<script defer src="beliefs-i18n.js?v=20260911-8"></script>
+<script defer src="settings-menu.js?v=20260916-audit1"></script>
+<script defer src="account-settings.js?v=20260914-safe1"></script>
+<script defer src="about-program.js?v=20260912-19"></script>
+<script defer src="header-utilities.js?v=20260929-weather21a"></script>
+<script defer src="header-currency-display.js?v=20260914-audit1"></script>
+<script defer src="currency-tools-fix.js?v=20260914-clean1"></script>
+<script defer src="currency-safe-style.js?v=20260912-25"></script>
+<script defer src="quick-notes.js?v=20260920-notes17a1"></script>
+<script defer src="client-ai-chat.js?v=20260920-notes17a1&ai=6d"></script>
+<script defer src="client-ai-full-context.js?v=20260919-ai6d"></script>
+<script defer src="client-transfer.js?v=20260929-specialists20b"></script>
+<script defer src="request-select-labels.js?v=20260918-requests3c"></script>
+<script defer src="diagnosis-api.js?v=20260919-diagnosis7d&api=13d"></script>
+<script defer src="payment-system.js?v=20260918-payment5d"></script>
+<script defer src="payment-status-semantic-rule.js?v=20260917-paystatus1"></script>
+<script defer src="dialog-backdrop-close.js?v=20260911-8"></script>
+<script defer src="session-active-request.js?v=20260918-sessions4b"></script>
+<script defer src="request-date-unsaved.js?v=20260918-requests3b"></script>
+<script defer src="session-payment-status.js?v=20260918-payment5d"></script>
+<script defer src="payment-enhancements.js?v=20260918-payment5d"></script>
+<script defer src="payment-session-fix.js?v=20260918-payment5d"></script>
+<script defer src="session-payment-editor.js?v=20260918-payment5d"></script>
+<script defer src="session-payment-motion-lock.js?v=20260917-payjitter3"></script>
+<script defer src="session-ledger-current-request.js?v=20260917-ledgerrestore1"></script>
+<script defer src="diagnosis-compact-client.js?v=20260918-requests3c"></script>
+<script defer src="request-title-display.js?v=20260918-requests3b"></script>
+<script defer src="payment-save-guard.js?v=20260918-payment5d"></script>
+<script defer src="session-payment-ui-sync.js?v=20260918-payment5d"></script>
+<script defer src="client-payment-flag-rule.js?v=20260917-retire1"></script>
+<script defer src="client-list-cleanup.js?v=20260917-retire1"></script>
+<script defer src="session-payment-button-authority.js?v=20260918-payment5d"></script>
+<script defer src="payment-consistency-core.js?v=20260918-payment5d"></script>
+<script defer src="payment-total-input-stability.js?v=20260918-payment5d"></script>
+<script defer src="currency-calculator-direct.js?v=20260913-101"></script>
+<script defer src="calculator-digit-grouping.js?v=20260913-102"></script>
+<script defer src="client-calendar.js?v=20260919-calendar8d"></script>
+<script defer src="calendar-session-planning.js?v=20260919-calendar8c"></script>
+<script defer src="calendar-google-link.js?v=20260919-calendar8d"></script>
+<script defer src="session-ai-chat.js?v=20260919-ai6d"></script>
+<script defer src="app-loader.js?v=20260919-db14d&api=13d&final=15a&hardening=19a"></script>
 <!-- sessions4c-ci-trigger-final7 -->
 <!-- ai6c-ci-trigger-final -->
 <!-- ai6d-ci-trigger-final -->
