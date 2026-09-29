@@ -129,3 +129,5 @@ console.log('DB_14B_SUCCESS',JSON.stringify({
 
 await context.close();
 await browser.close();
+
+// stage1 validation trigger
