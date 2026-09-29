@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 const serviceSource=fs.readFileSync('modules/files/file-service.js','utf8');
 const apiSource=fs.readFileSync('files-api.js','utf8');
-const uiSource=fs.readFileSync('session-attachments.js','utf8');
+const uiSource=fs.readFileSync('modules/sessions/ui/editor.js','utf8');
 const storageSource=fs.readFileSync('storage-manager.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
@@ -22,7 +22,7 @@ for(const marker of [
   'files-api.js?v=20260919-files9d'
 ])assert(loaderSource.includes(marker),'Files 9D loader marker missing '+marker);
 for(const marker of [
-  'session-attachments.js?v=20260919-files9d',
+  'modules/sessions/ui/editor.js?v=20260929-modular24a',
   'storage-manager.js?v=20260919-files9d'
 ])assert(indexSource.includes(marker),'Files 9D runtime marker missing '+marker);
 const filesBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
