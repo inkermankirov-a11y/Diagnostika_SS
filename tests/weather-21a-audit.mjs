@@ -154,3 +154,38 @@ console.log('WEATHER_21A_SUCCESS',JSON.stringify({
   cachedFallback:true,
   explicitFailure:true
 }));
+
+
+// Live provider diagnostic: do not mock Open-Meteo.
+{
+  const context=await browser.newContext({viewport:{width:1440,height:1000}});
+  await context.addInitScript(()=>{
+    localStorage.setItem('diagnostika-ui-language','ru');
+    localStorage.setItem('diagnostika-weather-mode','city');
+    localStorage.setItem('diagnostika-weather-city',JSON.stringify({name:'Киров',latitude:58.6036,longitude:49.6680}));
+    localStorage.removeItem('diagnostika-weather-cache-v2');
+  });
+  const page=await context.newPage();
+  const consoleErrors=[];
+  const failed=[];
+  page.on('console',m=>{ if(m.type()==='error') consoleErrors.push(m.text()); });
+  page.on('requestfailed',req=>failed.push({url:req.url(),failure:req.failure()?.errorText||''}));
+  page.on('response',res=>{
+    if(res.url().includes('open-meteo')||res.url().includes('bigdatacloud')){
+      console.log('WEATHER_LIVE_RESPONSE',res.status(),res.url());
+    }
+  });
+  await page.goto('http://127.0.0.1:8000/index.html?weather-live='+Date.now(),{waitUntil:'commit',timeout:15000});
+  await page.waitForFunction(()=>window.DiagnostikaWeather?.state,null,{timeout:15000});
+  await page.waitForTimeout(10000);
+  const state=await page.evaluate(()=>({
+    weather:window.DiagnostikaWeather.state(),
+    main:document.querySelector('#headerWeatherBtn .hu-main')?.textContent||'',
+    sub:document.querySelector('#headerWeatherBtn .hu-sub')?.textContent||'',
+    title:document.querySelector('#headerWeatherBtn')?.title||''
+  }));
+  console.log('WEATHER_LIVE_STATE',JSON.stringify(state));
+  console.log('WEATHER_LIVE_FAILED',JSON.stringify(failed));
+  console.log('WEATHER_LIVE_CONSOLE_ERRORS',JSON.stringify(consoleErrors));
+  await context.close();
+}
