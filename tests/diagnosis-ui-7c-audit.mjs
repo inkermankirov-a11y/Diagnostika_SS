@@ -48,8 +48,8 @@ assert.equal(appSource.includes('arr.push(newInstinct())'),false,'renderEditor s
 assert(/app\.js\?v=20260919-(?:diagnosis7c|export10[a-d])/.test(indexSource),'Diagnosis 7C app.js cache marker missing');
 for(const token of [
   'modules/diagnosis/ui/add-focus.js?v=20260929-modular24a',
-  'modules/diagnosis/ui/modules/diagnosis/ui/secondary-feeling-hints.js?v=20260929-modular24a',
-  'modules/diagnosis/ui/modules/diagnosis/ui/feeling-collapse.js?v=20260929-modular24a',
+  'modules/diagnosis/ui/secondary-feeling-hints.js?v=20260929-modular24a',
+  'modules/diagnosis/ui/feeling-collapse.js?v=20260929-modular24a',
   'diagnosis-api.js?v=20260919-diagnosis7d'
 ])assert(indexSource.includes(token),'Diagnosis 7C cache marker missing '+token);
 
