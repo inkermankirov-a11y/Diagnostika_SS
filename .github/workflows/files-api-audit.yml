@@ -6,7 +6,7 @@ on:
     paths:
       - 'modules/files/**'
       - 'files-api.js'
-      - 'session-attachments.js'
+      - 'modules/sessions/ui/editor.js'
       - 'storage-manager.js'
       - 'app-loader.js'
       - 'index.html'
@@ -29,7 +29,7 @@ jobs:
           node --check modules/files/index.js
           node --check files-api.js
           node --check app-loader.js
-          node --check session-attachments.js
+          node --check modules/sessions/ui/editor.js
           node --check storage-manager.js
           node --check tests/files-module-9a-audit.mjs
           node --check tests/files-ui-9b-audit.mjs
@@ -42,7 +42,7 @@ jobs:
           module=Path('modules/files/index.js').read_text(encoding='utf-8')
           api=Path('files-api.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
-          ui=Path('session-attachments.js').read_text(encoding='utf-8')
+          ui=Path('modules/sessions/ui/editor.js').read_text(encoding='utf-8')
           storage=Path('storage-manager.js').read_text(encoding='utf-8')
           errors=[]
 

@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const uiSource=fs.readFileSync('session-attachments.js','utf8');
+const uiSource=fs.readFileSync('modules/sessions/ui/editor.js','utf8');
 const storageSource=fs.readFileSync('storage-manager.js','utf8');
 
 assert(uiSource.includes('function filesApi()'),'Session attachments Files facade bridge missing');
