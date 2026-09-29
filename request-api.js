@@ -49,9 +49,9 @@
   function requestNumber(clientRef, requestRef) { return call('requestNumber', 0, clientRef, requestRef); }
   function refresh() { return call('refresh', false); }
 
-  window.DiagnostikaRequests = Object.freeze({
-    version: '3A',
-    moduleAware: true,
+  window.DiagnostikaRequests=Object.freeze({
+    version:'3A',
+    moduleAware:true,
     events: service()?.events || EVENT_NAMES,
     list,
     get,
