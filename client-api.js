@@ -61,8 +61,8 @@
   }
 
   const api = Object.freeze({
-    version: '2B2',
-    moduleAware: true,
+    version:'2B2',
+    moduleAware:true,
     events: service()?.events || EVENT_NAMES,
     list,
     current,
