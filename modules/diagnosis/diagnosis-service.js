@@ -25,18 +25,15 @@
     try{return JSON.parse(JSON.stringify(value));}catch(_){return value;}
   };
   const makeId=prefix=>{
-    try{if(typeof uid==='function')return uid();}catch(_){}
     try{if(crypto?.randomUUID)return crypto.randomUUID();}catch(_){}
     return prefix+'_'+Date.now()+'_'+Math.random().toString(16).slice(2);
   };
 
   function clientsService(){
-    return platform.services?.clients||window.DiagnostikaClients||null;
+    return platform.services?.clients||null;
   }
   function requestsService(){
-    return platform.services?.requests
-      ||(window.DiagnostikaRequests?.moduleAware===true?window.DiagnostikaRequests:null)
-      ||null;
+    return platform.services?.requests||null;
   }
 
   function resolveClient(clientRef){
@@ -63,8 +60,7 @@
     }
     const current=clientsService()?.current?.();
     if(current)return current;
-    try{return platform.store?.currentClient?.()||null;}catch(_){}
-    try{return typeof client==='function'?client():null;}catch(_){return null;}
+    try{return platform.store?.currentClient?.()||null;}catch(_){return null;}
   }
 
   function resolveRequest(requestRef,c){
@@ -138,20 +134,11 @@
 
   function fresh(type,data={}){
     let base=null;
-    try{
-      if(type==='situation'&&typeof newSituation==='function')base=newSituation();
-      else if(type==='belief'&&typeof newBelief==='function')base=newBelief();
-      else if(type==='feeling'&&typeof newFeeling==='function')base=newFeeling();
-      else if(type==='deep'&&typeof newDeep==='function')base=newDeep();
-      else if(type==='instinct'&&typeof newInstinct==='function')base=newInstinct();
-    }catch(_){}
-    if(!base){
-      if(type==='situation')base={id:makeId('situation'),name:'Новая ситуация',level:5,comment:'',result:'',beliefs:[]};
-      if(type==='belief')base={id:makeId('belief'),text:'',level:5,comment:'',feelings:[]};
-      if(type==='feeling')base={id:makeId('feeling'),text:'',level:5,comment:'',deep:[]};
-      if(type==='deep')base={id:makeId('deep'),text:'',level:5,comment:'',instincts:[]};
-      if(type==='instinct')base={id:makeId('instinct'),name:'',level:5,comment:''};
-    }
+    if(type==='situation')base={id:makeId('situation'),name:'Новая ситуация',level:5,comment:'',result:'',beliefs:[]};
+    if(type==='belief')base={id:makeId('belief'),text:'',level:5,comment:'',feelings:[]};
+    if(type==='feeling')base={id:makeId('feeling'),text:'',level:5,comment:'',deep:[]};
+    if(type==='deep')base={id:makeId('deep'),text:'',level:5,comment:'',instincts:[{id:makeId('instinct'),name:'',level:5,comment:''}]};
+    if(type==='instinct')base={id:makeId('instinct'),name:'',level:5,comment:''};
     const created={...clone(base),...(clone(data)||{})};
     if(!created.id)created.id=makeId(type);
     if(type==='situation'&&!Array.isArray(created.beliefs))created.beliefs=[];
@@ -172,14 +159,7 @@
   }
 
   function render(){
-    try{
-      if(typeof renderSituationList==='function'){renderSituationList();return true;}
-      if(typeof renderTree==='function'){renderTree();return true;}
-    }catch(error){
-      console.error('[DiagnostikaPlatform] diagnosis render failed',error);
-      return false;
-    }
-    return true;
+    return platform.shell?.renderDiagnosis?.()===true;
   }
 
   function commit(nextSituations,options={},eventType=EVENTS.updated,eventDetail={}){
