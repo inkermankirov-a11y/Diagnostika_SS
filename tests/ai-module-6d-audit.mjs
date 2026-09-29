@@ -21,7 +21,7 @@ assert(clientSource.includes('DiagnostikaClientAIChatView?.preparePayload'),'Cli
 assert(serviceSource.includes("return c&&Array.isArray(c.aiChat)?clone(c.aiChat):null;"),'Client chat read leaks live store array');
 assert(serviceSource.includes("return s&&Array.isArray(s.aiChat)?clone(s.aiChat):null;"),'Session chat read leaks live store array');
 assert.equal(serviceSource.includes("typeof save==='function'"),false,'AIService still calls global save directly');
-assert(serviceSource.includes("platform.store?.legacySave?.()===true"),'AIService does not persist through store bridge');
+assert(serviceSource.includes("platform.store?.persist?.({source:'ai-service-persist'})===true"),'AIService does not persist through store bridge');
 for(const token of [
   'modules/ai/ai-service.js?v=20260919-ai6d',
   'modules/ai/index.js?v=20260919-ai6d',
