@@ -33,11 +33,11 @@
   style.textContent=`
     .db-export-btn{background:linear-gradient(#7b8ea5,#5a6f87)!important;color:#fff!important;border:1px solid #52657a!important;border-radius:6px!important;padding:7px 10px!important;font-weight:700!important}
     .db-import-btn{margin-left:8px;background:linear-gradient(#3fa56f,#218955)!important;color:#fff!important;border:0!important;border-radius:7px!important;padding:9px 13px!important;font-weight:700!important;box-shadow:0 3px 8px rgba(15,23,42,.16)}
-    .client-specialist-info{width:min(680px,100%);margin:24px auto 2px;padding:0 14px;font-size:14px;color:#64748b;display:flex;align-items:center;justify-content:center;min-height:36px}
-    .client-specialist-current{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;line-height:1.35}
-    .client-specialist-current strong{color:#334155;font-weight:700}
-    .client-specialist-history-btn{border:1px solid #c9d5e6;border-radius:8px;background:#fff;color:#3568b8;padding:7px 13px;min-width:120px;font:700 13px/1.2 "Segoe UI",Arial,sans-serif;cursor:pointer;box-shadow:0 1px 3px rgba(15,23,42,.08);transition:background .15s,border-color .15s,box-shadow .15s}
+    .client-specialist-info{width:min(435px,100%);margin:24px auto 2px;padding:0;font-size:14px;color:#64748b;display:flex;align-items:center;justify-content:center;min-height:36px}
+    .client-specialist-current{width:100%;display:grid;grid-template-columns:170px minmax(0,1fr);align-items:center;column-gap:12px;line-height:1}
+    .client-specialist-history-btn{height:34px;border:1px solid #c9d5e6;border-radius:8px;background:#fff;color:#3568b8;padding:0 14px;min-width:0;font:700 13px/1 "Segoe UI",Arial,sans-serif;cursor:pointer;box-shadow:0 1px 3px rgba(15,23,42,.08);transition:background .15s,border-color .15s,box-shadow .15s;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
     .client-specialist-history-btn:hover{background:#f4f8ff;border-color:#9db7df;box-shadow:0 3px 8px rgba(15,23,42,.10)}
+    .client-specialist-name{min-width:0;color:#334155;font-size:14px;font-weight:700;line-height:34px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .client-specialist-history-dialog{border:0;padding:0;width:min(660px,calc(100vw - 24px));max-height:min(78vh,760px);border-radius:16px;background:#fff;box-shadow:0 22px 70px rgba(15,23,42,.28);color:#17233a}
     .client-specialist-history-dialog::backdrop{background:rgba(15,23,42,.38)}
     .csh-shell{display:flex;flex-direction:column;max-height:min(78vh,760px)}
@@ -59,7 +59,7 @@
     .csh-empty{margin-top:7px;color:#93a0b2;font-size:13px}
     .csh-foot{display:flex;justify-content:flex-end;padding:12px 22px 18px;border-top:1px solid #eef2f6}
     .csh-close{border:0;border-radius:9px;background:#2f6fde;color:#fff;padding:9px 18px;font-weight:800;cursor:pointer}
-    @media(max-width:600px){.client-specialist-info{margin-top:18px;padding:0 6px}.client-specialist-current{gap:6px}.client-specialist-history-btn{min-width:0}.csh-head,.csh-list,.csh-foot{padding-left:14px;padding-right:14px}}
+    @media(max-width:600px){.client-specialist-info{width:100%;margin-top:18px;padding:0 6px}.client-specialist-current{grid-template-columns:minmax(145px,170px) minmax(0,1fr);column-gap:8px}.csh-head,.csh-list,.csh-foot{padding-left:14px;padding-right:14px}}
   `;
   document.head.appendChild(style);
 
@@ -477,15 +477,16 @@
     info.innerHTML='';
     const row=document.createElement('div');
     row.className='client-specialist-current';
-    const label=document.createElement('strong');
-    label.textContent=t('current')+':';
     const button=document.createElement('button');
     button.type='button';
     button.className='client-specialist-history-btn';
-    button.textContent=current;
+    button.textContent=t('current');
     button.title=t('historyTitle');
     button.onclick=openSpecialistHistory;
-    row.append(label,button);
+    const name=document.createElement('span');
+    name.className='client-specialist-name';
+    name.textContent=current;
+    row.append(button,name);
     info.appendChild(row);
     info.title=t('historyTitle');
   }
