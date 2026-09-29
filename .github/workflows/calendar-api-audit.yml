@@ -67,7 +67,7 @@ jobs:
                   errors.append('CalendarService knows UI/HTML: '+forbidden)
           if "typeof save==='function'" in service:
               errors.append('CalendarService calls global save directly')
-          if 'platform.store?.legacySave?.()===true' not in service:
+          if "platform.store?.persist?.({source:'calendar-service-persist'})===true" not in service:
               errors.append('CalendarService does not persist through store bridge')
           if "MODULE_ID='calendar'" not in module:
               errors.append('calendar module registration missing')
