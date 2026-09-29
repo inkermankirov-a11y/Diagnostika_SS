@@ -147,14 +147,6 @@ async function makePage({mode='city',cache=null,handler}={}){
   await context.close();
 }
 
-await browser.close();
-console.log('WEATHER_21A_SUCCESS',JSON.stringify({
-  modern:true,
-  legacyFallback:true,
-  cachedFallback:true,
-  explicitFailure:true
-}));
-
 
 // Live provider diagnostic: do not mock Open-Meteo.
 {
@@ -189,3 +181,11 @@ console.log('WEATHER_21A_SUCCESS',JSON.stringify({
   console.log('WEATHER_LIVE_CONSOLE_ERRORS',JSON.stringify(consoleErrors));
   await context.close();
 }
+
+await browser.close();
+console.log('WEATHER_21A_SUCCESS',JSON.stringify({
+  modern:true,
+  legacyFallback:true,
+  cachedFallback:true,
+  explicitFailure:true
+}));
