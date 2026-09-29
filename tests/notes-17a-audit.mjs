@@ -18,8 +18,10 @@ assert(clientSource.includes("title.textContent='Заметки клиента'"
 assert(clientSource.includes("box.onclick=e=>"),'Client notes dashboard click is not client-scoped');
 assert.equal(clientSource.includes('hookQuickNotes'),false,'Client notes still hijack the top Notes button');
 assert.equal(clientSource.includes("getElementById('quickNotesBtn')"),false,'Client module still touches the top Notes button');
+assert(clientSource.includes("'client:selected'"),'Client notes widget is not subscribed to client selection events');
+assert(clientSource.includes('window.DiagnostikaClients?.current?.()'),'Client notes widget does not prefer Client API current selection');
 assert(indexSource.includes('quick-notes.js?v=20260920-notes17a1'),'NOTES 17A general notes cache marker missing');
-assert(indexSource.includes('client-ai-chat.js?v=20260920-notes17a1&ai=6d'),'NOTES 17A client notes cache marker missing');
+assert(indexSource.includes('client-ai-chat.js?v=20260929-stage1-notes17a2&ai=6d'),'NOTES 17A client notes cache marker missing');
 assert(folderSource.includes("writeJson(app,'database.json',data)"),'Folder sync no longer writes the full canonical state');
 assert(folderSource.includes('const base=mergeObjects(primary||{clients:[]},secondary||{clients:[]})'),'Folder sync no longer merges top-level canonical fields');
 
