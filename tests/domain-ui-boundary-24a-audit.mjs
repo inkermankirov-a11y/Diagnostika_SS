@@ -80,3 +80,5 @@ console.log('DOMAIN_UI_BOUNDARY_24A_SUCCESS',JSON.stringify({
   legacyDiagnosisCalls:0,
   sessionEditorWrappers:0
 }));
+
+// stage3 final site validation trigger
