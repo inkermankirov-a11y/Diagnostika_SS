@@ -1,0 +1,37 @@
+name: Weather audit
+
+on:
+  push:
+    branches: [main, 'feature-weather-*']
+    paths:
+      - 'header-utilities.js'
+      - 'index.html'
+      - 'tests/weather-21a-audit.mjs'
+      - '.github/workflows/weather-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  weather:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static checks
+        run: |
+          node --check header-utilities.js
+          node --check tests/weather-21a-audit.mjs
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify weather display and fallbacks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/weather21a-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/weather-21a-audit.mjs
