@@ -191,3 +191,5 @@ console.log('NOTES_17A_SUCCESS',JSON.stringify({
 
 await context.close();
 await browser.close();
+
+// stage1 validation trigger
