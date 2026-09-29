@@ -17,13 +17,11 @@
   const now=()=>new Date().toISOString();
 
   function clientsService(){
-    return platform.services?.clients||window.DiagnostikaClients||null;
+    return platform.services?.clients||null;
   }
 
   function requestsService(){
-    return platform.services?.requests
-      || (window.DiagnostikaRequests?.moduleAware===true?window.DiagnostikaRequests:null)
-      || null;
+    return platform.services?.requests||null;
   }
 
   function resolveClient(clientRef){
@@ -50,8 +48,7 @@
     }
     const current=clientsService()?.current?.();
     if(current)return current;
-    try{return platform.store?.currentClient?.()||null;}catch(_){}
-    try{return typeof client==='function'?client():null;}catch(_){return null;}
+    try{return platform.store?.currentClient?.()||null;}catch(_){return null;}
   }
 
   function list(clientRef){
@@ -114,16 +111,12 @@
   }
 
   function makeId(){
-    try{if(typeof uid==='function')return uid();}catch(_){}
     try{if(crypto?.randomUUID)return crypto.randomUUID();}catch(_){}
     return 'session_'+Date.now()+'_'+Math.random().toString(16).slice(2);
   }
 
   function todayValue(){
-    try{if(typeof today==='function')return today();}catch(_){}
-    const d=new Date();
-    d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
-    return d.toISOString().slice(0,10);
+    return new Date().toISOString().slice(0,10);
   }
 
   function freshSession(data={},c=null,options={}){
@@ -151,22 +144,17 @@
 
   function persist(){
     try{
-      if(platform.store?.legacySave?.())return true;
-    }catch(_){}
-    try{if(typeof save==='function'){save();return true;}}catch(error){
+      return platform.store?.persist?.({source:'session-service-persist'})===true;
+    }catch(error){
       console.error('[DiagnostikaPlatform] session persistence failed',error);
-    }
-    return false;
-  }
-
-
-  function render(){
-    try{if(typeof renderSessions==='function')renderSessions();}catch(error){
-      console.error('[DiagnostikaPlatform] session render failed',error);
       return false;
     }
-    try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
-    return true;
+  }
+
+  function render(){
+    const rendered=platform.shell?.renderSessions?.()===true;
+    platform.shell?.refreshDashboard?.();
+    return rendered;
   }
 
   function emit(type,detail={}){
