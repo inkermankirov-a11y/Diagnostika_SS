@@ -5,8 +5,11 @@ import fs from 'node:fs';
 const src=fs.readFileSync('header-utilities.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 
-assert(index.includes('header-utilities.js?v=20260929-weather21a'),'Weather cache marker missing');
+assert(index.includes('header-utilities.js?v=20260929-weather21b'),'Weather 21B cache marker missing');
 assert(src.includes("const WEATHER_CACHE_KEY='diagnostika-weather-cache-v2'"),'Weather cache missing');
+assert(src.includes("const weatherMode=()=>localStorage.getItem('diagnostika-weather-mode')||'city'"),'Default weather mode must be city');
+assert(src.includes("const DEFAULT_CITY=Object.freeze({name:'Киров',latitude:58.6036,longitude:49.6680})"),'Default Kirov city missing');
+assert(src.includes('for(const url of [modern,modern,legacy])'),'Weather retry sequence missing');
 assert(src.includes('current_weather=true'),'Legacy Open-Meteo fallback missing');
 assert(src.includes('window.DiagnostikaWeather=Object.freeze'),'Weather diagnostics missing');
 
@@ -98,6 +101,36 @@ async function makePage({mode='city',cache=null,handler}={}){
   await context.close();
 }
 
+// First modern request fails transiently; immediate retry must recover without cache.
+{
+  let modernCalls=0;
+  const {context,page,errors}=await makePage({
+    handler:route=>{
+      const url=route.request().url();
+      if(url.includes('current_weather=true')){
+        return route.fulfill({status:500,contentType:'application/json',body:'{}'});
+      }
+      modernCalls++;
+      if(modernCalls===1)return route.fulfill({status:503,contentType:'application/json',body:'{}'});
+      return route.fulfill({
+        status:200,
+        contentType:'application/json',
+        body:JSON.stringify({
+          current:{temperature_2m:7.1,apparent_temperature:5.8,weather_code:2,is_day:1},
+          daily
+        })
+      });
+    }
+  });
+  await page.waitForFunction(()=>window.DiagnostikaWeather.state().ready===true,null,{timeout:10000});
+  const state=await page.evaluate(()=>window.DiagnostikaWeather.state());
+  assert(modernCalls>=2,'Transient modern failure must recover on retry');
+  assert.equal(state.temperature,7.1);
+  assert.equal(state.cached,false);
+  assert.deepEqual(errors,[]);
+  await context.close();
+}
+
 // Both requests fail: valid cache must keep temperature visible.
 {
   const cache={
@@ -144,6 +177,38 @@ async function makePage({mode='city',cache=null,handler}={}){
   assert.equal(state.main,'—°');
   assert.equal(state.icon,'⚠️');
   assert.equal(state.title,'Нет данных');
+  await context.close();
+}
+
+// No weather settings: app must load default Kirov immediately instead of waiting for geolocation.
+{
+  const context=await browser.newContext({viewport:{width:1440,height:1000}});
+  await context.addInitScript(()=>{
+    localStorage.setItem('diagnostika-ui-language','ru');
+    localStorage.removeItem('diagnostika-weather-mode');
+    localStorage.removeItem('diagnostika-weather-city');
+    localStorage.removeItem('diagnostika-weather-cache-v2');
+  });
+  const page=await context.newPage();
+  let requestedUrl='';
+  await page.route('https://api.open-meteo.com/**',route=>{
+    requestedUrl=route.request().url();
+    return route.fulfill({
+      status:200,
+      contentType:'application/json',
+      body:JSON.stringify({
+        current:{temperature_2m:5.6,apparent_temperature:3.4,weather_code:1,is_day:1},
+        daily
+      })
+    });
+  });
+  await page.goto('http://127.0.0.1:8000/index.html?weather-default='+Date.now(),{waitUntil:'commit',timeout:15000});
+  await page.waitForFunction(()=>window.DiagnostikaWeather?.state().ready===true,null,{timeout:10000});
+  const state=await page.evaluate(()=>window.DiagnostikaWeather.state());
+  assert.equal(state.mode,'city','Default mode without saved settings must load Kirov');
+  assert.equal(state.label,'Киров');
+  assert(requestedUrl.includes('latitude=58.6036'),'Default Kirov latitude missing');
+  assert(requestedUrl.includes('longitude=49.668'),'Default Kirov longitude missing');
   await context.close();
 }
 

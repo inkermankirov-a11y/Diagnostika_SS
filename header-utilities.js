@@ -14,8 +14,9 @@
   };
   const lang=()=>window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';
   const tr=()=>LANG[lang()]||LANG.en;
-  const weatherMode=()=>localStorage.getItem('diagnostika-weather-mode')||'geo';
-  const savedCity=()=>{try{return JSON.parse(localStorage.getItem('diagnostika-weather-city')||'null')}catch(_){return null}};
+  const DEFAULT_CITY=Object.freeze({name:'Киров',latitude:58.6036,longitude:49.6680});
+  const weatherMode=()=>localStorage.getItem('diagnostika-weather-mode')||'city';
+  const savedCity=()=>{try{return JSON.parse(localStorage.getItem('diagnostika-weather-city')||'null')||DEFAULT_CITY}catch(_){return DEFAULT_CITY}};
   const cityOnly=v=>String(v||'').split(',')[0].trim()||tr().weather;
 
   const style=document.createElement('style');
@@ -143,11 +144,13 @@
     const common=`latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7`;
     const modern=`https://api.open-meteo.com/v1/forecast?${common}&current=temperature_2m,apparent_temperature,weather_code,is_day`;
     const legacy=`https://api.open-meteo.com/v1/forecast?${common}&current_weather=true`;
-    try{return normalizedWeather(await fetchJson(modern));}
-    catch(firstError){
-      try{return normalizedWeather(await fetchJson(legacy));}
-      catch(secondError){secondError.cause=firstError;throw secondError;}
+    let firstError=null;
+    for(const url of [modern,modern,legacy]){
+      try{return normalizedWeather(await fetchJson(url));}
+      catch(error){if(!firstError)firstError=error;}
     }
+    const finalError=firstError||new Error('weather-fetch');
+    throw finalError;
   }
 
   async function fetchWeather(lat,lon,label){
@@ -270,7 +273,8 @@
       label:weatherLabel,
       temperature:weatherData?.current?.temperature_2m??null,
       cached:weatherFromCache,
-      error:weatherError
+      error:weatherError,
+      mode:weatherMode()
     })
   });
 
