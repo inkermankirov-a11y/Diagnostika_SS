@@ -29,7 +29,6 @@
   }
 
   function makeId(){
-    try{if(typeof uid==='function')return uid();}catch(_){}
     try{if(crypto?.randomUUID)return crypto.randomUUID();}catch(_){}
     return 'file_'+Date.now()+'_'+Math.random().toString(16).slice(2);
   }

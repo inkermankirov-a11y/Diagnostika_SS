@@ -31,17 +31,13 @@
   };
 
   function clientsService(){
-    return platform.services?.clients||window.DiagnostikaClients||null;
+    return platform.services?.clients||null;
   }
   function requestsService(){
-    return platform.services?.requests
-      ||(window.DiagnostikaRequests?.moduleAware===true?window.DiagnostikaRequests:null)
-      ||null;
+    return platform.services?.requests||null;
   }
   function sessionsService(){
-    return platform.services?.sessions
-      ||(window.DiagnostikaSessions?.moduleAware===true?window.DiagnostikaSessions:null)
-      ||null;
+    return platform.services?.sessions||null;
   }
 
   function resolveClient(clientRef){
@@ -68,8 +64,7 @@
     }
     const current=clientsService()?.current?.();
     if(current)return current;
-    try{return platform.store?.currentClient?.()||null;}catch(_){}
-    try{return typeof client==='function'?client():null;}catch(_){return null;}
+    try{return platform.store?.currentClient?.()||null;}catch(_){return null;}
   }
 
   function resolveRequest(requestRef,c){
@@ -133,14 +128,11 @@
 
   function persist(){
     try{
-      if(platform.store?.legacySave?.())return true;
-    }catch(_){}
-    try{
-      if(typeof save==='function'){save();return true;}
+      return platform.store?.persist?.({source:'payment-service-persist'})===true;
     }catch(error){
       console.error('[DiagnostikaPlatform] payment persistence failed',error);
+      return false;
     }
-    return false;
   }
 
   function emit(type,detail={}){

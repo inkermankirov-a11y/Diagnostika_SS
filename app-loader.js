@@ -127,7 +127,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/requests/request-service.js?v=20260918-requests3d&cleanup=23b';
+    serviceScript.src='modules/requests/request-service.js?v=20260918-requests3d&cleanup=23c';
     serviceScript.setAttribute('data-requests-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -158,7 +158,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c';
+    serviceScript.src='modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c&cleanup=23c';
     serviceScript.setAttribute('data-diagnosis-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -189,7 +189,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/sessions/session-service.js?v=20260918-sessions4c';
+    serviceScript.src='modules/sessions/session-service.js?v=20260918-sessions4c&cleanup=23c';
     serviceScript.setAttribute('data-sessions-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -222,7 +222,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/files/file-service.js?v=20260919-files9d';
+    serviceScript.src='modules/files/file-service.js?v=20260919-files9d&cleanup=23c';
     serviceScript.setAttribute('data-files-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -286,7 +286,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/calendar/calendar-service.js?v=20260919-calendar8a';
+    serviceScript.src='modules/calendar/calendar-service.js?v=20260919-calendar8a&cleanup=23c';
     serviceScript.setAttribute('data-calendar-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -318,7 +318,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/payments/payment-service.js?v=20260918-payment5d';
+    serviceScript.src='modules/payments/payment-service.js?v=20260918-payment5d&cleanup=23c';
     serviceScript.setAttribute('data-payments-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);
@@ -349,7 +349,7 @@
     }
 
     const serviceScript=document.createElement('script');
-    serviceScript.src='modules/ai/ai-service.js?v=20260919-ai6d';
+    serviceScript.src='modules/ai/ai-service.js?v=20260919-ai6d&cleanup=23c';
     serviceScript.setAttribute('data-ai-service','1');
     serviceScript.onload=loadModule;
     document.body.appendChild(serviceScript);

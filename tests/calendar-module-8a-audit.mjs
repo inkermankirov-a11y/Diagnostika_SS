@@ -16,7 +16,7 @@ for(const token of ['function list(','function get(','function forDate(','functi
 assert(serviceSource.includes('services.calendar=Object.freeze({'),'CalendarService export is not frozen');
 assert.equal(serviceSource.includes('querySelector('),false,'CalendarService knows calendar HTML');
 assert.equal(serviceSource.includes("typeof save==='function'"),false,'CalendarService calls global save directly');
-assert(serviceSource.includes('platform.store?.legacySave?.()===true'),'CalendarService does not persist through store bridge');
+assert(serviceSource.includes("platform.store?.persist?.({source:'calendar-service-persist'})===true"),'CalendarService does not persist through store bridge');
 assert(moduleSource.includes("MODULE_ID='calendar'"),'Calendar module registration missing');
 assert(/version:'8[A-D]'/.test(apiSource),'Calendar facade version is outside supported 8A-8D range');
 assert(apiSource.includes('window.DiagnostikaCalendar=Object.freeze({'),'Calendar facade is not frozen');

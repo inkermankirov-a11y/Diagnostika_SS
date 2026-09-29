@@ -37,13 +37,12 @@
   }
 
   function makeId(){
-    try{if(typeof uid==='function')return uid();}catch(_){}
     try{if(crypto?.randomUUID)return crypto.randomUUID();}catch(_){}
     return 'calendar_'+Date.now()+'_'+Math.random().toString(16).slice(2);
   }
 
   function persist(){
-    try{return platform.store?.legacySave?.()===true;}catch(error){
+    try{return platform.store?.persist?.({source:'calendar-service-persist'})===true;}catch(error){
       console.error('[DiagnostikaPlatform] calendar persistence failed',error);
       return false;
     }
