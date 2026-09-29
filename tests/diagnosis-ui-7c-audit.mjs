@@ -5,9 +5,9 @@ import fs from 'node:fs';
 const appSource=fs.readFileSync('app.js','utf8');
 const apiSource=fs.readFileSync('diagnosis-api.js','utf8');
 const serviceSource=fs.readFileSync('modules/diagnosis/diagnosis-service.js','utf8');
-const focusSource=fs.readFileSync('diagnosis-add-focus.js','utf8');
-const feelingsSource=fs.readFileSync('secondary-feeling-hints.js','utf8');
-const collapseSource=fs.readFileSync('feeling-collapse.js','utf8');
+const focusSource=fs.readFileSync('modules/diagnosis/ui/add-focus.js','utf8');
+const feelingsSource=fs.readFileSync('modules/diagnosis/ui/secondary-feeling-hints.js','utf8');
+const collapseSource=fs.readFileSync('modules/diagnosis/ui/feeling-collapse.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
 assert(/version:'7[CD]'/.test(apiSource),'Diagnosis facade version is outside supported 7C-7D range');
@@ -47,9 +47,9 @@ assert.equal(appSource.includes('arr.push(newInstinct())'),false,'renderEditor s
 
 assert(/app\.js\?v=20260919-(?:diagnosis7c|export10[a-d])/.test(indexSource),'Diagnosis 7C app.js cache marker missing');
 for(const token of [
-  'diagnosis-add-focus.js?v=20260919-diagnosis7c',
-  'secondary-feeling-hints.js?v=20260919-diagnosis7c',
-  'feeling-collapse.js?v=20260919-diagnosis7c',
+  'modules/diagnosis/ui/add-focus.js?v=20260929-modular24a',
+  'modules/diagnosis/ui/secondary-feeling-hints.js?v=20260929-modular24a',
+  'modules/diagnosis/ui/feeling-collapse.js?v=20260929-modular24a',
   'diagnosis-api.js?v=20260919-diagnosis7d'
 ])assert(indexSource.includes(token),'Diagnosis 7C cache marker missing '+token);
 

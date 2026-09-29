@@ -2,23 +2,23 @@ name: Diagnosis API audit
 
 on:
   push:
-    branches: [main, retire-old-interface, feature-requests-3c, feature-requests-3d, 'feature-payment-*', 'feature-ai-*', 'feature-diagnosis-*', 'feature-roles-*', 'feature-api-*' ]
+    branches: [main, retire-old-interface, feature-requests-3c, feature-requests-3d, 'feature-payment-*', 'feature-ai-*', 'feature-diagnosis-*', 'feature-sessions-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
       - 'diagnosis-api.js'
       - 'app.js'
       - 'tests/diagnosis-ui-7c-audit.mjs'
-      - 'feeling-collapse.js'
-      - 'secondary-feeling-hints.js'
-      - 'diagnosis-add-focus.js'
+      - 'modules/diagnosis/ui/feeling-collapse.js'
+      - 'modules/diagnosis/ui/secondary-feeling-hints.js'
+      - 'modules/diagnosis/ui/add-focus.js'
       - 'tests/diagnosis-7d-hardening-audit.mjs'
       - 'deep-context-button.js'
       - 'situation-unknown-level.js'
-      - 'situation-create.js'
+      - 'modules/diagnosis/ui/situation-create.js'
       - 'modules/diagnosis/**'
       - 'app-loader.js'
       - 'home-dashboard.js'
-      - 'diagnosis-navigation.js'
-      - 'diagnosis-compact-client.js'
+      - 'modules/diagnosis/ui/navigation.js'
+      - 'modules/diagnosis/ui/compact-client.js'
       - 'free-consultation-request-builder.js'
       - 'free-consultation-v2.js'
       - 'request-select-labels.js'
@@ -45,19 +45,19 @@ jobs:
           node --check diagnosis-api.js
           node --check app.js
           node --check tests/diagnosis-ui-7c-audit.mjs
-          node --check feeling-collapse.js
-          node --check secondary-feeling-hints.js
-          node --check diagnosis-add-focus.js
+          node --check modules/diagnosis/ui/feeling-collapse.js
+          node --check modules/diagnosis/ui/secondary-feeling-hints.js
+          node --check modules/diagnosis/ui/add-focus.js
           node --check tests/diagnosis-7d-hardening-audit.mjs
           node --check deep-context-button.js
           node --check situation-unknown-level.js
-          node --check situation-create.js
+          node --check modules/diagnosis/ui/situation-create.js
           node --check modules/diagnosis/diagnosis-service.js
           node --check modules/diagnosis/index.js
           node --check home-dashboard.js
           node --check request-select-labels.js
-          node --check diagnosis-navigation.js
-          node --check diagnosis-compact-client.js
+          node --check modules/diagnosis/ui/navigation.js
+          node --check modules/diagnosis/ui/compact-client.js
           node --check free-consultation-request-builder.js
           node --check free-consultation-v2.js
           node --check tests/request-diagnosis-3c-audit.mjs
@@ -70,13 +70,13 @@ jobs:
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
           api=Path('diagnosis-api.js').read_text(encoding='utf-8')
           app=Path('app.js').read_text(encoding='utf-8')
-          focus_ui=Path('diagnosis-add-focus.js').read_text(encoding='utf-8')
-          feelings_ui=Path('secondary-feeling-hints.js').read_text(encoding='utf-8')
-          collapse_ui=Path('feeling-collapse.js').read_text(encoding='utf-8')
-          create_ui=Path('situation-create.js').read_text(encoding='utf-8')
+          focus_ui=Path('modules/diagnosis/ui/add-focus.js').read_text(encoding='utf-8')
+          feelings_ui=Path('modules/diagnosis/ui/secondary-feeling-hints.js').read_text(encoding='utf-8')
+          collapse_ui=Path('modules/diagnosis/ui/feeling-collapse.js').read_text(encoding='utf-8')
+          create_ui=Path('modules/diagnosis/ui/situation-create.js').read_text(encoding='utf-8')
           unknown_ui=Path('situation-unknown-level.js').read_text(encoding='utf-8')
-          nav=Path('diagnosis-navigation.js').read_text(encoding='utf-8')
-          compact=Path('diagnosis-compact-client.js').read_text(encoding='utf-8')
+          nav=Path('modules/diagnosis/ui/navigation.js').read_text(encoding='utf-8')
+          compact=Path('modules/diagnosis/ui/compact-client.js').read_text(encoding='utf-8')
           fc1=Path('free-consultation-request-builder.js').read_text(encoding='utf-8')
           fc2=Path('free-consultation-v2.js').read_text(encoding='utf-8')
           request_ui=Path('request-select-labels.js').read_text(encoding='utf-8')
@@ -153,9 +153,9 @@ jobs:
                   raise SystemExit('Diagnosis 7B consultation edit override still mutates state directly: '+token)
 
           owned_files={
-              'diagnosis-navigation.js':nav,
+              'modules/diagnosis/ui/navigation.js':nav,
               'diagnosis-api.js':api,
-              'diagnosis-compact-client.js':compact,
+              'modules/diagnosis/ui/compact-client.js':compact,
               'free-consultation-request-builder.js':fc1,
               'free-consultation-v2.js':fc2,
           }

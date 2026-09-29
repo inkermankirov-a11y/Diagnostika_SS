@@ -19,6 +19,21 @@
     catch(_){return null;}
   }
 
+  function currentSituationId(){
+    try{return typeof situationId!=='undefined'?situationId:null;}
+    catch(_){return null;}
+  }
+
+  function currentSelection(){
+    try{return typeof selected!=='undefined'?selected:null;}
+    catch(_){return null;}
+  }
+
+  function currentMode(){
+    try{return typeof mode!=='undefined'?mode:null;}
+    catch(_){return null;}
+  }
+
   function currentClient(){
     const id=currentClientId();
     const root=stateRef();
@@ -28,6 +43,20 @@
     }
     try{return typeof client==='function'?client():null;}
     catch(_){return null;}
+  }
+
+  function currentRequest(){
+    const c=currentClient();
+    const id=currentRequestId();
+    if(!c||id==null||!Array.isArray(c.requests))return null;
+    return c.requests.find(item=>item&&String(item.id)===String(id))||null;
+  }
+
+  function currentSituation(){
+    const r=currentRequest();
+    const id=currentSituationId();
+    if(!r||id==null||!Array.isArray(r.situations))return null;
+    return r.situations.find(item=>item&&String(item.id)===String(id))||null;
   }
 
   function navigationSnapshot(){
@@ -66,6 +95,43 @@
       return true;
     }catch(error){
       console.error('[DiagnostikaPlatform] shell request selection failed',error);
+      return false;
+    }
+  }
+
+  function selectSituation(id){
+    try{
+      situationId=id??null;
+      selected=null;
+      return true;
+    }catch(error){
+      console.error('[DiagnostikaPlatform] shell situation selection failed',error);
+      return false;
+    }
+  }
+
+  function clearSelection(){
+    try{selected=null;return true;}
+    catch(error){
+      console.error('[DiagnostikaPlatform] shell selection clear failed',error);
+      return false;
+    }
+  }
+
+  function selectDiagnosisElement(type,id){
+    try{
+      if(typeof selectDiagnosisElementById!=='function')return null;
+      return selectDiagnosisElementById(type,id);
+    }catch(error){
+      console.error('[DiagnostikaPlatform] shell diagnosis element selection failed',error);
+      return null;
+    }
+  }
+
+  function setMode(next){
+    try{mode=next;return true;}
+    catch(error){
+      console.error('[DiagnostikaPlatform] shell mode update failed',error);
       return false;
     }
   }
@@ -135,6 +201,28 @@
     }
   }
 
+  function renderDiagnosisTreeShell(){
+    try{
+      if(typeof renderTree!=='function')return false;
+      renderTree();
+      return true;
+    }catch(error){
+      console.error('[DiagnostikaPlatform] shell diagnosis tree render failed',error);
+      return false;
+    }
+  }
+
+  function renderModeShell(){
+    try{
+      if(typeof renderMode!=='function')return false;
+      renderMode();
+      return true;
+    }catch(error){
+      console.error('[DiagnostikaPlatform] shell mode render failed',error);
+      return false;
+    }
+  }
+
   function refreshDashboardShell(){
     try{
       const dashboard=window.DiagnostikaHomeDashboard;
@@ -152,14 +240,25 @@
     currentClient,
     currentClientId,
     currentRequestId,
+    currentSituationId,
+    currentSelection,
+    currentMode,
+    currentRequest,
+    currentSituation,
     navigationSnapshot,
     selectClient,
     viewRequest,
+    selectSituation,
+    clearSelection,
+    selectDiagnosisElement,
+    setMode,
     restoreNavigation,
     renderClient:renderClientShell,
     renderRequests:renderRequestsShell,
     renderSessions:renderSessionsShell,
     renderDiagnosis:renderDiagnosisShell,
+    renderDiagnosisTree:renderDiagnosisTreeShell,
+    renderMode:renderModeShell,
     refreshDashboard:refreshDashboardShell
   });
 })();

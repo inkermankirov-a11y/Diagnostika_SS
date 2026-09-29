@@ -1,6 +1,8 @@
 'use strict';
 
 (() => {
+  const shell=()=>window.DiagnostikaPlatform?.shell||null;
+  const currentClient=()=>window.DiagnostikaClients?.current?.()||null;
   const card = document.getElementById('diagnosisClientHeader');
   const diagnosticsLeft = document.querySelector('#diagnosticsLeft');
   if (!card) return;
@@ -31,29 +33,25 @@
   document.head.appendChild(style);
 
   function sync(){
-    const diag = typeof mode !== 'undefined' ? mode === 'diagnosis' : !document.querySelector('#centerPanel')?.classList.contains('hidden');
-    document.body.classList.toggle('diagnosis-active', diag);
-    if (diagnosticsLeft) diagnosticsLeft.classList.toggle('hidden', !diag);
-    const c = typeof client === 'function' ? client() : null;
-    const name = c?.name || 'Клиент';
-    const nameEl = compact.querySelector('.diagnosis-compact-name');
-    if (nameEl) nameEl.textContent = name;
+    const diag=shell()?.currentMode?.()==='diagnosis';
+    document.body.classList.toggle('diagnosis-active',diag);
+    if(diagnosticsLeft)diagnosticsLeft.classList.toggle('hidden',!diag);
+    const c=currentClient();
+    const nameEl=compact.querySelector('.diagnosis-compact-name');
+    if(nameEl)nameEl.textContent=c?.name||'Клиент';
   }
 
-  compact.querySelector('.diagnosis-compact-back').addEventListener('click', () => {
-    if (typeof mode !== 'undefined' && typeof renderMode === 'function') {
-      if(typeof closeDiagnosisDialogs==='function')closeDiagnosisDialogs();
-      mode = 'card';
-      selected = null;
-      renderMode();
-      renderSessions();
-    }
-    setTimeout(sync, 0);
+  compact.querySelector('.diagnosis-compact-back').addEventListener('click',()=>{
+    document.querySelector('#diagnosisLaunchDialog')?.close?.();
+    document.querySelector('#requestHistoryDialog')?.close?.();
+    shell()?.setMode?.('card');
+    shell()?.clearSelection?.();
+    shell()?.renderMode?.();
+    shell()?.renderSessions?.();
+    setTimeout(sync,0);
   });
 
-  const observer = new MutationObserver(sync);
-  const center = document.querySelector('#centerPanel');
-  if (center) observer.observe(center, {attributes:true, attributeFilter:['class']});
-
+  document.addEventListener('diagnostika:mode-rendered',sync);
+  window.DiagnostikaPlatform?.events?.on?.('client:selected',()=>setTimeout(sync,0));
   sync();
 })();

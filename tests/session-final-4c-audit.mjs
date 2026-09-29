@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const legacy=fs.readFileSync('core/legacy-event-bridge.js','utf8');
 const service=fs.readFileSync('modules/sessions/session-service.js','utf8');
 const testData=fs.readFileSync('test-data.js','utf8');
-const editor=fs.readFileSync('session-attachments.js','utf8');
+const editor=fs.readFileSync('modules/sessions/ui/editor.js','utf8');
 const paymentFiles=[
   'session-payment-data-repair.js',
   'session-payment-editor.js',

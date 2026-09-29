@@ -1,0 +1,27 @@
+name: Domain UI boundary audit
+
+on:
+  push:
+    branches: [main, 'feature-diagnosis-*', 'feature-sessions-*']
+    paths:
+      - 'app.js'
+      - 'index.html'
+      - 'core/shell-bridge.js'
+      - 'modules/diagnosis/ui/**'
+      - 'modules/sessions/ui/**'
+      - 'tests/domain-ui-boundary-*.mjs'
+      - '.github/workflows/domain-ui-boundary-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  domain-ui-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify modular Diagnosis and Sessions UI ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/domain-ui-boundary-24a-audit.mjs
+          node tests/domain-ui-boundary-24a-audit.mjs

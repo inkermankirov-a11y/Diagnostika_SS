@@ -45,7 +45,7 @@ const situationPatterns=[
 
 const allowedNested=[
   {file:servicePath,re:/.*/},
-  {file:'secondary-feeling-hints.js',re:/\bbase\.deep\s*=/}
+  {file:'modules/diagnosis/ui/secondary-feeling-hints.js',re:/\bbase\.deep\s*=/}
 ];
 const allowedSituations=[
   {file:servicePath,re:/.*/},

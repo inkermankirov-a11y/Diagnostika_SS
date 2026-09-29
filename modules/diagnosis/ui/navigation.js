@@ -1,6 +1,8 @@
 'use strict';
 
 (() => {
+  const platform=window.DiagnostikaPlatform;
+  const shell=()=>platform?.shell||null;
   const style = document.createElement('style');
   style.textContent = `
     .diag-launch-dialog{border:1px solid #7f7f7f;padding:0;width:420px;max-width:92vw;background:#EEF1F4;color:#111}
@@ -66,14 +68,11 @@
   let historySelectedId = null;
 
   function requestsApi(){
-    return window.DiagnostikaRequests?.moduleAware===true
-      ? window.DiagnostikaRequests
-      : window.DiagnostikaPlatform?.services?.requests||null;
+    return window.DiagnostikaRequests?.moduleAware===true?window.DiagnostikaRequests:null;
   }
 
   function currentClient(){
-    return window.DiagnostikaClients?.current?.()
-      || (typeof client==='function'?client():null);
+    return window.DiagnostikaClients?.current?.()||null;
   }
 
   function requestDate(r) {
@@ -109,13 +108,12 @@
   }
 
   function enterDiagnosis(r){
-    if(!r)return false;
-    try{
-      situationId=r.situations?.[0]?.id||null;
-      selected=null;
-      mode='diagnosis';
-    }catch(_){return false;}
-    try{if(typeof renderMode==='function')renderMode();}catch(_){return false;}
+    const ui=shell();
+    if(!r||!ui)return false;
+    if(!ui.selectSituation?.(r.situations?.[0]?.id||null))return false;
+    ui.clearSelection?.();
+    if(!ui.setMode?.('diagnosis'))return false;
+    if(!ui.renderMode?.())return false;
     history.close();
     launch.close();
     return true;

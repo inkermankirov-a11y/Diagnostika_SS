@@ -1,6 +1,11 @@
 'use strict';
 
 (() => {
+  const shell=()=>window.DiagnostikaPlatform?.shell||null;
+  const currentClient=()=>window.DiagnostikaClients?.current?.()||null;
+  const currentRequest=()=>shell()?.currentRequest?.()||null;
+  const currentSituation=()=>shell()?.currentSituation?.()||null;
+  const selection=()=>shell()?.currentSelection?.()||null;
   // Состояние раскрытия хранится только в памяти страницы.
   // После обновления/повторной загрузки всё снова свернуто.
   const expandedBeliefs = new Set();
@@ -108,7 +113,7 @@
 
   function applyFeelingCollapse(){
     const root=document.querySelector('#tree');
-    const s=typeof situation==='function'?situation():null;
+    const s=currentSituation();
     if(!root||!s) return;
 
     root.querySelectorAll('.feeling-group-toggle').forEach(el=>el.remove());
@@ -191,7 +196,8 @@
   function updateContextDeepButton(){
     const inline=document.querySelector('#feelingEditorInline');
     let wrap=document.querySelector('#contextAddDeepWrap');
-    const show=typeof selected!=='undefined' && selected?.type==='feeling' && inline;
+    const selected=selection();
+    const show=selected?.type==='feeling'&&inline;
 
     if(!show){
       if(wrap) wrap.remove();
@@ -209,10 +215,11 @@
       btn.textContent='+ Убеждение 2';
       btn.title='Добавить глубинное убеждение к выбранному вторичному чувству';
       btn.onclick=()=>{
-        if(typeof selected==='undefined' || selected?.type!=='feeling') return;
+        const selected=selection();
+        if(selected?.type!=='feeling')return;
         const feeling=selected.obj;
-        const c=typeof client==='function'?client():null;
-        const r=typeof request==='function'?request():null;
+        const c=currentClient();
+        const r=currentRequest();
         const api=window.DiagnostikaDiagnosis;
         if(!c||!r||!api?.moduleAware)return;
         const deep=api.addDeep(feeling.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-deep-add',render:false});
@@ -220,7 +227,7 @@
 
         // При добавлении нового Убеждения 2 автоматически раскрываем
         // именно текущее вторичное чувство, чтобы новый элемент был виден.
-        const s=typeof situation==='function'?situation():null;
+        const s=currentSituation();
         if(s){
           (s.beliefs||[]).forEach((belief,bi)=>{
             const liveFeeling=(belief.feelings||[]).find(x=>String(x.id)===String(feeling.id));
@@ -232,8 +239,8 @@
           });
         }
 
-        if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('deep',deep.id);
-        if(typeof renderTree==='function') renderTree();
+        shell()?.selectDiagnosisElement?.('deep',deep.id);
+        shell()?.renderDiagnosisTree?.();
         setTimeout(()=>{
           const editor=document.querySelector('#editorText');
           if(editor){
@@ -247,23 +254,8 @@
     }
   }
 
-  if(typeof renderTree==='function'){
-    const originalRenderTree=renderTree;
-    renderTree=function(){
-      const result=originalRenderTree.apply(this,arguments);
-      applyFeelingCollapse();
-      return result;
-    };
-    applyFeelingCollapse();
-  }
-
-  if(typeof renderEditor==='function'){
-    const originalRenderEditor=renderEditor;
-    renderEditor=function(){
-      const result=originalRenderEditor.apply(this,arguments);
-      updateContextDeepButton();
-      return result;
-    };
-    updateContextDeepButton();
-  }
+  document.addEventListener('diagnostika:diagnosis-tree-rendered',applyFeelingCollapse);
+  document.addEventListener('diagnostika:diagnosis-editor-rendered',updateContextDeepButton);
+  applyFeelingCollapse();
+  updateContextDeepButton();
 })();

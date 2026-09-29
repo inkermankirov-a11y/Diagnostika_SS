@@ -1,6 +1,11 @@
 'use strict';
 
 (() => {
+  const shell=()=>window.DiagnostikaPlatform?.shell||null;
+  const currentClient=()=>window.DiagnostikaClients?.current?.()||null;
+  const currentRequest=()=>shell()?.currentRequest?.()||null;
+  const currentSituation=()=>shell()?.currentSituation?.()||null;
+  const selection=()=>shell()?.currentSelection?.()||null;
   function focusEditor(){
     requestAnimationFrame(()=>{
       const input=document.querySelector('#editorText');
@@ -14,16 +19,16 @@
   const addBelief=document.querySelector('#addBeliefBtn');
   if(addBelief){
     addBelief.onclick=()=>{
-      const s=typeof situation==='function'?situation():null;
-      const c=typeof client==='function'?client():null;
-      const r=typeof request==='function'?request():null;
+      const s=currentSituation();
+      const c=currentClient();
+      const r=currentRequest();
       const api=window.DiagnostikaDiagnosis;
       if(!s) return alert('Сначала выбери или добавь ситуацию.');
       if(!c||!r||!api?.moduleAware)return;
       const b=api.addBelief(s.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-belief-add',render:false});
       if(!b)return;
-      if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('belief',b.id);
-      if(typeof renderTree==='function') renderTree();
+      shell()?.selectDiagnosisElement?.('belief',b.id);
+      shell()?.renderDiagnosisTree?.();
       focusEditor();
     };
   }
@@ -31,15 +36,16 @@
   const addFeeling=document.querySelector('#addFeelingBtn');
   if(addFeeling){
     addFeeling.onclick=()=>{
+      const selected=selection();
       if(selected?.type!=='belief') return alert('Сначала выбери Убеждение 1.');
-      const c=typeof client==='function'?client():null;
-      const r=typeof request==='function'?request():null;
+      const c=currentClient();
+      const r=currentRequest();
       const api=window.DiagnostikaDiagnosis;
       if(!c||!r||!api?.moduleAware)return;
       const f=api.addFeeling(selected.obj.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-feeling-add',render:false});
       if(!f)return;
-      if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('feeling',f.id);
-      if(typeof renderTree==='function') renderTree();
+      shell()?.selectDiagnosisElement?.('feeling',f.id);
+      shell()?.renderDiagnosisTree?.();
       focusEditor();
     };
   }
@@ -47,15 +53,16 @@
   const addDeep=document.querySelector('#addDeepBtn');
   if(addDeep){
     addDeep.onclick=()=>{
+      const selected=selection();
       if(selected?.type!=='feeling') return alert('Сначала выбери вторичное чувство.');
-      const c=typeof client==='function'?client():null;
-      const r=typeof request==='function'?request():null;
+      const c=currentClient();
+      const r=currentRequest();
       const api=window.DiagnostikaDiagnosis;
       if(!c||!r||!api?.moduleAware)return;
       const d=api.addDeep(selected.obj.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-deep-add',render:false});
       if(!d)return;
-      if(typeof selectDiagnosisElementById==='function')selectDiagnosisElementById('deep',d.id);
-      if(typeof renderTree==='function') renderTree();
+      shell()?.selectDiagnosisElement?.('deep',d.id);
+      shell()?.renderDiagnosisTree?.();
       focusEditor();
     };
   }

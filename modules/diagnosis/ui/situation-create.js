@@ -1,11 +1,14 @@
 'use strict';
 
 (() => {
+  const shell=()=>window.DiagnostikaPlatform?.shell||null;
+  const currentClient=()=>window.DiagnostikaClients?.current?.()||null;
+  const currentRequest=()=>shell()?.currentRequest?.()||null;
   const btn=document.querySelector('#addSituationBtn');
   if(!btn) return;
 
   btn.onclick=()=>{
-    const r=typeof request==='function'?request():null;
+    const r=currentRequest();
     if(!r) return alert('Сначала выбери или создай запрос клиента.');
 
     const dlg=document.createElement('dialog');
@@ -58,15 +61,15 @@
         nameInput.style.borderColor='#dc2626';
         return;
       }
-      const c=typeof client==='function'?client():null;
+      const c=currentClient();
       const api=window.DiagnostikaDiagnosis;
       if(!c||!api?.moduleAware)return;
       const level=typeof lvl==='function'?lvl(levelInput.value):Math.max(1,Math.min(10,Number(levelInput.value)||5));
       const s=api.addSituation({name,level},{client:c,requestId:r.id,source:'diagnosis-ui-situation-add',render:false});
       if(!s)return;
-      situationId=s.id;
-      selected=null;
-      if(typeof renderSituationList==='function') renderSituationList();
+      shell()?.selectSituation?.(s.id);
+      shell()?.clearSelection?.();
+      shell()?.renderDiagnosis?.();
       dlg.close();
     };
 

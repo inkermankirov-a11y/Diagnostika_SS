@@ -5,10 +5,11 @@ import fs from 'node:fs';
 const appSource=fs.readFileSync('app.js','utf8');
 const apiSource=fs.readFileSync('diagnosis-api.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
+const createSource=fs.readFileSync('modules/diagnosis/ui/situation-create.js','utf8');
 
 assert(/version:'7[BCD]'/.test(apiSource),'Diagnosis facade version is outside supported 7B-7D range');
+assert(createSource.includes("source:'diagnosis-ui-situation-add'"),'Diagnosis 7B UI source missing situation add');
 for(const token of [
-  "source:'diagnosis-ui-situation-add'",
   "source:'diagnosis-ui-situation-edit'",
   "source:'diagnosis-ui-situation-delete'",
   "source:'diagnosis-ui-situation-result'"

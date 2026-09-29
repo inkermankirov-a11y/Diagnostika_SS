@@ -1,6 +1,12 @@
 'use strict';
 
 (() => {
+  const shell=()=>window.DiagnostikaPlatform?.shell||null;
+  const currentClient=()=>window.DiagnostikaClients?.current?.()||null;
+  const currentRequest=()=>shell()?.currentRequest?.()||null;
+  const currentSituation=()=>shell()?.currentSituation?.()||null;
+  const selection=()=>shell()?.currentSelection?.()||null;
+  const makeId=()=>{try{if(crypto?.randomUUID)return crypto.randomUUID();}catch(_){}return 'feeling_'+Date.now()+'_'+Math.random().toString(16).slice(2);};
   const PRESETS = [
     {name:'Обида', question:'К кому? Какой вы, когда это происходит? Есть ли вина или стыд?'},
     {name:'Злость', question:'На кого? Какой вы, когда это происходит? Есть ли вина или стыд?'},
@@ -92,7 +98,7 @@
   function presetQuestion(name){return PRESETS.find(x=>x.name===name)?.question||'';}
 
   function findBeliefForObject(obj){
-    const s=typeof situation==='function'?situation():null;
+    const s=currentSituation();
     if(!s) return null;
     for(const b of s.beliefs||[]){
       if(b===obj) return b;
@@ -116,7 +122,7 @@
       if(known){name=known.name;if(raw.startsWith(known.name+':'))answer=raw.slice(known.name.length+1).trim();}
       else {name=raw||'Своё чувство';answer='';}
     }
-    return {source:f,id:f.id||uid(),name,checked:true,question:f.feelingQuestion!=null?f.feelingQuestion:presetQuestion(name),answer,level:Number(f.level)||5,comment:f.comment||'',deep:Array.isArray(f.deep)?f.deep:[],custom:!PRESETS.some(x=>x.name===name)};
+    return {source:f,id:f.id||makeId(),name,checked:true,question:f.feelingQuestion!=null?f.feelingQuestion:presetQuestion(name),answer,level:Number(f.level)||5,comment:f.comment||'',deep:Array.isArray(f.deep)?f.deep:[],custom:!PRESETS.some(x=>x.name===name)};
   }
 
   function buildRows(belief){
@@ -124,7 +130,7 @@
     const result=[];
     PRESETS.forEach(p=>{
       const old=existing.find(x=>!x.custom&&x.name===p.name);
-      result.push(old||{source:null,id:uid(),name:p.name,checked:false,question:p.question,answer:'',level:5,comment:'',deep:[],custom:false});
+      result.push(old||{source:null,id:makeId(),name:p.name,checked:false,question:p.question,answer:'',level:5,comment:'',deep:[],custom:false});
     });
     existing.filter(x=>x.custom).forEach(x=>result.push(x));
     return result;
@@ -196,13 +202,13 @@
 
   function saveBuilder(){
     if(!editingBelief)return;
-    const c=typeof client==='function'?client():null;
-    const r=typeof request==='function'?request():null;
+    const c=currentClient();
+    const r=currentRequest();
     const api=window.DiagnostikaDiagnosis;
     if(!c||!r||!api?.moduleAware)return;
     const feelings=rows.filter(x=>x.checked).map(item=>{
-      const base=item.source?JSON.parse(JSON.stringify(item.source)):{id:item.id||uid(),deep:item.deep||[]};
-      base.id=base.id||item.id||uid();
+      const base=item.source?JSON.parse(JSON.stringify(item.source)):{id:item.id||makeId(),deep:item.deep||[]};
+      base.id=base.id||item.id||makeId();
       base.feelingType=item.name;
       base.feelingQuestion=item.question||presetQuestion(item.name)||'';
       base.feelingAnswer=item.answer||'';
@@ -214,20 +220,21 @@
       return base;
     });
     if(!api.replaceFeelings(editingBelief.id,feelings,{client:c,requestId:r.id,source:'diagnosis-ui-feelings-replace',render:false}))return;
-    selected=null;
-    if(typeof renderTree==='function')renderTree();
+    shell()?.clearSelection?.();
+    shell()?.renderDiagnosisTree?.();
     dialog.close();
   }
 
   if(addFeelingBtn){
     addFeelingBtn.onclick=()=>{
-      const belief=(typeof selected!=='undefined'&&selected?.type==='belief')?selected.obj:findBeliefForObject(selected?.obj);
+      const selected=selection();
+      const belief=selected?.type==='belief'?selected.obj:findBeliefForObject(selected?.obj);
       openBuilder(belief);
     };
   }
 
   dialog.querySelector('.feeling-add-custom').onclick=()=>{
-    rows.push({source:null,id:uid(),name:'',checked:true,question:'',answer:'',level:5,comment:'',deep:[],custom:true});
+    rows.push({source:null,id:makeId(),name:'',checked:true,question:'',answer:'',level:5,comment:'',deep:[],custom:true});
     renderRows();
     setTimeout(()=>list.scrollTo({top:list.scrollHeight,behavior:'smooth'}),0);
   };
@@ -240,21 +247,19 @@
     const editorType=document.querySelector('#editorType');
     if(!editorType)return;
     let box=document.querySelector('#feelingEditorInline');
-    const show=typeof selected!=='undefined'&&selected?.type==='feeling';
+    const selected=selection();
+    const show=selected?.type==='feeling';
     if(!show){if(box)box.remove();return;}
     if(!box){
       box=document.createElement('div');
       box.id='feelingEditorInline';
       box.className='feeling-editor-inline';
       box.innerHTML='<span>Вторичные чувства этого убеждения</span><button type="button">Редактировать список</button>';
-      box.querySelector('button').onclick=()=>openBuilder(findBeliefForObject(selected?.obj));
+      box.querySelector('button').onclick=()=>openBuilder(findBeliefForObject(selection()?.obj));
       editorType.insertAdjacentElement('afterend',box);
     }
   }
 
-  if(typeof renderEditor==='function'){
-    const originalRenderEditor=renderEditor;
-    renderEditor=function(){const result=originalRenderEditor.apply(this,arguments);updateInlineEditor();return result;};
-    updateInlineEditor();
-  }
+  document.addEventListener('diagnostika:diagnosis-editor-rendered',updateInlineEditor);
+  updateInlineEditor();
 })();

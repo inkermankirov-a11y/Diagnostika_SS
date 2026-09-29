@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const dashboardSource=fs.readFileSync('home-dashboard-sessions.js','utf8');
-const editorSource=fs.readFileSync('session-attachments.js','utf8');
-const interactionsSource=fs.readFileSync('session-interactions.js','utf8');
-const activeSource=fs.readFileSync('session-active-request.js','utf8');
-const formatSource=fs.readFileSync('session-format.js','utf8');
+const editorSource=fs.readFileSync('modules/sessions/ui/editor.js','utf8');
+const interactionsSource=fs.readFileSync('modules/sessions/ui/interactions.js','utf8');
+const activeSource=fs.readFileSync('modules/sessions/ui/active-request.js','utf8');
+const formatSource=fs.readFileSync('modules/sessions/ui/format.js','utf8');
 
 assert.equal(dashboardSource.includes('c.sessions.push('),false,'dashboard still creates sessions directly');
 assert.match(dashboardSource,/home-dashboard-session-create/);
