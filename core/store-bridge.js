@@ -19,11 +19,7 @@
 
   function currentClient() {
     try {
-      const viaApi = window.DiagnostikaClients?.current?.();
-      if (viaApi) return viaApi;
-    } catch (_) {}
-    try {
-      return typeof client === 'function' ? client() : null;
+      return platform.shell?.currentClient?.() || null;
     } catch (_) {
       return null;
     }
@@ -31,11 +27,7 @@
 
   function currentClientId() {
     try {
-      const viaApi = window.DiagnostikaClients?.currentId?.();
-      if (viaApi !== undefined && viaApi !== null) return viaApi;
-    } catch (_) {}
-    try {
-      return typeof clientId !== 'undefined' ? clientId : null;
+      return platform.shell?.currentClientId?.() ?? null;
     } catch (_) {
       return null;
     }
