@@ -107,6 +107,46 @@
     }
   }
 
+  function renderSessionsShell(){
+    try{
+      if(typeof renderSessions!=='function')return false;
+      renderSessions();
+      return true;
+    }catch(error){
+      console.error('[DiagnostikaPlatform] shell session render failed',error);
+      return false;
+    }
+  }
+
+  function renderDiagnosisShell(){
+    try{
+      if(typeof renderSituationList==='function'){
+        renderSituationList();
+        return true;
+      }
+      if(typeof renderTree==='function'){
+        renderTree();
+        return true;
+      }
+      return false;
+    }catch(error){
+      console.error('[DiagnostikaPlatform] shell diagnosis render failed',error);
+      return false;
+    }
+  }
+
+  function refreshDashboardShell(){
+    try{
+      const dashboard=window.DiagnostikaHomeDashboard;
+      if(!dashboard?.refresh)return false;
+      dashboard.refresh();
+      return true;
+    }catch(error){
+      console.error('[DiagnostikaPlatform] shell dashboard refresh failed',error);
+      return false;
+    }
+  }
+
   platform.shell=Object.freeze({
     state:stateRef,
     currentClient,
@@ -117,6 +157,9 @@
     viewRequest,
     restoreNavigation,
     renderClient:renderClientShell,
-    renderRequests:renderRequestsShell
+    renderRequests:renderRequestsShell,
+    renderSessions:renderSessionsShell,
+    renderDiagnosis:renderDiagnosisShell,
+    refreshDashboard:refreshDashboardShell
   });
 })();
