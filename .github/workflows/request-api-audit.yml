@@ -17,6 +17,7 @@ jobs:
           set -euo pipefail
           node --check request-api.js
           node --check modules/requests/request-service.js
+          node --check core/shell-bridge.js
           node --check modules/requests/index.js
           node --check tests/request-module-audit.mjs
           node --check home-dashboard.js
@@ -40,6 +41,15 @@ jobs:
           index=Path('index.html').read_text(encoding='utf-8')
           test_data=Path('test-data.js').read_text(encoding='utf-8')
           errors=[]
+          legacy_service_patterns=[
+              r'\\btypeof\\s+(?:state|clientId|requestId|situationId|selected|mode)\\b',
+              r'(?<![\\w.])(?:state|clientId|requestId|situationId|selected|mode)\\s*=',
+              r'\\b(?:save|renderRequests|newRequest)\\s*\\(',
+          ]
+          for pattern in legacy_service_patterns:
+              if re.search(pattern,service): errors.append('RequestService bypasses shell/store bridge: '+pattern)
+          if 'platform.shell?.viewRequest?.' not in service: errors.append('RequestService does not view through shell bridge')
+          if 'platform.store?.persist?.' not in service: errors.append('RequestService does not persist through store bridge')
           for token in ['typeof client','typeof requestId','renderRequests','window.renderClient','fallbackList','syncActiveView','...legacy']:
               if token in api: errors.append('request API reintroduced legacy state/render fallback: '+token)
           if 'window.DiagnostikaRequests=Object.freeze' not in api: errors.append('request API export missing')
