@@ -27,12 +27,10 @@
   };
 
   function clientsService(){
-    return platform.services?.clients||window.DiagnostikaClients||null;
+    return platform.services?.clients||null;
   }
   function sessionsService(){
-    return platform.services?.sessions
-      ||(window.DiagnostikaSessions?.moduleAware===true?window.DiagnostikaSessions:null)
-      ||null;
+    return platform.services?.sessions||null;
   }
 
   function resolveClient(clientRef){
@@ -59,8 +57,7 @@
     }
     const current=clientsService()?.current?.();
     if(current)return current;
-    try{return platform.store?.currentClient?.()||null;}catch(_){}
-    try{return typeof client==='function'?client():null;}catch(_){return null;}
+    try{return platform.store?.currentClient?.()||null;}catch(_){return null;}
   }
 
   function resolveSession(sessionRef,c){
@@ -82,7 +79,7 @@
 
   function persist(){
     try{
-      return platform.store?.legacySave?.()===true;
+      return platform.store?.persist?.({source:'ai-service-persist'})===true;
     }catch(error){
       console.error('[DiagnostikaPlatform] AI persistence failed',error);
       return false;
