@@ -9,7 +9,7 @@ assert(!transferSource.includes('Первичный специалист'),'Lega
 assert(transferSource.includes('client-specialist-history-btn'),'Current specialist button missing');
 assert(transferSource.includes('clientSpecialistHistoryDialog'),'Specialist history dialog missing');
 assert(transferSource.includes('requests:requestsForPeriod(incoming,start,transferredAt)'),'Transfer does not snapshot requests');
-assert(index.includes('client-transfer.js?v=20260929-specialists20a'),'Specialist history cache marker missing');
+assert(index.includes('client-transfer.js?v=20260929-specialists20b'),'Specialist row cache marker missing');
 
 const fixture={
   version:4,
@@ -71,18 +71,38 @@ await page.waitForFunction(()=>document.documentElement.classList.contains('diag
 await page.waitForFunction(()=>window.DiagnostikaClientTransfer?.buildSpecialistPeriods,null,{timeout:10000});
 await page.waitForSelector('#clientSpecialistInfo .client-specialist-history-btn',{state:'visible',timeout:10000});
 
-const hero=await page.evaluate(()=>({
-  text:document.querySelector('#clientSpecialistInfo')?.innerText||'',
-  tag:document.querySelector('#clientSpecialistInfo .client-specialist-history-btn')?.tagName||'',
-  buttonText:document.querySelector('#clientSpecialistInfo .client-specialist-history-btn')?.textContent||'',
-  width:document.querySelector('#clientSpecialistInfo')?.getBoundingClientRect().width||0,
-  bodyText:document.body.innerText
-}));
+const hero=await page.evaluate(()=>{
+  const info=document.querySelector('#clientSpecialistInfo');
+  const button=info?.querySelector('.client-specialist-history-btn');
+  const name=info?.querySelector('.client-specialist-name');
+  const actions=document.querySelector('#hdHeroActions');
+  const infoBox=info?.getBoundingClientRect();
+  const buttonBox=button?.getBoundingClientRect();
+  const nameBox=name?.getBoundingClientRect();
+  const actionsBox=actions?.getBoundingClientRect();
+  return {
+    text:info?.innerText||'',
+    buttonTag:button?.tagName||'',
+    buttonText:button?.textContent||'',
+    nameTag:name?.tagName||'',
+    nameText:name?.textContent||'',
+    width:infoBox?.width||0,
+    buttonCenterY:buttonBox?buttonBox.y+buttonBox.height/2:0,
+    nameCenterY:nameBox?nameBox.y+nameBox.height/2:0,
+    leftDelta:infoBox&&actionsBox?Math.abs(infoBox.x-actionsBox.x):999,
+    widthDelta:infoBox&&actionsBox?Math.abs(infoBox.width-actionsBox.width):999,
+    bodyText:document.body.innerText
+  };
+});
 
-assert(hero.text.includes('Текущий специалист:'),'Current specialist label missing');
-assert.equal(hero.tag,'BUTTON','Specialist name is not a button');
-assert.equal(hero.buttonText.trim(),'Евгений');
-assert(hero.width>=500,`Specialist row is still too narrow: ${hero.width}px`);
+assert.equal(hero.buttonTag,'BUTTON','Current specialist label is not a button');
+assert.equal(hero.buttonText.trim(),'Текущий специалист');
+assert.equal(hero.nameTag,'SPAN','Specialist name should be plain text');
+assert.equal(hero.nameText.trim(),'Евгений');
+assert(hero.width>=400,`Specialist row is too narrow: ${hero.width}px`);
+assert(Math.abs(hero.buttonCenterY-hero.nameCenterY)<=1,`Button/name vertical alignment differs: ${hero.buttonCenterY} vs ${hero.nameCenterY}`);
+assert(hero.leftDelta<=12,`Specialist row is not aligned with action row: left delta ${hero.leftDelta}px`);
+assert(hero.widthDelta<=20,`Specialist row width differs from action row by ${hero.widthDelta}px`);
 assert(!hero.bodyText.includes('Первичный специалист'),'Primary specialist is still visible');
 
 const periods=await page.evaluate(()=>window.DiagnostikaClientTransfer.buildSpecialistPeriods());
@@ -117,7 +137,9 @@ assert.deepEqual(errors,[],'Browser errors: '+JSON.stringify(errors));
 
 console.log('CLIENT_SPECIALIST_HISTORY_20A_SUCCESS',JSON.stringify({
   currentOnly:true,
-  nameButton:true,
+  labelButton:true,
+  namePlainText:true,
+  aligned:true,
   historyDialog:true,
   specialistPeriods:periods.length,
   requestHistory:true,
