@@ -64,3 +64,5 @@ $('#exportTxtBtn').onclick=()=>{const c=client(),r=request(),api=window.Diagnost
 $('#hintBtn').onclick=()=>alert('Подсказки убеждений: «Я недостаточно хорош(а)», «Я не справляюсь», «Со мной что-то не так», «Я недостоин(а)», «Меня отвергнут», «Я беспомощен/беспомощна».');
 if(!state.clients.length){const c=newClient();state.clients.push(c);clientId=c.id;save()}
 renderClient();renderMode();
+
+// stage3 site validation trigger
