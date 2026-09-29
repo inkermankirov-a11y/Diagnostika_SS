@@ -275,7 +275,10 @@
     const previousClientId = currentId();
     try {
       clientId = target.id;
-      requestId = null;
+      const requests = Array.isArray(target.requests) ? target.requests : [];
+      const preferredRequestId = target.currentRequestId ?? target.lastDiagnosisRequestId ?? null;
+      const preferredExists = preferredRequestId != null && requests.some(item => item && String(item.id) === String(preferredRequestId));
+      requestId = preferredExists ? preferredRequestId : (requests[0]?.id ?? null);
       situationId = null;
       selected = null;
     } catch (error) {
