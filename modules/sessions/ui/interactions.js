@@ -65,7 +65,7 @@
       await deleteSessionMedia(s.id);
       const api=sessionsApi();
       if(!api?.remove)return alert('Модуль сессий ещё загружается.');
-      const removed=api.remove(s.id,{client:c,source:'session-editor-delete'});
+      const removed=api.remove(s.id,{client:c,source: 'session-editor-delete'});
       if(!removed)return alert('Не удалось удалить сессию.');
       try{
         if(typeof selectedSessionId!=='undefined'&&selectedSessionId===s.id)selectedSessionId=null;
