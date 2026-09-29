@@ -35,6 +35,8 @@ jobs:
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           errors=[]
+          for token in ['typeof state','state?.','state.','typeof clientId','clientId=','save(','newClient(','renderClient(']:
+              if token in api: errors.append('client API reintroduced legacy state/render fallback: '+token)
           if 'Object.freeze(' not in api or 'window.DiagnostikaClients=' not in api: errors.append('client API frozen export missing')
           if re.search(r'\bstate\s*\?*\.?\s*clients\b|\bclientId\b',dash): errors.append('dashboard still owns client state directly')
           if 'window.openDatabase' in dash: errors.append('dashboard still calls legacy database global directly')
