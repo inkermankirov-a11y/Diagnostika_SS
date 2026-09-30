@@ -1,0 +1,26 @@
+name: Payment UI boundary audit
+
+on:
+  push:
+    branches: [main, 'feature-payment-*']
+    paths:
+      - 'payment-api.js'
+      - 'index.html'
+      - 'app-loader.js'
+      - 'modules/payments/ui/**'
+      - 'tests/payment-ui-boundary-*.mjs'
+      - '.github/workflows/payment-ui-boundary-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  payment-ui-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify modular Payment UI ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/payment-ui-boundary-25a-audit.mjs
+          node tests/payment-ui-boundary-25a-audit.mjs
