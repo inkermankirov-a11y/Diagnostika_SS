@@ -9,7 +9,7 @@ on:
       - 'client-db-enhancements.js'
       - 'client-trash.js'
       - 'home-dashboard.js'
-      - 'request-title-display.js'
+      - 'modules/requests/ui/title.js'
       - 'app-loader.js'
       - 'index.html'
       - '.github/workflows/client-api-audit.yml'
@@ -27,7 +27,7 @@ jobs:
           set -euo pipefail
           node --check client-api.js
           node --check home-dashboard.js
-          node --check request-title-display.js
+          node --check modules/requests/ui/title.js
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
