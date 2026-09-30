@@ -163,6 +163,7 @@
   function renderDialog({resetEntry=false}={}){
     const c=currentClient(),r=dialogRequest(c);if(!c||!r){if(dlg.open)dlg.close();return;}
     const p=paymentOfRequest(c,r),n=requestNumber(c,r);
+    dlg.dataset.requestId=r.id;
     q('#paymentRequestSub').textContent=`Запрос ${n}: ${r.title||'Без названия'}`;
     q('#paymentMode').value=p.mode||'';
     q('#paymentTotal').value=p.total||'';
