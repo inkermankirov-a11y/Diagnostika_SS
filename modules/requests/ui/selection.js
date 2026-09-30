@@ -19,7 +19,7 @@
     if(window.DiagnostikaRequests?.moduleAware===true)return window.DiagnostikaRequests;
     return platform()?.services?.requests||null;
   }
-  function cclient(){return window.DiagnostikaClients?.current?.()||(typeof client==='function'?client():null);}
+  function cclient(){return window.DiagnostikaRequestUIContext?.currentClient?.()||null;}
   function list(c=cclient()){return requestsApi()?.list?.(c)||[];}
   function reqById(c,id){return requestsApi()?.get?.(id,c)||null;}
   function viewed(c=cclient()){return requestsApi()?.viewed?.(c)||null;}
@@ -41,8 +41,7 @@
     let previousSelected=null;
     let preserveDiagnosisContext=false;
     try{
-      preserveDiagnosisContext=typeof mode!=='undefined'
-        && mode==='diagnosis'
+      preserveDiagnosisContext=window.DiagnostikaRequestUIContext?.currentMode?.()==='diagnosis'
         && String(api.viewedId?.(c)??'')===String(first.id);
       if(preserveDiagnosisContext){
         previousSituationId=typeof situationId!=='undefined'?situationId:null;

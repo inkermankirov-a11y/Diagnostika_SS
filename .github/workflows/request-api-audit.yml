@@ -2,7 +2,7 @@ name: Request API audit
 
 on:
   push:
-    branches: [main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, feature-sessions-4a, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
+    branches: [main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, 'feature-request-*', feature-sessions-4a, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
   workflow_dispatch:
 
 jobs:
@@ -21,9 +21,9 @@ jobs:
           node --check modules/requests/index.js
           node --check tests/request-module-audit.mjs
           node --check home-dashboard.js
-          node --check request-title-display.js
-          node --check request-select-labels.js
-          node --check request-date-unsaved.js
+          node --check modules/requests/ui/title.js
+          node --check modules/requests/ui/selection.js
+          node --check modules/requests/ui/date-unsaved.js
           node --check tests/request-ui-audit.mjs
           node --check test-data.js
           node --check tests/request-acceptance-3d-audit.mjs
@@ -31,9 +31,9 @@ jobs:
           from pathlib import Path
           import re,sys
           api=Path('request-api.js').read_text(encoding='utf-8')
-          request_ui=Path('request-select-labels.js').read_text(encoding='utf-8')
-          request_title=Path('request-title-display.js').read_text(encoding='utf-8')
-          request_date=Path('request-date-unsaved.js').read_text(encoding='utf-8')
+          request_ui=Path('modules/requests/ui/selection.js').read_text(encoding='utf-8')
+          request_title=Path('modules/requests/ui/title.js').read_text(encoding='utf-8')
+          request_date=Path('modules/requests/ui/date-unsaved.js').read_text(encoding='utf-8')
           service=Path('modules/requests/request-service.js').read_text(encoding='utf-8')
           module=Path('modules/requests/index.js').read_text(encoding='utf-8')
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
