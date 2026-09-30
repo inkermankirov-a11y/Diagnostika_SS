@@ -1,0 +1,109 @@
+'use strict';
+
+(() => {
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
+  const currentRequest=c=>ui()?.currentRequest?.(c)||null;
+  const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
+  const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{mode:'',total:0,payments:[],sessionAmount:0,sessionDiscount:0});
+  const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(v)||0);
+
+  function requestShownInDialog(c,dlg){
+    if(!c)return null;
+    const id=dlg?.dataset?.requestId;
+    return (id?ui()?.requestById?.(c,id):null)||currentRequest(c);
+  }
+
+  const style=document.createElement('style');
+  style.textContent=`
+    .payment-dialog.session-mode #paymentTotalField{display:none!important}
+    .payment-dialog.session-mode #sessionPriceField{display:none!important}
+    .payment-dialog.session-mode #paymentHistoryWrap{display:none!important}
+    .payment-dialog:not(.session-mode) #sessionPaymentSettings{display:none!important}
+    .payment-save-settings{background:linear-gradient(#3fa56f,#218955)!important;color:#fff!important}
+  `;
+  document.head.appendChild(style);
+
+  function renderFinal(dlg,p){
+    const final=dlg.querySelector('#sessionFinalPrice');
+    if(!final||!p)return;
+    const d=Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));
+    const price=Math.max(0,(Number(p.sessionAmount)||0)*(1-d/100));
+    final.innerHTML=`Итог за сессию: <strong>${money(price)} ₽</strong>${d?` <span style="color:#728092">(скидка ${d}%)</span>`:''}`;
+  }
+
+  function persistSessionSettings(dlg){
+    const c=currentClient(),r=requestShownInDialog(c,dlg);if(!c||!r)return;
+    const mode=dlg.querySelector('#paymentMode')?.value||'';
+    const changes={mode};
+    if(mode==='session'){
+      const base=dlg.querySelector('#sessionBasePrice')||dlg.querySelector('#sessionPrice');
+      const discount=dlg.querySelector('#sessionDiscount');
+      if(base)changes.sessionAmount=Math.max(0,num(base.value));
+      if(discount)changes.sessionDiscount=Math.min(100,Math.max(0,num(discount.value)));
+      changes.total=0;
+    }else{
+      changes.total=Math.max(0,num(dlg.querySelector('#paymentTotal')?.value));
+    }
+    const p=paymentWriter()?.updateRequest?.(
+      r.id,
+      changes,
+      {client:c,source:'payment-session-settings'}
+    );
+    if(!p)return;
+    try{window.DiagnostikaPayments?.refresh?.();}catch(e){}
+    try{window.DiagnostikaSessionPayments?.refresh?.();}catch(e){}
+    try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(e){}
+    renderFinal(dlg,p);
+  }
+
+  function ensureSaveButton(dlg){
+    let btn=dlg.querySelector('#paymentSaveSettings');
+    if(btn)return btn;
+    const footer=dlg.querySelector('.payment-footer');
+    if(!footer)return null;
+    btn=document.createElement('button');
+    btn.type='button';btn.id='paymentSaveSettings';btn.className='tk-btn payment-save-settings';btn.textContent='Сохранить оплату';
+    footer.insertBefore(btn,footer.firstChild);
+    btn.addEventListener('click',()=>{
+      persistSessionSettings(dlg);
+      apply();
+      btn.textContent='✓ Сохранено';
+      setTimeout(()=>{if(btn.isConnected)btn.textContent='Сохранить оплату';},1200);
+    });
+    return btn;
+  }
+
+  function apply(){
+    const dlg=document.querySelector('.payment-dialog');if(!dlg)return;
+    const mode=dlg.querySelector('#paymentMode')?.value||'';
+    const isSession=mode==='session';
+    dlg.classList.toggle('session-mode',isSession);
+    const totalField=dlg.querySelector('#paymentTotalField');
+    if(totalField){totalField.hidden=isSession;totalField.style.display=isSession?'none':'';}
+    const history=dlg.querySelector('#paymentHistoryWrap');if(history)history.hidden=isSession;
+    const hint=dlg.querySelector('#paymentSessionHint');if(hint)hint.hidden=!isSession;
+    const settings=dlg.querySelector('#sessionPaymentSettings');
+    if(settings){settings.hidden=!isSession;settings.style.display=isSession?'grid':'none';}
+    const legacy=dlg.querySelector('#sessionPriceField');if(legacy)legacy.style.display='none';
+    ensureSaveButton(dlg);
+
+    if(isSession){
+      const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(c,r);
+      if(!p)return;
+      const base=dlg.querySelector('#sessionBasePrice');
+      const discount=dlg.querySelector('#sessionDiscount');
+      if(base&&document.activeElement!==base)base.value=p.sessionAmount||'';
+      if(discount&&document.activeElement!==discount)discount.value=p.sessionDiscount||'';
+      renderFinal(dlg,p);
+    }
+  }
+
+  document.addEventListener('change',e=>{
+    if(e.target?.id==='paymentMode')setTimeout(apply,0);
+  });
+
+  window.addEventListener('diagnostika:payment-dialog-opened',()=>setTimeout(apply,0));
+  setTimeout(apply,0);
+})();
