@@ -4,23 +4,21 @@
   const SYMBOLS={RUB:'₽',USD:'$',EUR:'€',KZT:'₸'};
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
-  const currentClient=()=>typeof client==='function'?client():null;
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const linkSessionRequest=(c,s,requestId,source)=>{
     if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
-    const api=window.DiagnostikaSessions?.moduleAware===true
-      ? window.DiagnostikaSessions
-      : window.DiagnostikaPlatform?.services?.sessions||null;
+    const api=window.DiagnostikaSessions?.moduleAware===true?window.DiagnostikaSessions:null;
     return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
   };
 
   function requestNumber(c,r){
-    try{return window.DiagnostikaRequests?.requestNumber?.(c,r)||((c?.requests||[]).findIndex(x=>String(x?.id)===String(r?.id))+1)||0;}catch(_){return 0;}
+    try{return window.DiagnostikaRequests?.requestNumber?.(c,r)||0;}catch(_){return 0;}
   }
 
-  function paymentOf(r){
-    if(!r?.payment||typeof r.payment!=='object')return{};
-    return r.payment;
+  function paymentOf(r,c=currentClient()){
+    return paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{});
   }
 
   function sessionPayment(s,c=currentClient()){
@@ -28,21 +26,21 @@
   }
 
   function requestForSession(c,s){
-    const rid=s?.requestId||sessionPayment(s).requestId||'';
-    return (c?.requests||[]).find(r=>String(r?.id)===String(rid))||null;
+    const rid=s?.requestId||sessionPayment(s,c).requestId||'';
+    return ui()?.requestById?.(c,rid)||null;
   }
 
   function symbolFor(c,r){
-    const p=paymentOf(r);
+    const p=paymentOf(r,c);
     return SYMBOLS[p.currency||c?.currency||'RUB']||'₽';
   }
 
   function sessionsFor(c,r){
-    return (c?.sessions||[]).filter(s=>String(s?.requestId||sessionPayment(s).requestId||'')===String(r?.id||''));
+    return (ui()?.sessionsForRequest?.(c,r?.id)||[]).filter(s=>String(s?.requestId||sessionPayment(s,c).requestId||'')===String(r?.id||''));
   }
 
   function positivePaidSessions(c,r){
-    return sessionsFor(c,r).filter(s=>sessionPayment(s).paid===true&&num(sessionPayment(s).amount)>0);
+    return sessionsFor(c,r).filter(s=>sessionPayment(s,c).paid===true&&num(sessionPayment(s,c).amount)>0);
   }
 
   function paidTotalForRequest(c,r){
@@ -55,28 +53,13 @@
       if(pay?.sessionId&&paidSessionIds.has(String(pay.sessionId)))return sum;
       return sum+amount;
     },0);
-    const fromSessions=paidSessions.reduce((sum,s)=>sum+num(sessionPayment(s).amount),0);
+    const fromSessions=paidSessions.reduce((sum,s)=>sum+num(sessionPayment(s,c).amount),0);
     return direct+fromSessions;
   }
 
   function requestFromPaymentDialog(c,dlg){
-    const text=dlg?.querySelector('#paymentRequestSub')?.textContent||'';
-    const m=text.match(/Запрос\s+(\d+)/i);
-    if(m){
-      const idx=Number(m[1])-1;
-      if(idx>=0&&c?.requests?.[idx])return c.requests[idx];
-    }
-    try{
-      const r=window.DiagnostikaRequests?.current?.(c);
-      if(r)return r;
-    }catch(_){}
-    try{
-      if(typeof requestId!=='undefined'&&requestId){
-        const r=(c?.requests||[]).find(x=>String(x.id)===String(requestId));
-        if(r)return r;
-      }
-    }catch(_){}
-    return null;
+    const id=dlg?.dataset?.requestId;
+    return (id?ui()?.requestById?.(c,id):null)||ui()?.currentRequest?.(c)||null;
   }
 
   function refreshMainSummary(){
@@ -106,18 +89,16 @@
   }
 
   function globalSessionNumber(c,target){
-    const arr=(c?.sessions||[]).map((s,index)=>({s,index,time:new Date(s.date||s.createdAt||0).getTime()||index})).sort((a,b)=>a.time-b.time||a.index-b.index);
-    const i=arr.findIndex(x=>x.s===target||String(x.s?.id)===String(target?.id));
-    return i>=0?i+1:'—';
+    return window.DiagnostikaSessions?.sessionNumber?.(c,target)||'—';
   }
 
   function allRows(c){
     const rows=[];
-    const paidSessions=(c?.sessions||[]).filter(s=>sessionPayment(s).paid===true&&num(sessionPayment(s).amount)>0);
+    const paidSessions=(ui()?.sessionList?.(c)||[]).filter(s=>sessionPayment(s,c).paid===true&&num(sessionPayment(s,c).amount)>0);
     const paidSessionIds=new Set(paidSessions.map(s=>String(s?.id||'')).filter(Boolean));
 
-    (c?.requests||[]).forEach(r=>{
-      const p=paymentOf(r),rn=requestNumber(c,r),sym=symbolFor(c,r);
+    (ui()?.requestList?.(c)||[]).forEach(r=>{
+      const p=paymentOf(r,c),rn=requestNumber(c,r),sym=symbolFor(c,r);
       (Array.isArray(p.payments)?p.payments:[]).forEach(pay=>{
         const amount=num(pay?.amount);
         if(amount<=0)return;
@@ -179,7 +160,7 @@
     try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
     try{window.DiagnostikaPaymentConsistency?.refresh?.();}catch(_){}
     try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(_){}
-    try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
+    try{ui()?.refreshDashboard?.();}catch(_){}
   }
 
   async function confirmDelete(){
@@ -341,6 +322,6 @@
   document.addEventListener('input',e=>{if(e.target?.closest?.('.payment-dialog'))schedule();},true);
   document.addEventListener('close',e=>{if(e.target?.matches?.('dialog.payment-dialog'))schedule();},true);
 
-  window.DiagnostikaPaymentConsistency={refresh,allRows,paidTotalForRequest,editPayment};
+  window.DiagnostikaPaymentConsistency=Object.freeze({refresh,allRows,paidTotalForRequest,editPayment});
   setTimeout(refresh,0);
 })();
