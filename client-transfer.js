@@ -307,7 +307,7 @@
     if(!api.select(incoming.id,{source:'client-transfer-import-select'})){
       throw new Error('Не удалось выбрать импортированного клиента.');
     }
-    if(typeof window.renderClientDatabaseTable==='function') window.renderClientDatabaseTable();
+    window.DiagnostikaClientUIContext?.refreshDatabase?.();
     updateClientSpecialistInfo();
     const message=`${incoming.name||''}\n${t('from')}: ${previous||'—'}\n${t('current')}: ${current}`;
     if(window.AppDialog?.alert) await AppDialog.alert(message,t('imported')); else alert(message);
