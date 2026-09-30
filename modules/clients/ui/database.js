@@ -1,0 +1,124 @@
+'use strict';
+
+(() => {
+  const clientsApi=()=>window.DiagnostikaClients
+    || window.DiagnostikaPlatform?.clients
+    || window.DiagnostikaPlatform?.services?.clients
+    || null;
+
+  const FORMAT_INFO={
+    'google-meet':{label:'Google Meet',icon:'G',cls:'meet'},
+    'yandex-telemost':{label:'Яндекс Телемост',icon:'Я',cls:'yandex'},
+    'zoom':{label:'Zoom',icon:'Z',cls:'zoom'},
+    'telegram':{label:'Telegram',icon:'TG',cls:'telegram'},
+    'whatsapp':{label:'WhatsApp',icon:'WA',cls:'whatsapp'},
+    'max':{label:'MAX',icon:'M',cls:'max'},
+    'other-video':{label:'Другая видеосвязь',icon:'◉',cls:'other'},
+    'in-person':{label:'Лично',icon:'●',cls:'person'},
+    'other':{label:'Другое',icon:'…',cls:'other'}
+  };
+
+  function parseSessionDate(s,index){
+    const raw=s?.date||s?.createdAt||s?.savedAt||'';
+    if(!raw) return index;
+    const t=new Date(raw).getTime();
+    return Number.isFinite(t)?t:index;
+  }
+
+  function sortedSessions(c){
+    if(!Array.isArray(c?.sessions)||!c.sessions.length) return [];
+    return c.sessions.map((s,index)=>({s,index,time:parseSessionDate(s,index)}))
+      .sort((a,b)=>b.time-a.time||b.index-a.index);
+  }
+
+  function latestSession(c){return sortedSessions(c)[0]?.s||null;}
+  function latestSessionWithFormat(c){return sortedSessions(c).find(item=>item.s?.sessionFormat)?.s||null;}
+
+  function formatDate(raw){
+    if(!raw) return '—';
+    const parts=String(raw).slice(0,10).split('-');
+    if(parts.length===3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    const d=new Date(raw);
+    if(Number.isNaN(d.getTime())) return String(raw);
+    return d.toLocaleDateString('ru-RU');
+  }
+
+  function formatInfo(s){
+    if(!s?.sessionFormat) return null;
+    const base=FORMAT_INFO[s.sessionFormat]||{label:s.sessionFormat,icon:'◉',cls:'other'};
+    if(s.sessionFormat==='other' && s.sessionFormatOther?.trim()) return {...base,label:s.sessionFormatOther.trim()};
+    return base;
+  }
+
+  window.renderClientDatabaseTable=function(){
+    const dlg=document.querySelector('#clientDialog');
+    const root=document.querySelector('#clientDatabaseList');
+    if(!dlg||!root) return;
+    root.innerHTML='';
+
+    const clients=clientsApi()?.list?.()||[];
+    if(!clients.length){
+      const empty=document.createElement('div');
+      empty.className='db-empty';
+      empty.textContent='Клиентов пока нет.';
+      root.appendChild(empty);
+      document.dispatchEvent(new CustomEvent('diagnostika:client-database-rendered'));
+      return;
+    }
+
+    const table=document.createElement('table');
+    table.className='db-table db-table-enhanced';
+    table.innerHTML='<thead><tr><th class="db-col-num">№</th><th>ФИО</th><th class="db-col-city">Город</th><th class="db-col-last">Последняя сессия</th><th class="db-col-format">Связь</th><th class="db-col-actions">Действия</th></tr></thead>';
+    const tbody=document.createElement('tbody');
+
+    clients.forEach((c,index)=>{
+      const tr=document.createElement('tr');
+      const last=latestSession(c);
+      const lastWithFormat=latestSessionWithFormat(c);
+
+      const num=document.createElement('td');num.className='db-col-num';num.textContent=String(index+1);
+      const name=document.createElement('td');name.className='db-client-name';name.textContent=c.name||'Без имени';
+      const city=document.createElement('td');city.className='db-col-city';city.textContent=c.city||'—';
+      const lastCell=document.createElement('td');lastCell.className='db-col-last';lastCell.textContent=last?formatDate(last.date||last.createdAt||last.savedAt):'—';
+      const formatCell=document.createElement('td');formatCell.className='db-col-format';
+      const info=formatInfo(lastWithFormat);
+      if(info){const badge=document.createElement('span');badge.className=`db-format-icon ${info.cls}`;badge.textContent=info.icon;badge.title=info.label;badge.setAttribute('aria-label',info.label);formatCell.appendChild(badge);}else formatCell.textContent='—';
+
+      const actions=document.createElement('td');actions.className='db-col-actions';
+      const group=document.createElement('div');group.className='db-action-group';
+
+      const openBtn=document.createElement('button');
+      openBtn.type='button';openBtn.className='db-open-btn';openBtn.textContent='Открыть';
+      openBtn.onclick=()=>{
+        const opened=clientsApi()?.select?.(c.id,{source:'client-database-open'});
+        if(opened) dlg.close();
+      };
+
+      const delBtn=document.createElement('button');
+      delBtn.type='button';delBtn.className='db-delete-btn db-delete-btn-compact';delBtn.textContent='Удалить';
+      delBtn.onclick=()=>{
+        if(typeof window.moveClientToTrashById!=='function'){
+          console.error('Функция удаления клиента не загружена');
+          return;
+        }
+        const removed=window.moveClientToTrashById(c.id);
+        if(removed && dlg.open) window.renderClientDatabaseTable();
+      };
+
+      group.append(openBtn,delBtn);actions.appendChild(group);
+      tr.append(num,name,city,lastCell,formatCell,actions);tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);root.appendChild(table);
+    document.dispatchEvent(new CustomEvent('diagnostika:client-database-rendered'));
+  };
+
+  window.openDatabase=function(){
+    const dlg=document.querySelector('#clientDialog');
+    window.renderClientDatabaseTable();
+    if(dlg&&!dlg.open) dlg.showModal();
+  };
+
+  const btn=document.querySelector('#clientBaseBtn');
+  if(btn) btn.onclick=window.openDatabase;
+})();
