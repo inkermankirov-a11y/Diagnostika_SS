@@ -7,7 +7,7 @@
     scheduled=false;
     let changed=false;
 
-    // .hd-client-more belongs to the new dashboard and must not be removed here.
+    // Remove only retired legacy debt flags. Current payment flags are owned by Payments UI.
     document.querySelectorAll('.hd-unpaid-flag').forEach(flag=>{
       const title=(flag.getAttribute('title')||'').toLowerCase();
       const aria=(flag.getAttribute('aria-label')||'').toLowerCase();
@@ -29,8 +29,28 @@
     requestAnimationFrame(cleanup);
   }
 
-  const observer=new MutationObserver(schedule);
-  observer.observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('diagnostika:dashboard-clients-rendered',schedule);
+  document.addEventListener('diagnostika:dashboard-sessions-rendered',schedule);
+  window.addEventListener('diagnostika:payment-dialog-opened',schedule);
+  window.addEventListener('diagnostika:session-editor-opened',schedule);
+
+  const events=window.DiagnostikaPlatform?.events;
+  for(const type of [
+    'client:selected','client:updated',
+    'request:selected','request:updated',
+    'payment:updated','payment:added','payment:deleted',
+    'session-payment:updated','session:created','session:updated','session:deleted'
+  ])events?.on?.(type,schedule);
+
+  window.addEventListener('diagnostika:platform-core-ready',()=>{
+    const readyEvents=window.DiagnostikaPlatform?.events;
+    for(const type of [
+      'client:selected','client:updated',
+      'request:selected','request:updated',
+      'payment:updated','payment:added','payment:deleted',
+      'session-payment:updated','session:created','session:updated','session:deleted'
+    ])readyEvents?.on?.(type,schedule);
+  },{once:true});
 
   document.addEventListener('click',e=>{
     if(e.target?.closest?.('.payment-dialog,.hd-client-row'))setTimeout(schedule,0);
