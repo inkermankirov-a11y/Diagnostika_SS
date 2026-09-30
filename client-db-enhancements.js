@@ -62,6 +62,7 @@
       empty.className='db-empty';
       empty.textContent='Клиентов пока нет.';
       root.appendChild(empty);
+      document.dispatchEvent(new CustomEvent('diagnostika:client-database-rendered'));
       return;
     }
 
@@ -109,6 +110,7 @@
     });
 
     table.appendChild(tbody);root.appendChild(table);
+    document.dispatchEvent(new CustomEvent('diagnostika:client-database-rendered'));
   };
 
   window.openDatabase=function(){
