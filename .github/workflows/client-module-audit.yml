@@ -9,7 +9,7 @@ on:
       - 'client-card-window.js'
       - 'delete-client.js'
       - 'client-trash.js'
-      - 'client-db-enhancements.js'
+      - 'modules/clients/ui/database.js'
       - 'modules/sessions/ui/interactions.js'
       - 'last-client.js'
       - 'client-transfer.js'
@@ -48,7 +48,7 @@ jobs:
           node --check client-card-window.js
           node --check delete-client.js
           node --check client-trash.js
-          node --check client-db-enhancements.js
+          node --check modules/clients/ui/database.js
           node --check modules/sessions/ui/interactions.js
           node --check app-loader.js
           node --check tests/client-module-audit.mjs
@@ -71,7 +71,7 @@ jobs:
           card=Path('client-card-window.js').read_text(encoding='utf-8')
           delete_client=Path('delete-client.js').read_text(encoding='utf-8')
           trash=Path('client-trash.js').read_text(encoding='utf-8')
-          db=Path('client-db-enhancements.js').read_text(encoding='utf-8')
+          db=Path('modules/clients/ui/database.js').read_text(encoding='utf-8')
           session_interactions=Path('modules/sessions/ui/interactions.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           index=Path('index.html').read_text(encoding='utf-8')
@@ -111,7 +111,7 @@ jobs:
           if 'client-api.js?v=20260918-clients2b2' not in loader: errors.append('client API cache version is stale')
           if 'client-card-window.js?v=20260918-clients2b1' not in index: errors.append('client card cache version is stale')
           if 'delete-client.js?v=20260918-clients2b2' not in index: errors.append('delete-client cache version is stale')
-          if 'client-db-enhancements.js?v=20260918-clients2b2' not in index: errors.append('client DB cache version is stale')
+          if 'modules/clients/ui/database.js?v=20260930-modular-stage5-12' not in index: errors.append('client DB module/cache marker is stale')
           if 'client-trash.js?v=20260918-clients2b2' not in index: errors.append('client trash cache version is stale')
           if 'modules/sessions/ui/interactions.js?v=20260929-modular24a' not in index: errors.append('session interactions script/cache marker is missing')
           if 'app-loader.js?v=' not in index: errors.append('app loader script is missing')
