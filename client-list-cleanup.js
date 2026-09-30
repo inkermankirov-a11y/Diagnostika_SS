@@ -34,23 +34,23 @@
   window.addEventListener('diagnostika:payment-dialog-opened',schedule);
   window.addEventListener('diagnostika:session-editor-opened',schedule);
 
-  const events=window.DiagnostikaPlatform?.events;
-  for(const type of [
-    'client:selected','client:updated',
-    'request:selected','request:updated',
-    'payment:updated','payment:added','payment:deleted',
-    'session-payment:updated','session:created','session:updated','session:deleted'
-  ])events?.on?.(type,schedule);
-
-  window.addEventListener('diagnostika:platform-core-ready',()=>{
-    const readyEvents=window.DiagnostikaPlatform?.events;
+  let platformEventsBound=false;
+  function bindPlatformEvents(){
+    if(platformEventsBound)return true;
+    const events=window.DiagnostikaPlatform?.events;
+    if(!events?.on)return false;
     for(const type of [
       'client:selected','client:updated',
       'request:selected','request:updated',
       'payment:updated','payment:added','payment:deleted',
       'session-payment:updated','session:created','session:updated','session:deleted'
-    ])readyEvents?.on?.(type,schedule);
-  },{once:true});
+    ])events.on(type,schedule);
+    platformEventsBound=true;
+    return true;
+  }
+
+  bindPlatformEvents();
+  window.addEventListener('diagnostika:platform-core-ready',bindPlatformEvents,{once:true});
 
   document.addEventListener('click',e=>{
     if(e.target?.closest?.('.payment-dialog,.hd-client-row'))setTimeout(schedule,0);
