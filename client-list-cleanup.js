@@ -41,27 +41,5 @@
 
   setTimeout(schedule,0);
 
-  if(!document.querySelector('script[data-payment-full-mode-ui]')){
-    const script=document.createElement('script');
-    script.src='payment-full-mode-ui.js?v=20260912-70';
-    script.dataset.paymentFullModeUi='1';
-    document.body.appendChild(script);
-  }
-
-  if(!document.querySelector('script[data-payment-save-normalizer]')){
-    const script=document.createElement('script');
-    script.src='payment-save-normalizer.js?v=20260912-71';
-    script.dataset.paymentSaveNormalizer='1';
-    document.body.appendChild(script);
-  }
-
-  if(!document.querySelector('script[data-all-payments-complete]')){
-    const script=document.createElement('script');
-    script.src='all-payments-complete.js?v=20260912-75';
-    script.dataset.allPaymentsComplete='1';
-    document.body.appendChild(script);
-  }
-
-  // session-ledger-current-request.js уже подключён напрямую в index.html.
-  // Второй динамический запуск здесь раньше создавал дубли MutationObserver/listeners.
+  // Payment UI is owned by modules/payments/ui; legacy dynamic payment shims are retired.
 })();
