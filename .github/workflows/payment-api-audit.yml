@@ -180,6 +180,7 @@ jobs:
           const errors=[];
           page.on('pageerror',e=>errors.push('pageerror: '+e.message));
           page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('response',r=>{if(r.status()===404)errors.push('http404: '+r.url());});
           page.on('dialog',d=>d.accept().catch(()=>{}));
 
           const openDashboardPayment=async()=>{
