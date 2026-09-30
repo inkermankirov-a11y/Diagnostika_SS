@@ -2,6 +2,7 @@
 
 (() => {
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(v)||0);
+  const dialogControllers=new Map();
   const uidPay=()=>crypto.randomUUID?crypto.randomUUID():'pay_'+Date.now()+'_'+Math.random().toString(16).slice(2);
   const ui=()=>window.DiagnostikaPaymentUIContext||null;
   const currentClient=()=>ui()?.currentClient?.()||null;
@@ -68,7 +69,7 @@
     .session-editor-payment{display:flex;align-items:center;gap:6px;min-height:30px;position:relative;z-index:3;flex-wrap:wrap}
     .session-editor-payment-label{font-size:11px;font-weight:800;color:#475569}
     .session-editor-payment-state{min-height:28px!important;height:28px!important;padding:3px 9px!important;border-radius:8px!important;font-size:11px!important;font-weight:800!important;white-space:nowrap;pointer-events:auto!important;cursor:pointer!important;position:relative;z-index:4}
-    .session-editor-payment-state.unpaid{background:linear-gradient(#ef6a6a,#d94d4d)!important;color:#fff!important;animation:sessionPayPulse 1.2s ease-in-out infinite}
+    .session-editor-payment-state.unpaid{background:linear-gradient(#ef6a6a,#d94d4d)!important;color:#fff!important;animation:none!important;box-shadow:none!important}
     .session-editor-payment-state.paid{background:linear-gradient(#42ad73,#248d58)!important;color:#fff!important;animation:none!important}
     .session-editor-payment-amount-wrap{display:flex;align-items:center;gap:5px}
     .session-editor-payment-amount-label{font-size:11px;font-weight:800;color:#475569}
@@ -171,7 +172,7 @@
     if(dateInput){dateInput.parentNode.insertBefore(dateWrap,dateInput);dateWrap.appendChild(dateInput);}else grid.prepend(dateWrap);
     const box=document.createElement('div');
     box.className='session-editor-payment';
-    box.innerHTML='<span class="session-editor-payment-label">Оплата:</span><button type="button" class="tk-btn session-editor-payment-state"></button><div class="session-editor-payment-amount-wrap" hidden><span class="session-editor-payment-amount-label">Сумма:</span><input class="session-editor-payment-amount" type="number" min="0" step="100" placeholder="0"><span class="session-editor-payment-currency">₽</span></div>';
+    box.innerHTML='<span class="session-editor-payment-label">Оплата:</span><button type="button" class="tk-btn session-editor-payment-state session-payment-toggle-stable"></button><div class="session-editor-payment-amount-wrap" hidden><span class="session-editor-payment-amount-label">Сумма:</span><input class="session-editor-payment-amount" type="number" min="0" step="100" placeholder="0"><span class="session-editor-payment-currency">₽</span></div>';
     dateWrap.appendChild(box);
     const btn=box.querySelector('.session-editor-payment-state');
     const amountWrap=box.querySelector('.session-editor-payment-amount-wrap');
@@ -204,6 +205,8 @@
       persistInstallmentSessionPayment(c,s,preferredId,true,dateInput?.value||s.date||today(),amount);
       applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();
     });
+    dialogControllers.set(dlg,{render});
+    dlg.addEventListener('close',()=>dialogControllers.delete(dlg),{once:true});
     render();
   }
   document.addEventListener('click',e=>{
@@ -261,7 +264,7 @@
       const row=document.createElement('div');row.className='session-payment-ledger-row';row.innerHTML=`<span>${fmtDate(paymentDate)}</span><span class="ok">✓ Сессия №${number} от ${fmtDate(sessionDate)}<span class="request-note">${reqLabel}</span></span><strong>${money(amount)} ₽</strong>`;ledger.appendChild(row);
     });
   }
-  function refresh(){renderPaymentLedger();}
+  function refresh(){for(const [dlg,controller] of dialogControllers){if(!dlg.isConnected){dialogControllers.delete(dlg);continue;}controller.render?.();}renderPaymentLedger();}
   document.addEventListener('diagnostika:session-editor-opened',event=>{
     const detail=event.detail||{};
     enhanceDialog(detail.dialog,detail.client,detail.session);
@@ -271,4 +274,5 @@
   const events=window.DiagnostikaPlatform?.events;
   for(const type of ['payment:updated','payment:added','payment:deleted','session-payment:updated','session:updated','session:deleted'])events?.on?.(type,()=>setTimeout(refresh,0));
   setTimeout(refresh,0);
+  window.DiagnostikaSessionPaymentEditor=Object.freeze({refresh});
 })();
