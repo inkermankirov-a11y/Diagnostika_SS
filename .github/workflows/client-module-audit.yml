@@ -15,7 +15,7 @@ on:
       - 'modules/clients/ui/trash.js'
       - 'modules/clients/ui/database.js'
       - 'modules/sessions/ui/interactions.js'
-      - 'last-client.js'
+      - 'modules/clients/selection-memory.js'
       - 'modules/clients/ui/transfer.js'
       - 'form-integrations.js'
       - 'ui-fixes.js'
@@ -48,6 +48,7 @@ jobs:
           node --check modules/clients/client-service.js
           node --check core/shell-bridge.js
           node --check modules/clients/index.js
+          node --check modules/clients/selection-memory.js
           node --check client-api.js
           node --check modules/clients/ui/card.js
           node --check modules/clients/ui/delete.js
