@@ -22,7 +22,7 @@
   function t(k){return TEXT[lang()][k]||TEXT.ru[k]||k;}
   function specialistName(){return (localStorage.getItem(SPECIALIST_KEY)||'').trim();}
   function clone(v){return JSON.parse(JSON.stringify(v));}
-  function uidLocal(){return typeof uid==='function'?uid():'id_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+  function uidLocal(){return crypto.randomUUID?crypto.randomUUID():'id_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
   function safeFileName(v){return String(v||'client').trim().replace(/[<>:"/\\|?*\x00-\x1F]/g,'_').replace(/[. ]+$/g,'').slice(0,80)||'client';}
   const clientsApi=()=>window.DiagnostikaClients
     || window.DiagnostikaPlatform?.clients
@@ -307,7 +307,7 @@
     if(!api.select(incoming.id,{source:'client-transfer-import-select'})){
       throw new Error('Не удалось выбрать импортированного клиента.');
     }
-    if(typeof window.renderClientDatabaseTable==='function') window.renderClientDatabaseTable();
+    window.DiagnostikaClientUIContext?.refreshDatabase?.();
     updateClientSpecialistInfo();
     const message=`${incoming.name||''}\n${t('from')}: ${previous||'—'}\n${t('current')}: ${current}`;
     if(window.AppDialog?.alert) await AppDialog.alert(message,t('imported')); else alert(message);
@@ -347,31 +347,23 @@
     updateClientSpecialistInfo();
   }
 
-  function patchDatabaseRender(){
-    if(typeof window.renderClientDatabaseTable!=='function') return false;
-    if(window.renderClientDatabaseTable.__transferPatched) return true;
-    const original=window.renderClientDatabaseTable;
-    const wrapped=function(){
-      const r=original.apply(this,arguments);
-      const rows=document.querySelectorAll('#clientDatabaseList tbody tr');
-      rows.forEach((tr,index)=>{
-        const c=(clientsApi()?.list?.()||[])[index];
-        const group=tr.querySelector('.db-action-group');
-        if(!c||!group||group.querySelector('.db-export-btn')) return;
-        const exportBtn=document.createElement('button');
-        exportBtn.type='button';
-        exportBtn.className='db-export-btn';
-        exportBtn.textContent=t('export');
-        exportBtn.onclick=e=>{e.stopPropagation();exportClient(c);};
-        const deleteBtn=group.querySelector('.db-delete-btn');
-        if(deleteBtn) group.insertBefore(exportBtn,deleteBtn); else group.appendChild(exportBtn);
-      });
-      setupImport();
-      refreshLabels();
-      return r;
-    };
-    wrapped.__transferPatched=true;
-    window.renderClientDatabaseTable=wrapped;
+  function decorateDatabaseRows(){
+    const rows=document.querySelectorAll('#clientDatabaseList tbody tr');
+    const clients=clientsApi()?.list?.()||[];
+    rows.forEach((tr,index)=>{
+      const c=clients[index];
+      const group=tr.querySelector('.db-action-group');
+      if(!c||!group||group.querySelector('.db-export-btn')) return;
+      const exportBtn=document.createElement('button');
+      exportBtn.type='button';
+      exportBtn.className='db-export-btn';
+      exportBtn.textContent=t('export');
+      exportBtn.onclick=e=>{e.stopPropagation();exportClient(c);};
+      const deleteBtn=group.querySelector('.db-delete-btn');
+      if(deleteBtn) group.insertBefore(exportBtn,deleteBtn); else group.appendChild(exportBtn);
+    });
+    setupImport();
+    refreshLabels();
     return true;
   }
 
@@ -505,12 +497,13 @@
 
   function initialize(){
     setupImport();
-    patchDatabaseRender();
+    decorateDatabaseRows();
     bindClientEvents();
     updateClientSpecialistInfo();
   }
   initialize();
   window.addEventListener('diagnostika:dashboard-loaded',updateClientSpecialistInfo);
+  window.addEventListener('diagnostika:client-database-rendered',decorateDatabaseRows);
   window.addEventListener('diagnostika:platform-core-ready',()=>{bindClientEvents();updateClientSpecialistInfo();},{once:true});
   [100,300,800,1600].forEach(ms=>setTimeout(initialize,ms));
 

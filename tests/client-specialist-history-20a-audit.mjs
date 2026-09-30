@@ -2,14 +2,14 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const transferSource=fs.readFileSync('client-transfer.js','utf8');
+const transferSource=fs.readFileSync('modules/clients/ui/transfer.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 
 assert(!transferSource.includes('Первичный специалист'),'Legacy primary specialist label still exists');
 assert(transferSource.includes('client-specialist-history-btn'),'Current specialist button missing');
 assert(transferSource.includes('clientSpecialistHistoryDialog'),'Specialist history dialog missing');
 assert(transferSource.includes('requests:requestsForPeriod(incoming,start,transferredAt)'),'Transfer does not snapshot requests');
-assert(index.includes('client-transfer.js?v=20260929-specialists20b'),'Specialist row cache marker missing');
+assert(index.includes('modules/clients/ui/transfer.js?v=20260930-modular-stage5-18'),'Specialist row module/cache marker missing');
 
 const fixture={
   version:4,

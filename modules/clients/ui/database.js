@@ -97,11 +97,7 @@
       const delBtn=document.createElement('button');
       delBtn.type='button';delBtn.className='db-delete-btn db-delete-btn-compact';delBtn.textContent='Удалить';
       delBtn.onclick=()=>{
-        if(typeof window.moveClientToTrashById!=='function'){
-          console.error('Функция удаления клиента не загружена');
-          return;
-        }
-        const removed=window.moveClientToTrashById(c.id);
+        const removed=clientsApi()?.remove?.(c.id,{source:'client-database-delete'});
         if(removed && dlg.open) window.renderClientDatabaseTable();
       };
 

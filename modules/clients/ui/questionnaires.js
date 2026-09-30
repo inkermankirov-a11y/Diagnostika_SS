@@ -18,10 +18,17 @@
     || null;
 
   function currentClient(){
-    try{const c=clientsApi()?.current?.();if(c)return c;}catch(_){}
-    try{return typeof client==='function'?client():null;}catch(_){return null;}
+    try{return window.DiagnostikaClientUIContext?.currentClient?.()||clientsApi()?.current?.()||null;}
+    catch(_){return null;}
   }
   function arr(c){return Array.isArray(c?.questionnaires)?c.questionnaires:[];}
+  function clone(value){try{return JSON.parse(JSON.stringify(value));}catch(_){return value;}}
+  function questionnaireList(c){return clone(arr(c))||[];}
+  function persistQuestionnaires(c,next,source,extraPatch={}){
+    const api=clientsApi();
+    if(!c?.id||!api?.update)return null;
+    return api.update(c.id,{...extraPatch,questionnaires:next},{source});
+  }
   function fmtDate(v){try{return new Date(v).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(_){return String(v||'');}}
   function uid(prefix='manual'){
     const id=crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
@@ -40,7 +47,7 @@
     };
     if(c)collect(c);
     try{
-      for(const clientObj of state?.clients||[]){
+      for(const clientObj of clientsApi()?.list?.()||[]){
         if(c&&String(clientObj.id)===String(c.id))continue;
         collect(clientObj);
       }
@@ -83,7 +90,7 @@
 
   function addManualQuestionnaire(){
     const c=currentClient();if(!c)return;
-    if(!Array.isArray(c.questionnaires))c.questionnaires=[];
+    const next=questionnaireList(c);
     const template=latestQuestionTemplate(c);
     const item={
       id:uid('manual'),
@@ -95,12 +102,13 @@
         contactMethod:c.preferredContact||'',vk:c.vk||'',telegram:c.telegram||'',max:c.max||''
       },
       answerItems:template.map(question=>({id:uid('q'),question,answer:''})),
-      answers:{},raw:null,isPrimary:c.questionnaires.length===0,editedAt:null
+      answers:{},raw:null,isPrimary:next.length===0,editedAt:null
     };
     syncManualAnswers(item);
-    c.questionnaires.push(item);
+    next.push(item);
+    const updated=persistQuestionnaires(c,next,'questionnaire-manual-create');
+    if(!updated){showNotice('Не удалось сохранить анкету.');return;}
     selectedId=String(item.id);
-    if(typeof save==='function')save();
     renderList();renderEditor();updateButton();
     showNotice(template.length?`Ручная анкета создана по шаблону Яндекс Формы: ${template.length} вопросов.`:'Ручная анкета создана. Шаблон Яндекс Формы пока не найден — вопросы можно добавить вручную.');
   }
@@ -115,7 +123,11 @@
     root.querySelectorAll('.cq-item').forEach(b=>b.onclick=()=>{selectedId=b.dataset.id;renderList();renderEditor();showNotice('');});
   }
 
-  function selected(){const c=currentClient();return arr(c).find(x=>String(x.id)===String(selectedId))||null;}
+  function selected(){
+    const c=currentClient();
+    const item=arr(c).find(x=>String(x.id)===String(selectedId))||null;
+    return item?clone(item):null;
+  }
 
   function manualRowHtml(item){
     const id=esc(item?.id||uid('q'));
@@ -197,8 +209,12 @@
   }
 
   function saveEdited(){
-    const x=selected();if(!x||!writeEditorTo(x))return;
-    if(typeof save==='function')save();
+    const c=currentClient(),x=selected();if(!c||!x||!writeEditorTo(x))return;
+    const next=questionnaireList(c).map(item=>String(item.id)===String(x.id)?x:item);
+    if(!persistQuestionnaires(c,next,'questionnaire-edit')){
+      showNotice('Не удалось сохранить изменения анкеты.');
+      return;
+    }
     renderList();renderEditor();
     showNotice('Изменения анкеты сохранены.');
   }
@@ -210,15 +226,12 @@
 
   function makePrimary(){
     const c=currentClient(),x=selected();if(!c||!x)return;
-    const api=clientsApi();
-    if(!api?.update){
-      showNotice('ClientService недоступен. Данные клиента не изменены.');
-      return;
-    }
     if(!writeEditorTo(x))return;
 
-    const previousPrimary=arr(c).map(qx=>({id:qx.id,isPrimary:!!qx.isPrimary}));
-    for(const qx of arr(c))qx.isPrimary=String(qx.id)===String(x.id);
+    const next=questionnaireList(c).map(item=>{
+      const row=String(item.id)===String(x.id)?x:item;
+      return {...row,isPrimary:String(row.id)===String(x.id)};
+    });
 
     const p=x.profile||{};
     const patch={};
@@ -231,12 +244,8 @@
     if(['Мужской','Женский'].includes(p.gender))patch.gender=p.gender;
     if(p.contactMethod)patch.preferredContact=p.contactMethod;
 
-    const updated=api.update(c.id,patch,{source:'questionnaire-primary-profile'});
+    const updated=persistQuestionnaires(c,next,'questionnaire-primary-profile',patch);
     if(!updated){
-      for(const old of previousPrimary){
-        const qx=arr(c).find(item=>String(item.id)===String(old.id));
-        if(qx)qx.isPrimary=old.isPrimary;
-      }
       showNotice('Не удалось обновить данные клиента.');
       return;
     }
@@ -248,9 +257,13 @@
   async function deleteSelected(){
     const c=currentClient(),x=selected();if(!c||!x)return;
     const ok=window.AppDialog?.confirm?await AppDialog.confirm('Удалить эту анкету? Клиент останется в базе.','Удаление анкеты'):window.confirm('Удалить эту анкету?');if(!ok)return;
-    c.questionnaires=arr(c).filter(qx=>String(qx.id)!==String(x.id));
-    if(x.isPrimary&&c.questionnaires.length)c.questionnaires[0].isPrimary=true;
-    selectedId=null;if(typeof save==='function')save();renderList();renderEditor();updateButton();showNotice('Анкета удалена.');
+    const next=questionnaireList(c).filter(qx=>String(qx.id)!==String(x.id));
+    if(x.isPrimary&&next.length)next[0].isPrimary=true;
+    if(!persistQuestionnaires(c,next,'questionnaire-delete')){
+      showNotice('Не удалось удалить анкету.');
+      return;
+    }
+    selectedId=null;renderList();renderEditor();updateButton();showNotice('Анкета удалена.');
   }
 
   function open(){

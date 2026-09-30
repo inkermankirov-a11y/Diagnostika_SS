@@ -1,0 +1,32 @@
+name: Client UI boundary audit
+
+concurrency:
+  group: client-ui-boundary-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main, 'feature-client-*']
+    paths:
+      - 'client-api.js'
+      - 'index.html'
+      - 'ai-settings-button.js'
+      - 'modules/clients/**'
+      - 'tests/client-ui-boundary-stage5-audit.mjs'
+      - '.github/workflows/client-ui-boundary-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  client-ui-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify modular Clients UI ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/client-ui-boundary-stage5-audit.mjs
+          for f in modules/clients/ui/*.js; do node --check "$f"; done
+          node --check modules/clients/selection-memory.js
+          node tests/client-ui-boundary-stage5-audit.mjs

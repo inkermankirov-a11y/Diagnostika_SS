@@ -36,7 +36,7 @@
   }
 
   function refreshDatabase(){
-    if(typeof window.renderClientDatabaseTable==='function') window.renderClientDatabaseTable();
+    return window.DiagnostikaClientUIContext?.refreshDatabase?.()===true;
   }
 
   function renderTrash(){

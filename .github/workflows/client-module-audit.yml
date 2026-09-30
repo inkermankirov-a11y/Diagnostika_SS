@@ -1,21 +1,25 @@
 name: Client module audit
 
+concurrency:
+  group: client-module-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
-    branches: [main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance, feature-requests-3a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*', 'feature-diagnosis-*' ]
+    branches: [main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance, feature-requests-3a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*', 'feature-diagnosis-*', 'feature-client-*' ]
     paths:
       - 'modules/clients/**'
       - 'client-api.js'
-      - 'client-card-window.js'
-      - 'delete-client.js'
-      - 'client-trash.js'
-      - 'client-db-enhancements.js'
+      - 'modules/clients/ui/card.js'
+      - 'modules/clients/ui/delete.js'
+      - 'modules/clients/ui/trash.js'
+      - 'modules/clients/ui/database.js'
       - 'modules/sessions/ui/interactions.js'
-      - 'last-client.js'
-      - 'client-transfer.js'
+      - 'modules/clients/selection-memory.js'
+      - 'modules/clients/ui/transfer.js'
       - 'form-integrations.js'
       - 'ui-fixes.js'
-      - 'client-questionnaires.js'
+      - 'modules/clients/ui/questionnaires.js'
       - 'free-consultation-client-card-sync.js'
       - 'ai-settings-button.js'
       - 'home-dashboard.js'
@@ -44,18 +48,19 @@ jobs:
           node --check modules/clients/client-service.js
           node --check core/shell-bridge.js
           node --check modules/clients/index.js
+          node --check modules/clients/selection-memory.js
           node --check client-api.js
-          node --check client-card-window.js
-          node --check delete-client.js
-          node --check client-trash.js
-          node --check client-db-enhancements.js
+          node --check modules/clients/ui/card.js
+          node --check modules/clients/ui/delete.js
+          node --check modules/clients/ui/trash.js
+          node --check modules/clients/ui/database.js
           node --check modules/sessions/ui/interactions.js
           node --check app-loader.js
           node --check tests/client-module-audit.mjs
           node --check tests/client-write-audit.mjs
           node --check tests/client-trash-audit.mjs
           node --check tests/client-legacy-boundary-audit.mjs
-          node --check client-questionnaires.js
+          node --check modules/clients/ui/questionnaires.js
           node --check free-consultation-client-card-sync.js
           node --check ai-settings-button.js
           node --check tests/client-profile-boundary-audit.mjs
@@ -68,14 +73,14 @@ jobs:
           service=Path('modules/clients/client-service.js').read_text(encoding='utf-8')
           module=Path('modules/clients/index.js').read_text(encoding='utf-8')
           api=Path('client-api.js').read_text(encoding='utf-8')
-          card=Path('client-card-window.js').read_text(encoding='utf-8')
-          delete_client=Path('delete-client.js').read_text(encoding='utf-8')
-          trash=Path('client-trash.js').read_text(encoding='utf-8')
-          db=Path('client-db-enhancements.js').read_text(encoding='utf-8')
+          card=Path('modules/clients/ui/card.js').read_text(encoding='utf-8')
+          delete_client=Path('modules/clients/ui/delete.js').read_text(encoding='utf-8')
+          trash=Path('modules/clients/ui/trash.js').read_text(encoding='utf-8')
+          db=Path('modules/clients/ui/database.js').read_text(encoding='utf-8')
           session_interactions=Path('modules/sessions/ui/interactions.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           index=Path('index.html').read_text(encoding='utf-8')
-          questionnaires=Path('client-questionnaires.js').read_text(encoding='utf-8')
+          questionnaires=Path('modules/clients/ui/questionnaires.js').read_text(encoding='utf-8')
           consultation_sync=Path('free-consultation-client-card-sync.js').read_text(encoding='utf-8')
           ai_settings=Path('ai-settings-button.js').read_text(encoding='utf-8')
           home_dashboard=Path('home-dashboard.js').read_text(encoding='utf-8')
@@ -109,20 +114,22 @@ jobs:
           if 'modules/clients/client-service.js?v=20260918-clients2b2' not in loader: errors.append('client service cache version is stale')
           if 'modules/clients/index.js?v=20260918-clients2b2' not in loader: errors.append('clients module cache version is stale')
           if 'client-api.js?v=20260918-clients2b2' not in loader: errors.append('client API cache version is stale')
-          if 'client-card-window.js?v=20260918-clients2b1' not in index: errors.append('client card cache version is stale')
-          if 'delete-client.js?v=20260918-clients2b2' not in index: errors.append('delete-client cache version is stale')
-          if 'client-db-enhancements.js?v=20260918-clients2b2' not in index: errors.append('client DB cache version is stale')
-          if 'client-trash.js?v=20260918-clients2b2' not in index: errors.append('client trash cache version is stale')
+          if 'modules/clients/ui/card.js?v=20260930-modular-stage5-13' not in index: errors.append('client card module/cache marker is stale')
+          if 'modules/clients/ui/delete.js?v=20260930-modular-stage5-21' not in index: errors.append('client delete module/cache marker is stale')
+          if 'modules/clients/ui/database.js?v=20260930-modular-stage5-12' not in index: errors.append('client DB module/cache marker is stale')
+          if 'modules/clients/ui/trash.js?v=20260930-modular-stage5-15' not in index: errors.append('client trash module/cache marker is stale')
           if 'modules/sessions/ui/interactions.js?v=20260929-modular24a' not in index: errors.append('session interactions script/cache marker is missing')
           if 'app-loader.js?v=' not in index: errors.append('app loader script is missing')
           if 'home-dashboard.js?v=20260918-clients2d' not in loader: errors.append('home dashboard cache version is stale')
-          if "api.update(c.id,patch,{source:'questionnaire-primary-profile'})" not in questionnaires: errors.append('questionnaire primary profile does not use client service')
+          if "persistQuestionnaires(c,next,'questionnaire-primary-profile',patch)" not in questionnaires: errors.append('questionnaire primary profile does not use client service')
+          for token in ['typeof save','state.clients','c.questionnaires=','c.questionnaires.push']:
+              if token in questionnaires: errors.append('questionnaire legacy write remains '+token)
           for token in ['if(p.name)c.name=p.name','if(p.phone)c.phone=p.phone',"if(typeof renderClient==='function')renderClient();"]:
               if token in questionnaires: errors.append('questionnaire direct profile mutation remains '+token)
           if "api.update(c.id,profilePatch,{source:'free-consultation-card-sync',render:false})" not in consultation_sync: errors.append('free consultation profile sync does not use client service')
           for token in ['c.mainRequest=next.mainRequest','c[key]=cleaned.value','c[key]=next']:
               if token in consultation_sync: errors.append('free consultation direct profile mutation remains '+token)
-          if 'client-questionnaires.js?v=20260918-clients2c2' not in ai_settings: errors.append('questionnaire loader cache version is stale')
+          if 'modules/clients/ui/questionnaires.js?v=20260930-modular-stage5-16' not in ai_settings: errors.append('questionnaire module/cache marker is stale')
           if 'free-consultation-client-card-sync.js?v=20260918-clients2c2' not in index: errors.append('free consultation sync cache version is stale')
           if 'ai-settings-button.js?v=20260918-ai6a' not in index: errors.append('AI settings loader cache version is stale')
           if 'renderClient=' in home_dashboard.replace('===','').replace('!==',''): errors.append('home dashboard still replaces renderClient')
