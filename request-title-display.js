@@ -35,7 +35,7 @@
     if(window.DiagnostikaRequests?.moduleAware===true)return window.DiagnostikaRequests;
     return platform()?.services?.requests||null;
   }
-  function cclient(){return window.DiagnostikaClients?.current?.()||(typeof client==='function'?client():null);}
+  function cclient(){return window.DiagnostikaRequestUIContext?.currentClient?.()||null;}
 
   function getViewedRequest(){
     const a=api(),c=cclient();
