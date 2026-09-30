@@ -16,7 +16,7 @@ on:
       - 'modules/clients/ui/database.js'
       - 'modules/sessions/ui/interactions.js'
       - 'last-client.js'
-      - 'client-transfer.js'
+      - 'modules/clients/ui/transfer.js'
       - 'form-integrations.js'
       - 'ui-fixes.js'
       - 'modules/clients/ui/questionnaires.js'
