@@ -2,9 +2,10 @@
 
 (() => {
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(v)||0);
-  const currentClient=()=>typeof client==='function'?client():null;
-  const currentRequest=c=>window.DiagnostikaRequests?.current?.(c)||c?.requests?.find(r=>r.id===c?.currentRequestId)||null;
-  const requestForSession=(c,s)=>c?.requests?.find(r=>r.id===s?.requestId)||null;
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
+  const currentRequest=c=>ui()?.currentRequest?.(c)||null;
+  const requestForSession=(c,s)=>ui()?.requestById?.(c,s?.requestId||s?.payment?.requestId)||null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{mode:'',total:0,payments:[],sessionAmount:0});
   const sessionPay=(c,s)=>paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
@@ -67,7 +68,7 @@
       const m=title.match(/№(\d+)/);
       const existing=card.querySelector('.session-pay-status');
       if(!m){existing?.remove();return;}
-      const chronological=(c.sessions||[]).map((s,index)=>({s,index,time:new Date(s.date||s.createdAt||0).getTime()||index})).sort((a,b)=>a.time-b.time||a.index-b.index);
+      const chronological=(ui()?.sessionList?.(c)||[]).map((s,index)=>({s,index,time:new Date(s.date||s.createdAt||0).getTime()||index})).sort((a,b)=>a.time-b.time||a.index-b.index);
       const s=chronological[Number(m[1])-1]?.s;
       if(!s){existing?.remove();return;}
       const r=requestForSession(c,s),p=paymentOf(c,r);
@@ -104,7 +105,7 @@
           {client:c,source:'session-payment-status-toggle'}
         );
         if(!updated)return;
-        if(typeof renderSessions==='function')renderSessions();
+        ui()?.refreshSessions?.();
         scheduleRefresh();
       };
     });
@@ -117,7 +118,7 @@
     if(r){
       const p=paymentOf(c,r);
       if(p?.mode==='session'){
-        const sessions=(c.sessions||[]).filter(s=>s.requestId===r.id);
+        const sessions=ui()?.sessionsForRequest?.(c,r.id)||[];
         unpaid=sessions.filter(s=>!sessionPay(c,s).paid);
       }
     }
@@ -138,20 +139,12 @@
     refreshTimer=setTimeout(()=>{refreshTimer=0;refreshAll();},0);
   }
 
-  const oldRenderSessions=window.renderSessions;
-  if(typeof oldRenderSessions==='function')window.renderSessions=function(){const v=oldRenderSessions.apply(this,arguments);scheduleRefresh();return v;};
-  const oldRenderClient=window.renderClient;
-  if(typeof oldRenderClient==='function')window.renderClient=function(){const v=oldRenderClient.apply(this,arguments);scheduleRefresh();return v;};
-
-  const observer=new MutationObserver(mutations=>{
-    const relevant=mutations.some(m=>Array.from(m.addedNodes||[]).some(node=>{
-      if(!(node instanceof Element))return false;
-      return node.matches?.('.session-card,.payment-dialog')||node.querySelector?.('.session-card,.payment-dialog');
-    }));
-    if(relevant)scheduleRefresh();
-  });
-  observer.observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('diagnostika:dashboard-sessions-rendered',scheduleRefresh);
+  window.addEventListener('diagnostika:payment-dialog-opened',scheduleRefresh);
+  document.addEventListener('diagnostika:session-editor-opened',scheduleRefresh);
+  const events=window.DiagnostikaPlatform?.events;
+  for(const type of ['client:selected','client:updated','request:selected','request:updated','payment:updated','payment:added','payment:deleted','session-payment:updated','session:created','session:updated','session:deleted'])events?.on?.(type,scheduleRefresh);
   scheduleRefresh();
 
-  window.DiagnostikaSessionPayments={refresh:refreshAll};
+  window.DiagnostikaSessionPayments=Object.freeze({refresh:refreshAll});
 })();
