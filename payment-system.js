@@ -85,7 +85,16 @@
     }
     const total=num(p.total),paid=p.payments.reduce((a,x)=>a+num(x.amount),0);
     if(!p.mode&&!total&&!paid)return{status:'none',label:'Не указано',paid,total};
-    if(paid<=0)return{status:'unpaid',label:'Нет',paid,total};
+    if(p.mode==='full'){
+      if(total>0&&paid>=total)return{status:'paid',label:'Оплачено',paid,total};
+      return{status:'unpaid',label:'Не оплачено',paid,total};
+    }
+    if(p.mode==='parts'){
+      if(paid<=0)return{status:'unpaid',label:'Не оплачено',paid,total};
+      if(total>0&&paid>=total)return{status:'paid',label:'Оплачено',paid,total};
+      return{status:'partial',label:'Частично',paid,total};
+    }
+    if(paid<=0)return{status:'unpaid',label:'Не оплачено',paid,total};
     if(total>0&&paid>=total)return{status:'paid',label:'Оплачено',paid,total};
     return{status:'partial',label:'Частично',paid,total};
   }
