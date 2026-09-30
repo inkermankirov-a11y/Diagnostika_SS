@@ -8,7 +8,7 @@ on:
   push:
     branches: [main, 'feature-specialist-history-*', 'feature-specialist-row-*', 'feature-client-*']
     paths:
-      - 'client-transfer.js'
+      - 'modules/clients/ui/transfer.js'
       - 'index.html'
       - 'tests/client-specialist-history-20a-audit.mjs'
       - '.github/workflows/client-specialist-history-audit.yml'
@@ -23,7 +23,7 @@ jobs:
 
       - name: Static checks
         run: |
-          node --check client-transfer.js
+          node --check modules/clients/ui/transfer.js
           node --check tests/client-specialist-history-20a-audit.mjs
 
       - name: Install browser
