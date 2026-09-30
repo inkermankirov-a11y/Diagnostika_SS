@@ -17,49 +17,11 @@
     .session-pay-status.paid{background:#dff5e8;color:#197344;border:1px solid #9fd5b5}
     .session-pay-status.unpaid{background:#fde8e8;color:#b42323;border:1px solid #efb1b1;animation:none!important}
     .session-editor-payment-state.unpaid{animation:none!important;box-shadow:none!important}
-    .session-price-field{display:grid;gap:5px;font-size:12px;font-weight:700;color:#475569;margin-top:10px}
-    .session-price-field input{height:38px;border:1px solid #b9c6d4;border-radius:7px;padding:0 9px;background:#fff;box-sizing:border-box;width:100%}
     #clientPaymentBox.payment-attention{border-color:#e05252!important;background:#fff1f1!important;animation:none!important;box-shadow:0 0 0 1px rgba(220,38,38,.08)!important}
     #clientPaymentBox.payment-attention .client-payment-title,#clientPaymentBox.payment-attention .client-payment-summary{color:#b42323!important;font-weight:800}
     @media(max-width:640px){.session-pay-status{margin-left:0}.session-card-meta{flex-wrap:wrap}}
   `;
   document.head.appendChild(style);
-
-  function ensureSessionPriceField(){
-    const dlg=document.querySelector('.payment-dialog');
-    if(!dlg||dlg.querySelector('#sessionPriceField'))return;
-    const total=dlg.querySelector('#paymentTotalField');
-    if(!total)return;
-    const field=document.createElement('label');
-    field.id='sessionPriceField';
-    field.className='session-price-field';
-    field.innerHTML='Стоимость одной сессии<input id="sessionPrice" type="number" min="0" step="100" placeholder="10000">';
-    total.insertAdjacentElement('afterend',field);
-    const input=field.querySelector('#sessionPrice');
-    input.addEventListener('input',()=>{
-      const c=currentClient(),r=currentRequest(c);if(!c||!r)return;
-      const updated=paymentWriter()?.updateRequest?.(
-        r.id,
-        {sessionAmount:Number(input.value)||0},
-        {client:c,source:'session-price-field'}
-      );
-      if(!updated)return;
-      refreshAll();
-    });
-  }
-
-  function syncSessionPriceField(){
-    ensureSessionPriceField();
-    const dlg=document.querySelector('.payment-dialog'),field=dlg?.querySelector('#sessionPriceField'),input=dlg?.querySelector('#sessionPrice');
-    if(!field||!input)return;
-    const c=currentClient(),r=currentRequest(c),p=paymentOf(c,r);
-    const isSession=p?.mode==='session';
-    if(field.hidden===isSession)field.hidden=!isSession;
-    if(isSession&&document.activeElement!==input){
-      const next=String(p.sessionAmount||'');
-      if(input.value!==next)input.value=next;
-    }
-  }
 
   function decorateCards(){
     const c=currentClient();if(!c)return;
@@ -131,7 +93,7 @@
     }
   }
 
-  function refreshAll(){syncSessionPriceField();decorateCards();refreshMainPaymentAlert();}
+  function refreshAll(){decorateCards();refreshMainPaymentAlert();}
 
   let refreshTimer=0;
   function scheduleRefresh(){
