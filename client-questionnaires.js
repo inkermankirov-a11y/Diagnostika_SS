@@ -18,8 +18,8 @@
     || null;
 
   function currentClient(){
-    try{const c=clientsApi()?.current?.();if(c)return c;}catch(_){}
-    try{return typeof client==='function'?client():null;}catch(_){return null;}
+    try{return window.DiagnostikaClientUIContext?.currentClient?.()||clientsApi()?.current?.()||null;}
+    catch(_){return null;}
   }
   function arr(c){return Array.isArray(c?.questionnaires)?c.questionnaires:[];}
   function fmtDate(v){try{return new Date(v).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(_){return String(v||'');}}
@@ -40,7 +40,7 @@
     };
     if(c)collect(c);
     try{
-      for(const clientObj of state?.clients||[]){
+      for(const clientObj of clientsApi()?.list?.()||[]){
         if(c&&String(clientObj.id)===String(c.id))continue;
         collect(clientObj);
       }
