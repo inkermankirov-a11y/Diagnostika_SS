@@ -5,42 +5,35 @@
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
   const fmtDate=v=>{if(!v)return '—';const p=String(v).slice(0,10).split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:String(v);};
-  const currentClient=()=>typeof client==='function'?client():null;
-  const sessionPay=s=>s?.payment&&typeof s.payment==='object'?s.payment:{};
-  const paymentOf=r=>r?.payment&&typeof r.payment==='object'?r.payment:{};
-  const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||((c?.requests||[]).findIndex(x=>String(x?.id)===String(r?.id))+1)||'—';
-  const symbolFor=(c,r)=>SYMBOLS[paymentOf(r).currency||c?.currency||'RUB']||'₽';
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
+  const sessionPay=(s,c=currentClient())=>paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{});
+  const paymentOf=(r,c=currentClient())=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{});
+  const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||'—';
+  const symbolFor=(c,r)=>SYMBOLS[paymentOf(r,c).currency||c?.currency||'RUB']||'₽';
 
   function globalSessionNumber(c,target){
-    const arr=(c?.sessions||[]).map((s,index)=>({s,index,time:new Date(s.date||s.createdAt||0).getTime()||index})).sort((a,b)=>a.time-b.time||a.index-b.index);
-    const i=arr.findIndex(x=>x.s===target||String(x.s?.id)===String(target?.id));
-    return i>=0?i+1:'—';
+    return window.DiagnostikaSessions?.sessionNumber?.(c,target)||'—';
   }
 
   function requestForSession(c,s){
-    const rid=s?.requestId||sessionPay(s).requestId||'';
-    return (c?.requests||[]).find(r=>String(r?.id)===String(rid))||null;
+    const rid=s?.requestId||sessionPay(s,c).requestId||'';
+    return ui()?.requestById?.(c,rid)||null;
   }
 
   function requestFromOpenDialog(c,dlg){
-    const text=dlg?.querySelector('#paymentRequestSub')?.textContent||'';
-    const m=text.match(/Запрос\s+(\d+)/i);
-    if(m){
-      const wanted=String(Number(m[1]));
-      const byNumber=(c?.requests||[]).find(r=>String(requestNumber(c,r))===wanted);
-      if(byNumber)return byNumber;
-    }
-    try{const r=window.DiagnostikaRequests?.current?.(c);if(r)return r;}catch(_){}
-    return null;
+    const id=dlg?.dataset?.requestId;
+    return (id?ui()?.requestById?.(c,id):null)||ui()?.currentRequest?.(c)||null;
   }
 
   function allRows(c){
     const rows=[];
-    const paidSessions=(c?.sessions||[]).filter(s=>sessionPay(s).paid===true);
+    const paidSessions=(ui()?.sessionList?.(c)||[]).filter(s=>sessionPay(s,c).paid===true);
     const paidIds=new Set(paidSessions.map(s=>String(s?.id||'')).filter(Boolean));
 
-    (c?.requests||[]).forEach(r=>{
-      const p=paymentOf(r),rn=requestNumber(c,r),sym=symbolFor(c,r);
+    (ui()?.requestList?.(c)||[]).forEach(r=>{
+      const p=paymentOf(r,c),rn=requestNumber(c,r),sym=symbolFor(c,r);
       (Array.isArray(p.payments)?p.payments:[]).forEach(pay=>{
         if(pay?.sessionId&&paidIds.has(String(pay.sessionId)))return;
         rows.push({date:pay?.date||'',amount:num(pay?.amount),sym,title:pay?.note||`Платёж по запросу ${rn}`,sub:`Запрос ${rn}: ${r.title||'Без названия'}`});
@@ -93,16 +86,19 @@
     dlg.querySelector('#sessionPaymentLedgerAuthority')?.style.setProperty('display','none','important');
     let box=dlg.querySelector('#sessionPaymentLedgerFinal');
     if(!box){box=document.createElement('div');box.id='sessionPaymentLedgerFinal';box.className='session-payment-ledger';(dlg.querySelector('#paymentSessionHint')||dlg.querySelector('#paymentSummary'))?.insertAdjacentElement('afterend',box);}
-    const paid=(c.sessions||[]).filter(s=>String(s?.requestId||sessionPay(s).requestId||'')===String(r.id)&&sessionPay(s).paid===true).sort((a,b)=>String(sessionPay(b).paidAt||b.date||'').localeCompare(String(sessionPay(a).paidAt||a.date||'')));
+    const paid=(ui()?.sessionList?.(c)||[]).filter(s=>String(s?.requestId||sessionPay(s,c).requestId||'')===String(r.id)&&sessionPay(s,c).paid===true).sort((a,b)=>String(sessionPay(b).paidAt||b.date||'').localeCompare(String(sessionPay(a).paidAt||a.date||'')));
     box.innerHTML=`<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ — ЗАПРОС ${requestNumber(c,r)}: ${r.title||'Без названия'}</div>`;
     if(!paid.length){box.insertAdjacentHTML('beforeend','<div class="session-payment-ledger-empty">По текущему запросу оплаченных сессий пока нет.</div>');return;}
     paid.forEach(s=>{const sp=sessionPay(s),row=document.createElement('div');row.className='session-payment-ledger-row';row.innerHTML=`<span>${fmtDate(sp.paidAt||s.date)}</span><span class="ok">✓ Сессия №${globalSessionNumber(c,s)} от ${fmtDate(sp.sessionDate||s.date)}</span><strong>${money(sp.amount)} ${symbolFor(c,r)}</strong>`;box.appendChild(row);});
   }
 
   function refresh(){renderLedger();renderAll();}
+  window.addEventListener('diagnostika:payment-dialog-opened',()=>setTimeout(refresh,0));
+  document.addEventListener('diagnostika:dashboard-sessions-rendered',()=>setTimeout(refresh,0));
   document.addEventListener('click',e=>{if(e.target?.closest?.('#allClientPaymentsBtn,.payment-dialog,.session-editor-payment-state,.session-pay-status'))setTimeout(refresh,0);},true);
   document.addEventListener('change',e=>{if(e.target?.closest?.('.payment-dialog')||e.target?.id==='requestSelect')setTimeout(refresh,0);},true);
-  const mo=new MutationObserver(()=>setTimeout(refresh,0));mo.observe(document.body,{childList:true,subtree:true});
+  const events=window.DiagnostikaPlatform?.events;
+  for(const type of ['client:selected','request:selected','request:updated','payment:updated','payment:added','payment:deleted','session-payment:updated','session:updated','session:deleted'])events?.on?.(type,()=>setTimeout(refresh,0));
   setTimeout(refresh,0);
-  window.DiagnostikaPaymentHistoryFinal={refresh,allRows};
+  window.DiagnostikaPaymentHistoryFinal=Object.freeze({refresh,allRows});
 })();
