@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const indexSource=fs.readFileSync('index.html','utf8');
-const paymentSystemSource=fs.readFileSync('payment-system.js','utf8');
-const enhancementsSource=fs.readFileSync('payment-enhancements.js','utf8');
-const sessionFixSource=fs.readFileSync('payment-session-fix.js','utf8');
-const consistencySource=fs.readFileSync('payment-consistency-core.js','utf8');
-const totalStabilitySource=fs.readFileSync('payment-total-input-stability.js','utf8');
+const paymentSystemSource=fs.readFileSync('modules/payments/ui/payment-dialog.js','utf8');
+const enhancementsSource=fs.readFileSync('modules/payments/ui/enhancements.js','utf8');
+const sessionFixSource=fs.readFileSync('modules/payments/ui/session-settings.js','utf8');
+const consistencySource=fs.readFileSync('modules/payments/ui/consistency.js','utf8');
+const totalStabilitySource=fs.readFileSync('modules/payments/ui/total-input.js','utf8');
 
 assert.equal(indexSource.includes('payment-observer-scope.js'),false,'Global payment observer shim must be retired');
 assert.equal(paymentSystemSource.includes('previousOpenSessionEditor'),false,'Legacy session-payment editor wrapper still exists');
