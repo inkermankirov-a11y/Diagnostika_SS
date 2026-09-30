@@ -1,5 +1,9 @@
 name: Client specialist history audit
 
+concurrency:
+  group: client-specialist-history-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main, 'feature-specialist-history-*', 'feature-specialist-row-*', 'feature-client-*']
