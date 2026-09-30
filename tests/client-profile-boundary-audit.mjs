@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const questionnaireSource=fs.readFileSync('client-questionnaires.js','utf8');
+const questionnaireSource=fs.readFileSync('modules/clients/ui/questionnaires.js','utf8');
 const consultationSource=fs.readFileSync('free-consultation-client-card-sync.js','utf8');
 
 for(const token of [
