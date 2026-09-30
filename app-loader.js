@@ -7,8 +7,8 @@
     s.setAttribute(marker,'1');
     document.body.appendChild(s);
   }
-  loadOnce('session-payment-data-repair.js?v=20260918-payment5d','data-session-payment-data-repair');
-  loadOnce('session-payment-mode-rule.js?v=20260912-59','data-session-payment-mode-rule');
+  loadOnce('modules/payments/ui/data-repair.js?v=20260930-modular25a','data-session-payment-data-repair');
+  loadOnce('modules/payments/ui/session-mode.js?v=20260930-modular25a','data-session-payment-mode-rule');
 })();
 
 // Main home screen redesign. Loaded last so it can reuse the existing application logic safely.

@@ -1,24 +1,18 @@
 'use strict';
 
 (() => {
-  const currentClient=()=>typeof client==='function'?client():null;
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
 
   function sessionFromDialog(dlg,c){
     if(!dlg||!c)return null;
     const id=dlg.dataset.sessionId;
-    if(id){const s=(c.sessions||[]).find(x=>x.id===id);if(s)return s;}
-    const title=dlg.querySelector('h1,h2,h3,.session-edit-title')?.textContent||'';
-    const m=title.match(/Сессия\s*№\s*(\d+)/i);
-    if(m){
-      const arr=(c.sessions||[]).map((s,i)=>({s,i,t:new Date(s.date||s.createdAt||0).getTime()||i})).sort((a,b)=>a.t-b.t||a.i-b.i);
-      return arr[Number(m[1])-1]?.s||null;
-    }
-    return null;
+    return id?ui()?.sessionById?.(c,id)||null:null;
   }
 
   function requestForDialog(c,s,dlg){
     const requestId=dlg.querySelector('.session-edit-grid select')?.value||s?.requestId||s?.payment?.requestId||'';
-    return (c?.requests||[]).find(r=>r.id===requestId)||null;
+    return ui()?.requestById?.(c,requestId)||null;
   }
 
   function applyDialogRule(dlg){
@@ -39,7 +33,7 @@
       if(amountWrap){amountWrap.hidden=false;amountWrap.style.display='flex';}
       const legacy=dlg.querySelector('.session-payment-field');
       if(legacy)legacy.style.display='grid';
-      try{window.DiagnostikaSessionPaymentUiSync?.refresh?.();}catch(_){}
+      window.DiagnostikaSessionPaymentEditor?.refresh?.();
     }
   }
 
@@ -48,10 +42,11 @@
     document.querySelectorAll('.session-card').forEach(card=>{
       const title=card.querySelector('.session-card-title')?.textContent||'';
       const m=title.match(/№(\d+)/);if(!m)return;
-      const arr=(c.sessions||[]).map((s,i)=>({s,i,t:new Date(s.date||s.createdAt||0).getTime()||i})).sort((a,b)=>a.t-b.t||a.i-b.i);
+      const sessions=ui()?.sessionList?.(c)||[];
+      const arr=sessions.map((s,i)=>({s,i,t:new Date(s.date||s.createdAt||0).getTime()||i})).sort((a,b)=>a.t-b.t||a.i-b.i);
       const s=arr[Number(m[1])-1]?.s;if(!s)return;
       const requestId=s.requestId||s.payment?.requestId||'';
-      const r=(c.requests||[]).find(x=>x.id===requestId)||null;
+      const r=ui()?.requestById?.(c,requestId)||null;
       if(r?.payment?.mode!=='session')card.querySelectorAll('.session-pay-status').forEach(el=>el.remove());
     });
   }
@@ -61,13 +56,13 @@
     cleanSessionCards();
   }
 
-  const observer=new MutationObserver(()=>setTimeout(refresh,0));
-  observer.observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('diagnostika:session-editor-opened',event=>{
+    const dlg=event.detail?.dialog;
+    if(dlg)setTimeout(()=>applyDialogRule(dlg),0);
+  });
   document.addEventListener('change',e=>{if(e.target?.closest?.('dialog.session-edit-dialog'))setTimeout(refresh,0);},true);
-  document.addEventListener('click',e=>{if(e.target?.closest?.('.session-card,.session-edit-dialog'))setTimeout(refresh,0);},true);
-
+  const events=window.DiagnostikaPlatform?.events;
+  for(const type of ['client:selected','request:selected','request:updated','session:created','session:updated','session:deleted','session-payment:updated','payment:updated'])events?.on?.(type,()=>setTimeout(refresh,0));
   setTimeout(refresh,0);
-  setTimeout(refresh,250);
-  setTimeout(refresh,800);
   window.DiagnostikaSessionPaymentModeRule={refresh};
 })();

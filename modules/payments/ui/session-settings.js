@@ -1,8 +1,9 @@
 'use strict';
 
 (() => {
-  const currentClient=()=>typeof client==='function'?client():null;
-  const currentRequest=c=>window.DiagnostikaRequests?.current?.(c)||c?.requests?.find(r=>r.id===c?.currentRequestId)||null;
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
+  const currentRequest=c=>ui()?.currentRequest?.(c)||null;
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const paymentOf=(c,r)=>paymentWriter()?.request?.(r?.id,c)||(r?.payment&&typeof r.payment==='object'?r.payment:{mode:'',total:0,payments:[],sessionAmount:0,sessionDiscount:0});
@@ -10,13 +11,8 @@
 
   function requestShownInDialog(c,dlg){
     if(!c)return null;
-    const text=dlg?.querySelector('#paymentRequestSub')?.textContent||'';
-    const m=text.match(/Запрос\s+(\d+)/i);
-    if(m){
-      const idx=Number(m[1])-1;
-      if(c.requests?.[idx])return c.requests[idx];
-    }
-    return currentRequest(c);
+    const id=dlg?.dataset?.requestId;
+    return (id?ui()?.requestById?.(c,id):null)||currentRequest(c);
   }
 
   const style=document.createElement('style');

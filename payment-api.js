@@ -4,8 +4,8 @@
   const platform=window.DiagnostikaPlatform;
   if(!platform||window.DiagnostikaPayments?.moduleAware===true)return;
 
-  const legacy=window.DiagnostikaPayments&&typeof window.DiagnostikaPayments==='object'
-    ? window.DiagnostikaPayments
+  const ui=window.DiagnostikaPaymentUI&&typeof window.DiagnostikaPaymentUI==='object'
+    ? window.DiagnostikaPaymentUI
     : {};
   const service=()=>platform.services?.payments||null;
   const invoke=(name,args,failValue)=>{
@@ -15,7 +15,7 @@
   };
 
   const facade={
-    ...legacy,
+    ...ui,
     version:'5D',
     moduleAware:true,
     events:Object.freeze({

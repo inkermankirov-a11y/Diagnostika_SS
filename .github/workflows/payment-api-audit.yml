@@ -33,8 +33,7 @@ jobs:
           node --check home-dashboard.js
           node --check request-select-labels.js
           node --check request-title-display.js
-          for f in payment-*.js; do node --check "$f"; done
-          for f in session-payment-*.js; do node --check "$f"; done
+          for f in modules/payments/ui/*.js; do node --check "$f"; done
           node --check modules/payments/payment-service.js
           node --check modules/payments/index.js
           node --check payment-api.js
@@ -48,7 +47,7 @@ jobs:
 
           dash=Path('home-dashboard.js').read_text(encoding='utf-8')
           html=Path('index.html').read_text(encoding='utf-8')
-          payment=Path('payment-system.js').read_text(encoding='utf-8')
+          payment=Path('modules/payments/ui/payment-dialog.js').read_text(encoding='utf-8')
 
           required='DiagnostikaPayments?.open'
           forbidden=['clientPaymentBox','client-payment-btn']
@@ -58,22 +57,22 @@ jobs:
           if required not in dash or found:
               sys.exit(1)
 
-          order={name:html.find(name) for name in ['request-select-labels.js','payment-system.js','request-title-display.js']}
+          order={name:html.find(name) for name in ['request-select-labels.js','modules/payments/ui/context.js','modules/payments/ui/payment-dialog.js','request-title-display.js']}
           print('Relevant script positions:',order)
           if any(v < 0 for v in order.values()):
               raise SystemExit('Required payment/request script is missing from index.html')
-          if not (order['request-select-labels.js'] < order['payment-system.js'] < order['request-title-display.js']):
+          if not (order['request-select-labels.js'] < order['modules/payments/ui/context.js'] < order['modules/payments/ui/payment-dialog.js'] < order['request-title-display.js']):
               raise SystemExit('Unsafe script order: request API and payment API must exist before dashboard loader')
 
           owners=[]
-          for f in Path('.').glob('*.js'):
+          for f in [Path('payment-api.js'),*Path('modules/payments/ui').glob('*.js')]:
               text=f.read_text(encoding='utf-8',errors='ignore')
               if 'window.DiagnostikaPayments=' in text:
-                  owners.append(f.name)
+                  owners.append(str(f))
           print('DiagnostikaPayments owner files:',owners)
-          expected={'payment-system.js','payment-api.js'}
+          expected={'payment-api.js'}
           if set(owners) != expected:
-              raise SystemExit(f'Payment 5A facade owners mismatch, got {owners}')
+              raise SystemExit(f'Payment facade must have one owner, got {owners}')
           service=Path('modules/payments/payment-service.js').read_text(encoding='utf-8')
           api=Path('payment-api.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
@@ -105,17 +104,13 @@ jobs:
               raise SystemExit('Payment 5B primary request UI still bypasses services')
 
           request_writer_paths=[
-              'payment-system.js',
-              'payment-total-input-stability.js',
-              'payment-currency.js',
-              'payment-currency-hard-rule.js',
-              'payment-history-scope.js',
-              'all-payments-complete.js',
-              'payment-session-fix.js',
-              'payment-enhancements.js',
-              'session-payment-status.js',
-              'payment-save-guard.js',
-              'payment-consistency-core.js'
+              'modules/payments/ui/payment-dialog.js',
+              'modules/payments/ui/total-input.js',
+              'modules/payments/ui/session-settings.js',
+              'modules/payments/ui/enhancements.js',
+              'modules/payments/ui/session-status.js',
+              'modules/payments/ui/save-guard.js',
+              'modules/payments/ui/consistency.js'
           ]
           request_writer_patterns=[
               re.compile(r'\br\.payment\s*=(?!=)'),
@@ -136,16 +131,13 @@ jobs:
               raise SystemExit('Payment 5B request.payment still has legacy direct writers')
 
           session_writer_paths=[
-              'session-payment-editor.js',
-              'session-payment-status.js',
-              'session-payment-button-authority.js',
-              'session-payment-data-repair.js',
-              'session-payment-ui-sync.js',
-              'payment-save-guard.js',
-              'payment-enhancements.js',
-              'payment-consistency-core.js',
-              'payment-history-scope.js',
-              'payment-system.js'
+              'modules/payments/ui/session-editor.js',
+              'modules/payments/ui/session-status.js',
+              'modules/payments/ui/data-repair.js',
+              'modules/payments/ui/save-guard.js',
+              'modules/payments/ui/enhancements.js',
+              'modules/payments/ui/consistency.js',
+              'modules/payments/ui/payment-dialog.js'
           ]
           session_fields='paid|amount|manualAmount|receiptUrl|note|requestId|paidAt|sessionDate|priceSnapshot|baseAmount|discountSnapshot'
           session_writer_patterns=[

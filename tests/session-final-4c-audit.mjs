@@ -7,20 +7,18 @@ const service=fs.readFileSync('modules/sessions/session-service.js','utf8');
 const testData=fs.readFileSync('test-data.js','utf8');
 const editor=fs.readFileSync('modules/sessions/ui/editor.js','utf8');
 const paymentFiles=[
-  'session-payment-data-repair.js',
-  'session-payment-editor.js',
-  'session-payment-ui-sync.js',
-  'payment-system.js',
-  'session-payment-button-authority.js',
-  'payment-consistency-core.js',
-  'payment-save-guard.js'
+  'modules/payments/ui/data-repair.js',
+  'modules/payments/ui/session-editor.js',
+  'modules/payments/ui/save-guard.js',
+  'modules/payments/ui/consistency.js',
+  'modules/payments/ui/enhancements.js',
+  'modules/payments/ui/session-status.js',
+  'modules/payments/ui/session-mode.js'
 ];
 const paymentLinkFiles=new Set([
-  'session-payment-data-repair.js',
-  'session-payment-editor.js',
-  'session-payment-ui-sync.js',
-  'session-payment-button-authority.js',
-  'payment-consistency-core.js'
+  'modules/payments/ui/data-repair.js',
+  'modules/payments/ui/session-editor.js',
+  'modules/payments/ui/consistency.js'
 ]);
 
 assert.equal(legacy.includes('diagnostika:sessions-changed'),false,'legacy bridge still observes session DOM changes');

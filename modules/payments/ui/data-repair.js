@@ -2,23 +2,19 @@
 
 (() => {
   const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
-  const currentClient=()=>typeof client==='function'?client():null;
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
-  const allClients=()=>{
-    try{if(typeof state!=='undefined'&&Array.isArray(state.clients))return state.clients;}catch(_){}
-    try{return window.DiagnostikaPlatform?.store?.clients?.()||[];}catch(_){return [];}
-  };
+  const allClients=()=>ui()?.clientList?.()||[];
   const linkSessionRequest=(c,s,requestId,source)=>{
     if(!c||!s||!requestId||String(s.requestId||'')===String(requestId))return true;
-    const api=window.DiagnostikaSessions?.moduleAware===true
-      ? window.DiagnostikaSessions
-      : window.DiagnostikaPlatform?.services?.sessions||null;
+    const api=window.DiagnostikaSessions?.moduleAware===true?window.DiagnostikaSessions:null;
     return !!api?.update?.(s.id,{requestId},{client:c,source,render:false});
   };
   const sessionPay=(c,s)=>paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
   const requestForSession=(c,s)=>{
     const id=s?.requestId||s?.payment?.requestId||'';
-    return (c?.requests||[]).find(r=>r.id===id)||null;
+    return ui()?.requestById?.(c,id)||null;
   };
   const effectivePrice=r=>{
     const p=r?.payment||{};
@@ -39,8 +35,8 @@
     if(!clients.length)return false;
     let changed=false;
     clients.forEach(c=>{
-      const requests=Array.isArray(c.requests)?c.requests:[];
-      const sessions=Array.isArray(c.sessions)?c.sessions:[];
+      const requests=ui()?.requestList?.(c)||[];
+      const sessions=ui()?.sessionList?.(c)||[];
       requests.forEach(r=>{
         if(r?.payment?.mode!=='session')return;
         const configured=effectivePrice(r);
@@ -70,17 +66,13 @@
   function sessionFromDialog(dlg,c=currentClient()){
     if(!c||!dlg)return null;
     const id=dlg.dataset.sessionId;
-    if(id){const s=(c.sessions||[]).find(x=>x.id===id);if(s)return s;}
-    if(typeof selectedSessionId!=='undefined'&&selectedSessionId){
-      const s=(c.sessions||[]).find(x=>x.id===selectedSessionId);if(s)return s;
-    }
-    return null;
+    return id?ui()?.sessionById?.(c,id)||null:null;
   }
 
   function syncDialog(dlg){
     const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
     const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
-    const req=(c.requests||[]).find(r=>r.id===reqId)||requestForSession(c,s);
+    const req=ui()?.requestById?.(c,reqId)||requestForSession(c,s);
     if(req?.payment?.mode!=='session')return;
     const sp=sessionPay(c,s);
     const configured=effectivePrice(req);
@@ -121,7 +113,7 @@
     const dlg=saveBtn.closest('dialog.session-edit-dialog');
     const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
     const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
-    const req=(c.requests||[]).find(r=>r.id===reqId)||null;
+    const req=ui()?.requestById?.(c,reqId)||null;
     if(req?.payment?.mode!=='session')return;
     const editorAmount=Math.max(0,num(dlg.querySelector('.session-editor-payment-amount')?.value));
     const legacyAmount=Math.max(0,num(dlg.querySelector('.session-payment-field input[type="number"]')?.value));
@@ -145,20 +137,13 @@
     }
   },true);
 
-  const isSessionUiNode=node=>{
-    if(node?.nodeType!==1)return false;
-    return node.matches?.('dialog.session-edit-dialog,.session-card')
-      ||!!node.querySelector?.('dialog.session-edit-dialog,.session-card');
-  };
-  const observer=new MutationObserver(mutations=>{
-    const relevant=mutations.some(m=>
-      [...m.addedNodes,...m.removedNodes].some(isSessionUiNode)
-    );
-    if(relevant)setTimeout(refresh,0);
+  document.addEventListener('diagnostika:session-editor-opened',event=>{
+    const dlg=event.detail?.dialog;
+    if(dlg)setTimeout(()=>syncDialog(dlg),0);
   });
-  observer.observe(document.body,{childList:true,subtree:true});
+  const events=window.DiagnostikaPlatform?.events;
+  for(const type of ['payment:updated','session-payment:updated','session:created','session:updated','request:updated'])events?.on?.(type,()=>setTimeout(refresh,0));
   setTimeout(()=>refresh({paymentUi:true}),0);
-  setTimeout(()=>refresh({paymentUi:true}),600);
 
   window.DiagnostikaSessionPaymentRepair={refresh,repairAll:repairAllSessionPayments};
 })();

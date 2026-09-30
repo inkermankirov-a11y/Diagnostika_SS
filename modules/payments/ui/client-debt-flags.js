@@ -2,6 +2,8 @@
 
 (() => {
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -19,42 +21,22 @@
   document.head.appendChild(style);
 
   function activeRequest(c){
-    const requests=Array.isArray(c?.requests)?c.requests:[];
+    const requests=ui()?.requestList?.(c)||[];
     if(!requests.length)return null;
-
-    const isSelected=(()=>{
-      try{return typeof clientId!=='undefined'&&String(c?.id)===String(clientId);}catch(_){return false;}
-    })();
-
-    if(isSelected){
-      try{
-        const fromModule=window.DiagnostikaRequests?.current?.(c);
-        if(fromModule&&requests.some(r=>String(r.id)===String(fromModule.id)))return fromModule;
-      }catch(_){}
-
-      try{
-        if(typeof requestId!=='undefined'&&requestId){
-          const selected=requests.find(r=>String(r.id)===String(requestId));
-          if(selected)return selected;
-        }
-      }catch(_){}
-    }
-
+    const current=ui()?.currentRequest?.(c);
+    if(current&&requests.some(r=>String(r.id)===String(current.id)))return current;
     const remembered=requests.find(r=>String(r.id)===String(c?.currentRequestId||''))
       ||requests.find(r=>String(r.id)===String(c?.activeRequestId||''));
-    if(remembered)return remembered;
-
-    return requests[0]||null;
+    return remembered||requests[0]||null;
   }
 
   function sessionsFor(c,r){
-    const rid=String(r?.id||'');
-    if(!rid)return[];
-    return (Array.isArray(c?.sessions)?c.sessions:[]).filter(s=>String(s?.requestId||s?.payment?.requestId||'')===rid);
+    if(!r?.id)return[];
+    return ui()?.sessionsForRequest?.(c,r.id)||[];
   }
 
   function fallbackPaidTotal(c,r){
-    const p=r?.payment||{};
+    const p=paymentWriter()?.request?.(r?.id,c)||r?.payment||{};
     const paidSessions=sessionsFor(c,r).filter(s=>s?.payment?.paid===true&&num(s?.payment?.amount)>0);
     const paidSessionIds=new Set(paidSessions.map(s=>String(s?.id||'')).filter(Boolean));
 
@@ -101,10 +83,10 @@
   }
 
   function syncFlags(){
-    if(typeof state==='undefined'||!Array.isArray(state?.clients))return;
+    const clients=ui()?.clientList?.()||[];
 
     document.querySelectorAll('.hd-client-row[data-id]').forEach(row=>{
-      const c=state.clients.find(x=>String(x.id)===String(row.dataset.id));
+      const c=clients.find(x=>String(x.id)===String(row.dataset.id));
       if(!c)return;
       const tools=row.querySelector('.hd-client-tools');
       if(!tools)return;
@@ -138,29 +120,14 @@
     requestAnimationFrame(()=>{queued=false;syncFlags();});
   }
 
-  const mo=new MutationObserver(queue);
-  mo.observe(document.body,{childList:true,subtree:true});
-
+  document.addEventListener('diagnostika:dashboard-clients-rendered',queue);
+  window.addEventListener('diagnostika:payment-dialog-opened',queue);
+  document.addEventListener('diagnostika:dashboard-sessions-rendered',queue);
+  const events=window.DiagnostikaPlatform?.events;
+  for(const type of ['client:selected','client:updated','request:selected','request:updated','payment:updated','payment:added','payment:deleted','session-payment:updated','session:created','session:updated','session:deleted'])events?.on?.(type,queue);
   document.addEventListener('click',e=>{
-    if(e.target?.closest?.('.payment-dialog,#paymentAddBtn,.payment-remove,.pr-save,.pr-delete,.payment-edit-save,.payment-edit-delete,.hd-client-row,#paymentSaveSettings,.session-payment-toggle-stable,.session-editor-payment-state')){
-      setTimeout(syncFlags,0);setTimeout(syncFlags,80);
-    }
+    if(e.target?.closest?.('#paymentSaveSettings,.session-payment-toggle-stable,.session-editor-payment-state,.payment-edit-save,.payment-edit-delete'))setTimeout(queue,0);
   },true);
-  document.addEventListener('input',e=>{
-    if(e.target?.closest?.('.payment-dialog'))setTimeout(syncFlags,0);
-  },true);
-  document.addEventListener('change',e=>{
-    if(e.target?.closest?.('.payment-dialog,dialog.session-edit-dialog')||e.target?.id==='requestSelect'){
-      setTimeout(syncFlags,0);setTimeout(syncFlags,80);
-    }
-  },true);
-  document.addEventListener('close',e=>{
-    if(e.target?.matches?.('dialog.payment-dialog,dialog.session-edit-dialog')){
-      setTimeout(syncFlags,0);setTimeout(syncFlags,80);
-    }
-  },true);
-
-  setTimeout(syncFlags,0);
-  setTimeout(syncFlags,250);
-  window.DiagnostikaClientPaymentFlags={refresh:syncFlags,hasDebt:clientHasDebt,activeRequest,requestHasDebt,paidTotal};
+  setTimeout(queue,0);
+  window.DiagnostikaClientPaymentFlags=Object.freeze({refresh:syncFlags,hasDebt:clientHasDebt,activeRequest,requestHasDebt,paidTotal});
 })();

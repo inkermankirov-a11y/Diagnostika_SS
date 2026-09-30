@@ -7,11 +7,13 @@
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
   const todayLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
-  const currentClient=()=>typeof client==='function'?client():null;
-  const currentRequest=(c=currentClient())=>{
-    if(!c)return null;
-    return window.DiagnostikaRequests?.current?.(c)||c.requests?.find(r=>r.id===c.currentRequestId)||c.requests?.find(r=>r.id===requestId)||c.requests?.[0]||null;
-  };
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
+  const currentRequest=(c=currentClient())=>ui()?.currentRequest?.(c)||null;
+  const requestById=(c,id)=>ui()?.requestById?.(c,id)||null;
+  const clientList=()=>ui()?.clientList?.()||[];
+  let dialogRequestId=null;
+  const dialogRequest=(c=currentClient())=>requestById(c,dialogRequestId)||currentRequest(c);
   const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||(c?.requests?.indexOf(r)+1||0);
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const updateRequestPayment=(c,r,changes,source)=>paymentWriter()?.updateRequest?.(r?.id,changes,{client:c,source})||null;
@@ -68,7 +70,7 @@
   }
   const symbolFor=(c,r)=>SYMBOLS[paymentOfRequest(c,r).currency||c?.currency||'RUB']||'₽';
   function sessionPayment(c,s){return paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});}
-  const sessionsFor=(c,r)=>(c?.sessions||[]).filter(s=>(s.requestId||s.payment?.requestId)===r?.id);
+  const sessionsFor=(c,r)=>ui()?.sessionsForRequest?.(c,r?.id)||[];
 
   function summary(c,r=currentRequest(c)){
     if(!c||!r)return{status:'none',label:'Не указано',paid:0,total:0};
@@ -83,7 +85,16 @@
     }
     const total=num(p.total),paid=p.payments.reduce((a,x)=>a+num(x.amount),0);
     if(!p.mode&&!total&&!paid)return{status:'none',label:'Не указано',paid,total};
-    if(paid<=0)return{status:'unpaid',label:'Нет',paid,total};
+    if(p.mode==='full'){
+      if(total>0&&paid>=total)return{status:'paid',label:'Оплачено',paid,total};
+      return{status:'unpaid',label:'Не оплачено',paid,total};
+    }
+    if(p.mode==='parts'){
+      if(paid<=0)return{status:'unpaid',label:'Не оплачено',paid,total};
+      if(total>0&&paid>=total)return{status:'paid',label:'Оплачено',paid,total};
+      return{status:'partial',label:'Частично',paid,total};
+    }
+    if(paid<=0)return{status:'unpaid',label:'Не оплачено',paid,total};
     if(total>0&&paid>=total)return{status:'paid',label:'Оплачено',paid,total};
     return{status:'partial',label:'Частично',paid,total};
   }
@@ -159,8 +170,9 @@
   }
 
   function renderDialog({resetEntry=false}={}){
-    const c=currentClient(),r=currentRequest(c);if(!c||!r){if(dlg.open)dlg.close();return;}
+    const c=currentClient(),r=dialogRequest(c);if(!c||!r){if(dlg.open)dlg.close();return;}
     const p=paymentOfRequest(c,r),n=requestNumber(c,r);
+    dlg.dataset.requestId=r.id;
     q('#paymentRequestSub').textContent=`Запрос ${n}: ${r.title||'Без названия'}`;
     q('#paymentMode').value=p.mode||'';
     q('#paymentTotal').value=p.total||'';
@@ -173,15 +185,16 @@
   function openPayment(){
     const c=currentClient(),r=currentRequest(c);
     if(!c||!r){window.AppDialog?.alert?.('Сначала создай или возобнови запрос.','Нет текущего запроса');return;}
+    dialogRequestId=r.id;
     renderDialog({resetEntry:true});
     dlg.showModal();
     window.dispatchEvent(new CustomEvent('diagnostika:payment-dialog-opened',{detail:{clientId:c.id,requestId:r.id}}));
   }
   q('.payment-x').onclick=()=>dlg.close();q('#paymentClose').onclick=()=>dlg.close();dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
-  q('#paymentMode').onchange=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;if(!updateRequestPayment(c,r,{mode:e.target.value},'payment-dialog-mode'))return;renderDialog();refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
-  q('#paymentCurrency').onchange=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;const code=e.target.value;if(!updateRequestPayment(c,r,{currency:code,currencyManual:true},'payment-dialog-currency'))return;window.DiagnostikaClients?.update?.(c.id,{currency:code,currencyManual:true},{source:'payment-dialog-currency-client',render:false});renderSummary(c,r);renderPaymentList(c,r);renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();};
-  q('#paymentTotal').oninput=e=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;if(!updateRequestPayment(c,r,{total:num(e.target.value)},'payment-dialog-total'))return;renderSummary(c,r);refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
-  q('#paymentAddBtn').onclick=()=>{const c=currentClient(),r=currentRequest(c);if(!c||!r)return;const amount=num(q('#paymentAmount').value);if(amount<=0){q('#paymentAmount').focus();return;}const added=addRequestPayment(c,r,{id:uidPay(),date:q('#paymentDate').value||todayLocal(),amount,note:q('#paymentNote').value.trim(),receiptUrl:q('#paymentReceipt').value.trim()},'payment-dialog-add');if(!added)return;q('#paymentAmount').value='';q('#paymentNote').value='';q('#paymentReceipt').value='';renderPaymentList(c,r);renderSummary(c,r);refreshDatabasePaymentColumn();window.DiagnostikaHomeDashboard?.refresh?.();};
+  q('#paymentMode').onchange=e=>{const c=currentClient(),r=dialogRequest(c);if(!c||!r)return;if(!updateRequestPayment(c,r,{mode:e.target.value},'payment-dialog-mode'))return;renderDialog();refreshDatabasePaymentColumn();ui()?.refreshDashboard?.();};
+  q('#paymentCurrency').onchange=e=>{const c=currentClient(),r=dialogRequest(c);if(!c||!r)return;const code=e.target.value;if(!updateRequestPayment(c,r,{currency:code,currencyManual:true},'payment-dialog-currency'))return;window.DiagnostikaClients?.update?.(c.id,{currency:code,currencyManual:true},{source:'payment-dialog-currency-client',render:false});renderSummary(c,r);renderPaymentList(c,r);renderAllPayments();ui()?.refreshDashboard?.();};
+  q('#paymentTotal').oninput=e=>{const c=currentClient(),r=dialogRequest(c);if(!c||!r)return;if(!updateRequestPayment(c,r,{total:num(e.target.value)},'payment-dialog-total'))return;renderSummary(c,r);refreshDatabasePaymentColumn();ui()?.refreshDashboard?.();};
+  q('#paymentAddBtn').onclick=()=>{const c=currentClient(),r=dialogRequest(c);if(!c||!r)return;const amount=num(q('#paymentAmount').value);if(amount<=0){q('#paymentAmount').focus();return;}const added=addRequestPayment(c,r,{id:uidPay(),date:q('#paymentDate').value||todayLocal(),amount,note:q('#paymentNote').value.trim(),receiptUrl:q('#paymentReceipt').value.trim()},'payment-dialog-add');if(!added)return;q('#paymentAmount').value='';q('#paymentNote').value='';q('#paymentReceipt').value='';renderPaymentList(c,r);renderSummary(c,r);refreshDatabasePaymentColumn();ui()?.refreshDashboard?.();};
 
   function allRows(c){
     const rows=[];
@@ -198,16 +211,17 @@
     const c=currentClient();if(!c)return;
     const rows=allRows(c),root=allDlg.querySelector('#allPaymentsList'),summaryEl=allDlg.querySelector('#allPaymentsSummary');
     root.innerHTML='';const totals={};rows.forEach(x=>totals[x.sym]=(totals[x.sym]||0)+x.amount);summaryEl.textContent=rows.length?`Всего платежей: ${rows.length} · ${Object.entries(totals).map(([s,v])=>`${money(v)} ${s}`).join(' · ')}`:'Платежей пока нет';
-    rows.forEach(x=>{const row=document.createElement('div');row.className='all-payment-row';row.innerHTML=`<span>${x.date||'—'}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn ap-edit">Изменить</button>`;row.querySelector('.ap-edit').onclick=()=>{if(x.pay){dlg.showModal?.();dlg.close?.();const req=x.request;requestId=req.id;renderDialog();dlg.showModal();setTimeout(()=>{const target=[...q('#paymentList').querySelectorAll('.payment-row')].find(rw=>num(rw.querySelector('.pr-amount')?.value)===num(x.pay.amount)&&rw.querySelector('.pr-date')?.value===x.pay.date);target?.querySelector('.pr-note')?.focus();},0);}else if(x.session&&typeof openSessionEditor==='function'){allDlg.close();const cnow=currentClient();const chronological=(cnow.sessions||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));openSessionEditor(cnow,x.session,chronological.indexOf(x.session)+1);}};root.appendChild(row);});
+    rows.forEach(x=>{const row=document.createElement('div');row.className='all-payment-row';row.innerHTML=`<span>${x.date||'—'}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn ap-edit">Изменить</button>`;row.querySelector('.ap-edit').onclick=()=>{if(x.pay){dlg.showModal?.();dlg.close?.();const req=x.request;dialogRequestId=req.id;renderDialog();dlg.showModal();setTimeout(()=>{const target=[...q('#paymentList').querySelectorAll('.payment-row')].find(rw=>num(rw.querySelector('.pr-amount')?.value)===num(x.pay.amount)&&rw.querySelector('.pr-date')?.value===x.pay.date);target?.querySelector('.pr-note')?.focus();},0);}else if(x.session){allDlg.close();const cnow=currentClient();const chronological=(ui()?.sessionList?.(cnow)||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));ui()?.openSessionEditor?.(cnow,x.session,chronological.indexOf(x.session)+1);}};root.appendChild(row);});
   }
   q('#allClientPaymentsBtn').onclick=()=>{allDlg.dataset.forceRender='1';renderAllPayments();delete allDlg.dataset.forceRender;allDlg.showModal();};
   allDlg.querySelector('.payment-x').onclick=()=>allDlg.close();allDlg.querySelector('.all-payments-close').onclick=()=>allDlg.close();allDlg.addEventListener('click',e=>{if(e.target===allDlg)allDlg.close();});
 
-  function refreshDatabasePaymentColumn(){const table=document.querySelector('#clientDatabaseList table');if(!table)return;const headRow=table.querySelector('thead tr');if(!headRow)return;if(!headRow.querySelector('.db-payment-head')){const th=document.createElement('th');th.className='db-payment-head';th.textContent='Оплата';const actions=headRow.querySelector('.db-col-actions')||headRow.lastElementChild;headRow.insertBefore(th,actions);}[...table.querySelectorAll('tbody tr')].forEach((tr,i)=>{const c=state.clients[i];if(!c)return;let cell=tr.querySelector('.db-payment-cell');if(!cell){cell=document.createElement('td');cell.className='db-payment-cell';const actions=tr.querySelector('.db-col-actions')||tr.lastElementChild;tr.insertBefore(cell,actions);}const r=currentRequest(c),s=summary(c,r);cell.innerHTML='';const chip=document.createElement('span');chip.className=`pay-chip ${s.status}`;chip.textContent=s.label;chip.title=r?`Запрос ${requestNumber(c,r)}: ${r.title||''}`:'Нет текущего запроса';cell.appendChild(chip);});}
+  function refreshDatabasePaymentColumn(){const table=document.querySelector('#clientDatabaseList table');if(!table)return;const headRow=table.querySelector('thead tr');if(!headRow)return;if(!headRow.querySelector('.db-payment-head')){const th=document.createElement('th');th.className='db-payment-head';th.textContent='Оплата';const actions=headRow.querySelector('.db-col-actions')||headRow.lastElementChild;headRow.insertBefore(th,actions);}const clients=clientList();[...table.querySelectorAll('tbody tr')].forEach((tr,i)=>{const c=clients[i];if(!c)return;let cell=tr.querySelector('.db-payment-cell');if(!cell){cell=document.createElement('td');cell.className='db-payment-cell';const actions=tr.querySelector('.db-col-actions')||tr.lastElementChild;tr.insertBefore(cell,actions);}const r=currentRequest(c),s=summary(c,r);cell.innerHTML='';const chip=document.createElement('span');chip.className=`pay-chip ${s.status}`;chip.textContent=s.label;chip.title=r?`Запрос ${requestNumber(c,r)}: ${r.title||''}`:'Нет текущего запроса';cell.appendChild(chip);});}
 
-  const oldRenderClient=window.renderClient;if(typeof oldRenderClient==='function')window.renderClient=function(){const v=oldRenderClient.apply(this,arguments);setTimeout(refresh,0);return v;};
-  if(typeof window.renderClientDatabaseTable==='function'){const oldDb=window.renderClientDatabaseTable;window.renderClientDatabaseTable=function(){const v=oldDb.apply(this,arguments);setTimeout(refreshDatabasePaymentColumn,0);return v;};}
-  function refresh(){refreshDatabasePaymentColumn();if(dlg.open){const c=currentClient(),r=currentRequest(c);if(c&&r){renderSummary(c,r);renderPaymentList(c,r);}}if(allDlg.open)renderAllPayments();}
-  window.DiagnostikaPayments={refresh,summary,paymentOfRequest,open:openPayment,symbolFor};
+  function refresh(){refreshDatabasePaymentColumn();if(dlg.open){const c=currentClient(),r=dialogRequest(c);if(c&&r){renderSummary(c,r);renderPaymentList(c,r);}}if(allDlg.open)renderAllPayments();}
+  const events=window.DiagnostikaPlatform?.events;
+  for(const type of ['client:selected','client:updated','request:selected','request:updated','request:activated','request:completed','request:resumed','payment:updated','payment:added','payment:deleted','session-payment:updated','session:created','session:updated','session:deleted'])events?.on?.(type,()=>setTimeout(refresh,0));
+  document.addEventListener('diagnostika:client-database-rendered',()=>setTimeout(refreshDatabasePaymentColumn,0));
+  window.DiagnostikaPaymentUI=Object.freeze({refresh,summary,paymentOfRequest,open:openPayment,symbolFor});
   refresh();
 })();

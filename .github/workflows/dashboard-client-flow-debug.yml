@@ -7,7 +7,7 @@ on:
       - 'home-dashboard.js'
       - 'client-card-window.js'
       - 'client-list-cleanup.js'
-      - 'client-payment-flag-rule.js'
+      - 'modules/payments/ui/client-debt-flags.js'
       - 'app.js'
       - 'app-loader.js'
       - 'app-startup.js'

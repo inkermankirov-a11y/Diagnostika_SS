@@ -14,18 +14,12 @@ on:
       - 'test-data.js'
       - 'core/legacy-event-bridge.js'
       - 'core/bootstrap.js'
-      - 'session-payment-data-repair.js'
-      - 'session-payment-editor.js'
-      - 'session-payment-ui-sync.js'
-      - 'session-payment-button-authority.js'
-      - 'payment-system.js'
-      - 'payment-consistency-core.js'
-      - 'payment-save-guard.js'
       - 'home-dashboard-sessions.js'
       - 'modules/sessions/ui/editor.js'
       - 'modules/sessions/ui/interactions.js'
       - 'modules/sessions/ui/active-request.js'
       - 'modules/sessions/ui/format.js'
+      - 'modules/payments/ui/**'
       - '.github/workflows/session-module-audit.yml'
   workflow_dispatch:
 
@@ -48,13 +42,13 @@ jobs:
           node --check test-data.js
           node --check core/legacy-event-bridge.js
           node --check core/bootstrap.js
-          node --check session-payment-data-repair.js
-          node --check session-payment-editor.js
-          node --check session-payment-ui-sync.js
-          node --check session-payment-button-authority.js
-          node --check payment-system.js
-          node --check payment-consistency-core.js
-          node --check payment-save-guard.js
+          node --check modules/payments/ui/data-repair.js
+          node --check modules/payments/ui/session-editor.js
+          node --check modules/payments/ui/save-guard.js
+          node --check modules/payments/ui/consistency.js
+          node --check modules/payments/ui/enhancements.js
+          node --check modules/payments/ui/session-status.js
+          node --check modules/payments/ui/session-mode.js
           node --check home-dashboard-sessions.js
           node --check modules/sessions/ui/editor.js
           node --check modules/sessions/ui/interactions.js
@@ -77,21 +71,19 @@ jobs:
           legacy=Path('core/legacy-event-bridge.js').read_text(encoding='utf-8')
           test_data=Path('test-data.js').read_text(encoding='utf-8')
           payment_paths=[
-              'session-payment-data-repair.js',
-              'session-payment-editor.js',
-              'session-payment-ui-sync.js',
-              'session-payment-button-authority.js',
-              'payment-system.js',
-              'payment-consistency-core.js',
-              'payment-save-guard.js'
+              'modules/payments/ui/data-repair.js',
+              'modules/payments/ui/session-editor.js',
+              'modules/payments/ui/save-guard.js',
+              'modules/payments/ui/consistency.js',
+              'modules/payments/ui/enhancements.js',
+              'modules/payments/ui/session-status.js',
+              'modules/payments/ui/session-mode.js'
           ]
           payment_sources={p:Path(p).read_text(encoding='utf-8') for p in payment_paths}
           payment_link_paths={
-              'session-payment-data-repair.js',
-              'session-payment-editor.js',
-              'session-payment-ui-sync.js',
-              'session-payment-button-authority.js',
-              'payment-consistency-core.js'
+              'modules/payments/ui/data-repair.js',
+              'modules/payments/ui/session-editor.js',
+              'modules/payments/ui/consistency.js'
           }
           errors=[]
 
