@@ -164,9 +164,11 @@
     });
   }
 
+  function emitSessionsRendered(){document.dispatchEvent(new CustomEvent('diagnostika:dashboard-sessions-rendered'));}
+
   function render(){
     const c=getClient();
-    if(!c){section.hidden=true;return;}
+    if(!c){section.hidden=true;emitSessionsRendered();return;}
     section.hidden=false;
     const r=currentRequest(c);
     const all=numberedSessions(c);
@@ -181,10 +183,12 @@
 
     if(!r){
       list.innerHTML='<div class="hd-sessions-empty">Сначала выберите текущий запрос.</div>';
+      emitSessionsRendered();
       return;
     }
     if(!display.length){
       list.innerHTML='<div class="hd-sessions-empty">По текущему запросу сессий пока нет.</div>';
+      emitSessionsRendered();
       return;
     }
 
@@ -217,6 +221,7 @@
       });
       list.appendChild(card);
     });
+    emitSessionsRendered();
   }
 
   archiveBtn.addEventListener('click',()=>{
