@@ -264,6 +264,7 @@
       list.appendChild(row);
     });
     count.textContent=`Клиентов: ${all.length}`;
+    document.dispatchEvent(new CustomEvent('diagnostika:dashboard-clients-rendered'));
   }
 
   function renderHero(){
