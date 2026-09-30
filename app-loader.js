@@ -7,8 +7,8 @@
     s.setAttribute(marker,'1');
     document.body.appendChild(s);
   }
-  loadOnce('modules/payments/ui/data-repair.js?v=20260930-modular25a','data-session-payment-data-repair');
-  loadOnce('modules/payments/ui/session-mode.js?v=20260930-modular25a','data-session-payment-mode-rule');
+  loadOnce('modules/payments/ui/data-repair.js?v=20260930-modular25b','data-session-payment-data-repair');
+  loadOnce('modules/payments/ui/session-mode.js?v=20260930-modular25b','data-session-payment-mode-rule');
 })();
 
 // Main home screen redesign. Loaded last so it can reuse the existing application logic safely.
@@ -447,7 +447,7 @@
       }
 
       const api=document.createElement('script');
-      api.src='payment-api.js?v=20260918-payment5d&api=13d';
+      api.src='payment-api.js?v=20260918-payment5d&api=13d&cleanup=25b';
       api.setAttribute('data-payment-api','1');
       api.onload=loadAIApi;
       document.body.appendChild(api);
