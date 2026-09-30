@@ -116,7 +116,9 @@ jobs:
           if 'modules/sessions/ui/interactions.js?v=20260929-modular24a' not in index: errors.append('session interactions script/cache marker is missing')
           if 'app-loader.js?v=' not in index: errors.append('app loader script is missing')
           if 'home-dashboard.js?v=20260918-clients2d' not in loader: errors.append('home dashboard cache version is stale')
-          if "api.update(c.id,patch,{source:'questionnaire-primary-profile'})" not in questionnaires: errors.append('questionnaire primary profile does not use client service')
+          if "persistQuestionnaires(c,next,'questionnaire-primary-profile',patch)" not in questionnaires: errors.append('questionnaire primary profile does not use client service')
+          for token in ['typeof save','state.clients','c.questionnaires=','c.questionnaires.push']:
+              if token in questionnaires: errors.append('questionnaire legacy write remains '+token)
           for token in ['if(p.name)c.name=p.name','if(p.phone)c.phone=p.phone',"if(typeof renderClient==='function')renderClient();"]:
               if token in questionnaires: errors.append('questionnaire direct profile mutation remains '+token)
           if "api.update(c.id,profilePatch,{source:'free-consultation-card-sync',render:false})" not in consultation_sync: errors.append('free consultation profile sync does not use client service')
