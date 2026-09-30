@@ -149,3 +149,5 @@ console.log('PAYMENT_MODULE_5D_SUCCESS',JSON.stringify({before,after:{amount:aft
 
 await context.close();
 await browser.close();
+
+// modular stage 4 validation trigger
