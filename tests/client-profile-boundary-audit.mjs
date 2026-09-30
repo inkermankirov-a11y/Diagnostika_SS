@@ -12,7 +12,10 @@ for(const token of [
 ]){
   assert.equal(questionnaireSource.includes(token),false,'questionnaire direct profile mutation remains: '+token);
 }
-assert.match(questionnaireSource,/api\.update\(c\.id,patch,\{source:'questionnaire-primary-profile'\}\)/);
+assert.match(questionnaireSource,/persistQuestionnaires\(c,next,'questionnaire-primary-profile',patch\)/);
+for(const token of ['typeof save','state.clients','c.questionnaires=','c.questionnaires.push']){
+  assert.equal(questionnaireSource.includes(token),false,'questionnaire legacy write remains: '+token);
+}
 
 for(const token of ['c.mainRequest=next.mainRequest','c[key]=cleaned.value','c[key]=next']){
   assert.equal(consultationSource.includes(token),false,'free consultation direct profile mutation remains: '+token);
@@ -132,7 +135,7 @@ assert.deepEqual({
   primary:true
 });
 assert.equal(questionnaireState.events.length,1,'primary questionnaire must emit one client:updated');
-assert.deepEqual([...questionnaireState.events[0].fields].sort(),['age','city','country','email','gender','name','phone','preferredContact'].sort());
+assert.deepEqual([...questionnaireState.events[0].fields].sort(),['age','city','country','email','gender','name','phone','preferredContact','questionnaires'].sort());
 
 await page.evaluate(()=>{window.__client2c2Events=[];});
 const syncResult=await page.evaluate(()=>{
