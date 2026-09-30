@@ -19,106 +19,6 @@
     return id?ui()?.sessionById?.(c,id)||null:null;
   }
 
-  function effectiveSessionPrice(req){
-    const p=req?.payment||{};
-    const base=Math.max(0,Number(p.sessionAmount)||0);
-    const discount=Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));
-    return Math.max(0,Math.round(base*(1-discount/100)*100)/100);
-  }
-
-  function legacyPaidCheckbox(dlg){
-    return dlg?.querySelector('.session-payment-field input[type="checkbox"]')
-      || dlg?.querySelector('.session-payment-paid input[type="checkbox"]')
-      || null;
-  }
-
-  function legacyAmountInput(dlg){
-    const field=dlg?.querySelector('.session-payment-field');
-    return field?.querySelector('input[type="number"]')||null;
-  }
-
-  function ensureSessionSnapshot(dlg){
-    if(!dlg||dlg.__saveGuardSessionSnapshot)return;
-    const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
-    dlg.__saveGuardSessionSnapshot={payment:clone(s.payment||null)};
-    dlg.dataset.saveGuardPaymentDraft=s.payment?.paid?'1':'0';
-    dlg.dataset.saveGuardSessionDirty='0';
-  }
-
-  function markSessionDirty(dlg){
-    ensureSessionSnapshot(dlg);
-    if(dlg)dlg.dataset.saveGuardSessionDirty='1';
-  }
-
-  function paintSessionPayment(dlg){
-    ensureSessionSnapshot(dlg);
-    const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
-    const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
-    const req=ui()?.requestById?.(c,reqId)||null;
-    const amount=effectiveSessionPrice(req)||(Number(s.payment?.amount)||0);
-    const paid=dlg.dataset.saveGuardPaymentDraft==='1';
-
-    const btn=dlg.querySelector('.session-editor-payment-state');
-    if(btn){
-      btn.classList.toggle('paid',paid);
-      btn.classList.toggle('unpaid',!paid);
-      btn.textContent=paid?'✓ Оплачено':'Не оплачено';
-      btn.title=paid?`Оплачено ${amount||0} ₽`:`Не оплачено${amount?` · ${amount} ₽`:''}`;
-    }
-
-    const checkbox=legacyPaidCheckbox(dlg);
-    if(checkbox) checkbox.checked=paid;
-    const amountInput=legacyAmountInput(dlg);
-    if(amountInput&&amount>0&&!amountInput.matches(':focus')) amountInput.value=String(amount);
-  }
-
-  function commitSessionPayment(dlg){
-    ensureSessionSnapshot(dlg);
-    const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return false;
-    const current=paymentWriter()?.session?.(s.id,c)||(s.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0,receiptUrl:'',note:''});
-    const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||current?.requestId||'';
-    const req=c.requests?.find(r=>r.id===reqId)||null;
-    const amountFromField=Math.max(0,Number(legacyAmountInput(dlg)?.value)||0);
-    const amount=amountFromField||effectiveSessionPrice(req)||(Number(current?.amount)||0);
-    const paid=dlg.dataset.saveGuardPaymentDraft==='1';
-
-    const checkbox=legacyPaidCheckbox(dlg);
-    if(checkbox) checkbox.checked=paid;
-
-    const next={...current,paid,amount,manualAmount:amountFromField>0,receiptUrl:''};
-    if(reqId)next.requestId=reqId;
-    if(paid){
-      next.paidAt=todayLocal();
-      next.sessionDate=dlg.querySelector('.session-edit-grid input[type="date"]')?.value||s.date||todayLocal();
-      next.priceSnapshot=true;
-      next.baseAmount=Math.max(0,Number(req?.payment?.sessionAmount)||amount);
-      next.discountSnapshot=Math.min(100,Math.max(0,Number(req?.payment?.sessionDiscount)||0));
-    }else{
-      delete next.paidAt;delete next.sessionDate;delete next.priceSnapshot;delete next.baseAmount;delete next.discountSnapshot;
-    }
-    const updated=paymentWriter()?.replaceSession?.(
-      s.id,next,{client:c,source:'payment-save-guard-session-commit'}
-    );
-    if(!updated)return false;
-    dlg.dataset.saveGuardSessionDirty='0';
-    dlg.__saveGuardSessionSnapshot={payment:clone(updated)};
-    return true;
-  }
-
-  function discardSessionDraft(dlg){
-    const c=currentClient(),s=sessionFromDialog(dlg,c),snap=dlg?.__saveGuardSessionSnapshot;
-    if(!c||!s||!snap)return false;
-    const restored=paymentWriter()?.replaceSession?.(
-      s.id,
-      clone(snap.payment),
-      {client:c,source:'payment-save-guard-session-restore'}
-    );
-    if(snap.payment!==null&&!restored)return false;
-    dlg.dataset.saveGuardPaymentDraft=(restored?.paid===true)?'1':'0';
-    paintSessionPayment(dlg);
-    return true;
-  }
-
   function ensurePaymentSnapshot(dlg){
     if(!dlg||dlg.__saveGuardPaymentSnapshotSet)return;
     const c=currentClient(),r=requestFromPaymentDialog(dlg,c);if(!r)return;
@@ -162,28 +62,6 @@
   window.addEventListener('click',async e=>{
     const target=e.target;
 
-    const sessionSave=target?.closest?.('dialog.session-edit-dialog .session-edit-actions .primary');
-    if(sessionSave){
-      const dlg=sessionSave.closest('dialog.session-edit-dialog');
-      if(dlg){paintSessionPayment(dlg);if(!commitSessionPayment(dlg))return;}
-      return;
-    }
-
-    const sdlg=target instanceof HTMLDialogElement&&target.classList.contains('session-edit-dialog')?target:null;
-    if(sdlg&&sdlg.open&&sdlg.dataset.saveGuardSessionDirty==='1'){
-      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-      const yes=await askSave('Сохранить изменения сессии?');
-      if(yes){
-        paintSessionPayment(sdlg);commitSessionPayment(sdlg);
-        const btn=sdlg.querySelector('.session-edit-actions .primary');
-        if(btn){btn.click();return;}
-        try{sdlg.close();}catch(_){}
-      }else{
-        discardSessionDraft(sdlg);try{sdlg.close();}catch(_){}
-      }
-      return;
-    }
-
     const pdlg=target instanceof HTMLDialogElement&&target.classList.contains('payment-dialog')?target:null;
     if(pdlg&&pdlg.open&&pdlg.dataset.saveGuardPaymentDirty==='1'){
       e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
@@ -212,42 +90,18 @@
   },true);
 
   window.addEventListener('input',e=>{
-    const sdlg=e.target?.closest?.('dialog.session-edit-dialog');
-    if(sdlg){markSessionDirty(sdlg);return;}
     const pdlg=e.target?.closest?.('dialog.payment-dialog');
     if(pdlg)markPaymentDirty(pdlg);
   },true);
 
   window.addEventListener('change',e=>{
-    const sdlg=e.target?.closest?.('dialog.session-edit-dialog');
-    if(sdlg){
-      const checkbox=legacyPaidCheckbox(sdlg);
-      if(checkbox&&e.target===checkbox){
-        e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-        ensureSessionSnapshot(sdlg);
-        sdlg.dataset.saveGuardPaymentDraft=checkbox.checked?'1':'0';
-        markSessionDirty(sdlg);
-        paintSessionPayment(sdlg);
-        return;
-      }
-      markSessionDirty(sdlg);
-      return;
-    }
     const pdlg=e.target?.closest?.('dialog.payment-dialog');
     if(pdlg)markPaymentDirty(pdlg);
   },true);
 
   function refresh(){
-    document.querySelectorAll('dialog.session-edit-dialog').forEach(dlg=>{ensureSessionSnapshot(dlg);paintSessionPayment(dlg);});
     document.querySelectorAll('dialog.payment-dialog').forEach(dlg=>{if(dlg.open)ensurePaymentSnapshot(dlg);});
   }
-
-  document.addEventListener('diagnostika:session-editor-opened',event=>{
-    const dlg=event.detail?.dialog;
-    if(!dlg)return;
-    ensureSessionSnapshot(dlg);
-    paintSessionPayment(dlg);
-  });
   window.addEventListener('diagnostika:payment-dialog-opened',()=>{
     const dlg=document.querySelector('dialog.payment-dialog:has(#paymentMode)');
     if(dlg)ensurePaymentSnapshot(dlg);
