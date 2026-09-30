@@ -2,7 +2,7 @@ name: Request selection audit
 
 on:
   push:
-    branches: [main, fix-request-selection-not-active, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
+    branches: [main, fix-request-selection-not-active, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, 'feature-request-*', 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
   workflow_dispatch:
 
 jobs:
@@ -13,9 +13,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Static syntax check
         run: |
-          node --check request-select-labels.js
-          node --check request-title-display.js
-          node --check request-date-unsaved.js
+          node --check modules/requests/ui/selection.js
+          node --check modules/requests/ui/title.js
+          node --check modules/requests/ui/date-unsaved.js
       - name: Install browser
         run: |
           npm init -y >/dev/null 2>&1
