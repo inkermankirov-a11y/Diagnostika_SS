@@ -2,7 +2,7 @@ name: Client specialist history audit
 
 on:
   push:
-    branches: [main, 'feature-specialist-history-*', 'feature-specialist-row-*']
+    branches: [main, 'feature-specialist-history-*', 'feature-specialist-row-*', 'feature-client-*']
     paths:
       - 'client-transfer.js'
       - 'index.html'
