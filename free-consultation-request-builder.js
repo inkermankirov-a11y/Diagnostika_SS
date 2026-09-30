@@ -279,7 +279,21 @@
   rq('.fc-result-copy').onclick=async()=>{const text=resultMain.value.trim();if(!text)return;try{await navigator.clipboard.writeText(text);rq('.fc-result-copy').textContent='Скопировано';setTimeout(()=>rq('.fc-result-copy').textContent='Копировать основной запрос',1200);}catch(_){}};
 
   function attach(){const btn=document.getElementById('ccFreeConsultBtn');if(!btn||btn.dataset.freeConsultReady==='1')return;btn.dataset.freeConsultReady='1';btn.onclick=open;}
-  attach();const mo=new MutationObserver(attach);mo.observe(document.body,{childList:true,subtree:true});
+
+  let platformEventsBound=false;
+  function bindPlatformEvents(){
+    if(platformEventsBound)return true;
+    const events=window.DiagnostikaPlatform?.events;
+    if(!events?.on)return false;
+    for(const type of ['client:created','client:selected','client:updated','client:restored'])events.on(type,attach);
+    platformEventsBound=true;
+    return true;
+  }
+
+  attach();
+  bindPlatformEvents();
+  document.addEventListener('diagnostika:dashboard-clients-rendered',attach);
+  window.addEventListener('diagnostika:platform-core-ready',()=>{bindPlatformEvents();attach();},{once:true});
 
   window.DiagnostikaFreeConsultation={open,save:()=>persist(true)};
 })();
