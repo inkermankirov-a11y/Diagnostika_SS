@@ -230,6 +230,8 @@
     }else{
       if(!persistSessionPayment(c,s,preferredId,next,dateInput?.value||s.date||today()))return;
     }
+    dlg.dataset.saveGuardPaymentDraft=next?'1':'0';
+    dlg.dataset.saveGuardSessionDirty='1';
     applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();renderPaymentLedger();
     setTimeout(()=>{ui()?.refreshSessions?.();refreshGlobalPaymentUi();renderPaymentLedger();},0);
   },true);
