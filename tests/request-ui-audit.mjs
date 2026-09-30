@@ -209,10 +209,10 @@ assert.equal(events.filter(x=>x.type==='request:activated'&&x.detail.source==='r
 assert.equal(events.filter(x=>x.type==='request:updated'&&x.detail.source==='request-title-display').length,1);
 
 const observers=await page.evaluate(()=>(window.__requests3bObservers||[]).map(x=>({stack:x.stack,count:x.count,records:x.records})));
-const requestSelectObservers=observers.filter(x=>x.stack.includes('request-select-labels.js'));
-const requestDateObservers=observers.filter(x=>x.stack.includes('request-date-unsaved.js'));
+const requestSelectObservers=observers.filter(x=>x.stack.includes('modules/requests/ui/selection.js'));
+const requestDateObservers=observers.filter(x=>x.stack.includes('modules/requests/ui/date-unsaved.js'));
 assert.equal(requestSelectObservers.length,0,'Request UI must not keep request DOM observers after 3C');
-assert.equal(requestDateObservers.length,0,'request-date-unsaved.js must not own request DOM observation');
+assert.equal(requestDateObservers.length,0,'modules/requests/ui/date-unsaved.js must not own request DOM observation');
 
 await page.reload({waitUntil:'commit'});
 await ready();
