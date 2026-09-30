@@ -62,6 +62,12 @@
     return window.DiagnostikaClients || null;
   }
 
+  function currentClient(){
+    return window.DiagnostikaClientUIContext?.currentClient?.()
+      || clientsApi()?.current?.()
+      || null;
+  }
+
   function ageFromBirth(value){
     if(!value) return '';
     const d = new Date(value);
@@ -83,7 +89,7 @@
 
   function sourceClient(){
     if(draftMode) return draft;
-    return clientsApi()?.current?.() || (typeof client==='function' ? client() : null);
+    return currentClient();
   }
 
   function fillFrom(c){
@@ -169,7 +175,7 @@
   }
 
   function openExisting(){
-    const c=clientsApi()?.current?.() || (typeof client==='function' ? client() : null);
+    const c=currentClient();
     if(!c) return alert('Сначала выбери клиента.');
     draftMode=false;draft=null;
     q('ccSaveBtn').textContent='Сохранить карточку';
