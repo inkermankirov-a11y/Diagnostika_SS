@@ -22,7 +22,7 @@
   function t(k){return TEXT[lang()][k]||TEXT.ru[k]||k;}
   function specialistName(){return (localStorage.getItem(SPECIALIST_KEY)||'').trim();}
   function clone(v){return JSON.parse(JSON.stringify(v));}
-  function uidLocal(){return typeof uid==='function'?uid():'id_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+  function uidLocal(){return crypto.randomUUID?crypto.randomUUID():'id_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
   function safeFileName(v){return String(v||'client').trim().replace(/[<>:"/\\|?*\x00-\x1F]/g,'_').replace(/[. ]+$/g,'').slice(0,80)||'client';}
   const clientsApi=()=>window.DiagnostikaClients
     || window.DiagnostikaPlatform?.clients
