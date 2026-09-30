@@ -99,15 +99,21 @@
   let selectedShortIndex=0;
 
   function getClient(){
-    try{const c=typeof client==='function'?client():null;if(c)return c;}catch(_){}
-    try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
+    return window.DiagnostikaRequestUIContext?.currentClient?.()||null;
+  }
+  function updateClient(changes,source){
+    if(!currentClient?.id)return null;
+    const api=window.DiagnostikaRequestUIContext?.clientsApi?.();
+    const updated=api?.update?.(currentClient.id,changes,{render:false,source});
+    if(updated)currentClient=updated;
+    return updated||null;
   }
   function readData(){return Object.fromEntries(Object.entries(fields).map(([k,el])=>[k,el.value]));}
   function writeData(data){data=data||{};Object.entries(fields).forEach(([k,el])=>{el.value=data[k]||'';});}
   function persist(showMessage=true){
     if(!currentClient)return;
-    currentClient.freeConsultation={...(currentClient.freeConsultation||{}),...readData(),updatedAt:new Date().toISOString()};
-    try{if(typeof save==='function')save();}catch(_){}
+    const freeConsultation={...(currentClient.freeConsultation||{}),...readData(),updatedAt:new Date().toISOString()};
+    if(!updateClient({freeConsultation},'free-consultation-save'))return;
     if(showMessage){status.textContent='Сохранено';setTimeout(()=>{if(status.textContent==='Сохранено')status.textContent='';},1600);}
   }
   function open(){
@@ -179,8 +185,8 @@
     q('.fc-ai').disabled=true;status.textContent='Анализирую консультацию…';
     try{
       const result=await generator(payload);
-      currentClient.freeConsultation={...(currentClient.freeConsultation||{}),aiResult:result};
-      try{if(typeof save==='function')save();}catch(_){}
+      const freeConsultation={...(currentClient.freeConsultation||{}),aiResult:result};
+      updateClient({freeConsultation},'free-consultation-ai-result');
       showResult(result,payload);
     }catch(err){
       resultNote.textContent='Не удалось получить ответ ИИ: '+(err?.message||'ошибка запроса');
@@ -192,9 +198,8 @@
   function saveMainRequest(showMessage=true){
     const text=resultMain.value.trim();
     if(!text||!currentClient)return false;
-    currentClient.mainRequest=text;
-    currentClient.freeConsultation={...(currentClient.freeConsultation||{}),aiResult:{...(currentClient.freeConsultation?.aiResult||{}),mainRequest:text}};
-    try{if(typeof save==='function')save();}catch(_){}
+    const freeConsultation={...(currentClient.freeConsultation||{}),aiResult:{...(currentClient.freeConsultation?.aiResult||{}),mainRequest:text}};
+    if(!updateClient({mainRequest:text,freeConsultation},'free-consultation-main-request'))return false;
     try{const el=document.getElementById('ccMainRequest');if(el)el.value=text;}catch(_){}
     if(showMessage){resultNote.textContent='Развёрнутый основной запрос сохранён в бесплатной консультации. Диагностический запрос не изменён.';}
     return true;
@@ -217,7 +222,7 @@
   }
 
   function createDiagnosis(){
-    currentClient=typeof client==='function'?client():currentClient;
+    currentClient=getClient()||currentClient;
     if(!currentClient)return;
     const api=window.DiagnostikaRequests?.moduleAware===true
       ? window.DiagnostikaRequests
@@ -248,7 +253,7 @@
     });
     if(!created)return alert('Не удалось создать запрос в Диагностике.');
 
-    currentClient.freeConsultation={
+    const freeConsultation={
       ...(currentClient.freeConsultation||{}),
       aiResult:{
         ...(currentClient.freeConsultation?.aiResult||{}),
@@ -257,7 +262,7 @@
         diagnosisRequestId:created.id
       }
     };
-    try{if(typeof save==='function')save();}catch(_){}
+    updateClient({freeConsultation},'free-consultation-diagnosis-link');
 
     resultNote.textContent=`Создан новый запрос в Диагностике: «${title}»${situations.length?`. Ситуаций добавлено: ${situations.length}.`:'.'}`;
     if(resultDlg.open)resultDlg.close();
