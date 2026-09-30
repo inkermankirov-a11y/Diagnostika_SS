@@ -3,7 +3,8 @@
 (() => {
   if (window.DiagnostikaPaymentTotalInputStability) return;
 
-  const currentClient=()=>typeof client==='function'?client():null;
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
   const digits=v=>String(v??'').replace(/\D/g,'');
   const toNumber=v=>{const d=digits(v);return d?Number(d):0;};
   const format=v=>{
@@ -11,22 +12,10 @@
     return d?d.replace(/\B(?=(\d{3})+(?!\d))/g,' '):'';
   };
 
-  function currentRequest(c){
+  function currentRequest(c,dialog=null){
     if(!c)return null;
-    try{
-      const r=window.DiagnostikaRequests?.current?.(c);
-      if(r)return r;
-    }catch(_){}
-    try{
-      if(typeof requestId!=='undefined'&&requestId){
-        const r=(c.requests||[]).find(x=>String(x.id)===String(requestId));
-        if(r)return r;
-      }
-    }catch(_){}
-    return (c.requests||[]).find(r=>String(r.id)===String(c.currentRequestId||''))
-      ||(c.requests||[]).find(r=>String(r.id)===String(c.activeRequestId||''))
-      ||(c.requests||[])[0]
-      ||null;
+    const id=dialog?.dataset?.requestId;
+    return (id?ui()?.requestById?.(c,id):null)||ui()?.currentRequest?.(c)||null;
   }
 
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
@@ -75,7 +64,7 @@
       if(e)e.stopImmediatePropagation();
       const raw=digits(field.value);
       field.value=format(raw);
-      const c=currentClient(),r=currentRequest(c);if(!c||!r)return;
+      const c=currentClient(),r=currentRequest(c,field.closest('dialog.payment-dialog'));if(!c||!r)return;
       const updated=paymentWriter()?.updateRequest?.(
         r.id,
         {total:raw?Number(raw):0},
