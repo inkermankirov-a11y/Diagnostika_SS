@@ -3,28 +3,20 @@
 (() => {
   const clone=v=>{try{return JSON.parse(JSON.stringify(v??null));}catch(_){return null;}};
   const todayLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
-  const currentClient=()=>typeof client==='function'?client():null;
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
 
   function requestFromPaymentDialog(dlg,c=currentClient()){
     if(!c)return null;
-    const text=dlg?.querySelector('#paymentRequestSub')?.textContent||'';
-    const m=text.match(/Запрос\s+(\d+)/i);
-    if(m){const i=Number(m[1])-1;if(c.requests?.[i])return c.requests[i];}
-    return window.DiagnostikaRequests?.current?.(c)
-      ||c.requests?.find(r=>r.id===c.currentRequestId)
-      ||c.requests?.find(r=>r.id===requestId)
-      ||null;
+    const id=dlg?.dataset?.requestId;
+    return (id?ui()?.requestById?.(c,id):null)||ui()?.currentRequest?.(c)||null;
   }
 
   function sessionFromDialog(dlg,c=currentClient()){
     if(!c||!dlg)return null;
     const id=dlg.dataset.sessionId;
-    if(id){const s=c.sessions?.find(x=>x.id===id);if(s)return s;}
-    if(typeof selectedSessionId!=='undefined'&&selectedSessionId){
-      const s=c.sessions?.find(x=>x.id===selectedSessionId);if(s)return s;
-    }
-    return null;
+    return id?ui()?.sessionById?.(c,id)||null:null;
   }
 
   function effectiveSessionPrice(req){
@@ -62,7 +54,7 @@
     ensureSessionSnapshot(dlg);
     const c=currentClient(),s=sessionFromDialog(dlg,c);if(!c||!s)return;
     const reqId=dlg.querySelector('.session-edit-grid select')?.value||s.requestId||s.payment?.requestId||'';
-    const req=c.requests?.find(r=>r.id===reqId)||null;
+    const req=ui()?.requestById?.(c,reqId)||null;
     const amount=effectiveSessionPrice(req)||(Number(s.payment?.amount)||0);
     const paid=dlg.dataset.saveGuardPaymentDraft==='1';
 
@@ -151,7 +143,7 @@
 
   function restorePaymentSnapshot(dlg){
     const c=currentClient();if(!c||!dlg?.__saveGuardPaymentRequestId)return;
-    const r=c.requests?.find(x=>x.id===dlg.__saveGuardPaymentRequestId);if(!r)return;
+    const r=ui()?.requestById?.(c,dlg.__saveGuardPaymentRequestId);if(!r)return;
     const snap=clone(dlg.__saveGuardPaymentSnapshot);
     paymentWriter()?.replaceRequest?.(
       r.id,
@@ -169,17 +161,6 @@
 
   window.addEventListener('click',async e=>{
     const target=e.target;
-
-    const payState=target?.closest?.('.session-editor-payment-state');
-    if(payState){
-      const dlg=payState.closest('dialog.session-edit-dialog');if(!dlg)return;
-      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-      ensureSessionSnapshot(dlg);
-      dlg.dataset.saveGuardPaymentDraft=dlg.dataset.saveGuardPaymentDraft==='1'?'0':'1';
-      markSessionDirty(dlg);
-      paintSessionPayment(dlg);
-      return;
-    }
 
     const sessionSave=target?.closest?.('dialog.session-edit-dialog .session-edit-actions .primary');
     if(sessionSave){
@@ -261,31 +242,34 @@
     document.querySelectorAll('dialog.payment-dialog').forEach(dlg=>{if(dlg.open)ensurePaymentSnapshot(dlg);});
   }
 
-  const dialogNode=node=>node?.nodeType===1&&(
-    node.matches?.('dialog.session-edit-dialog,dialog.payment-dialog')
-    ||node.querySelector?.('dialog.session-edit-dialog,dialog.payment-dialog')
-  );
-  const observer=new MutationObserver(records=>{
-    if(records.some(record=>Array.from(record.addedNodes||[]).some(dialogNode)))setTimeout(refresh,0);
+  document.addEventListener('diagnostika:session-editor-opened',event=>{
+    const dlg=event.detail?.dialog;
+    if(!dlg)return;
+    ensureSessionSnapshot(dlg);
+    paintSessionPayment(dlg);
   });
-  observer.observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('diagnostika:payment-dialog-opened',()=>{
+    const dlg=document.querySelector('dialog.payment-dialog:has(#paymentMode)');
+    if(dlg)ensurePaymentSnapshot(dlg);
+  });
   setTimeout(refresh,0);
 })();
 
 // Reliable editor for an existing record from "Все платежи клиента".
 (() => {
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
-  const currentClient=()=>typeof client==='function'?client():null;
+  const ui=()=>window.DiagnostikaPaymentUIContext||null;
+  const currentClient=()=>ui()?.currentClient?.()||null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
   const sessionPayment=(s,c=currentClient())=>paymentWriter()?.session?.(s?.id,c)||(s?.payment&&typeof s.payment==='object'?s.payment:{paid:false,amount:0});
-  const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||(c?.requests?.indexOf(r)+1||0);
+  const requestNumber=(c,r)=>window.DiagnostikaRequests?.requestNumber?.(c,r)||0;
 
   function rowsFor(c){
     const rows=[];
-    (c?.requests||[]).forEach(r=>{
+    (ui()?.requestList?.(c)||[]).forEach(r=>{
       const p=window.DiagnostikaPayments?.paymentOfRequest?.(c,r)||r.payment||{};
       if(p.mode==='session'){
-        (c.sessions||[]).filter(s=>(s.requestId||s.payment?.requestId)===r.id).forEach(s=>{
+        (ui()?.sessionsForRequest?.(c,r.id)||[]).forEach(s=>{
           const sp=sessionPayment(s);if(sp.paid)rows.push({kind:'session',request:r,session:s,date:sp.paidAt||s.date||'',amount:num(sp.amount)});
         });
       }else{
@@ -329,10 +313,8 @@
 
     if(item.kind==='session'){
       try{allDlg.close();}catch(_){}
-      if(typeof openSessionEditor==='function'){
-        const chronological=(c.sessions||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
-        openSessionEditor(c,item.session,chronological.indexOf(item.session)+1);
-      }
+      const chronological=(ui()?.sessionList?.(c)||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+      ui()?.openSessionEditor?.(c,item.session,chronological.indexOf(item.session)+1);
       return;
     }
 
@@ -357,7 +339,7 @@
       );
       if(!updated)return;
       try{window.DiagnostikaPayments?.refresh?.();}catch(_){}
-      try{window.DiagnostikaHomeDashboard?.refresh?.();}catch(_){}
+      try{ui()?.refreshDashboard?.();}catch(_){}
       editor.close();
       setTimeout(reopenAllPayments,0);
     };
