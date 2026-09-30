@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const files={
-  last:fs.readFileSync('last-client.js','utf8'),
-  transfer:fs.readFileSync('client-transfer.js','utf8'),
+  last:fs.readFileSync('modules/clients/selection-memory.js','utf8'),
+  transfer:fs.readFileSync('modules/clients/ui/transfer.js','utf8'),
   forms:fs.readFileSync('form-integrations.js','utf8'),
   ui:fs.readFileSync('ui-fixes.js','utf8')
 };
