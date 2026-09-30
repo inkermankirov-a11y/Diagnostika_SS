@@ -236,19 +236,23 @@
     setTimeout(()=>{ui()?.refreshSessions?.();refreshGlobalPaymentUi();renderPaymentLedger();},0);
   },true);
   function renderPaymentLedger(){
-    const dlg=document.querySelector('.payment-dialog');if(!dlg)return;
+    const dlg=document.querySelector('dialog.payment-dialog:has(#paymentMode)');if(!dlg)return;
     const mode=dlg.querySelector('#paymentMode')?.value||'';let ledger=dlg.querySelector('#sessionPaymentLedger');
     if(mode!=='session'){if(ledger)ledger.hidden=true;return;}
     const c=currentClient();if(!c)return;
+    const requestId=dlg.dataset.requestId||ui()?.currentRequest?.(c)?.id||'';
+    const request=ui()?.requestById?.(c,requestId)||ui()?.currentRequest?.(c)||null;
+    if(!request)return;
     if(!ledger){ledger=document.createElement('div');ledger.id='sessionPaymentLedger';ledger.className='session-payment-ledger';const hint=dlg.querySelector('#paymentSessionHint');(hint||dlg.querySelector('#paymentSummary'))?.insertAdjacentElement('afterend',ledger);}
     ledger.hidden=false;
-    const paid=(ui()?.sessionList?.(c)||[]).filter(s=>sessionPay(c,s).paid).sort((a,b)=>String(sessionPay(c,a).paidAt||a.date||'').localeCompare(String(sessionPay(c,b).paidAt||b.date||'')));
-    ledger.innerHTML='<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ — ВСЕ ЗАПРОСЫ</div>';
-    if(!paid.length){ledger.insertAdjacentHTML('beforeend','<div class="session-payment-ledger-empty">Оплаченных сессий пока нет.</div>');return;}
-    let repaired=false;
+    const paid=(ui()?.sessionList?.(c)||[])
+      .filter(s=>String(s?.requestId||sessionPay(c,s).requestId||'')===String(request.id)&&sessionPay(c,s).paid)
+      .sort((a,b)=>String(sessionPay(c,b).paidAt||b.date||'').localeCompare(String(sessionPay(c,a).paidAt||a.date||'')));
+    ledger.innerHTML=`<div class="session-payment-ledger-title">ВЕДОМОСТЬ ОПЛАТЫ СЕССИЙ — ЗАПРОС ${requestNumber(c,request)}: ${request.title||'Без названия'}</div>`;
+    if(!paid.length){ledger.insertAdjacentHTML('beforeend','<div class="session-payment-ledger-empty">По текущему запросу оплаченных сессий пока нет.</div>');return;}
     paid.forEach(s=>{
-      const sp=sessionPay(c,s),req=linkedRequest(c,s,sp.requestId||s.requestId);
-      const configured=configuredPriceForSession(c,s,req?.id||'');
+      const sp=sessionPay(c,s);
+      const configured=configuredPriceForSession(c,s,request.id);
       let amount=Number(sp.amount)||0;
       if(amount<=0||isClearlyBrokenLegacyAmount(amount,configured)){
         if(configured>0){
@@ -257,13 +261,12 @@
             {amount:configured},
             {client:c,source:'session-ledger-repair'}
           );
-          if(updated){amount=configured;repaired=true;}
+          if(updated)amount=configured;
         }
       }
-      if(amount<=0)amount=priceForSession(c,s,req?.id||'');
+      if(amount<=0)amount=priceForSession(c,s,request.id);
       const number=globalSessionNumber(c,s),paymentDate=sp.paidAt||today(),sessionDate=sp.sessionDate||s.date||'—';
-      const reqLabel=req?`Запрос ${requestNumber(c,req)}: ${req.title||'Без названия'}`:'Запрос не указан';
-      const row=document.createElement('div');row.className='session-payment-ledger-row';row.innerHTML=`<span>${fmtDate(paymentDate)}</span><span class="ok">✓ Сессия №${number} от ${fmtDate(sessionDate)}<span class="request-note">${reqLabel}</span></span><strong>${money(amount)} ₽</strong>`;ledger.appendChild(row);
+      const row=document.createElement('div');row.className='session-payment-ledger-row';row.innerHTML=`<span>${fmtDate(paymentDate)}</span><span class="ok">✓ Сессия №${number} от ${fmtDate(sessionDate)}</span><strong>${money(amount)} ₽</strong>`;ledger.appendChild(row);
     });
   }
   function refresh(){for(const [dlg,controller] of dialogControllers){if(!dlg.isConnected){dialogControllers.delete(dlg);continue;}controller.render?.();}renderPaymentLedger();}
