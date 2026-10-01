@@ -161,12 +161,29 @@ const uiOpen=await page.evaluate(()=>{
   return {result,open:!!dialog?.open};
 });
 assert.equal(uiOpen.open,true,'Calendar legacy UI did not open through 8A facade');
-await page.evaluate(()=>{
+
+const uiTargetDate=fixture.calendarEvents[0].date;
+const [uiYear,uiMonth,uiDay]=uiTargetDate.split('-').map(Number);
+const uiMonths=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+for(let guard=0;guard<120;guard++){
+  const title=(await page.locator('#diagnostikaCalendarOverlay .cal-month-title').textContent()||'').trim();
+  const match=title.match(/^(.+)\\s+(\\d{4})$/);
+  assert(match,'Calendar month title is not parseable: '+title);
+  const currentMonth=uiMonths.indexOf(match[1])+1;
+  const currentYear=Number(match[2]);
+  assert(currentMonth>0,'Unknown Calendar month title: '+title);
+  const delta=(uiYear*12+(uiMonth-1))-(currentYear*12+(currentMonth-1));
+  if(delta===0)break;
+  await page.locator(delta<0?'#diagnostikaCalendarOverlay .cal-prev':'#diagnostikaCalendarOverlay .cal-next').click();
+}
+const reachedMonth=(await page.locator('#diagnostikaCalendarOverlay .cal-month-title').textContent()||'').trim();
+assert.equal(reachedMonth,`${uiMonths[uiMonth-1]} ${uiYear}`,'Calendar did not navigate to stored event month');
+await page.evaluate(day=>{
   const cells=[...document.querySelectorAll('#diagnostikaCalendarOverlay .cal-day:not(.out)')];
-  const target=cells.find(cell=>cell.querySelector('.cal-num')?.textContent==='20');
-  if(!target)throw new Error('Calendar day 20 was not rendered');
+  const target=cells.find(cell=>cell.querySelector('.cal-num')?.textContent===String(day));
+  if(!target)throw new Error('Calendar target day was not rendered: '+day);
   target.click();
-});
+},uiDay);
 const uiRows=await page.locator('#diagnostikaCalendarOverlay .cal-event').count();
 assert(uiRows>=1,'Calendar UI did not render stored event after selecting its date');
 await page.locator('#diagnostikaCalendarOverlay .cal-close').click();
