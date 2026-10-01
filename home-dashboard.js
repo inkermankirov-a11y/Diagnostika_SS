@@ -57,6 +57,7 @@
   const list=$('#hdClientList');
   const search=$('#hdClientSearch');
   const count=$('#hdClientCount');
+  const mainInner=$('.hd-main-inner');
   const heroIcon=$('.hd-hero-icon');
   const heroTitle=$('#hdHeroTitle');
   const heroSub=$('#hdHeroSub');
@@ -269,6 +270,7 @@
 
   function renderHero(){
     const c=currentClient();
+    mainInner.classList.toggle('has-client',!!c);
     const meaningful=c&&!placeholderName(c.name);
     heroActions.innerHTML='';
     summary.innerHTML='';
