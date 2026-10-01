@@ -10,25 +10,18 @@
 
   const text = value => String(value ?? '').trim();
   const escRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const clientsApi=()=>window.DiagnostikaClients
-    || window.DiagnostikaPlatform?.clients
-    || window.DiagnostikaPlatform?.services?.clients
-    || null;
+  const clientsApi=()=>window.DiagnostikaClients?.moduleAware===true
+    ?window.DiagnostikaClients
+    :window.DiagnostikaPlatform?.services?.clients||null;
   function getClient(){
-    try{ const c=window.DiagnostikaClients?.current?.(); if(c) return c; }catch(_){}
-    try{ if(typeof client==='function'){ const c=client(); if(c) return c; } }catch(_){}
-    try{ return state?.clients?.find(c=>String(c.id)===String(clientId))||null; }catch(_){}
-    return null;
-  }
-
-  function saveState(){
-    try{ if(typeof save==='function') save(); }catch(_){}
+    return window.DiagnostikaRequestUIContext?.currentClient?.()
+      || clientsApi()?.current?.()
+      || null;
   }
 
   function ensureFreeConsultation(c){
-    if(!c) return null;
-    if(!c.freeConsultation || typeof c.freeConsultation!=='object' || Array.isArray(c.freeConsultation)) c.freeConsultation={};
-    return c.freeConsultation;
+    const fc=c?.freeConsultation;
+    return fc&&typeof fc==='object'&&!Array.isArray(fc)?{...fc}:{};
   }
 
   function buildLegacyAttempts(fc){
@@ -110,7 +103,7 @@
     const attempts=dlg?.querySelector('.fc-attempts');
     if(context) context.value=fc.context||'';
     if(attempts) attempts.value=fc.attempts||'';
-    if(migrated) saveState();
+    if(migrated) clientsApi()?.update?.(c.id,{freeConsultation:fc},{source:'free-consultation-field-migration',render:false});
   }
 
   function persistConsultationFields(saveNow=true){
@@ -118,14 +111,18 @@
     const fc=ensureFreeConsultation(c);
     migrateConsultationFields(fc);
     const dlg=document.getElementById('freeConsultationDialog');
-    if(!dlg?.open) return fc;
-    attachConsultationFields();
-    const context=dlg.querySelector('.fc-context');
-    const attempts=dlg.querySelector('.fc-attempts');
-    if(context) fc.context=context.value||'';
-    if(attempts) fc.attempts=attempts.value||'';
+    if(dlg){
+      attachConsultationFields();
+      const context=dlg.querySelector('.fc-context');
+      const attempts=dlg.querySelector('.fc-attempts');
+      if(context) fc.context=context.value||'';
+      if(attempts) fc.attempts=attempts.value||'';
+    }
     fc.updatedAt=new Date().toISOString();
-    if(saveNow) saveState();
+    if(saveNow){
+      const updated=clientsApi()?.update?.(c.id,{freeConsultation:fc},{source:'free-consultation-fields',render:false});
+      return updated?.freeConsultation||fc;
+    }
     return fc;
   }
 
@@ -183,13 +180,13 @@
     }
   }
 
-  function syncClient(c,aiOverride=null){
+  function syncClient(c,aiOverride=null,fcOverride=null){
     if(!c) return false;
-    const fc=ensureFreeConsultation(c);
+    const fc=fcOverride&&typeof fcOverride==='object'?{...fcOverride}:ensureFreeConsultation(c);
     const migrated=migrateConsultationFields(fc);
     const ai=aiOverride||fc.aiResult||null;
-    const profilePatch=legacyAutoNotesPatch(c);
-    let profileChanged=Object.keys(profilePatch).length>0;
+    const patch=legacyAutoNotesPatch(c);
+    let changed=Object.keys(patch).length>0;
     let internalChanged=migrated;
 
     if(ai){
@@ -206,12 +203,12 @@
       // запрос в mainRequest. Это известное старое автозначение, его можно безопасно
       // заменить выбранным коротким запросом, не трогая произвольный ручной текст.
       if(next.mainRequest && text(c.mainRequest)===text(ai?.mainRequest) && text(c.mainRequest)!==next.mainRequest){
-        profilePatch.mainRequest=next.mainRequest;
-        profileChanged=true;
+        patch.mainRequest=next.mainRequest;
+        changed=true;
       }
 
       for(const [key,value] of Object.entries(next)){
-        profileChanged=queueAutoField(c,profilePatch,key,value,previous)||profileChanged;
+        changed=queueAutoField(c,patch,key,value,previous)||changed;
       }
 
       const valuesChanged=SYNC_VERSION!==sync.version || JSON.stringify(previous)!==JSON.stringify(next);
@@ -223,21 +220,19 @@
       internalChanged=valuesChanged||internalChanged;
     }
 
+    if(internalChanged)patch.freeConsultation=fc;
+    changed=changed||internalChanged;
+
     let updated=c;
-    if(profileChanged){
+    if(changed){
       const api=clientsApi();
-      if(api?.update){
-        const result=api.update(c.id,profilePatch,{source:'free-consultation-card-sync',render:false});
-        if(result)updated=result;
-        else profileChanged=false;
-      }else{
+      if(!api?.update){
         console.error('[Diagnostika] ClientService.update is unavailable for free consultation sync.');
-        profileChanged=false;
+        return false;
       }
+      updated=api.update(c.id,patch,{source:'free-consultation-card-sync',render:false})||c;
     }
 
-    if(internalChanged&&!profileChanged) saveState();
-    const changed=profileChanged||internalChanged;
     refreshOpenCard(updated);
     try{ window.DiagnostikaHomeDashboard?.refresh?.(); }catch(_){}
     window.dispatchEvent(new CustomEvent('diagnostika:free-consultation-card-synced',{detail:{clientId:c.id,changed}}));
@@ -245,8 +240,9 @@
   }
 
   function syncCurrent(){
-    persistConsultationFields(false);
-    return syncClient(getClient());
+    const c=getClient();
+    const fc=persistConsultationFields(false);
+    return syncClient(c,null,fc);
   }
 
   function wrapAiGenerator(){
@@ -286,21 +282,26 @@
   }
 
   function repairImportedQuestionnaireSources(){
+    const api=clientsApi();
+    if(!api?.list||!api?.update)return false;
     let changed=false;
-    try{
-      for(const c of state?.clients||[]){
-        for(const q of c?.questionnaires||[]){
-          if(text(q?.source).toLowerCase()!=='manual') continue;
-          const automaticEvidence=text(q?.externalId) || (q?.raw!==null && q?.raw!==undefined);
-          if(!automaticEvidence) continue;
-          const rawSource=text(q?.raw?.source||q?.raw?.provider||c?.lastQuestionnaireSource).toLowerCase();
-          q.source=rawSource.includes('google')?'google':'yandex';
-          changed=true;
-        }
+    for(const c of api.list()){
+      const source=Array.isArray(c?.questionnaires)?c.questionnaires:[];
+      let clientChanged=false;
+      const questionnaires=source.map(q=>{
+        if(text(q?.source).toLowerCase()!=='manual')return q;
+        const automaticEvidence=text(q?.externalId)||(q?.raw!==null&&q?.raw!==undefined);
+        if(!automaticEvidence)return q;
+        const rawSource=text(q?.raw?.source||q?.raw?.provider||c?.lastQuestionnaireSource).toLowerCase();
+        clientChanged=true;
+        return {...q,source:rawSource.includes('google')?'google':'yandex'};
+      });
+      if(!clientChanged)continue;
+      if(api.update(c.id,{questionnaires},{source:'free-consultation-questionnaire-source-repair',render:false})){
+        changed=true;
       }
-    }catch(_){}
+    }
     if(changed){
-      saveState();
       try{ window.DiagnostikaQuestionnaires?.refresh?.(); }catch(_){}
     }
     return changed;
@@ -316,12 +317,13 @@
 
   const fcDlg=document.getElementById('freeConsultationDialog');
   if(fcDlg){
-    new MutationObserver(()=>{
+    fcDlg.addEventListener('toggle',()=>{
       if(fcDlg.open){
         attachConsultationFields();
         loadConsultationFields();
       }
-    }).observe(fcDlg,{attributes:true,attributeFilter:['open']});
+    });
+    fcDlg.addEventListener('close',()=>persistConsultationFields(true));
   }
 
   document.addEventListener('click',event=>{
@@ -341,6 +343,4 @@
   };
 
   bind();
-  setTimeout(bind,100);
-  setTimeout(bind,600);
 })();
