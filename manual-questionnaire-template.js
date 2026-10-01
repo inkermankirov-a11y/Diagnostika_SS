@@ -25,8 +25,16 @@
     return 'q-'+id;
   }
 
+  function clientsApi(){
+    return window.DiagnostikaClients?.moduleAware===true
+      ?window.DiagnostikaClients
+      :window.DiagnostikaPlatform?.services?.clients||null;
+  }
+
   function currentClient(){
-    try{return typeof client==='function'?client():null;}catch(_){return null;}
+    return window.DiagnostikaClientUIContext?.currentClient?.()
+      || clientsApi()?.current?.()
+      || null;
   }
 
   function applyTemplate(q){
@@ -44,34 +52,45 @@
     return items.length===0 && Object.keys(answers).length===0;
   }
 
-  function saveAndRefresh(){
-    if(typeof save==='function') save();
+  function saveAndRefresh(c,questionnaires,source){
+    if(!c?.id||!Array.isArray(questionnaires))return false;
+    const updated=clientsApi()?.update?.(c.id,{questionnaires},{render:false,source});
+    if(!updated)return false;
     window.DiagnostikaQuestionnaires?.refresh?.();
+    return true;
   }
 
   function healEmptyCurrent(){
     const c=currentClient();
     if(!c||!Array.isArray(c.questionnaires)) return false;
     let changed=false;
-    for(const q of c.questionnaires){
-      if(isCompletelyEmpty(q)){applyTemplate(q);changed=true;}
-    }
-    if(changed) saveAndRefresh();
-    return changed;
+    const questionnaires=c.questionnaires.map(q=>{
+      if(!isCompletelyEmpty(q))return q;
+      const next={...q};
+      applyTemplate(next);
+      changed=true;
+      return next;
+    });
+    if(changed)return saveAndRefresh(c,questionnaires,'manual-questionnaire-template-heal');
+    return false;
   }
 
   function seedJustCreatedManual(){
     const c=currentClient();
     if(!c||!Array.isArray(c.questionnaires)) return false;
-    const manuals=c.questionnaires.filter(q=>String(q?.source||'').toLowerCase()==='manual');
-    if(!manuals.length) return false;
-    manuals.sort((a,b)=>Date.parse(b.receivedAt||0)-Date.parse(a.receivedAt||0));
-    const newest=manuals[0];
-    const created=Date.parse(newest.receivedAt||0);
-    if(!Number.isFinite(created)||Math.abs(Date.now()-created)>5000) return false;
+    let newestIndex=-1;
+    let newestTime=-Infinity;
+    c.questionnaires.forEach((q,index)=>{
+      if(String(q?.source||'').toLowerCase()!=='manual')return;
+      const created=Date.parse(q?.receivedAt||0);
+      if(Number.isFinite(created)&&created>newestTime){newestTime=created;newestIndex=index;}
+    });
+    if(newestIndex<0||Math.abs(Date.now()-newestTime)>5000) return false;
+    const questionnaires=[...c.questionnaires];
+    const newest={...questionnaires[newestIndex]};
     applyTemplate(newest);
-    saveAndRefresh();
-    return true;
+    questionnaires[newestIndex]=newest;
+    return saveAndRefresh(c,questionnaires,'manual-questionnaire-template-seed');
   }
 
   document.addEventListener('click',e=>{
