@@ -129,19 +129,11 @@
   }
 
   async function postForm(url,form){
-    try{
-      const response=await fetch(url,{
-        method:'POST',
-        body:form,
-        cache:'no-store',
-        credentials:'omit',
-        redirect:'follow'
-      });
-      const text=await response.text();
-      return {response,text,networkError:null};
-    }catch(err){
-      return {response:null,text:'',networkError:err};
+    const transport=window.DiagnostikaAITransport;
+    if(typeof transport?.postForm!=='function'){
+      return {response:null,text:'',networkError:new Error('AI transport is unavailable')};
     }
+    return transport.postForm(url,form);
   }
 
   function parseSuccessfulResponse(text,mode){
