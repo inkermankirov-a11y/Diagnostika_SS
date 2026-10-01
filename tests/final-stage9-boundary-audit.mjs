@@ -71,7 +71,9 @@ assert.equal(/\bselected\s*=/.test(freeV2),false,'free-consultation-v2.js writes
 assert.ok(freeV2.includes('DiagnostikaRequestUIContext?.clientsApi?.()'),'free-consultation-v2.js must persist through Clients API');
 assert.ok(freeCardSync.includes('api.update('),'free-consultation-client-card-sync.js must persist through Clients API');
 assert.ok(manualQuestionnaire.includes('clientsApi()?.update?.'),'manual questionnaire template must persist through Clients API');
-assert.equal(/setTimeout\s*\(\s*bind/.test(freeCardSync),false,'free consultation card sync reintroduced bind polling');
+const bindTimeouts=[...freeCardSync.matchAll(/setTimeout\s*\(\s*bind\s*,\s*(\d+)\s*\)/g)].map(match=>Number(match[1]));
+assert.deepEqual(bindTimeouts,[0],'free consultation card sync reintroduced bind retry polling');
+assert.ok(/diagnostika:core-ready[^\n]*setTimeout\s*\(\s*bind\s*,\s*0\s*\)/.test(freeCardSync),'free consultation card sync core-ready deferred bind hook missing');
 
 assert.ok(clientChat.includes('DiagnostikaClientAIFullContext?.enrichPayload'),'Client AI full-context pipeline missing');
 assert.ok(clientChat.includes('DiagnostikaClientAIChatView?.preparePayload'),'Client AI chat-view pipeline missing');
