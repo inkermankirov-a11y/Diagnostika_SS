@@ -155,8 +155,8 @@
 
   function sessionByDialog(dlg){
     const c=currentClient();if(!c)return {c:null,s:null};
-    const id=dlg?.dataset?.sessionId||((typeof selectedSessionId!=='undefined'&&selectedSessionId)?selectedSessionId:'');
-    const s=(c.sessions||[]).find(x=>String(x.id)===String(id))||null;
+    const id=dlg?.dataset?.sessionId||'';
+    const s=window.DiagnostikaAIUIContext?.sessionById?.(id,c)||null;
     return {c,s};
   }
   function sessionNumber(c,s){
@@ -217,6 +217,12 @@
     };
     return true;
   }
+
+  document.addEventListener('diagnostika:session-editor-opened',event=>{
+    const dlg=event.detail?.dialog;
+    const session=event.detail?.session;
+    if(dlg&&session?.id)dlg.dataset.sessionId=String(session.id);
+  });
 
   const observer=new MutationObserver(records=>{
     for(const rec of records)for(const node of rec.addedNodes){
