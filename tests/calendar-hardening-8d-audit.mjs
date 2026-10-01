@@ -2,9 +2,9 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const uiSource=fs.readFileSync('client-calendar.js','utf8');
+const uiSource=fs.readFileSync('modules/calendar/ui/calendar.js','utf8');
 const apiSource=fs.readFileSync('calendar-api.js','utf8');
-const googleSource=fs.readFileSync('calendar-google-link.js','utf8');
+const googleSource=fs.readFileSync('modules/calendar/ui/google-link.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
@@ -17,8 +17,8 @@ assert(googleSource.includes("version:'8D'"),'Google Calendar bridge is not 8D')
 assert(googleSource.includes('calendarApi()?.get?.(id)'),'Google Calendar link does not resolve canonical event data');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade cache marker is stale');
 for(const marker of [
-  'client-calendar.js?v=20260919-calendar8d',
-  'calendar-google-link.js?v=20260919-calendar8d'
+  'modules/calendar/ui/calendar.js?v=20261001-modular-stage8-6',
+  'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
 ])assert(indexSource.includes(marker),'Calendar 8D marker missing '+marker);
 assert(/app-loader\.js\?v=[^"&]+&api=13d/.test(indexSource),'Calendar global app-loader/API marker missing');
 
@@ -109,7 +109,7 @@ await orderPage.goto('about:blank');
 await orderPage.evaluate(()=>{
   window.DiagnostikaCalendar=Object.freeze({moduleAware:true,version:'SENTINEL',sentinel:true});
 });
-await orderPage.addScriptTag({path:'client-calendar.js'});
+await orderPage.addScriptTag({path:'modules/calendar/ui/calendar.js'});
 const orderSafe=await orderPage.evaluate(()=>({
   sentinel:window.DiagnostikaCalendar?.sentinel===true,
   facadeVersion:window.DiagnostikaCalendar?.version,
