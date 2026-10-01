@@ -19,14 +19,14 @@ on:
       - 'home-dashboard.js'
       - 'modules/diagnosis/ui/navigation.js'
       - 'modules/diagnosis/ui/compact-client.js'
-      - 'free-consultation-request-builder.js'
+      - 'modules/requests/ui/free-consultation-builder.js'
       - 'free-consultation-v2.js'
-      - 'request-select-labels.js'
+      - 'modules/requests/ui/selection.js'
       - 'request-api.js'
       - 'tests/request-diagnosis-3c-audit.mjs'
       - 'tests/diagnosis-module-7a-audit.mjs'
       - 'tests/diagnosis-ui-7b-audit.mjs'
-      - 'request-title-display.js'
+      - 'modules/requests/ui/title.js'
       - 'index.html'
       - '.github/workflows/diagnosis-api-audit.yml'
   workflow_dispatch:
@@ -55,10 +55,10 @@ jobs:
           node --check modules/diagnosis/diagnosis-service.js
           node --check modules/diagnosis/index.js
           node --check home-dashboard.js
-          node --check request-select-labels.js
+          node --check modules/requests/ui/selection.js
           node --check modules/diagnosis/ui/navigation.js
           node --check modules/diagnosis/ui/compact-client.js
-          node --check free-consultation-request-builder.js
+          node --check modules/requests/ui/free-consultation-builder.js
           node --check free-consultation-v2.js
           node --check tests/request-diagnosis-3c-audit.mjs
           node --check tests/diagnosis-module-7a-audit.mjs
@@ -77,9 +77,9 @@ jobs:
           unknown_ui=Path('situation-unknown-level.js').read_text(encoding='utf-8')
           nav=Path('modules/diagnosis/ui/navigation.js').read_text(encoding='utf-8')
           compact=Path('modules/diagnosis/ui/compact-client.js').read_text(encoding='utf-8')
-          fc1=Path('free-consultation-request-builder.js').read_text(encoding='utf-8')
+          fc1=Path('modules/requests/ui/free-consultation-builder.js').read_text(encoding='utf-8')
           fc2=Path('free-consultation-v2.js').read_text(encoding='utf-8')
-          request_ui=Path('request-select-labels.js').read_text(encoding='utf-8')
+          request_ui=Path('modules/requests/ui/selection.js').read_text(encoding='utf-8')
           html=Path('index.html').read_text(encoding='utf-8')
           service=Path('modules/diagnosis/diagnosis-service.js').read_text(encoding='utf-8')
           module=Path('modules/diagnosis/index.js').read_text(encoding='utf-8')
@@ -101,11 +101,11 @@ jobs:
           if owners != ['diagnosis-api.js']:
               raise SystemExit(f'DiagnostikaDiagnosis must have one owner, got {owners}')
 
-          order={name:html.find(name) for name in ['request-select-labels.js','diagnosis-api.js','request-title-display.js']}
+          order={name:html.find(name) for name in ['modules/requests/ui/selection.js','diagnosis-api.js','modules/requests/ui/title.js']}
           print('Diagnosis load order:',order)
           if any(v < 0 for v in order.values()):
               raise SystemExit('Required diagnosis scripts missing from index.html')
-          if not (order['request-select-labels.js'] < order['diagnosis-api.js'] < order['request-title-display.js']):
+          if not (order['modules/requests/ui/selection.js'] < order['diagnosis-api.js'] < order['modules/requests/ui/title.js']):
               raise SystemExit('Diagnosis API load order is unsafe')
 
           if not re.search(r"version:'7[ABCD]'",api) or 'moduleAware:true' not in api:
@@ -156,7 +156,7 @@ jobs:
               'modules/diagnosis/ui/navigation.js':nav,
               'diagnosis-api.js':api,
               'modules/diagnosis/ui/compact-client.js':compact,
-              'free-consultation-request-builder.js':fc1,
+              'modules/requests/ui/free-consultation-builder.js':fc1,
               'free-consultation-v2.js':fc2,
           }
           forbidden=[

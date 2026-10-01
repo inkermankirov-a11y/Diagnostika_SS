@@ -21,7 +21,7 @@ on:
       - 'ui-fixes.js'
       - 'modules/clients/ui/questionnaires.js'
       - 'free-consultation-client-card-sync.js'
-      - 'ai-settings-button.js'
+      - 'modules/ai/ui/settings.js'
       - 'home-dashboard.js'
       - 'app-loader.js'
       - 'index.html'
@@ -62,7 +62,7 @@ jobs:
           node --check tests/client-legacy-boundary-audit.mjs
           node --check modules/clients/ui/questionnaires.js
           node --check free-consultation-client-card-sync.js
-          node --check ai-settings-button.js
+          node --check modules/ai/ui/settings.js
           node --check tests/client-profile-boundary-audit.mjs
           node --check home-dashboard.js
           node --check tests/client-final-boundary-audit.mjs
@@ -82,7 +82,7 @@ jobs:
           index=Path('index.html').read_text(encoding='utf-8')
           questionnaires=Path('modules/clients/ui/questionnaires.js').read_text(encoding='utf-8')
           consultation_sync=Path('free-consultation-client-card-sync.js').read_text(encoding='utf-8')
-          ai_settings=Path('ai-settings-button.js').read_text(encoding='utf-8')
+          ai_settings=Path('modules/ai/ui/settings.js').read_text(encoding='utf-8')
           home_dashboard=Path('home-dashboard.js').read_text(encoding='utf-8')
           errors=[]
           for token in ['typeof state','typeof clientId','typeof requestId','typeof situationId','typeof selected','typeof mode','save(','renderClient(','newClient(']:
@@ -131,7 +131,7 @@ jobs:
               if token in consultation_sync: errors.append('free consultation direct profile mutation remains '+token)
           if 'modules/clients/ui/questionnaires.js?v=20260930-modular-stage5-16' not in ai_settings: errors.append('questionnaire module/cache marker is stale')
           if 'free-consultation-client-card-sync.js?v=20260918-clients2c2' not in index: errors.append('free consultation sync cache version is stale')
-          if 'ai-settings-button.js?v=20260918-ai6a' not in index: errors.append('AI settings loader cache version is stale')
+          if 'modules/ai/ui/settings.js?v=20261001-modular-stage7-10' not in index: errors.append('AI settings loader cache version is stale')
           if 'renderClient=' in home_dashboard.replace('===','').replace('!==',''): errors.append('home dashboard still replaces renderClient')
           for token in ["'client:created'","'client:selected'","'client:updated'","'client:deleted'","'client:restored'","'client:purged'",'events.on(type,()=>setTimeout(refresh,0))']:
               if token not in home_dashboard: errors.append('home dashboard client event boundary missing '+token)

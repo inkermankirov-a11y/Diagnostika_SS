@@ -10,7 +10,7 @@ on:
     paths:
       - 'client-api.js'
       - 'index.html'
-      - 'ai-settings-button.js'
+      - 'modules/ai/ui/settings.js'
       - 'modules/clients/**'
       - 'tests/client-ui-boundary-stage5-audit.mjs'
       - '.github/workflows/client-ui-boundary-audit.yml'

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const quickSource=fs.readFileSync('quick-notes.js','utf8');
-const clientSource=fs.readFileSync('client-ai-chat.js','utf8');
+const clientSource=fs.readFileSync('modules/ai/ui/client-chat.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 const folderSource=fs.readFileSync('storage-simple-sync.js','utf8');
 const driveWorkerSource=fs.readFileSync('google-drive-merge-worker.js','utf8');
@@ -21,7 +21,7 @@ assert.equal(clientSource.includes("getElementById('quickNotesBtn')"),false,'Cli
 assert(clientSource.includes("'client:selected'"),'Client notes widget is not subscribed to client selection events');
 assert(clientSource.includes('window.DiagnostikaClients?.current?.()'),'Client notes widget does not prefer Client API current selection');
 assert(indexSource.includes('quick-notes.js?v=20260920-notes17a1'),'NOTES 17A general notes cache marker missing');
-assert(indexSource.includes('client-ai-chat.js?v=20260929-stage1-notes17a2&ai=6d'),'NOTES 17A client notes cache marker missing');
+assert(indexSource.includes('modules/ai/ui/client-chat.js?v=20261001-modular-stage7-10'),'NOTES 17A client notes cache marker missing');
 assert(folderSource.includes("writeJson(app,'database.json',data)"),'Folder sync no longer writes the full canonical state');
 assert(folderSource.includes('const base=mergeObjects(primary||{clients:[]},secondary||{clients:[]})'),'Folder sync no longer merges top-level canonical fields');
 

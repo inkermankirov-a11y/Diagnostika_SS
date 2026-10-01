@@ -39,7 +39,7 @@ for(const path of [...staticUi,...styles,dynamicUi,selectionMemory]){
 }
 
 const index=fs.readFileSync('index.html','utf8');
-const aiSettings=fs.readFileSync('ai-settings-button.js','utf8');
+const aiSettings=fs.readFileSync('modules/ai/ui/settings.js','utf8');
 
 for(const path of staticUi){
   assert.equal(index.split(path).length-1,1,'Static client UI must load exactly once: '+path);
