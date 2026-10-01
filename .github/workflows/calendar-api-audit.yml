@@ -15,6 +15,7 @@ on:
       - 'tests/calendar-ui-8b-audit.mjs'
       - 'tests/calendar-session-8c-audit.mjs'
       - 'tests/calendar-hardening-8d-audit.mjs'
+      - 'tests/calendar-ui-boundary-stage8-audit.mjs'
       - '.github/workflows/calendar-api-audit.yml'
   workflow_dispatch:
 
@@ -32,14 +33,16 @@ jobs:
           node --check modules/calendar/calendar-service.js
           node --check modules/calendar/index.js
           node --check calendar-api.js
-          node --check client-calendar.js
-          node --check calendar-session-planning.js
-          node --check calendar-google-link.js
+          node --check modules/calendar/ui/calendar.js
+          node --check modules/calendar/ui/session-planning.js
+          node --check modules/calendar/ui/google-link.js
           node --check app-loader.js
           node --check tests/calendar-module-8a-audit.mjs
           node --check tests/calendar-ui-8b-audit.mjs
           node --check tests/calendar-session-8c-audit.mjs
           node --check tests/calendar-hardening-8d-audit.mjs
+          node --check tests/calendar-ui-boundary-stage8-audit.mjs
+          node tests/calendar-ui-boundary-stage8-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re,sys
@@ -49,9 +52,9 @@ jobs:
           api=Path('calendar-api.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
           index=Path('index.html').read_text(encoding='utf-8')
-          ui=Path('client-calendar.js').read_text(encoding='utf-8')
-          planning=Path('calendar-session-planning.js').read_text(encoding='utf-8')
-          google=Path('calendar-google-link.js').read_text(encoding='utf-8')
+          ui=Path('modules/calendar/ui/calendar.js').read_text(encoding='utf-8')
+          planning=Path('modules/calendar/ui/session-planning.js').read_text(encoding='utf-8')
+          google=Path('modules/calendar/ui/google-link.js').read_text(encoding='utf-8')
           errors=[]
 
           if 'services.calendar=Object.freeze' not in service:
@@ -112,8 +115,8 @@ jobs:
           for forbidden in ["typeof save==='function'", 'st.calendarEvents', 'e.sessionNumber=', 'e.requestId=']:
               if forbidden in planning:
                   errors.append('calendar 8C legacy mutation remains: '+forbidden)
-          if 'calendar-session-planning.js?v=20260919-calendar8c' not in index:
-              errors.append('calendar 8C planning cache marker is stale')
+          if 'modules/calendar/ui/session-planning.js?v=20261001-modular-stage8-7' not in index:
+              errors.append('calendar session planning module marker is stale')
 
           for token in ["version:'8D'", 'window.DiagnostikaCalendarUI=ui', "if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui", 'row.dataset.calendarEventId']:
               if token not in ui:
@@ -122,8 +125,8 @@ jobs:
               if token not in google:
                   errors.append('calendar 8D Google bridge hardening missing '+token)
           for token in [
-              'client-calendar.js?v=20260919-calendar8d',
-              'calendar-google-link.js?v=20260919-calendar8d'
+              'modules/calendar/ui/calendar.js?v=20261001-modular-stage8-6',
+              'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
           ]:
               if token not in index:
                   errors.append('calendar 8D asset marker missing '+token)

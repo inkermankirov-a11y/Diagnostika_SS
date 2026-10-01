@@ -2,9 +2,9 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const uiSource=fs.readFileSync('client-calendar.js','utf8');
+const uiSource=fs.readFileSync('modules/calendar/ui/calendar.js','utf8');
 const apiSource=fs.readFileSync('calendar-api.js','utf8');
-const googleSource=fs.readFileSync('calendar-google-link.js','utf8');
+const googleSource=fs.readFileSync('modules/calendar/ui/google-link.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
@@ -17,8 +17,8 @@ assert(googleSource.includes("version:'8D'"),'Google Calendar bridge is not 8D')
 assert(googleSource.includes('calendarApi()?.get?.(id)'),'Google Calendar link does not resolve canonical event data');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade cache marker is stale');
 for(const marker of [
-  'client-calendar.js?v=20260919-calendar8d',
-  'calendar-google-link.js?v=20260919-calendar8d'
+  'modules/calendar/ui/calendar.js?v=20261001-modular-stage8-6',
+  'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
 ])assert(indexSource.includes(marker),'Calendar 8D marker missing '+marker);
 assert(/app-loader\.js\?v=[^"&]+&api=13d/.test(indexSource),'Calendar global app-loader/API marker missing');
 
@@ -65,14 +65,28 @@ await page.waitForFunction(()=>window.DiagnostikaCalendar?.version==='8D'
 await page.evaluate(()=>window.DiagnostikaCalendar.open());
 const dialog=page.locator('#diagnostikaCalendarOverlay');
 await dialog.waitFor({state:'visible'});
-await dialog.locator('.cal-date').fill('2026-09-22');
-await page.evaluate(()=>{
-  const input=document.querySelector('#diagnostikaCalendarOverlay .cal-date');
-  input?.dispatchEvent(new Event('change',{bubbles:true}));
-  const cells=[...document.querySelectorAll('#diagnostikaCalendarOverlay .cal-day')];
-  const target=cells.find(cell=>cell.querySelector('.cal-num')?.textContent==='22'&&!cell.classList.contains('out'));
-  target?.click();
-});
+const uiTargetDate8d=fixture.calendarEvents[0].date;
+const [uiYear8d,uiMonth8d,uiDay8d]=uiTargetDate8d.split('-').map(Number);
+const uiMonths8d=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+for(let guard=0;guard<120;guard++){
+  const title=(await dialog.locator('.cal-month-title').textContent()||'').trim();
+  const match=title.match(/^(.+)\s+(\d{4})$/);
+  assert(match,'Calendar 8D month title is not parseable: '+title);
+  const currentMonth=uiMonths8d.indexOf(match[1])+1;
+  const currentYear=Number(match[2]);
+  assert(currentMonth>0,'Unknown Calendar 8D month title: '+title);
+  const delta=(uiYear8d*12+(uiMonth8d-1))-(currentYear*12+(currentMonth-1));
+  if(delta===0)break;
+  await dialog.locator(delta<0?'.cal-prev':'.cal-next').click();
+}
+const reachedMonth8d=(await dialog.locator('.cal-month-title').textContent()||'').trim();
+assert.equal(reachedMonth8d,`${uiMonths8d[uiMonth8d-1]} ${uiYear8d}`,'Calendar 8D did not navigate to stored event month');
+await page.evaluate(day=>{
+  const cells=[...document.querySelectorAll('#diagnostikaCalendarOverlay .cal-day:not(.out)')];
+  const target=cells.find(cell=>cell.querySelector('.cal-num')?.textContent===String(day));
+  if(!target)throw new Error('Calendar 8D target day was not rendered: '+day);
+  target.click();
+},uiDay8d);
 const row=dialog.locator('.cal-event[data-calendar-event-id="cal-8d-existing"]');
 await row.waitFor({state:'visible'});
 
@@ -109,7 +123,7 @@ await orderPage.goto('about:blank');
 await orderPage.evaluate(()=>{
   window.DiagnostikaCalendar=Object.freeze({moduleAware:true,version:'SENTINEL',sentinel:true});
 });
-await orderPage.addScriptTag({path:'client-calendar.js'});
+await orderPage.addScriptTag({path:'modules/calendar/ui/calendar.js'});
 const orderSafe=await orderPage.evaluate(()=>({
   sentinel:window.DiagnostikaCalendar?.sentinel===true,
   facadeVersion:window.DiagnostikaCalendar?.version,
