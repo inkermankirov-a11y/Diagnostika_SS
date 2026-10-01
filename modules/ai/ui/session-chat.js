@@ -226,6 +226,7 @@
     setTimeout(()=>enhanceSessionDialog(dlg),0);
   });
 
+  window.addEventListener('diagnostika:client-ai-widget-ready',()=>setTimeout(installClientClear,0));
   document.addEventListener('diagnostika:dashboard-clients-rendered',()=>setTimeout(installClientClear,0));
   window.addEventListener('diagnostika-client-ai-chat-changed',()=>setTimeout(installClientClear,0));
   window.addEventListener('load',()=>setTimeout(installClientClear,0),{once:true});
