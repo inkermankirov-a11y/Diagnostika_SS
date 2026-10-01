@@ -19,7 +19,16 @@
     }catch(_){}
     try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
   }
-  function persist(source='client-notes'){try{if(typeof save==='function')return save({source})!==false;}catch(err){console.warn('Client data save failed',err);}return false;}
+  function persistNotes(c,quickNotes,source='client-notes'){
+    try{
+      if(!c?.id)return false;
+      const api=window.DiagnostikaAIUIContext?.clientsApi?.();
+      return Boolean(api?.update?.(c.id,{quickNotes},{render:false,source}));
+    }catch(err){
+      console.warn('Client data save failed',err);
+      return false;
+    }
+  }
   function notesOf(c){if(!c)return[];if(!Array.isArray(c.quickNotes))c.quickNotes=[];return c.quickNotes;}
   function chatOf(c){
     if(!c)return[];
@@ -64,17 +73,17 @@
       notes.forEach(note=>{
         const row=document.createElement('div');row.className='client-note-item';
         row.innerHTML=`<div><div class="client-note-content">${esc(note.text)}</div><div class="client-note-date">${esc(fmt(note.updatedAt||note.createdAt))}</div></div><button type="button" class="tk-btn client-note-delete">Удалить</button>`;
-        row.querySelector('.client-note-delete').onclick=e=>{e.stopPropagation();const before=[...notesOf(target)];target.quickNotes=before.filter(x=>x.id!==note.id);if(!persist('client-notes-delete')){target.quickNotes=before;return;}if(editingNoteId===note.id)reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));};
+        row.querySelector('.client-note-delete').onclick=e=>{e.stopPropagation();const next=notesOf(target).filter(x=>x.id!==note.id);if(!persistNotes(target,next,'client-notes-delete'))return;if(editingNoteId===note.id)reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));};
         row.onclick=()=>{editingNoteId=note.id;input.value=note.text||'';saveBtn.textContent='Сохранить изменения';input.focus();};list.appendChild(row);
       });
     }
     notesOverlay.querySelector('.client-notes-new').onclick=reset;
     saveBtn.onclick=()=>{
       const text=input.value.trim();if(!text)return;const target=liveClient();if(!target)return;
-      const before=notesOf(target).map(n=>({...n})),notes=notesOf(target),now=Date.now(),wasEditing=Boolean(editingNoteId);
+      const notes=notesOf(target).map(n=>({...n})),now=Date.now(),wasEditing=Boolean(editingNoteId);
       if(editingNoteId){const n=notes.find(x=>x.id===editingNoteId);if(n){n.text=text;n.updatedAt=now;}}
       else notes.push({id:uid('note'),text,createdAt:now,updatedAt:now});
-      if(!persist(wasEditing?'client-notes-update':'client-notes-create')){target.quickNotes=before;return;}
+      if(!persistNotes(target,notes,wasEditing?'client-notes-update':'client-notes-create'))return;
       reset();render();refresh();window.dispatchEvent(new CustomEvent('diagnostika-client-notes-changed',{detail:{clientId:target.id}}));
     };
     input.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveBtn.click();}});
