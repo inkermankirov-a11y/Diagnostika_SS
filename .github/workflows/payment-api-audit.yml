@@ -12,8 +12,8 @@ on:
       - 'tests/payment-module-5c-audit.mjs'
       - 'tests/payment-module-5d-audit.mjs'
       - 'payment-*.js'
-      - 'request-select-labels.js'
-      - 'request-title-display.js'
+      - 'modules/requests/ui/selection.js'
+      - 'modules/requests/ui/title.js'
       - 'session-*.js'
       - 'index.html'
       - '.github/workflows/payment-api-audit.yml'
@@ -31,8 +31,8 @@ jobs:
         run: |
           set -euo pipefail
           node --check home-dashboard.js
-          node --check request-select-labels.js
-          node --check request-title-display.js
+          node --check modules/requests/ui/selection.js
+          node --check modules/requests/ui/title.js
           for f in modules/payments/ui/*.js; do node --check "$f"; done
           node --check modules/payments/payment-service.js
           node --check modules/payments/index.js
@@ -57,11 +57,11 @@ jobs:
           if required not in dash or found:
               sys.exit(1)
 
-          order={name:html.find(name) for name in ['request-select-labels.js','modules/payments/ui/context.js','modules/payments/ui/payment-dialog.js','request-title-display.js']}
+          order={name:html.find(name) for name in ['modules/requests/ui/selection.js','modules/payments/ui/context.js','modules/payments/ui/payment-dialog.js','modules/requests/ui/title.js']}
           print('Relevant script positions:',order)
           if any(v < 0 for v in order.values()):
               raise SystemExit('Required payment/request script is missing from index.html')
-          if not (order['request-select-labels.js'] < order['modules/payments/ui/context.js'] < order['modules/payments/ui/payment-dialog.js'] < order['request-title-display.js']):
+          if not (order['modules/requests/ui/selection.js'] < order['modules/payments/ui/context.js'] < order['modules/payments/ui/payment-dialog.js'] < order['modules/requests/ui/title.js']):
               raise SystemExit('Unsafe script order: request API and payment API must exist before dashboard loader')
 
           owners=[]
