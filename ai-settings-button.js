@@ -166,7 +166,7 @@
     selector.addEventListener('change',()=>{selectedId=selector.value;renderSelected(sorted(questionnaires(getClient())));});
     panel.querySelector('.fcq-hide').onclick=()=>dlg.classList.add('fcq-collapsed');
     showBtn.onclick=()=>{dlg.classList.remove('fcq-collapsed');render();};
-    new MutationObserver(()=>{if(dlg.hasAttribute('open')){dlg.classList.remove('fcq-collapsed');setTimeout(render,0);}}).observe(dlg,{attributes:true,attributeFilter:['open']});
+    dlg.addEventListener('toggle',()=>{if(dlg.open){dlg.classList.remove('fcq-collapsed');setTimeout(render,0);}});
     window.DiagnostikaFreeConsultationQuestionnairePanel={refresh:render};
   }
 
