@@ -114,8 +114,7 @@
     let lastClientId='';
 
     function getClient(){
-      try{const c=typeof client==='function'?client():null;if(c)return c;}catch(_){}
-      try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
+      return window.DiagnostikaAIUIContext?.currentClient?.()||null;
     }
     function fmtDate(value){
       if(!value)return 'без даты';
