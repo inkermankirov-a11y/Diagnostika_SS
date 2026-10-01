@@ -12,7 +12,7 @@
   const fmt=ts=>{try{return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(ts));}catch(_){return'';}};
 
   function currentClient(){
-    try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
+    return window.DiagnostikaAIUIContext?.currentClient?.()||null;
   }
   function getMode(){try{return localStorage.getItem(MODE_KEY)==='deep'?'deep':'short';}catch(_){return'short';}}
   function setMode(mode){
@@ -155,8 +155,8 @@
 
   function sessionByDialog(dlg){
     const c=currentClient();if(!c)return {c:null,s:null};
-    const id=dlg?.dataset?.sessionId||((typeof selectedSessionId!=='undefined'&&selectedSessionId)?selectedSessionId:'');
-    const s=(c.sessions||[]).find(x=>String(x.id)===String(id))||null;
+    const id=dlg?.dataset?.sessionId||'';
+    const s=window.DiagnostikaAIUIContext?.sessionById?.(id,c)||null;
     return {c,s};
   }
   function sessionNumber(c,s){
@@ -218,15 +218,19 @@
     return true;
   }
 
-  const observer=new MutationObserver(records=>{
-    for(const rec of records)for(const node of rec.addedNodes){
-      if(!(node instanceof Element))continue;
-      if(node.matches?.('dialog.session-edit-dialog'))setTimeout(()=>enhanceSessionDialog(node),0);
-      node.querySelectorAll?.('dialog.session-edit-dialog').forEach(d=>setTimeout(()=>enhanceSessionDialog(d),0));
-    }
-    installClientClear();
+  document.addEventListener('diagnostika:session-editor-opened',event=>{
+    const dlg=event.detail?.dialog;
+    const session=event.detail?.session;
+    if(!dlg||!session?.id)return;
+    dlg.dataset.sessionId=String(session.id);
+    setTimeout(()=>enhanceSessionDialog(dlg),0);
   });
-  observer.observe(document.body,{childList:true,subtree:true});
-  document.querySelectorAll('dialog.session-edit-dialog').forEach(enhanceSessionDialog);
-  let tries=0;const timer=setInterval(()=>{if(installClientClear()||++tries>80)clearInterval(timer);},250);
+
+  window.addEventListener('diagnostika:client-ai-widget-ready',()=>setTimeout(installClientClear,0));
+  document.addEventListener('diagnostika:dashboard-clients-rendered',()=>setTimeout(installClientClear,0));
+  window.addEventListener('diagnostika-client-ai-chat-changed',()=>setTimeout(installClientClear,0));
+  window.addEventListener('load',()=>setTimeout(installClientClear,0),{once:true});
+
+  document.querySelectorAll('dialog.session-edit-dialog').forEach(dlg=>setTimeout(()=>enhanceSessionDialog(dlg),0));
+  installClientClear();
 })();

@@ -1,0 +1,30 @@
+name: AI UI boundary audit
+
+concurrency:
+  group: ai-ui-boundary-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main, 'feature-ai-*']
+    paths:
+      - 'ai-api.js'
+      - 'index.html'
+      - 'modules/ai/**'
+      - 'tests/ai-ui-boundary-stage7-audit.mjs'
+      - '.github/workflows/ai-ui-boundary-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  ai-ui-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify modular AI UI ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/ai-ui-boundary-stage7-audit.mjs
+          for f in modules/ai/ui/*.js; do node --check "$f"; done
+          node tests/ai-ui-boundary-stage7-audit.mjs

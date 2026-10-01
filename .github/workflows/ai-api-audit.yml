@@ -8,7 +8,7 @@ on:
       - 'ai-api.js'
       - 'app-loader.js'
       - 'client-ai-*.js'
-      - 'session-ai-chat.js'
+      - 'modules/ai/ui/**'
       - 'request-ai-n8n.js'
       - 'form-integrations.js'
       - 'tests/ai-module-6a-audit.mjs'
@@ -34,10 +34,10 @@ jobs:
           node --check modules/ai/index.js
           node --check ai-api.js
           node --check app-loader.js
-          node --check client-ai-chat.js
+          node --check modules/ai/ui/client-chat.js
           node --check client-ai-full-context.js
           node --check client-ai-chat-view.js
-          node --check session-ai-chat.js
+          node --check modules/ai/ui/session-chat.js
           node --check request-ai-n8n.js
           node --check tests/ai-module-6a-audit.mjs
           node --check tests/ai-module-6b-audit.mjs
@@ -83,8 +83,8 @@ jobs:
               if token not in loader:
                   raise SystemExit('AI loader missing/stale '+token)
 
-          client_chat=Path('client-ai-chat.js').read_text(encoding='utf-8')
-          session_chat=Path('session-ai-chat.js').read_text(encoding='utf-8')
+          client_chat=Path('modules/ai/ui/client-chat.js').read_text(encoding='utf-8')
+          session_chat=Path('modules/ai/ui/session-chat.js').read_text(encoding='utf-8')
           if re.search(r'window\.fetch\s*=',full_context):
               raise SystemExit('AI 6D full-context helper still patches global fetch')
           if re.search(r'window\.fetch\s*=',chat_view):
