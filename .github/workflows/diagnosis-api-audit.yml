@@ -19,7 +19,7 @@ on:
       - 'home-dashboard.js'
       - 'modules/diagnosis/ui/navigation.js'
       - 'modules/diagnosis/ui/compact-client.js'
-      - 'free-consultation-request-builder.js'
+      - 'modules/requests/ui/free-consultation-builder.js'
       - 'free-consultation-v2.js'
       - 'modules/requests/ui/selection.js'
       - 'request-api.js'
@@ -58,7 +58,7 @@ jobs:
           node --check modules/requests/ui/selection.js
           node --check modules/diagnosis/ui/navigation.js
           node --check modules/diagnosis/ui/compact-client.js
-          node --check free-consultation-request-builder.js
+          node --check modules/requests/ui/free-consultation-builder.js
           node --check free-consultation-v2.js
           node --check tests/request-diagnosis-3c-audit.mjs
           node --check tests/diagnosis-module-7a-audit.mjs
@@ -77,7 +77,7 @@ jobs:
           unknown_ui=Path('situation-unknown-level.js').read_text(encoding='utf-8')
           nav=Path('modules/diagnosis/ui/navigation.js').read_text(encoding='utf-8')
           compact=Path('modules/diagnosis/ui/compact-client.js').read_text(encoding='utf-8')
-          fc1=Path('free-consultation-request-builder.js').read_text(encoding='utf-8')
+          fc1=Path('modules/requests/ui/free-consultation-builder.js').read_text(encoding='utf-8')
           fc2=Path('free-consultation-v2.js').read_text(encoding='utf-8')
           request_ui=Path('modules/requests/ui/selection.js').read_text(encoding='utf-8')
           html=Path('index.html').read_text(encoding='utf-8')
@@ -156,7 +156,7 @@ jobs:
               'modules/diagnosis/ui/navigation.js':nav,
               'diagnosis-api.js':api,
               'modules/diagnosis/ui/compact-client.js':compact,
-              'free-consultation-request-builder.js':fc1,
+              'modules/requests/ui/free-consultation-builder.js':fc1,
               'free-consultation-v2.js':fc2,
           }
           forbidden=[
