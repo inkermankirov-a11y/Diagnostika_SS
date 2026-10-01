@@ -19,7 +19,7 @@ assert(clientSource.includes("box.onclick=e=>"),'Client notes dashboard click is
 assert.equal(clientSource.includes('hookQuickNotes'),false,'Client notes still hijack the top Notes button');
 assert.equal(clientSource.includes("getElementById('quickNotesBtn')"),false,'Client module still touches the top Notes button');
 assert(clientSource.includes("'client:selected'"),'Client notes widget is not subscribed to client selection events');
-assert(clientSource.includes('window.DiagnostikaClients?.current?.()'),'Client notes widget does not prefer Client API current selection');
+assert(clientSource.includes('window.DiagnostikaAIUIContext?.currentClient?.()'),'Client notes widget does not use modular AI UI current client context');
 assert(indexSource.includes('quick-notes.js?v=20260920-notes17a1'),'NOTES 17A general notes cache marker missing');
 assert(indexSource.includes('modules/ai/ui/client-chat.js?v=20261001-modular-stage7-10'),'NOTES 17A client notes cache marker missing');
 assert(folderSource.includes("writeJson(app,'database.json',data)"),'Folder sync no longer writes the full canonical state');
