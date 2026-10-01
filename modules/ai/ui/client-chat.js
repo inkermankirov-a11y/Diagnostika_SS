@@ -156,6 +156,7 @@
     widget.querySelectorAll('.hd-ai-quick button').forEach(b=>b.onclick=()=>send(b.dataset.prompt||''));
     widget.querySelector('.hd-ai-send').onclick=()=>send(widget.querySelector('.hd-ai-input').value);
     widget.querySelector('.hd-ai-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e.currentTarget.value);}});
+    window.dispatchEvent(new CustomEvent('diagnostika:client-ai-widget-ready',{detail:{widget}}));
     return true;
   }
 
