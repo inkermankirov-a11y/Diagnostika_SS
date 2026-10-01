@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 const serviceSource=fs.readFileSync('modules/ai/ai-service.js','utf8');
 const apiSource=fs.readFileSync('ai-api.js','utf8');
-const clientSource=fs.readFileSync('client-ai-chat.js','utf8');
+const clientSource=fs.readFileSync('modules/ai/ui/client-chat.js','utf8');
 const fullContextSource=fs.readFileSync('client-ai-full-context.js','utf8');
 const viewSource=fs.readFileSync('client-ai-chat-view.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
@@ -28,9 +28,9 @@ for(const token of [
   'ai-api.js?v=20260919-ai6d'
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
-  'client-ai-chat.js?v=20260929-stage1-notes17a2&ai=6d',
+  'modules/ai/ui/client-chat.js?v=20261001-modular-stage7-10',
   'client-ai-full-context.js?v=20260919-ai6d',
-  'session-ai-chat.js?v=20260919-ai6d'
+  'modules/ai/ui/session-chat.js?v=20261001-modular-stage7-10'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
 const aiBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
 const aiLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)&api=13d/);
