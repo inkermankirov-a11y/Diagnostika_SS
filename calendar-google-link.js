@@ -116,11 +116,23 @@
     document.querySelectorAll('#diagnostikaCalendarOverlay .cal-event').forEach(attachRow);
   }
 
-  const observer=new MutationObserver(sync);
-  observer.observe(document.body,{childList:true,subtree:true});
+  let calendarEventsBound=false;
+  function bindCalendarEvents(){
+    if(calendarEventsBound)return true;
+    const bus=window.DiagnostikaPlatform?.events;
+    if(!bus?.on)return false;
+    ['calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced'].forEach(type=>{
+      bus.on(type,()=>setTimeout(sync,0));
+    });
+    calendarEventsBound=true;
+    return true;
+  }
+
   document.addEventListener('click',e=>{
     if(e.target?.closest?.('#ccCalendarBtn,.cal-day,.cal-prev,.cal-next,.cal-today,.cal-save')) setTimeout(sync,0);
   },true);
+  bindCalendarEvents();
+  Promise.resolve(window.DiagnostikaPlatform?.ready).then(bindCalendarEvents).catch(()=>{});
   setTimeout(sync,0);
 
   window.DiagnostikaGoogleCalendarLink=Object.freeze({version:'8D',refresh:sync,urlForRow:googleUrl});
