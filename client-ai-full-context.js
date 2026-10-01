@@ -12,7 +12,8 @@
   };
 
   function currentClientById(id){
-    try{return state?.clients?.find(c=>String(c.id)===String(id))||null;}catch(_){return null;}
+    if(id===undefined||id===null||id==='')return null;
+    try{return window.DiagnostikaAIUIContext?.clientsApi?.()?.findById?.(id)||null;}catch(_){return null;}
   }
 
   function selectedShort(ai){
@@ -207,12 +208,8 @@
   }
 
   function refresh(){installPrompts();}
-  const observer=new MutationObserver(()=>refresh());
-  observer.observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('diagnostika:client-ai-widget-ready',refresh);
   refresh();
-  setTimeout(refresh,150);
-  setTimeout(refresh,600);
-  setTimeout(refresh,1500);
 
   window.DiagnostikaClientAIFullContext=Object.freeze({
     buildFullContext,
