@@ -5,8 +5,8 @@ import fs from 'node:fs';
 const serviceSource=fs.readFileSync('modules/ai/ai-service.js','utf8');
 const apiSource=fs.readFileSync('ai-api.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
-const clientLegacy=fs.readFileSync('client-ai-chat.js','utf8');
-const sessionLegacy=fs.readFileSync('session-ai-chat.js','utf8');
+const clientLegacy=fs.readFileSync('modules/ai/ui/client-chat.js','utf8');
+const sessionLegacy=fs.readFileSync('modules/ai/ui/session-chat.js','utf8');
 
 for(const token of [
   'clientChat','sessionChat','appendClientMessage','replaceClientChat','clearClientChat',
