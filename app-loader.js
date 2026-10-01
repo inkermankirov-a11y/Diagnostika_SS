@@ -11,7 +11,7 @@
   loadOnce('modules/payments/ui/session-mode.js?v=20260930-modular25a','data-session-payment-mode-rule');
 })();
 
-// Main home screen redesign. Loaded last so it can reuse the existing application logic safely.
+// Fast startup: start the module graph immediately after the core shell is ready.
 (() => {
   function coreAvailable(){
     try{
@@ -30,40 +30,127 @@
   window.DiagnostikaCoreReady=true;
   window.dispatchEvent(new Event('diagnostika:core-ready'));
 
-  function ensureClientsModule(){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-clients-module]')) return;
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/clients/index.js?v=20260918-clients2b2';
-      moduleScript.setAttribute('data-clients-module','1');
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.clients){
-      loadModule();
-      return;
+  const DOMAINS=Object.freeze([
+    {
+      id:'clients',
+      service:['modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23b','data-clients-service'],
+      module:['modules/clients/index.js?v=20260918-clients2b2','data-clients-module'],
+      api:['client-api.js?v=20260918-clients2b2&api=13d&pin=18a&cleanup=23b','data-client-api'],
+      ready:()=>window.DiagnostikaClients?.moduleAware===true
+    },
+    {
+      id:'requests',
+      service:['modules/requests/request-service.js?v=20260918-requests3d&cleanup=23c','data-requests-service'],
+      module:['modules/requests/index.js?v=20260918-requests3d','data-requests-module'],
+      api:['request-api.js?v=20260918-requests3d&api=13d&cleanup=23b','data-request-api'],
+      ready:()=>window.DiagnostikaRequests?.moduleAware===true
+    },
+    {
+      id:'diagnosis',
+      service:['modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c&cleanup=23c','data-diagnosis-service'],
+      module:['modules/diagnosis/index.js?v=20260919-diagnosis7c','data-diagnosis-module'],
+      api:['diagnosis-api.js?v=20260919-diagnosis7d&api=13d','data-diagnosis-api'],
+      ready:()=>window.DiagnostikaDiagnosis?.moduleAware===true
+    },
+    {
+      id:'sessions',
+      service:['modules/sessions/session-service.js?v=20260918-sessions4c&cleanup=23c','data-sessions-service'],
+      module:['modules/sessions/index.js?v=20260918-sessions4c','data-sessions-module'],
+      api:['session-api.js?v=20260918-sessions4c&api=13d','data-session-api'],
+      ready:()=>window.DiagnostikaSessions?.moduleAware===true
+    },
+    {
+      id:'files',
+      service:['modules/files/file-service.js?v=20260919-files9d&cleanup=23c','data-files-service'],
+      module:['modules/files/index.js?v=20260919-files9d','data-files-module'],
+      api:['files-api.js?v=20260919-files9d&api=13d','data-files-api'],
+      ready:()=>window.DiagnostikaFiles?.moduleAware===true
+    },
+    {
+      id:'export',
+      service:['modules/export/export-service.js?v=20260919-export10d','data-export-service'],
+      module:['modules/export/index.js?v=20260919-export10d','data-export-module'],
+      api:['export-api.js?v=20260919-export10d&api=13d','data-export-api'],
+      ready:()=>window.DiagnostikaExport?.moduleAware===true
+    },
+    {
+      id:'calendar',
+      service:['modules/calendar/calendar-service.js?v=20260919-calendar8a&cleanup=23c','data-calendar-service'],
+      module:['modules/calendar/index.js?v=20260919-calendar8a','data-calendar-module'],
+      api:['calendar-api.js?v=20260919-calendar8d&api=13d','data-calendar-api'],
+      ready:()=>window.DiagnostikaCalendar?.moduleAware===true
+    },
+    {
+      id:'payments',
+      service:['modules/payments/payment-service.js?v=20260918-payment5d&cleanup=23c','data-payments-service'],
+      module:['modules/payments/index.js?v=20260918-payment5d','data-payments-module'],
+      api:['payment-api.js?v=20260918-payment5d&api=13d','data-payment-api'],
+      ready:()=>window.DiagnostikaPayments?.moduleAware===true
+    },
+    {
+      id:'ai',
+      service:['modules/ai/ai-service.js?v=20260919-ai6d&cleanup=23c','data-ai-service'],
+      module:['modules/ai/index.js?v=20260919-ai6d','data-ai-module'],
+      api:['ai-api.js?v=20260919-ai6d&api=13d','data-ai-api'],
+      ready:()=>window.DiagnostikaAI?.moduleAware===true
     }
+  ]);
 
-    const existing=document.querySelector('script[data-clients-service]');
+  function loadScript(src,marker,ready){
+    try{if(ready?.())return Promise.resolve();}catch(_){}
+    const existing=document.querySelector(`script[${marker}]`);
     if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
+      if(existing.dataset.diagnostikaLoaded==='1')return Promise.resolve();
+      return new Promise((resolve,reject)=>{
+        const done=()=>{existing.dataset.diagnostikaLoaded='1';resolve();};
+        existing.addEventListener('load',done,{once:true});
+        existing.addEventListener('error',()=>reject(new Error(`Failed to load ${src}`)),{once:true});
+        queueMicrotask(()=>{try{if(ready?.())resolve();}catch(_){}});
+      });
     }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23b';
-    serviceScript.setAttribute('data-clients-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
+    return new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src=src;
+      script.setAttribute(marker,'1');
+      script.onload=()=>{script.dataset.diagnostikaLoaded='1';resolve();};
+      script.onerror=()=>reject(new Error(`Failed to load ${src}`));
+      document.body.appendChild(script);
+    });
   }
 
-  function ensureRolesFacade(){
-    if(window.DiagnostikaRoles?.moduleAware===true)return;
-    if(document.querySelector('script[data-roles-api]'))return;
-    const script=document.createElement('script');
-    script.src='roles-api.js?v=20260919-roles11d';
-    script.setAttribute('data-roles-api','1');
-    document.body.appendChild(script);
+  async function loadDomain(domain){
+    await loadScript(domain.service[0],domain.service[1],()=>Boolean(window.DiagnostikaPlatform?.services?.[domain.id]));
+    await loadScript(domain.module[0],domain.module[1],()=>Boolean(window.DiagnostikaPlatform?.modules?.get?.(domain.id)));
+    await loadScript(domain.api[0],domain.api[1],domain.ready);
+  }
+
+  function warmDashboardAssets(){
+    if(!document.querySelector('link[data-brand-icon]')){
+      const icon=document.createElement('link');
+      icon.rel='stylesheet';
+      icon.href='brand-icon.css?v=20260912-46';
+      icon.setAttribute('data-brand-icon','1');
+      document.head.appendChild(icon);
+    }
+    if(!document.querySelector('link[data-home-dashboard]')){
+      const css=document.createElement('link');
+      css.rel='stylesheet';
+      css.href='home-dashboard.css?v=20261002-fast-start-1';
+      css.setAttribute('data-home-dashboard','1');
+      document.head.appendChild(css);
+    }
+    for(const [href,marker] of [
+      ['home-dashboard.js?v=20261002-fast-start-1','data-home-dashboard-preload'],
+      ['home-dashboard-sessions.js?v=20261002-fast-start-1','data-home-dashboard-sessions-preload']
+    ]){
+      if(document.querySelector(`link[${marker}]`))continue;
+      const preload=document.createElement('link');
+      preload.rel='preload';
+      preload.as='script';
+      preload.href=href;
+      preload.setAttribute(marker,'1');
+      document.head.appendChild(preload);
+    }
   }
 
   function loadDashboard(){
@@ -77,18 +164,18 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const l=document.createElement('link');
       l.rel='stylesheet';
-      l.href='home-dashboard.css?v=20261002-client-top-1';
+      l.href='home-dashboard.css?v=20261002-fast-start-1';
       l.setAttribute('data-home-dashboard','1');
       document.head.appendChild(l);
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20261002-client-top-1';
+      s.src='home-dashboard.js?v=20261002-fast-start-1';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
           const x=document.createElement('script');
-          x.src='home-dashboard-sessions.js?v=20260918-sessions4c';
+          x.src='home-dashboard-sessions.js?v=20261002-fast-start-1';
           x.setAttribute('data-home-dashboard-sessions','1');
           document.body.appendChild(x);
         }
@@ -96,263 +183,10 @@
       document.body.appendChild(s);
     }else if(!document.querySelector('script[data-home-dashboard-sessions]')){
       const x=document.createElement('script');
-      x.src='home-dashboard-sessions.js?v=20260918-sessions4c';
+      x.src='home-dashboard-sessions.js?v=20261002-fast-start-1';
       x.setAttribute('data-home-dashboard-sessions','1');
       document.body.appendChild(x);
     }
-  }
-
-  function ensureRequestsFoundation(next){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-requests-module]')){
-        next();
-        return;
-      }
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/requests/index.js?v=20260918-requests3d';
-      moduleScript.setAttribute('data-requests-module','1');
-      moduleScript.onload=next;
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.requests){
-      loadModule();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-requests-service]');
-    if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
-    }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/requests/request-service.js?v=20260918-requests3d&cleanup=23c';
-    serviceScript.setAttribute('data-requests-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
-  }
-
-  function ensureDiagnosisFoundation(next){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-diagnosis-module]')){
-        next();
-        return;
-      }
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/diagnosis/index.js?v=20260919-diagnosis7c';
-      moduleScript.setAttribute('data-diagnosis-module','1');
-      moduleScript.onload=next;
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.diagnosis){
-      loadModule();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-diagnosis-service]');
-    if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
-    }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c&cleanup=23c';
-    serviceScript.setAttribute('data-diagnosis-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
-  }
-
-  function ensureSessionsFoundation(next){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-sessions-module]')){
-        next();
-        return;
-      }
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/sessions/index.js?v=20260918-sessions4c';
-      moduleScript.setAttribute('data-sessions-module','1');
-      moduleScript.onload=next;
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.sessions){
-      loadModule();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-sessions-service]');
-    if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
-    }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/sessions/session-service.js?v=20260918-sessions4c&cleanup=23c';
-    serviceScript.setAttribute('data-sessions-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
-  }
-
-
-
-  function ensureFilesFoundation(next){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-files-module]')){
-        next();
-        return;
-      }
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/files/index.js?v=20260919-files9d';
-      moduleScript.setAttribute('data-files-module','1');
-      moduleScript.onload=next;
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.files){
-      loadModule();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-files-service]');
-    if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
-    }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/files/file-service.js?v=20260919-files9d&cleanup=23c';
-    serviceScript.setAttribute('data-files-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
-  }
-
-
-  function ensureExportFoundation(next){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-export-module]')){
-        next();
-        return;
-      }
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/export/index.js?v=20260919-export10d';
-      moduleScript.setAttribute('data-export-module','1');
-      moduleScript.onload=next;
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.export){
-      loadModule();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-export-service]');
-    if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
-    }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/export/export-service.js?v=20260919-export10d';
-    serviceScript.setAttribute('data-export-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
-  }
-
-
-  function ensureCalendarFoundation(next){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-calendar-module]')){
-        next();
-        return;
-      }
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/calendar/index.js?v=20260919-calendar8a';
-      moduleScript.setAttribute('data-calendar-module','1');
-      moduleScript.onload=next;
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.calendar){
-      loadModule();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-calendar-service]');
-    if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
-    }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/calendar/calendar-service.js?v=20260919-calendar8a&cleanup=23c';
-    serviceScript.setAttribute('data-calendar-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
-  }
-
-
-  function ensurePaymentsFoundation(next){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-payments-module]')){
-        next();
-        return;
-      }
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/payments/index.js?v=20260918-payment5d';
-      moduleScript.setAttribute('data-payments-module','1');
-      moduleScript.onload=next;
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.payments){
-      loadModule();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-payments-service]');
-    if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
-    }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/payments/payment-service.js?v=20260918-payment5d&cleanup=23c';
-    serviceScript.setAttribute('data-payments-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
-  }
-
-  function ensureAIFoundation(next){
-    const loadModule=()=>{
-      if(document.querySelector('script[data-ai-module]')){
-        next();
-        return;
-      }
-      const moduleScript=document.createElement('script');
-      moduleScript.src='modules/ai/index.js?v=20260919-ai6d';
-      moduleScript.setAttribute('data-ai-module','1');
-      moduleScript.onload=next;
-      document.body.appendChild(moduleScript);
-    };
-
-    if(window.DiagnostikaPlatform?.services?.ai){
-      loadModule();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-ai-service]');
-    if(existing){
-      existing.addEventListener('load',loadModule,{once:true});
-      return;
-    }
-
-    const serviceScript=document.createElement('script');
-    serviceScript.src='modules/ai/ai-service.js?v=20260919-ai6d&cleanup=23c';
-    serviceScript.setAttribute('data-ai-service','1');
-    serviceScript.onload=loadModule;
-    document.body.appendChild(serviceScript);
   }
 
   function publishRuntimeGate(status, report = null, error = null){
@@ -412,200 +246,19 @@
     document.body.appendChild(runtime);
   }
 
-  function loadAIApi(){
-    ensureAIFoundation(()=>{
-      if(window.DiagnostikaAI?.moduleAware===true){
-        loadRuntimeContract();
-        return;
-      }
-
-      const existing=document.querySelector('script[data-ai-api]');
-      if(existing){
-        existing.addEventListener('load',loadRuntimeContract,{once:true});
-        return;
-      }
-
-      const api=document.createElement('script');
-      api.src='ai-api.js?v=20260919-ai6d&api=13d';
-      api.setAttribute('data-ai-api','1');
-      api.onload=loadRuntimeContract;
-      document.body.appendChild(api);
-    });
-  }
-
-  function loadPaymentApi(){
-    ensurePaymentsFoundation(()=>{
-      if(window.DiagnostikaPayments?.moduleAware===true){
-        loadAIApi();
-        return;
-      }
-
-      const existing=document.querySelector('script[data-payment-api]');
-      if(existing){
-        existing.addEventListener('load',loadAIApi,{once:true});
-        return;
-      }
-
-      const api=document.createElement('script');
-      api.src='payment-api.js?v=20260918-payment5d&api=13d';
-      api.setAttribute('data-payment-api','1');
-      api.onload=loadAIApi;
-      document.body.appendChild(api);
-    });
-  }
-
-  function loadCalendarApi(){
-    ensureCalendarFoundation(()=>{
-      if(window.DiagnostikaCalendar?.moduleAware===true){
-        loadPaymentApi();
-        return;
-      }
-
-      const existing=document.querySelector('script[data-calendar-api]');
-      if(existing){
-        existing.addEventListener('load',loadPaymentApi,{once:true});
-        return;
-      }
-
-      const api=document.createElement('script');
-      api.src='calendar-api.js?v=20260919-calendar8d&api=13d';
-      api.setAttribute('data-calendar-api','1');
-      api.onload=loadPaymentApi;
-      document.body.appendChild(api);
-    });
-  }
-
-  function loadExportApi(){
-    ensureExportFoundation(()=>{
-      if(window.DiagnostikaExport?.moduleAware===true){
-        loadCalendarApi();
-        return;
-      }
-
-      const existing=document.querySelector('script[data-export-api]');
-      if(existing){
-        existing.addEventListener('load',loadCalendarApi,{once:true});
-        return;
-      }
-
-      const api=document.createElement('script');
-      api.src='export-api.js?v=20260919-export10d&api=13d';
-      api.setAttribute('data-export-api','1');
-      api.onload=loadCalendarApi;
-      document.body.appendChild(api);
-    });
-  }
-
-  function loadFilesApi(){
-    ensureFilesFoundation(()=>{
-      if(window.DiagnostikaFiles?.moduleAware===true){
-        loadExportApi();
-        return;
-      }
-
-      const existing=document.querySelector('script[data-files-api]');
-      if(existing){
-        existing.addEventListener('load',loadExportApi,{once:true});
-        return;
-      }
-
-      const api=document.createElement('script');
-      api.src='files-api.js?v=20260919-files9d&api=13d';
-      api.setAttribute('data-files-api','1');
-      api.onload=loadExportApi;
-      document.body.appendChild(api);
-    });
-  }
-
-  function loadSessionsApi(){
-    ensureSessionsFoundation(()=>{
-      if(window.DiagnostikaSessions?.moduleAware===true){
-        loadFilesApi();
-        return;
-      }
-
-      const existing=document.querySelector('script[data-session-api]');
-      if(existing){
-        existing.addEventListener('load',loadFilesApi,{once:true});
-        return;
-      }
-
-      const api=document.createElement('script');
-      api.src='session-api.js?v=20260918-sessions4c&api=13d';
-      api.setAttribute('data-session-api','1');
-      api.onload=loadFilesApi;
-      document.body.appendChild(api);
-    });
-  }
-
-  function loadDiagnosisApi(){
-    ensureDiagnosisFoundation(()=>{
-      if(window.DiagnostikaDiagnosis?.moduleAware===true){
-        loadSessionsApi();
-        return;
-      }
-
-      const existing=document.querySelector('script[data-diagnosis-api]');
-      if(existing){
-        existing.addEventListener('load',loadSessionsApi,{once:true});
-        return;
-      }
-
-      const api=document.createElement('script');
-      api.src='diagnosis-api.js?v=20260919-diagnosis7a&api=13d';
-      api.setAttribute('data-diagnosis-api','1');
-      api.onload=loadSessionsApi;
-      document.body.appendChild(api);
-    });
-  }
-
-  function loadRequestApi(){
-    ensureRequestsFoundation(()=>{
-      if(window.DiagnostikaRequests?.moduleAware===true){
-        loadDiagnosisApi();
-        return;
-      }
-
-      const existing=document.querySelector('script[data-request-api]');
-      if(existing){
-        existing.addEventListener('load',loadDiagnosisApi,{once:true});
-        return;
-      }
-
-      const api=document.createElement('script');
-      api.src='request-api.js?v=20260918-requests3d&api=13d&cleanup=23b';
-      api.setAttribute('data-request-api','1');
-      api.onload=loadDiagnosisApi;
-      document.body.appendChild(api);
-    });
-  }
-
-  function startModuleChain(){
-    ensureRolesFacade();
-    ensureClientsModule();
-
-    if(window.DiagnostikaClients?.select){
-      loadRequestApi();
-      return;
-    }
-
-    const existing=document.querySelector('script[data-client-api]');
-    if(existing){
-      existing.addEventListener('load',loadRequestApi,{once:true});
-      return;
-    }
-
-    const api=document.createElement('script');
-    api.src='client-api.js?v=20260918-clients2b2&api=13d&pin=18a&cleanup=23b';
-    api.setAttribute('data-client-api','1');
-    api.onload=loadRequestApi;
-    document.body.appendChild(api);
+  async function startModuleGraph(){
+    warmDashboardAssets();
+    await Promise.all([
+      loadScript('roles-api.js?v=20260919-roles11d','data-roles-api',()=>window.DiagnostikaRoles?.moduleAware===true),
+      ...DOMAINS.map(loadDomain)
+    ]);
+    loadRuntimeContract();
   }
 
   Promise.resolve(window.DiagnostikaPlatform?.ready)
-    .then(startModuleChain)
+    .then(startModuleGraph)
     .catch(error=>{
-      console.error('[DiagnostikaPlatform] module chain failed to start',error);
-      window.dispatchEvent(new CustomEvent('diagnostika:runtime-error',{detail:{message:'module-chain-start-failed'}}));
+      console.error('[DiagnostikaPlatform] parallel module graph failed to start',error);
+      window.dispatchEvent(new CustomEvent('diagnostika:runtime-error',{detail:{message:'module-graph-start-failed'}}));
     });
 })();
