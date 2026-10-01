@@ -13,11 +13,7 @@
   let initAttempts=0;
 
   function currentClient(){
-    try{
-      const viaApi=window.DiagnostikaClients?.current?.();
-      if(viaApi)return viaApi;
-    }catch(_){}
-    try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
+    return window.DiagnostikaAIUIContext?.currentClient?.()||null;
   }
   function persistNotes(c,quickNotes,source='client-notes'){
     try{
@@ -64,7 +60,9 @@
     notesOverlay.querySelector('.client-notes-close').onclick=closeNotes;
     const input=notesOverlay.querySelector('.client-notes-text');
     const saveBtn=notesOverlay.querySelector('.client-notes-save');
-    function liveClient(){return state?.clients?.find(x=>String(x.id)===notesClientId)||null;}
+    function liveClient(){
+      return window.DiagnostikaAIUIContext?.clientsApi?.()?.findById?.(notesClientId)||null;
+    }
     function reset(){editingNoteId=null;input.value='';saveBtn.textContent='Сохранить заметку';input.focus();}
     function render(){
       const target=liveClient();const list=notesOverlay.querySelector('.client-notes-list');if(!target||!list)return;
