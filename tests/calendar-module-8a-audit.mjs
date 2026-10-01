@@ -167,7 +167,7 @@ const [uiYear,uiMonth,uiDay]=uiTargetDate.split('-').map(Number);
 const uiMonths=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 for(let guard=0;guard<120;guard++){
   const title=(await page.locator('#diagnostikaCalendarOverlay .cal-month-title').textContent()||'').trim();
-  const match=title.match(/^(.+)\\s+(\\d{4})$/);
+  const match=title.match(/^(.+)\s+(\d{4})$/);
   assert(match,'Calendar month title is not parseable: '+title);
   const currentMonth=uiMonths.indexOf(match[1])+1;
   const currentYear=Number(match[2]);
