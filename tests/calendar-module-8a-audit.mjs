@@ -7,8 +7,8 @@ const moduleSource=fs.readFileSync('modules/calendar/index.js','utf8');
 const apiSource=fs.readFileSync('calendar-api.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
-const legacyUiSource=fs.readFileSync('client-calendar.js','utf8');
-const planningSource=fs.readFileSync('calendar-session-planning.js','utf8');
+const legacyUiSource=fs.readFileSync('modules/calendar/ui/calendar.js','utf8');
+const planningSource=fs.readFileSync('modules/calendar/ui/session-planning.js','utf8');
 
 for(const token of ['function list(','function get(','function forDate(','function forClient(','function create(','function update(','function remove(','function replace(']){
   assert(serviceSource.includes(token),'CalendarService method missing '+token);
