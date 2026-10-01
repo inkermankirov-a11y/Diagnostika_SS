@@ -2,11 +2,11 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const planningSource=fs.readFileSync('calendar-session-planning.js','utf8');
+const planningSource=fs.readFileSync('modules/calendar/ui/session-planning.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
 assert(planningSource.includes("version:'8C'"),'Calendar session planning version is not 8C');
-assert(indexSource.includes('calendar-session-planning.js?v=20260919-calendar8c'),'Calendar 8C planner cache marker is stale');
+assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261001-modular-stage8-7'),'Calendar session planner module marker is stale');
 
 for(const forbidden of [
   "typeof save==='function'",
