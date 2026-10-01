@@ -1,0 +1,49 @@
+name: Final Stage 9 boundary audit
+
+on:
+  push:
+    branches: [ main, 'feature-final-*' ]
+    paths:
+      - 'client-ai-full-context.js'
+      - 'client-ai-chat-view.js'
+      - 'ai-processing-indicator.js'
+      - 'request-ai-n8n.js'
+      - 'modules/ai/**'
+      - 'free-consultation-v2.js'
+      - 'free-consultation-client-card-sync.js'
+      - 'manual-questionnaire-template.js'
+      - 'modules/requests/**'
+      - 'modules/clients/**'
+      - 'index.html'
+      - 'tests/*boundary*'
+      - '.github/workflows/final-stage9-boundary-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax checks
+        run: |
+          node --check client-ai-full-context.js
+          node --check client-ai-chat-view.js
+          node --check ai-processing-indicator.js
+          node --check request-ai-n8n.js
+          node --check modules/ai/ai-transport.js
+          node --check free-consultation-v2.js
+          node --check free-consultation-client-card-sync.js
+          node --check manual-questionnaire-template.js
+          node --check tests/final-stage9-boundary-audit.mjs
+
+      - name: Historical module boundaries
+        run: |
+          node tests/client-ui-boundary-stage5-audit.mjs
+          node tests/request-ui-boundary-stage6-audit.mjs
+          node tests/ai-ui-boundary-stage7-audit.mjs
+          node tests/calendar-ui-boundary-stage8-audit.mjs
+
+      - name: Final Stage 9 boundary
+        run: node tests/final-stage9-boundary-audit.mjs

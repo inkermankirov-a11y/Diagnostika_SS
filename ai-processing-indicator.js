@@ -24,31 +24,19 @@
   }
 
   function attach(){
-    const status=document.querySelector('#freeConsultationDialog .fc-status');
-    if(!status||status.dataset.aiInlineLoader==='1') return false;
-    status.dataset.aiInlineLoader='1';
-    let changing=false;
-    const sync=()=>{
-      if(changing)return;
+    const dialog=document.getElementById('freeConsultationDialog');
+    const status=dialog?.querySelector('.fc-status');
+    const button=dialog?.querySelector('.fc-ai');
+    if(!status||!button||button.dataset.aiInlineLoader==='1') return false;
+    button.dataset.aiInlineLoader='1';
+    button.addEventListener('click',()=>{
       const text=(status.textContent||'').trim();
       if(/анализирую консультац/i.test(text)&&!status.querySelector('.fc-inline-ai-loading')){
-        changing=true;
         status.innerHTML=spinnerHtml();
-        changing=false;
       }
-    };
-    new MutationObserver(sync).observe(status,{childList:true,subtree:true,characterData:true});
-    sync();
+    });
     return true;
   }
 
-  if(!attach()){
-    let tries=0;
-    const retry=()=>{
-      tries+=1;
-      if(attach()||tries>=20) return;
-      setTimeout(retry,100);
-    };
-    setTimeout(retry,100);
-  }
+  attach();
 })();

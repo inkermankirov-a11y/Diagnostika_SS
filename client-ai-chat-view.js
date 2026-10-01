@@ -9,9 +9,7 @@
   let attempts=0;
   let widget=null;
   let backdrop=null;
-  let messagesObserver=null;
-  let clientObserver=null;
-  let lastSeenCount=0;
+  let platformEventsHooked=false;
 
   function getMode(){
     try{
@@ -197,13 +195,6 @@
     if(clientEl){
       const current=String(clientEl.textContent||'');
       if(current.startsWith('Контекст: '))clientEl.textContent=current.slice('Контекст: '.length);
-      if(!clientObserver){
-        clientObserver=new MutationObserver(()=>{
-          const text=String(clientEl.textContent||'');
-          if(text.startsWith('Контекст: '))clientEl.textContent=text.slice('Контекст: '.length);
-        });
-        clientObserver.observe(clientEl,{childList:true,characterData:true,subtree:true});
-      }
     }
   }
 
@@ -232,17 +223,15 @@
     }));
   }
 
-  function watchMessages(){
-    const messages=widget?.querySelector('.hd-ai-messages');
-    if(!messages)return;
-    messagesObserver?.disconnect();
-    lastSeenCount=messages.querySelectorAll('.hd-ai-msg').length;
-    messagesObserver=new MutationObserver(()=>{
-      const count=messages.querySelectorAll('.hd-ai-msg').length;
-      if(count>lastSeenCount){const last=messages.querySelector('.hd-ai-msg:last-child');if(last?.classList.contains('assistant'))scrollAssistantToStart();}
-      lastSeenCount=count;
-    });
-    messagesObserver.observe(messages,{childList:true,subtree:false});
+  function hookPlatformEvents(){
+    if(platformEventsHooked)return true;
+    const events=window.DiagnostikaPlatform?.events;
+    if(!events?.on)return false;
+    for(const type of ['client:selected','client:updated','client:created','client:restored']){
+      events.on(type,()=>setTimeout(normalizeHeader,0));
+    }
+    platformEventsHooked=true;
+    return true;
   }
 
   function install(){
@@ -268,7 +257,7 @@
     let shouldExpand=false;
     try{shouldExpand=localStorage.getItem(EXPANDED_KEY)==='1';}catch(_){ }
     setExpanded(shouldExpand);
-    watchMessages();
+    hookPlatformEvents();
     return true;
   }
 
@@ -288,6 +277,9 @@
       if(widget?.classList.contains('hd-ai-expanded'))setExpanded(false);
     }
   });
+  window.addEventListener('diagnostika:client-ai-widget-ready',()=>setTimeout(()=>{install();normalizeHeader();},0));
+  document.addEventListener('diagnostika:dashboard-clients-rendered',()=>setTimeout(normalizeHeader,0));
+  window.addEventListener('diagnostika:platform-core-ready',()=>hookPlatformEvents(),{once:true});
   window.addEventListener('diagnostika-client-ai-chat-changed',()=>setTimeout(()=>{install();normalizeHeader();scrollAssistantToStart();},0));
 
   window.DiagnostikaClientAIChatView=Object.freeze({preparePayload,getMode,setMode});

@@ -111,11 +111,16 @@
   }
 
   function getClient(){
-    try{const c=typeof client==='function'?client():null;if(c)return c;}catch(_){}
-    try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
+    return window.DiagnostikaRequestUIContext?.currentClient?.()||null;
   }
 
-  function saveState(){try{if(typeof save==='function')save();}catch(_){} }
+  function updateClient(changes,source){
+    if(!currentClient?.id)return null;
+    const api=window.DiagnostikaRequestUIContext?.clientsApi?.();
+    const updated=api?.update?.(currentClient.id,changes,{render:false,source});
+    if(updated)currentClient=updated;
+    return updated||null;
+  }
 
   function readData(){
     return {
@@ -144,8 +149,8 @@
   function persist(showMessage=false){
     currentClient=getClient()||currentClient;
     if(!currentClient)return;
-    currentClient.freeConsultation={...(currentClient.freeConsultation||{}),...readData(),updatedAt:new Date().toISOString()};
-    saveState();
+    const freeConsultation={...(currentClient.freeConsultation||{}),...readData(),updatedAt:new Date().toISOString()};
+    if(!updateClient({freeConsultation},'free-consultation-v2-save'))return;
     if(showMessage&&status){status.textContent='Сохранено';setTimeout(()=>{if(status.textContent==='Сохранено')status.textContent='';},1400);}
   }
 
@@ -236,8 +241,8 @@
       situations:getSituationTexts()
     };
     lastResult=aiResult;
-    currentClient.freeConsultation={...(currentClient.freeConsultation||{}),aiResult};
-    saveState();
+    const freeConsultation={...(currentClient.freeConsultation||{}),aiResult};
+    updateClient({freeConsultation},'free-consultation-v2-ai-edit');
   }
 
   async function generate(){
@@ -249,8 +254,8 @@
     aiBtn.disabled=true;if(status)status.textContent='Анализирую консультацию…';
     try{
       const result=await generator({clientId:currentClient.id||'',clientName:currentClient.name||'',...readData()});
-      currentClient.freeConsultation={...(currentClient.freeConsultation||{}),aiResult:result};
-      saveState();
+      const freeConsultation={...(currentClient.freeConsultation||{}),aiResult:result};
+      updateClient({freeConsultation},'free-consultation-v2-ai-result');
       renderResult(result);
     }catch(err){
       resultMain.value='';
@@ -264,9 +269,8 @@
     currentClient=getClient()||currentClient;
     const text=resultMain.value.trim();
     if(!currentClient||!text)return;
-    currentClient.mainRequest=text;
-    currentClient.freeConsultation={...(currentClient.freeConsultation||{}),aiResult:{...(currentClient.freeConsultation?.aiResult||{}),...(lastResult||{}),mainRequest:text}};
-    saveState();
+    const freeConsultation={...(currentClient.freeConsultation||{}),aiResult:{...(currentClient.freeConsultation?.aiResult||{}),...(lastResult||{}),mainRequest:text}};
+    if(!updateClient({mainRequest:text,freeConsultation},'free-consultation-v2-main-request'))return;
     try{const el=document.getElementById('ccMainRequest');if(el)el.value=text;}catch(_){}
     rq('.fc-v2-save-main').textContent='Сохранено';setTimeout(()=>rq('.fc-v2-save-main').textContent='Сохранить основной запрос',1200);
   }
@@ -300,11 +304,15 @@
     if(!created)return alert('Не удалось создать запрос в Диагностике.');
 
     if(currentClient.freeConsultation?.aiResult){
-      currentClient.freeConsultation.aiResult.diagnosisRequestId=created.id;
-      currentClient.freeConsultation.aiResult.selectedShortRequest={title,priority:normalizeShorts(lastResult)[selectedShortIndex]?.priority||0};
-      currentClient.freeConsultation.aiResult.situations=situations;
+      const aiResult={
+        ...currentClient.freeConsultation.aiResult,
+        diagnosisRequestId:created.id,
+        selectedShortRequest:{title,priority:normalizeShorts(lastResult)[selectedShortIndex]?.priority||0},
+        situations
+      };
+      const freeConsultation={...(currentClient.freeConsultation||{}),aiResult};
+      updateClient({freeConsultation},'free-consultation-v2-diagnosis-link');
     }
-    saveState();
 
     createdNote.textContent=`Создан запрос «${title}»${situations.length?` и добавлено ситуаций: ${situations.length}`:''}.`;
     createdNote.classList.add('show');
@@ -320,7 +328,7 @@
       const wrapped=function(){
         const out=old.apply(this,arguments);
         try{
-          const r=typeof request==='function'?request():null;
+          const r=window.DiagnostikaPlatform?.shell?.currentRequest?.()||null;
           const rows=[...document.querySelectorAll('#situationList .situation-item')];
           (r?.situations||[]).forEach((s,i)=>{if(s?.levelPending&&rows[i])rows[i].textContent=(s.name||'Без названия')+'   [—/10]';});
         }catch(_){}
@@ -332,7 +340,7 @@
       const old=window.renderTree;
       const wrapped=function(){
         const out=old.apply(this,arguments);
-        try{const s=typeof situation==='function'?situation():null;if(s?.levelPending){const el=document.getElementById('situationInfo');if(el)el.textContent='Дискомфорт: —/10';}}catch(_){}
+        try{const s=window.DiagnostikaPlatform?.shell?.currentSituation?.()||null;if(s?.levelPending){const el=document.getElementById('situationInfo');if(el)el.textContent='Дискомфорт: —/10';}}catch(_){}
         return out;
       };
       wrapped.__fcPendingPatched=true;window.renderTree=wrapped;
@@ -341,9 +349,10 @@
     if(edit&&!edit.dataset.fcPendingPatched){
       edit.dataset.fcPendingPatched='1';
       edit.onclick=()=>{
-        let s=null;try{s=typeof situation==='function'?situation():null;}catch(_){}
-        const c=typeof client==='function'?client():null;
-        const r=typeof request==='function'?request():null;
+        const shell=window.DiagnostikaPlatform?.shell;
+        const s=shell?.currentSituation?.()||null;
+        const c=getClient();
+        const r=shell?.currentRequest?.()||null;
         const api=window.DiagnostikaDiagnosis;
         if(!c||!r||!s||!api?.moduleAware)return;
         const changes={};
@@ -356,7 +365,7 @@
         }
         if(!Object.keys(changes).length)return;
         if(!api.updateSituation(s.id,changes,{client:c,requestId:r.id,source:'diagnosis-ui-situation-edit',render:false}))return;
-        selected=null;
+        window.DiagnostikaPlatform?.shell?.clearSelection?.();
         try{if(typeof renderSituationList==='function')renderSituationList();}catch(_){}
       };
     }
@@ -365,7 +374,7 @@
   aiBtn.onclick=generate;
   q('.fc-save').onclick=()=>persist(true);
   dlg.addEventListener('close',()=>persist(false));
-  new MutationObserver(()=>{if(dlg.open)loadFields();}).observe(dlg,{attributes:true,attributeFilter:['open']});
+  dlg.addEventListener('toggle',()=>{if(dlg.open)loadFields();});
   [whyNow,lifeAfter].forEach(el=>el?.addEventListener('input',()=>{if(status)status.textContent='Есть несохранённые изменения';}));
 
   rq('.fc-v2-result-close').onclick=()=>resultDlg.close();
