@@ -82,7 +82,6 @@
   let cursor=new Date();cursor.setDate(1);
   let selected=todayIso();
 
-  function getState(){try{return typeof state!=='undefined'?state:null;}catch(_){return null;}}
   function calendarApi(){
     const facade=window.DiagnostikaCalendar;
     if(facade?.moduleAware===true)return facade;
@@ -96,19 +95,14 @@
   function clients(){
     try{
       const rows=clientsApi()?.list?.();
-      if(Array.isArray(rows))return rows;
-    }catch(_){}
-    const st=getState();
-    return Array.isArray(st?.clients)?st.clients:[];
+      return Array.isArray(rows)?rows:[];
+    }catch(_){return [];}
   }
   function customEvents(){
-    const api=calendarApi();
     try{
-      const rows=api?.list?.();
-      if(Array.isArray(rows))return rows;
-    }catch(_){}
-    const st=getState();
-    return Array.isArray(st?.calendarEvents)?st.calendarEvents.map(e=>({...e})):[];
+      const rows=calendarApi()?.list?.();
+      return Array.isArray(rows)?rows:[];
+    }catch(_){return [];}
   }
   function allEvents(){
     return customEvents()
