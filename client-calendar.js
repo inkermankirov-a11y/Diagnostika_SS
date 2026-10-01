@@ -121,8 +121,6 @@
       const id=clientsApi()?.currentId?.();
       if(id!==undefined&&id!==null&&id!=='')return id;
     }catch(_){}
-    try{const c=typeof client==='function'?client():null;if(c?.id)return c.id;}catch(_){}
-    try{if(typeof clientId!=='undefined'&&clientId)return clientId;}catch(_){}
     return '';
   }
   function fillClientOptions(){const current=currentClientId();clientSelect.innerHTML='<option value="">— Без клиента —</option>'+clients().map(c=>`<option value="${esc(c.id)}">${esc(c.name||'Без имени')}</option>`).join('');if(current&&clients().some(c=>String(c.id)===String(current)))clientSelect.value=String(current);}
