@@ -65,14 +65,28 @@ await page.waitForFunction(()=>window.DiagnostikaCalendar?.version==='8D'
 await page.evaluate(()=>window.DiagnostikaCalendar.open());
 const dialog=page.locator('#diagnostikaCalendarOverlay');
 await dialog.waitFor({state:'visible'});
-await dialog.locator('.cal-date').fill('2026-09-22');
-await page.evaluate(()=>{
-  const input=document.querySelector('#diagnostikaCalendarOverlay .cal-date');
-  input?.dispatchEvent(new Event('change',{bubbles:true}));
-  const cells=[...document.querySelectorAll('#diagnostikaCalendarOverlay .cal-day')];
-  const target=cells.find(cell=>cell.querySelector('.cal-num')?.textContent==='22'&&!cell.classList.contains('out'));
-  target?.click();
-});
+const uiTargetDate8d=fixture.calendarEvents[0].date;
+const [uiYear8d,uiMonth8d,uiDay8d]=uiTargetDate8d.split('-').map(Number);
+const uiMonths8d=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+for(let guard=0;guard<120;guard++){
+  const title=(await dialog.locator('.cal-month-title').textContent()||'').trim();
+  const match=title.match(/^(.+)\s+(\d{4})$/);
+  assert(match,'Calendar 8D month title is not parseable: '+title);
+  const currentMonth=uiMonths8d.indexOf(match[1])+1;
+  const currentYear=Number(match[2]);
+  assert(currentMonth>0,'Unknown Calendar 8D month title: '+title);
+  const delta=(uiYear8d*12+(uiMonth8d-1))-(currentYear*12+(currentMonth-1));
+  if(delta===0)break;
+  await dialog.locator(delta<0?'.cal-prev':'.cal-next').click();
+}
+const reachedMonth8d=(await dialog.locator('.cal-month-title').textContent()||'').trim();
+assert.equal(reachedMonth8d,`${uiMonths8d[uiMonth8d-1]} ${uiYear8d}`,'Calendar 8D did not navigate to stored event month');
+await page.evaluate(day=>{
+  const cells=[...document.querySelectorAll('#diagnostikaCalendarOverlay .cal-day:not(.out)')];
+  const target=cells.find(cell=>cell.querySelector('.cal-num')?.textContent===String(day));
+  if(!target)throw new Error('Calendar 8D target day was not rendered: '+day);
+  target.click();
+},uiDay8d);
 const row=dialog.locator('.cal-event[data-calendar-event-id="cal-8d-existing"]');
 await row.waitFor({state:'visible'});
 
