@@ -12,7 +12,7 @@
   const fmt=ts=>{try{return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(ts));}catch(_){return'';}};
 
   function currentClient(){
-    try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){return null;}
+    return window.DiagnostikaAIUIContext?.currentClient?.()||null;
   }
   function getMode(){try{return localStorage.getItem(MODE_KEY)==='deep'?'deep':'short';}catch(_){return'short';}}
   function setMode(mode){
