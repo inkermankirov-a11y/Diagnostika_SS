@@ -39,7 +39,44 @@
   transition:transform .16s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease!important;
 }
 
-.app-header #headerWeatherBtn{--lg-accent-rgb:49,190,255;--lg-accent2-rgb:51,101,255}
+.app-header #headerWeatherBtn{
+  --lg-accent-rgb:49,190,255;
+  --lg-accent2-rgb:51,101,255;
+  width:104px!important;
+  min-width:104px!important;
+  max-width:104px!important;
+  padding:4px 10px!important;
+  grid-template-columns:28px minmax(0,1fr)!important;
+  grid-template-rows:17px 15px!important;
+  grid-template-areas:'icon main' 'icon sub'!important;
+  column-gap:7px!important;
+  row-gap:1px!important;
+  align-content:center!important;
+}
+.app-header #headerWeatherBtn .hu-icon{
+  align-self:center!important;
+}
+.app-header #headerWeatherBtn .hu-main{
+  align-self:end!important;
+  justify-self:start!important;
+  text-align:left!important;
+  font-size:14px!important;
+  line-height:1!important;
+}
+.app-header #headerWeatherBtn .hu-sub{
+  align-self:start!important;
+  justify-self:start!important;
+  margin:0!important;
+  max-width:none!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  text-align:left!important;
+  font-size:11px!important;
+  line-height:1.05!important;
+  font-weight:750!important;
+  color:#f2f9ff!important;
+  letter-spacing:.01em!important;
+}
 .app-header #headerCalendarBtn{--lg-accent-rgb:255,151,57;--lg-accent2-rgb:255,201,72}
 .app-header #headerCurrencyBtn{--lg-accent-rgb:74,224,181;--lg-accent2-rgb:49,190,211}
 .app-header #quickNotesBtn{--lg-accent-rgb:86,128,255;--lg-accent2-rgb:158,91,255}
@@ -171,19 +208,79 @@
   padding-right:14px!important;
 }
 
-/* Match the clock shell to the same material without touching its mechanism. */
+/* Clock uses the same blue liquid-glass material while preserving flip mechanics. */
 .app-header .header-flip-clock{
-  border-color:rgba(82,166,255,.58)!important;
+  position:relative!important;
+  isolation:isolate;
+  overflow:hidden!important;
+  border-color:rgba(54,183,255,.74)!important;
+  border-radius:15px!important;
   background:
-    radial-gradient(92% 150% at 7% 115%,rgba(47,184,255,.32) 0%,rgba(47,184,255,0) 66%),
-    radial-gradient(84% 145% at 94% -42%,rgba(94,91,255,.28) 0%,rgba(94,91,255,0) 65%),
-    radial-gradient(120% 170% at 50% -82%,rgba(255,255,255,.40) 0%,rgba(255,255,255,0) 58%),
-    linear-gradient(180deg,rgba(58,73,96,.88),rgba(20,30,47,.95))!important;
+    radial-gradient(112% 180% at 2% 118%,rgba(34,190,255,.58) 0%,rgba(34,190,255,.18) 36%,rgba(34,190,255,0) 67%),
+    radial-gradient(90% 165% at 98% -50%,rgba(92,93,255,.46) 0%,rgba(92,93,255,.12) 40%,rgba(92,93,255,0) 70%),
+    radial-gradient(126% 160% at 50% -88%,rgba(255,255,255,.55) 0%,rgba(255,255,255,.12) 48%,rgba(255,255,255,0) 66%),
+    linear-gradient(180deg,rgba(48,65,89,.88),rgba(15,26,43,.96))!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.45),
-    inset 0 -1px 0 rgba(71,169,255,.24),
-    0 6px 15px rgba(15,23,42,.24),
-    0 0 16px rgba(57,156,255,.15)!important;
+    inset 0 1px 0 rgba(255,255,255,.60),
+    inset 0 -1px 0 rgba(45,179,255,.38),
+    inset 1px 0 0 rgba(255,255,255,.08),
+    0 7px 16px rgba(15,23,42,.25),
+    0 0 18px rgba(47,174,255,.24)!important;
+  backdrop-filter:blur(18px) saturate(1.32);
+  -webkit-backdrop-filter:blur(18px) saturate(1.32);
+}
+.app-header .header-flip-clock::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:6px;
+  right:6px;
+  top:1px;
+  height:46%;
+  border-radius:13px 13px 58% 58%;
+  background:linear-gradient(180deg,rgba(255,255,255,.50),rgba(255,255,255,.15) 48%,rgba(255,255,255,0) 100%);
+  pointer-events:none;
+}
+.app-header .header-flip-clock::after{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:8%;
+  right:8%;
+  bottom:0;
+  height:3px;
+  border-radius:999px;
+  background:linear-gradient(90deg,rgba(44,128,255,0),rgba(45,193,255,.98) 36%,rgba(102,101,255,.92) 69%,rgba(102,101,255,0));
+  opacity:.96;
+  pointer-events:none;
+}
+.app-header .header-flip-panel,
+.app-header .header-flip-colon{
+  position:relative;
+  z-index:1;
+}
+.app-header .header-flip-panel{
+  border:1px solid rgba(128,205,255,.22);
+  background:linear-gradient(180deg,#132235,#0b1422)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(33,161,255,.12),
+    0 2px 5px rgba(0,0,0,.30),
+    0 0 8px rgba(34,164,255,.10)!important;
+}
+.app-header .header-flip-top,
+.app-header .header-flip-fold-top{
+  background:linear-gradient(180deg,#17283d,#111d2d)!important;
+}
+.app-header .header-flip-bottom,
+.app-header .header-flip-fold-bottom{
+  background:linear-gradient(180deg,#101c2b,#0a1320)!important;
+}
+.app-header .header-flip-colon{
+  color:#f7fbff!important;
+  text-shadow:
+    0 0 10px rgba(91,190,255,.24),
+    0 1px 2px rgba(0,0,0,.42)!important;
 }
 
 /* Open settings gets a restrained selected-state glow, not a neon state. */

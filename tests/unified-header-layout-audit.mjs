@@ -18,12 +18,17 @@ assert.ok(css.includes('.header-utility-group')&&css.includes('margin-right:0!im
 assert.ok(css.includes('.quick-notes-wrap')&&css.includes('margin-right:0!important'),'notes extra margin still remains');
 assert.ok(css.includes('@media(max-width:1180px)'),'clock responsive threshold was not updated');
 assert.ok(index.includes('modules/header/flip-clock.css?v=20261003-clock-static-colon-1'),'clock CSS cache key missing');
-assert.ok(index.includes('modules/header/liquid-glass.css?v=20261003-header-glass-2'),'header liquid-glass CSS cache key missing');
+assert.ok(index.includes('modules/header/liquid-glass.css?v=20261003-header-glass-3'),'header liquid-glass CSS cache key missing');
 assert.ok(glass.includes('#headerWeatherBtn')&&glass.includes('#headerCalendarBtn')&&glass.includes('#headerCurrencyBtn'),'utility liquid-glass selectors missing');
 assert.ok(glass.includes('#quickNotesBtn')&&glass.includes('#settingsMenuBtn'),'notes/settings liquid-glass selectors missing');
 assert.ok(glass.includes('backdrop-filter:blur(18px)'),'liquid-glass material effect missing');
 assert.ok(glass.includes('--lg-accent2-rgb'),'secondary liquid-glass color channel missing');
 assert.ok(glass.includes('255,151,57'),'orange calendar accent missing');
 assert.ok(glass.includes('74,224,181'),'mint currency accent missing');
+assert.ok(glass.includes("grid-template-areas:'icon main' 'icon sub'"),'weather city layout is not compact and readable');
+assert.ok(glass.includes('font-size:11px'),'weather city text sizing missing');
+assert.ok(glass.includes('.header-flip-clock::before'),'clock glass highlight missing');
+assert.ok(glass.includes('.header-flip-clock::after'),'clock glass accent edge missing');
+assert.ok(glass.includes('background:linear-gradient(180deg,#132235,#0b1422)'),'clock inner glass panels missing');
 
 console.log('UNIFIED_HEADER_LAYOUT_AUDIT_OK');
