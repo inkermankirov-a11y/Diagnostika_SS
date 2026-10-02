@@ -9,7 +9,7 @@
   dashboard.className='home-dashboard';
   dashboard.innerHTML=`
     <aside class="hd-sidebar hd-card">
-      <div class="hd-side-title"><span>Клиенты</span><span aria-hidden="true">⌕</span></div>
+      <div class="hd-side-title"><div id="hdClientBaseSlot" class="hd-client-base-slot"></div><span aria-hidden="true">⌕</span></div>
       <div class="hd-search"><input id="hdClientSearch" type="search" placeholder="Поиск по клиентам…" autocomplete="off"></div>
       <div class="hd-client-filters" role="group" aria-label="Фильтры клиентов">
         <button type="button" class="hd-client-filter" data-filter="new" aria-pressed="false" title="Показать новых клиентов">Новые</button>
@@ -47,6 +47,17 @@
       </section>
     </aside>`;
   header.insertAdjacentElement('afterend',dashboard);
+
+  const clientBaseButton=document.getElementById('clientBaseBtn');
+  const clientBaseSlot=dashboard.querySelector('#hdClientBaseSlot');
+  if(clientBaseButton&&clientBaseSlot){
+    clientBaseButton.classList.remove('header-btn');
+    clientBaseButton.classList.add('hd-client-base-btn');
+    clientBaseButton.removeAttribute('style');
+    clientBaseButton.textContent='Клиенты';
+    clientBaseSlot.appendChild(clientBaseButton);
+    requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+  }
 
   const $=s=>dashboard.querySelector(s);
   const list=$('#hdClientList');
