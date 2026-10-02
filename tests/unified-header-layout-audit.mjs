@@ -1,0 +1,19 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const css=fs.readFileSync('modules/header/flip-clock.css','utf8');
+const index=fs.readFileSync('index.html','utf8');
+
+assert.ok(index.includes('<span class="app-title-text"><span>Психологическая</span><span>диагностика</span></span>'),'two-line app title missing');
+assert.ok(css.includes('.app-title-text'),'compact title styling missing');
+assert.ok(css.includes('font-size:18px'),'title is not compact');
+assert.ok(css.includes('grid-template-columns:62px 12px 62px'),'clock cards are not symmetric');
+assert.ok(css.includes('height:42px'),'clock outer height is not aligned with header buttons');
+assert.ok(css.includes('height:32px'),'clock card height is not compact');
+assert.ok(css.includes('gap:10px!important'),'right header controls do not have unified spacing');
+assert.ok(css.includes('.header-utility-group')&&css.includes('margin-right:0!important'),'utility-group extra margin still remains');
+assert.ok(css.includes('.quick-notes-wrap')&&css.includes('margin-right:0!important'),'notes extra margin still remains');
+assert.ok(css.includes('@media(max-width:1180px)'),'clock responsive threshold was not updated');
+assert.ok(index.includes('modules/header/flip-clock.css?v=20261003-unified-header-1'),'clock CSS cache key missing');
+
+console.log('UNIFIED_HEADER_LAYOUT_AUDIT_OK');

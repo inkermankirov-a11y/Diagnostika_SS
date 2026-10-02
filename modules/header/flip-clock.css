@@ -4,18 +4,46 @@
   align-items:center!important;
   column-gap:18px!important;
 }
-.app-header>h1{
+.app-header>.header-title-group{
   grid-column:1;
   grid-row:1;
   justify-self:start;
+  align-self:center;
   min-width:0;
-  white-space:nowrap;
+  width:auto;
+}
+.app-header .header-title-group h1{
+  margin:0!important;
+  min-width:0;
+  white-space:normal!important;
+}
+.app-title-text{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  font-size:18px;
+  line-height:1.02;
+  font-weight:800;
+  letter-spacing:-.15px;
 }
 .app-header>.header-buttons{
   grid-column:3;
   grid-row:1;
   justify-self:end;
   min-width:0;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+}
+.app-header .header-utility-group{
+  gap:10px!important;
+  margin-right:0!important;
+}
+.app-header .quick-notes-wrap{
+  margin-right:0!important;
+}
+.app-header .settings-wrap{
+  margin:0!important;
 }
 .header-flip-clock-wrap{
   grid-column:2;
@@ -28,12 +56,12 @@
 .header-flip-clock{
   position:relative;
   display:grid;
-  grid-template-columns:68px 16px 68px;
+  grid-template-columns:62px 12px 62px;
   align-items:center;
   justify-items:center;
-  column-gap:8px;
-  height:66px;
-  padding:8px 11px;
+  column-gap:6px;
+  height:42px;
+  padding:4px 7px;
   border-radius:10px;
   background:linear-gradient(#5d7188,#405268);
   border:1px solid #3d4f66;
@@ -42,8 +70,8 @@
 }
 .header-flip-panel{
   position:relative;
-  width:68px;
-  height:48px;
+  width:62px;
+  height:32px;
   border-radius:5px;
   overflow:hidden;
   background:#111317;
@@ -72,7 +100,7 @@
   overflow:hidden;
   background:#17191e;
   color:#f1f3f5;
-  font:600 32px/48px 'Segoe UI',Arial,sans-serif;
+  font:600 23px/32px 'Segoe UI',Arial,sans-serif;
   letter-spacing:1px;
   text-shadow:0 1px 2px rgba(0,0,0,.65);
   backface-visibility:hidden;
@@ -85,9 +113,9 @@
 .header-flip-panel.is-flipping .header-flip-fold-top{display:flex;animation:headerFlipTop .24s ease-in forwards}
 .header-flip-panel.is-flipping .header-flip-fold-bottom{display:flex;animation:headerFlipBottom .24s ease-out .24s forwards}
 .header-flip-colon{
-  width:16px;
+  width:12px;
   color:#f3f6f9;
-  font-size:28px;
+  font-size:22px;
   font-weight:900;
   line-height:1;
   text-align:center;
@@ -97,7 +125,7 @@
 @keyframes headerFlipBottom{from{transform:rotateX(90deg)}to{transform:rotateX(0deg)}}
 
 /* Below this width the right controls need the center track, so the clock yields cleanly. */
-@media(max-width:1420px){
+@media(max-width:1180px){
   .app-header{grid-template-columns:minmax(0,1fr) auto!important}
   .app-header>.header-buttons{grid-column:2}
   .header-flip-clock-wrap{display:none!important}
