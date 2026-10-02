@@ -9,6 +9,7 @@ assert.ok(css.includes('.home-dashboard:not([hidden]){height:calc(100dvh - 76px)
 assert.ok(css.includes('.hd-main{overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}'),'middle column has no independent scroll');
 assert.ok(css.includes('.hd-right{overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:3px}'),'right column has no independent scroll');
 assert.ok(css.includes('.hd-client-list{overscroll-behavior:contain;scrollbar-gutter:stable}'),'left client list scroll containment missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261002-column-scroll-1'),'dashboard CSS cache key not bumped');
+assert.ok(css.includes('.hd-hero-icon{width:150px;height:118px;position:relative;margin-bottom:24px;display:grid;place-items:center;flex:0 0 auto}'),'client hero/avatar can shrink inside the scroll column');
+assert.ok(loader.includes('home-dashboard.css?v=20261002-avatar-fix-1'),'dashboard CSS cache key not bumped');
 
 console.log('DASHBOARD_COLUMN_SCROLL_AUDIT_OK');
