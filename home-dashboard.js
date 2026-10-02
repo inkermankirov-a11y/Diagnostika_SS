@@ -76,6 +76,9 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const clientsApi=()=>window.DiagnostikaClients||null;
   const requestsApi=()=>window.DiagnostikaRequests||null;
+  const calendarApi=()=>window.DiagnostikaCalendar?.moduleAware===true
+    ? window.DiagnostikaCalendar
+    : window.DiagnostikaPlatform?.services?.calendar||null;
   const allClients=()=>clientsApi()?.list?.()||[];
   const currentClient=()=>clientsApi()?.current?.()||null;
   const currentClientId=()=>clientsApi()?.currentId?.()||null;
@@ -122,11 +125,39 @@
     });
   }
 
-  function hasUpcomingSession(c,days=7){
-    if(!c||!Array.isArray(c.sessions)||!c.sessions.length)return false;
+  function calendarEventStartTime(event){
+    const rawDate=String(event?.date||'').trim();
+    if(!rawDate)return NaN;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
+      const [year,month,day]=rawDate.split('-').map(Number);
+      const rawTime=String(event?.time||'').trim();
+      const match=rawTime.match(/^(\d{1,2}):(\d{2})/);
+      const hour=match?Number(match[1]):12;
+      const minute=match?Number(match[2]):0;
+      return new Date(year,month-1,day,hour,minute,0,0).getTime();
+    }
+    const parsed=Date.parse(rawDate);
+    return Number.isFinite(parsed)?parsed:NaN;
+  }
+
+  function hasUpcomingInteraction(c,days=7){
+    if(!c?.id)return false;
     const now=Date.now();
     const limit=now+days*24*60*60*1000;
-    return c.sessions.some(session=>{
+
+    let calendarEvents=[];
+    try{
+      const api=calendarApi();
+      calendarEvents=api?.forClient?.(c.id)||api?.list?.({clientId:c.id})||[];
+    }catch(_){calendarEvents=[];}
+
+    if(Array.isArray(calendarEvents)&&calendarEvents.some(event=>{
+      const time=calendarEventStartTime(event);
+      return Number.isFinite(time)&&time>=now&&time<limit;
+    }))return true;
+
+    const sessions=Array.isArray(c.sessions)?c.sessions:[];
+    return sessions.some(session=>{
       const time=sessionStartTime(session);
       return Number.isFinite(time)&&time>=now&&time<limit;
     });
@@ -284,8 +315,8 @@
       const unpaid=unpaidSessionCount(c);
       const flag=unpaid?`<span class="hd-unpaid-flag" aria-label="Есть неоплаченные сессии" title="Есть неоплаченные сессии">⚑</span>`:'';
       const newClient=isNewClient(c);
-      const upcoming=hasUpcomingSession(c,7);
-      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot" aria-label="Сессия в ближайшие 7 дней" title="Сессия в ближайшие 7 дней"></span>`:'';
+      const upcoming=hasUpcomingInteraction(c,7);
+      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot" aria-label="Запись с клиентом в ближайшие 7 дней" title="Запись с клиентом в ближайшие 7 дней"></span>`:'';
       const pinned=pinRank.has(String(c.id));
       const pin=pinned?`<span class="hd-client-pin" aria-label="Закреплённый клиент" title="Закреплён">📌</span>`:'';
       row.classList.toggle('pinned',pinned);
@@ -367,6 +398,7 @@
     'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged',
     'request:created','request:selected','request:activated','request:completed','request:resumed',
     'session:created','session:updated','session:deleted',
+    'calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced',
     'payment:updated','payment:added','payment:deleted','session-payment:updated'
   ];
   let eventBusBound=false;
