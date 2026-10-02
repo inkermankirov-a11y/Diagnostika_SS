@@ -6,11 +6,11 @@
   if(!headerButtons||!settingsWrap||document.querySelector('#headerUtilityGroup')) return;
 
   const LANG={
-    ru:{weather:'Погода',forecast:'Погода · 7 дней',weatherUnavailable:'Нет данных',retry:'Повторить',cached:'Последние данные',converter:'Конвертер валют',from:'Из',to:'В',amount:'Сумма',loading:'Загрузка…',close:'Закрыть',local:'Моя геолокация',sourceWeather:'Данные обновляются автоматически',sourceCurrency:'Курсы ЦБ РФ',weatherSettings:'Настройка погоды',locationMode:'Источник погоды',myLocation:'Моя геолокация',chosenCity:'Выбранный город',city:'Город',findCity:'Найти',saveCity:'Сохранить город',cityNotFound:'Город не найден'},
-    en:{weather:'Weather',forecast:'Weather · 7 days',weatherUnavailable:'No data',retry:'Retry',cached:'Last data',converter:'Currency converter',from:'From',to:'To',amount:'Amount',loading:'Loading…',close:'Close',local:'My location',sourceWeather:'Updates automatically',sourceCurrency:'Central Bank of Russia rates',weatherSettings:'Weather settings',locationMode:'Weather source',myLocation:'My location',chosenCity:'Selected city',city:'City',findCity:'Find',saveCity:'Save city',cityNotFound:'City not found'},
-    fr:{weather:'Météo',forecast:'Météo · 7 jours',weatherUnavailable:'Indisponible',retry:'Réessayer',cached:'Dernières données',converter:'Convertisseur de devises',from:'De',to:'Vers',amount:'Montant',loading:'Chargement…',close:'Fermer',local:'Ma position',sourceWeather:'Mise à jour automatique',sourceCurrency:'Taux de la Banque centrale de Russie',weatherSettings:'Réglages météo',locationMode:'Source météo',myLocation:'Ma position',chosenCity:'Ville choisie',city:'Ville',findCity:'Rechercher',saveCity:'Enregistrer la ville',cityNotFound:'Ville introuvable'},
-    de:{weather:'Wetter',forecast:'Wetter · 7 Tage',weatherUnavailable:'Keine Daten',retry:'Erneut',cached:'Letzte Daten',converter:'Währungsrechner',from:'Von',to:'Nach',amount:'Betrag',loading:'Laden…',close:'Schließen',local:'Mein Standort',sourceWeather:'Automatische Aktualisierung',sourceCurrency:'Kurse der Zentralbank Russlands',weatherSettings:'Wettereinstellungen',locationMode:'Wetterquelle',myLocation:'Mein Standort',chosenCity:'Gewählte Stadt',city:'Stadt',findCity:'Suchen',saveCity:'Stadt speichern',cityNotFound:'Stadt nicht gefunden'},
-    it:{weather:'Meteo',forecast:'Meteo · 7 giorni',weatherUnavailable:'Nessun dato',retry:'Riprova',cached:'Ultimi dati',converter:'Convertitore valuta',from:'Da',to:'A',amount:'Importo',loading:'Caricamento…',close:'Chiudi',local:'La mia posizione',sourceWeather:'Aggiornamento automatico',sourceCurrency:'Tassi della Banca centrale russa',weatherSettings:'Impostazioni meteo',locationMode:'Fonte meteo',myLocation:'La mia posizione',chosenCity:'Città selezionata',city:'Città',findCity:'Cerca',saveCity:'Salva città',cityNotFound:'Città non trovata'}
+    ru:{calendar:'Календарь',weather:'Погода',forecast:'Погода · 7 дней',weatherUnavailable:'Нет данных',retry:'Повторить',cached:'Последние данные',converter:'Конвертер валют',from:'Из',to:'В',amount:'Сумма',loading:'Загрузка…',close:'Закрыть',local:'Моя геолокация',sourceWeather:'Данные обновляются автоматически',sourceCurrency:'Курсы ЦБ РФ',weatherSettings:'Настройка погоды',locationMode:'Источник погоды',myLocation:'Моя геолокация',chosenCity:'Выбранный город',city:'Город',findCity:'Найти',saveCity:'Сохранить город',cityNotFound:'Город не найден'},
+    en:{calendar:'Calendar',weather:'Weather',forecast:'Weather · 7 days',weatherUnavailable:'No data',retry:'Retry',cached:'Last data',converter:'Currency converter',from:'From',to:'To',amount:'Amount',loading:'Loading…',close:'Close',local:'My location',sourceWeather:'Updates automatically',sourceCurrency:'Central Bank of Russia rates',weatherSettings:'Weather settings',locationMode:'Weather source',myLocation:'My location',chosenCity:'Selected city',city:'City',findCity:'Find',saveCity:'Save city',cityNotFound:'City not found'},
+    fr:{calendar:'Calendrier',weather:'Météo',forecast:'Météo · 7 jours',weatherUnavailable:'Indisponible',retry:'Réessayer',cached:'Dernières données',converter:'Convertisseur de devises',from:'De',to:'Vers',amount:'Montant',loading:'Chargement…',close:'Fermer',local:'Ma position',sourceWeather:'Mise à jour automatique',sourceCurrency:'Taux de la Banque centrale de Russie',weatherSettings:'Réglages météo',locationMode:'Source météo',myLocation:'Ma position',chosenCity:'Ville choisie',city:'Ville',findCity:'Rechercher',saveCity:'Enregistrer la ville',cityNotFound:'Ville introuvable'},
+    de:{calendar:'Kalender',weather:'Wetter',forecast:'Wetter · 7 Tage',weatherUnavailable:'Keine Daten',retry:'Erneut',cached:'Letzte Daten',converter:'Währungsrechner',from:'Von',to:'Nach',amount:'Betrag',loading:'Laden…',close:'Schließen',local:'Mein Standort',sourceWeather:'Automatische Aktualisierung',sourceCurrency:'Kurse der Zentralbank Russlands',weatherSettings:'Wettereinstellungen',locationMode:'Wetterquelle',myLocation:'Mein Standort',chosenCity:'Gewählte Stadt',city:'Stadt',findCity:'Suchen',saveCity:'Stadt speichern',cityNotFound:'Stadt nicht gefunden'},
+    it:{calendar:'Calendario',weather:'Meteo',forecast:'Meteo · 7 giorni',weatherUnavailable:'Nessun dato',retry:'Riprova',cached:'Ultimi dati',converter:'Convertitore valuta',from:'Da',to:'A',amount:'Importo',loading:'Caricamento…',close:'Chiudi',local:'La mia posizione',sourceWeather:'Aggiornamento automatico',sourceCurrency:'Tassi della Banca centrale russa',weatherSettings:'Impostazioni meteo',locationMode:'Fonte meteo',myLocation:'La mia posizione',chosenCity:'Città selezionata',city:'Città',findCity:'Cerca',saveCity:'Salva città',cityNotFound:'Città non trovata'}
   };
   const lang=()=>window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';
   const tr=()=>LANG[lang()]||LANG.en;
@@ -38,9 +38,29 @@
   document.head.appendChild(style);
 
   const group=document.createElement('div');group.id='headerUtilityGroup';group.className='header-utility-group';
-  group.innerHTML=`<button id="headerWeatherBtn" type="button" class="header-util-btn"><span class="hu-icon">🌤️</span><span class="hu-main">—°</span><span class="hu-sub">${tr().weather}</span></button><button id="headerCurrencyBtn" type="button" class="header-util-btn"><span class="hu-icon">💱</span><span class="hu-main">— ₽</span><span class="hu-sub">USD</span></button>`;
+  const nowForCalendar=new Date();
+  const calendarDay=String(nowForCalendar.getDate()).padStart(2,'0');
+  group.innerHTML=`<button id="headerWeatherBtn" type="button" class="header-util-btn"><span class="hu-icon">🌤️</span><span class="hu-main">—°</span><span class="hu-sub">${tr().weather}</span></button><button id="headerCalendarBtn" type="button" class="header-util-btn"><span class="hu-icon">📅</span><span class="hu-main">${calendarDay}</span><span class="hu-sub">${tr().calendar}</span></button><button id="headerCurrencyBtn" type="button" class="header-util-btn"><span class="hu-icon">💱</span><span class="hu-main">— ₽</span><span class="hu-sub">USD</span></button>`;
   headerButtons.insertBefore(group,settingsWrap);
-  const weatherBtn=group.querySelector('#headerWeatherBtn'),currencyBtn=group.querySelector('#headerCurrencyBtn');
+  const weatherBtn=group.querySelector('#headerWeatherBtn'),calendarBtn=group.querySelector('#headerCalendarBtn'),currencyBtn=group.querySelector('#headerCurrencyBtn');
+
+  function openExistingCalendar(){
+    if(typeof window.DiagnostikaCalendar?.open==='function'){
+      window.DiagnostikaCalendar.open();
+      return true;
+    }
+    if(typeof window.DiagnostikaCalendarUI?.open==='function'){
+      window.DiagnostikaCalendarUI.open();
+      return true;
+    }
+    const clientCalendar=document.getElementById('ccCalendarBtn');
+    if(clientCalendar){
+      clientCalendar.click();
+      return true;
+    }
+    return false;
+  }
+  calendarBtn.onclick=openExistingCalendar;
 
   const overlay=document.createElement('div');overlay.className='utility-overlay';overlay.hidden=true;document.body.appendChild(overlay);
   function openPanel(html){overlay.innerHTML=`<section class="utility-panel">${html}</section>`;overlay.hidden=false;document.documentElement.style.overflow='hidden';const close=overlay.querySelector('.utility-close');if(close)close.onclick=closePanel;}
@@ -299,7 +319,10 @@
   }
   currencyBtn.onclick=showConverter;
 
-  function refreshLanguage(){weatherBtn.querySelector('.hu-sub').textContent=weatherLabel||tr().weather;}
+  function refreshLanguage(){
+    weatherBtn.querySelector('.hu-sub').textContent=weatherLabel||tr().weather;
+    calendarBtn.querySelector('.hu-sub').textContent=tr().calendar;
+  }
   const oldSet=window.DiagnostikaI18n?.setLanguage;if(oldSet){window.DiagnostikaI18n.setLanguage=function(l){const r=oldSet.call(this,l);setTimeout(()=>{refreshLanguage();initWeather();},0);return r;};}
   window.DiagnostikaWeather=Object.freeze({
     refresh:()=>initWeather(),
