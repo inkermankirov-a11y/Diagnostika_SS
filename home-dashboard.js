@@ -140,10 +140,10 @@
     return Number.isFinite(parsed)?parsed:NaN;
   }
 
-  function hasUpcomingInteraction(c,days=7){
-    if(!c?.id)return false;
+  function nextInteractionTime(c){
+    if(!c?.id)return Number.POSITIVE_INFINITY;
     const now=Date.now();
-    const limit=now+days*24*60*60*1000;
+    let next=Number.POSITIVE_INFINITY;
 
     let calendarEvents=[];
     try{
@@ -151,16 +151,22 @@
       calendarEvents=api?.forClient?.(c.id)||api?.list?.({clientId:c.id})||[];
     }catch(_){calendarEvents=[];}
 
-    if(Array.isArray(calendarEvents)&&calendarEvents.some(event=>{
+    for(const event of Array.isArray(calendarEvents)?calendarEvents:[]){
       const time=calendarEventStartTime(event);
-      return Number.isFinite(time)&&time>=now&&time<limit;
-    }))return true;
+      if(Number.isFinite(time)&&time>=now&&time<next)next=time;
+    }
 
-    const sessions=Array.isArray(c.sessions)?c.sessions:[];
-    return sessions.some(session=>{
+    for(const session of Array.isArray(c.sessions)?c.sessions:[]){
       const time=sessionStartTime(session);
-      return Number.isFinite(time)&&time>=now&&time<limit;
-    });
+      if(Number.isFinite(time)&&time>=now&&time<next)next=time;
+    }
+
+    return next;
+  }
+
+  function hasUpcomingInteraction(c,days=7){
+    const next=nextInteractionTime(c);
+    return Number.isFinite(next)&&next<Date.now()+days*24*60*60*1000;
   }
 
   function renderHeroVisual(c){
@@ -293,15 +299,25 @@
     const pinOrder=clientsApi()?.pinnedIds?.()||[];
     const pinRank=new Map(pinOrder.map((id,index)=>[String(id),index]));
     const clients=all
-      .map((c,index)=>({c,index}))
+      .map((c,index)=>{
+        const id=String(c.id);
+        const pinned=pinRank.has(id);
+        return {
+          c,
+          index,
+          pinned,
+          pinRank:pinned?pinRank.get(id):Number.POSITIVE_INFINITY,
+          nextAt:nextInteractionTime(c)
+        };
+      })
       .filter(({c})=>{
         if(!q)return true;
         return [c.name,c.city,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(q));
       })
       .sort((a,b)=>{
-        const ar=pinRank.has(String(a.c.id))?pinRank.get(String(a.c.id)):Number.POSITIVE_INFINITY;
-        const br=pinRank.has(String(b.c.id))?pinRank.get(String(b.c.id)):Number.POSITIVE_INFINITY;
-        if(ar!==br)return ar-br;
+        if(a.pinned!==b.pinned)return a.pinned?-1:1;
+        if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt;
+        if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank;
         return a.index-b.index;
       })
       .map(({c})=>c);
