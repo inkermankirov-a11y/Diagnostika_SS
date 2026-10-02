@@ -6,8 +6,63 @@
   const HANDLE_KEY='data-root';
   const APP_DIR='Diagnostika';
   const BROWSER_UPDATED_KEY='diagnostika-browser-updated-at';
+  const DELETED_LEDGER_KEY='diagnostika-storage-deleted-client-ids-v1';
 
   const clone=v=>JSON.parse(JSON.stringify(v));
+
+  function readDeletedLedger(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(DELETED_LEDGER_KEY)||'[]');
+      return new Set((Array.isArray(raw)?raw:[]).filter(Boolean).map(String));
+    }catch(_){return new Set();}
+  }
+
+  function writeDeletedLedger(ids){
+    try{localStorage.setItem(DELETED_LEDGER_KEY,JSON.stringify([...ids]));}catch(_){}
+  }
+
+  function seedDeletedLedger(data){
+    const ids=readDeletedLedger();
+    for(const item of data?.deletedClients||[]) if(item?.id) ids.add(String(item.id));
+    for(const id of data?.deletedClientTombstones||[]) if(id) ids.add(String(id));
+    writeDeletedLedger(ids);
+    return ids;
+  }
+
+  function rememberDeletedClient(id){
+    if(id===undefined||id===null||id==='')return;
+    const ids=readDeletedLedger();
+    ids.add(String(id));
+    writeDeletedLedger(ids);
+  }
+
+  function forgetDeletedClient(id){
+    if(id===undefined||id===null||id==='')return;
+    const ids=readDeletedLedger();
+    ids.delete(String(id));
+    writeDeletedLedger(ids);
+  }
+
+  function markBrowserUpdated(){
+    try{localStorage.setItem(BROWSER_UPDATED_KEY,new Date().toISOString());}catch(_){}
+  }
+
+  function filterDeletedFromClientSet(value,deletedIds){
+    if(!value||!deletedIds?.size)return value;
+    return {
+      ...value,
+      clients:(value.clients||[]).filter(c=>!c?.id||!deletedIds.has(String(c.id)))
+    };
+  }
+
+  function latestDeletedAt(data){
+    let latest=0;
+    for(const item of data?.deletedClients||[]){
+      const ts=Date.parse(item?.deletedAt||'')||0;
+      if(ts>latest)latest=ts;
+    }
+    return latest;
+  }
 
   function writeCanonicalDatabase(value,source){
     const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;
@@ -247,15 +302,21 @@
 
     const databaseState=await readJson(app,'database.json');
     const scanned=await readClientsFromFolders(app);
-    const folderOnlyState={clients:scanned.clients};
+    const deletedIds=seedDeletedLedger(state);
+    const suppressedDeleted=scanned.clients.filter(c=>c?.id&&deletedIds.has(String(c.id))).length;
+    const folderOnlyState=filterDeletedFromClientSet({clients:scanned.clients},deletedIds);
+    const safeDatabaseState=filterDeletedFromClientSet(databaseState,deletedIds);
 
-    // Если database.json существует, именно он определяет, КАКИЕ клиенты существуют.
-    // Старые папки client.json могут только дополнить уже существующего клиента,
-    // но больше никогда не добавляют удалённого обратно.
-    const folderState=databaseState?mergeStatesKeepClientSet(databaseState,folderOnlyState):folderOnlyState;
+    // database.json определяет состав папочной базы, но локальные удаления имеют
+    // приоритет до явного восстановления клиента. Старые client.json больше не
+    // могут воскресить удалённого клиента.
+    const folderState=safeDatabaseState?mergeStatesKeepClientSet(safeDatabaseState,folderOnlyState):folderOnlyState;
 
     const folderSettings=await readJson(app,'settings.json');
-    const browserUpdated=Date.parse(localStorage.getItem(BROWSER_UPDATED_KEY)||'')||0;
+    const browserUpdated=Math.max(
+      Date.parse(localStorage.getItem(BROWSER_UPDATED_KEY)||'')||0,
+      latestDeletedAt(state)
+    );
     const folderUpdated=Date.parse(folderSettings?.updatedAt||'')||0;
     const emptyBrowser=browserLooksEmpty(state);
 
@@ -278,9 +339,10 @@
       merged=mergeStatesKeepClientSet(folderState,state);
     }
 
+    merged=filterDeletedFromClientSet(merged,deletedIds);
     writeCanonicalDatabase(merged,'storage-simple-sync');
     await writeStateTree(app,merged);
-    localStorage.setItem(BROWSER_UPDATED_KEY,new Date().toISOString());
+    markBrowserUpdated();
     return {
       count:merged.clients?.length||0,
       folder:handle.name,
@@ -288,6 +350,7 @@
       scannedClients:scanned.clients.length,
       duplicates:scanned.duplicates,
       recoveredNames:scanned.recoveredNames,
+      suppressedDeleted,
       errors:scanned.errors
     };
   }
@@ -319,6 +382,7 @@
         const details=[];
         if(result.duplicates)details.push(`Объединено дубликатов папок: ${result.duplicates}.`);
         if(result.recoveredNames)details.push(`Восстановлено имён из названий папок: ${result.recoveredNames}.`);
+        if(result.suppressedDeleted)details.push(`Не восстановлено ранее удалённых клиентов: ${result.suppressedDeleted}.`);
         if(result.errors)details.push(`Не удалось прочитать папок: ${result.errors}.`);
         await AppDialog.alert(`Проверено папок клиентов: ${result.scannedFolders}.\nУникальных client.json: ${result.scannedClients}.\nВ базе после синхронизации: ${result.count} клиент(ов).${details.length?'\n'+details.join('\n'):''}`,'Синхронизация завершена');
         location.reload();
@@ -330,8 +394,37 @@
 
   if(typeof save==='function'){
     const prevSave=save;
-    save=function(){localStorage.setItem(BROWSER_UPDATED_KEY,new Date().toISOString());return prevSave.apply(this,arguments);};
+    save=function(){markBrowserUpdated();return prevSave.apply(this,arguments);};
   }
+
+  let lifecycleEventsBound=false;
+  function bindClientLifecycleEvents(){
+    if(lifecycleEventsBound)return true;
+    const events=window.DiagnostikaPlatform?.events;
+    if(!events?.on)return false;
+
+    events.on('client:created',()=>markBrowserUpdated());
+    events.on('client:updated',()=>markBrowserUpdated());
+    events.on('client:deleted',detail=>{
+      rememberDeletedClient(detail?.clientId);
+      markBrowserUpdated();
+    });
+    events.on('client:restored',detail=>{
+      forgetDeletedClient(detail?.clientId);
+      markBrowserUpdated();
+    });
+    events.on('client:purged',detail=>{
+      rememberDeletedClient(detail?.clientId);
+      markBrowserUpdated();
+    });
+
+    lifecycleEventsBound=true;
+    return true;
+  }
+
+  seedDeletedLedger(typeof state!=='undefined'?state:null);
+  bindClientLifecycleEvents();
+  Promise.resolve(window.DiagnostikaPlatform?.ready).then(bindClientLifecycleEvents).catch(()=>{});
 
   simplifyDialog();
   const mo=new MutationObserver(()=>simplifyDialog());
