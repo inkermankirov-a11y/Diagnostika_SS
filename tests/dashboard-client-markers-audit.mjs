@@ -23,11 +23,11 @@ assert.ok(css.includes('@keyframes hdUpcomingSessionPulse'),'yellow upcoming-ses
 assert.ok(css.includes('.hd-client-pin-cell'),'fixed pin alignment cell missing');
 assert.ok(css.includes('.hd-client-status-cell'),'fixed status alignment cell missing');
 assert.ok(css.includes('padding-right:10px'),'client list is still too close to its scrollbar');
-assert.ok(loader.includes('home-dashboard.css?v=20261002-client-markers-1'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261002-client-filters-1'),'dashboard CSS cache key missing');
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest upcoming interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261002-next-meeting-sort-1'),'dashboard JS cache key missing');
-assert.ok(index.includes('app-loader.js?v=20261002-next-meeting-sort-1'),'app-loader cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261002-client-filters-1'),'dashboard JS cache key missing');
+assert.ok(index.includes('app-loader.js?v=20261002-client-filters-1'),'app-loader cache key missing');
 
 console.log('DASHBOARD_CLIENT_MARKERS_AUDIT_OK');

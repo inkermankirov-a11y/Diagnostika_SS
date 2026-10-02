@@ -11,7 +11,11 @@
     <aside class="hd-sidebar hd-card">
       <div class="hd-side-title"><span>Клиенты</span><span aria-hidden="true">⌕</span></div>
       <div class="hd-search"><input id="hdClientSearch" type="search" placeholder="Поиск по клиентам…" autocomplete="off"></div>
-      <button id="hdAddClient" class="hd-add-client" type="button">＋ Новый клиент</button>
+      <div class="hd-client-filters" role="group" aria-label="Фильтры клиентов">
+        <button type="button" class="hd-client-filter" data-filter="new" aria-pressed="false" title="Показать новых клиентов">Новые</button>
+        <button type="button" class="hd-client-filter" data-filter="upcoming" aria-pressed="false" title="Показать клиентов с ближайшей записью">Ближайшие</button>
+        <button type="button" class="hd-client-filter" data-filter="unpaid" aria-pressed="false" title="Показать клиентов с неоплаченными сессиями">Не оплатил</button>
+      </div>
       <div id="hdClientList" class="hd-client-list"></div>
       <div id="hdClientCount" class="hd-client-count"></div>
     </aside>
@@ -57,6 +61,7 @@
   const list=$('#hdClientList');
   const search=$('#hdClientSearch');
   const count=$('#hdClientCount');
+  const filterButtons=[...dashboard.querySelectorAll('.hd-client-filter')];
   const mainInner=$('.hd-main-inner');
   const heroIcon=$('.hd-hero-icon');
   const heroTitle=$('#hdHeroTitle');
@@ -82,6 +87,14 @@
   const allClients=()=>clientsApi()?.list?.()||[];
   const currentClient=()=>clientsApi()?.current?.()||null;
   const currentClientId=()=>clientsApi()?.currentId?.()||null;
+  const CLIENT_FILTER_KEY='diagnostika-dashboard-client-filter-v1';
+  const VALID_CLIENT_FILTERS=new Set(['new','upcoming','unpaid']);
+  let clientFilter=(()=>{
+    try{
+      const saved=localStorage.getItem(CLIENT_FILTER_KEY)||'';
+      return VALID_CLIENT_FILTERS.has(saved)?saved:'all';
+    }catch(_){return'all';}
+  })();
 
   function unavailable(message,title='Ошибка'){
     if(window.AppDialog?.alert){window.AppDialog.alert(message,title);return;}
@@ -292,6 +305,31 @@
     };
   }
 
+  function matchesClientFilter(c){
+    if(clientFilter==='new')return isNewClient(c);
+    if(clientFilter==='upcoming')return hasUpcomingInteraction(c,7);
+    if(clientFilter==='unpaid')return unpaidSessionCount(c)>0;
+    return true;
+  }
+
+  function syncClientFilterButtons(){
+    for(const button of filterButtons){
+      const active=button.dataset.filter===clientFilter;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',active?'true':'false');
+    }
+  }
+
+  function setClientFilter(next){
+    clientFilter=clientFilter===next?'all':next;
+    try{
+      if(clientFilter==='all')localStorage.removeItem(CLIENT_FILTER_KEY);
+      else localStorage.setItem(CLIENT_FILTER_KEY,clientFilter);
+    }catch(_){}
+    syncClientFilterButtons();
+    renderClients();
+  }
+
   function renderClients(){
     const q=(search.value||'').trim().toLowerCase();
     const all=allClients();
@@ -311,6 +349,7 @@
         };
       })
       .filter(({c})=>{
+        if(!matchesClientFilter(c))return false;
         if(!q)return true;
         return [c.name,c.city,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(q));
       })
@@ -342,7 +381,9 @@
       row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();openClientMenu(c,e.currentTarget);};
       list.appendChild(row);
     });
-    count.textContent=`Клиентов: ${all.length}`;
+    count.textContent=clientFilter==='all'
+      ?`Клиентов: ${all.length}`
+      :`Показано: ${clients.length} из ${all.length}`;
     document.dispatchEvent(new CustomEvent('diagnostika:dashboard-clients-rendered'));
   }
 
@@ -397,7 +438,8 @@
 
   function refresh(){renderClients();renderHero();syncVisibility();}
 
-  $('#hdAddClient').onclick=addClient;
+  syncClientFilterButtons();
+  for(const button of filterButtons)button.addEventListener('click',()=>setClientFilter(button.dataset.filter));
   search.addEventListener('input',renderClients);
   $('#hdOpenNotes').onclick=openQuickNotes;
   $('#hdPlanBtn').onclick=openQuickNotes;
@@ -438,7 +480,7 @@
     if(e.target?.matches?.('dialog.session-edit-dialog,dialog.payment-dialog'))setTimeout(renderClients,0);
   },true);
 
-  window.DiagnostikaHomeDashboard={refresh,renderClients,openCard,addClient,openClientDatabase};
+  window.DiagnostikaHomeDashboard={refresh,renderClients,openCard,openClientDatabase};
 
   refresh();
 })();
