@@ -205,14 +205,15 @@
     try{
       const runtime=window.DiagnostikaRuntime;
       if(!runtime?.refresh)throw new Error('runtime-contract-missing');
-      const report=await runtime.refresh({source:'app-loader-health-gate',timeoutMs:10000});
+      const report=runtime.ready
+        ? await runtime.ready
+        : await runtime.refresh({source:'app-loader-health-gate',timeoutMs:10000});
       if(report?.ready!==true){
         publishRuntimeGate('unhealthy',report);
         window.dispatchEvent(new CustomEvent('diagnostika:runtime-unhealthy',{detail:{issues:[...(report?.issues||[])]}}));
         return;
       }
       publishRuntimeGate('ready',report);
-      loadDashboard();
     }catch(error){
       publishRuntimeGate('error',null,error);
       window.dispatchEvent(new CustomEvent('diagnostika:runtime-error',{detail:{message:String(error?.message||error)}}));
@@ -252,7 +253,10 @@
       loadScript('roles-api.js?v=20260919-roles11d','data-roles-api',()=>window.DiagnostikaRoles?.moduleAware===true),
       ...DOMAINS.map(loadDomain)
     ]);
-    loadRuntimeContract();
+    // Do not block first paint on the runtime health audit.
+    // Required modules/APIs are loaded at this point, so the dashboard can start immediately.
+    loadDashboard();
+    setTimeout(loadRuntimeContract,0);
   }
 
   Promise.resolve(window.DiagnostikaPlatform?.ready)
