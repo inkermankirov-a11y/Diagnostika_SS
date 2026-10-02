@@ -61,7 +61,7 @@
   justify-items:center;
   column-gap:7px;
   height:42px;
-  padding:3px 8px;
+  padding:2px 8px;
   border-radius:10px;
   background:linear-gradient(#5d7188,#405268);
   border:1px solid #3d4f66;
@@ -71,7 +71,7 @@
 .header-flip-panel{
   position:relative;
   width:68px;
-  height:34px;
+  height:36px;
   border-radius:5px;
   overflow:hidden;
   background:#111317;
@@ -100,7 +100,7 @@
   overflow:hidden;
   background:#17191e;
   color:#f1f3f5;
-  font:700 25px/34px 'Segoe UI',Arial,sans-serif;
+  font:700 26px/36px 'Segoe UI',Arial,sans-serif;
   letter-spacing:1px;
   text-shadow:0 1px 2px rgba(0,0,0,.65);
   backface-visibility:hidden;
@@ -115,7 +115,7 @@
 .header-flip-colon{
   width:14px;
   color:#f3f6f9;
-  font-size:24px;
+  font-size:25px;
   font-weight:900;
   line-height:1;
   text-align:center;
