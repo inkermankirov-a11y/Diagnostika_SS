@@ -15,6 +15,14 @@
 
 .home-dashboard{display:grid;grid-template-columns:320px minmax(520px,1fr) 350px;gap:14px;padding:14px 18px 18px;background:var(--hd-bg);min-height:calc(100vh - 78px);box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
 .home-dashboard[hidden]{display:none!important}
+@media(min-width:1181px){
+  body:has(.home-dashboard:not([hidden])){overflow:hidden}
+  .home-dashboard:not([hidden]){height:calc(100dvh - 76px);min-height:0;overflow:hidden}
+  .hd-sidebar,.hd-main,.hd-right{height:100%;min-height:0}
+  .hd-client-list{overscroll-behavior:contain;scrollbar-gutter:stable}
+  .hd-main{overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+  .hd-right{overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:3px}
+}
 .hd-card{background:var(--hd-card);border:1px solid var(--hd-border);border-radius:14px;box-shadow:0 4px 16px rgba(33,75,130,.06)}
 
 .hd-sidebar{padding:16px 12px;display:flex;flex-direction:column;min-height:calc(100vh - 108px);overflow:hidden}
