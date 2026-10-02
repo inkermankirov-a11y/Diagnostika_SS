@@ -94,7 +94,7 @@
   const POPULAR_COUNTRY_CODES=['RU','US','DE','GB','FR','IT','ES','PT','PL','CZ','FI','SE','NO','DK','NL','BE','CH','AT','CA','AU','NZ','JP','KR','CN','AE','TR','IL','GE','AM','KZ','BY','UA','LV','LT','EE'];
   const COUNTRY_CODE_ALIASES=Object.freeze({
     'ru':['россия','рф','russia','russian federation','российская федерация'],
-    'us':['сша','сша америка','америка','штаты','usa','us','america','united states','united states of america'],
+    'us':['сша','сша америка','америка','штаты','соединенные штаты','соединенные штаты америки','usa','us','america','united states','united states of america'],
     'gb':['великобритания','англия','британия','uk','u k','united kingdom','great britain','england'],
     'de':['германия','germany','deutschland'],
     'fr':['франция','france'],
@@ -268,7 +268,9 @@
         if(!response.ok)throw new Error('global-geocoding-'+response.status);
         return response.json();
       })
-      .then(data=>(Array.isArray(data?.results)?data.results:[]).map(row=>({
+      .then(data=>(Array.isArray(data?.results)?data.results:[])
+        .filter(row=>!row?.feature_code||String(row.feature_code).startsWith('P'))
+        .map(row=>({
         name:row.name||'',
         sub:[row.admin1,row.country].filter(Boolean).join(', '),
         code:row.country_code||'',
@@ -369,7 +371,7 @@
     selectedLocationMeta={
       city:row.name||item.name||'',
       country:row.country||'',
-      countryCode:row.countryCode||item.code||'',
+      countryCode:row.countryCode||item.code||resolvedCountryOption(row.country||'')?.code||'',
       latitude:Number.isFinite(Number(row.latitude))?Number(row.latitude):null,
       longitude:Number.isFinite(Number(row.longitude))?Number(row.longitude):null,
       timezone:row.timezone||''
@@ -424,6 +426,7 @@
 
     const local=localCityMatches(rows,value,q('ccCountry')?.value||'');
     if(local.length)renderSuggestionItems(kind,box,local,value,correctionCandidate(kind,rows,value,q('ccCountry')?.value||'',local));
+    else hideLocationSuggestions(kind);
     clearTimeout(citySuggestTimer);
     citySuggestTimer=setTimeout(async()=>{
       const global=await globalCityMatches(value,q('ccCountry')?.value||'');
