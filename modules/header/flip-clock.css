@@ -60,9 +60,9 @@
   align-items:center;
   justify-items:center;
   column-gap:7px;
-  height:42px;
-  padding:1px 8px;
-  border-radius:10px;
+  height:50px;
+  padding:5px 10px;
+  border-radius:12px;
   background:linear-gradient(#5d7188,#405268);
   border:1px solid #3d4f66;
   box-shadow:0 3px 9px rgba(30,41,59,.22),inset 0 1px 0 rgba(255,255,255,.18);
