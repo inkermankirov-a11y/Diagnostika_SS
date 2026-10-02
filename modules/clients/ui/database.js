@@ -94,14 +94,33 @@
         if(opened) dlg.close();
       };
 
+      const exportBtn=document.createElement('button');
+      exportBtn.type='button';
+      exportBtn.className='db-export-btn db-icon-action-btn';
+      exportBtn.textContent='⇩';
+      exportBtn.title='Экспорт клиента';
+      exportBtn.setAttribute('aria-label','Экспорт клиента');
+      exportBtn.onclick=e=>{
+        e.stopPropagation();
+        if(typeof window.DiagnostikaClientTransfer?.exportClient==='function'){
+          window.DiagnostikaClientTransfer.exportClient(c);
+          return;
+        }
+        document.dispatchEvent(new CustomEvent('diagnostika:client-export-request',{detail:{clientId:c.id}}));
+      };
+
       const delBtn=document.createElement('button');
-      delBtn.type='button';delBtn.className='db-delete-btn db-delete-btn-compact';delBtn.textContent='Удалить';
+      delBtn.type='button';
+      delBtn.className='db-delete-btn db-delete-btn-compact db-icon-action-btn';
+      delBtn.textContent='×';
+      delBtn.title='Удалить клиента';
+      delBtn.setAttribute('aria-label','Удалить клиента');
       delBtn.onclick=()=>{
         const removed=clientsApi()?.remove?.(c.id,{source:'client-database-delete'});
         if(removed && dlg.open) window.renderClientDatabaseTable();
       };
 
-      group.append(openBtn,delBtn);actions.appendChild(group);
+      group.append(openBtn,exportBtn,delBtn);actions.appendChild(group);
       tr.append(num,name,city,lastCell,formatCell,actions);tbody.appendChild(tr);
     });
 
