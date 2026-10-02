@@ -22,8 +22,8 @@
           <label class="cc-field">Телефон<input id="ccPhone" type="text"></label>
           <label class="cc-field">E-mail<input id="ccEmail" type="text"></label>
           <label class="cc-field">Пол<select id="ccGender"><option value=""></option><option>Мужской</option><option>Женский</option></select></label>
-          <label class="cc-field">Страна<input id="ccCountry" type="text"></label>
-          <label class="cc-field">Город<input id="ccCity" type="text"></label>
+          <label class="cc-field cc-place-field">Страна<input id="ccCountry" type="text" autocomplete="off" spellcheck="false"><div id="ccCountrySuggestions" class="cc-place-suggestions" hidden></div></label>
+          <label class="cc-field cc-place-field">Город<input id="ccCity" type="text" autocomplete="off" spellcheck="false"><div id="ccCitySuggestions" class="cc-place-suggestions" hidden></div></label>
           <label class="cc-field">Дата рождения<input id="ccBirth" type="date"></label>
           <label class="cc-field">Возраст<input id="ccAge" type="text" inputmode="numeric"></label>
           <label class="cc-field cc-social-field"><span>VK</span><input id="ccVk" type="text"></label>
@@ -100,6 +100,172 @@
   function normalizeCountry(value){
     const key=normalizePlace(value);
     return COUNTRY_ALIASES[key]||key;
+  }
+
+  function compactPlace(value){
+    return normalizePlace(value).replace(/\s+/g,'');
+  }
+
+  function levenshtein(a,b){
+    a=String(a||'');b=String(b||'');
+    if(a===b)return 0;
+    if(!a.length)return b.length;
+    if(!b.length)return a.length;
+    let prev=Array.from({length:b.length+1},(_,i)=>i);
+    for(let i=1;i<=a.length;i++){
+      const cur=[i];
+      for(let j=1;j<=b.length;j++){
+        cur[j]=Math.min(
+          cur[j-1]+1,
+          prev[j]+1,
+          prev[j-1]+(a[i-1]===b[j-1]?0:1)
+        );
+      }
+      prev=cur;
+    }
+    return prev[b.length];
+  }
+
+  function countryEntries(rows){
+    const map=new Map();
+    for(const row of rows||[]){
+      const name=String(row?.country||'').trim();
+      if(name&&!map.has(normalizeCountry(name)))map.set(normalizeCountry(name),name);
+    }
+    return [...map.values()].sort((a,b)=>a.localeCompare(b,'ru'));
+  }
+
+  function countryMatches(rows,query){
+    const q=compactPlace(query);
+    if(!q)return countryEntries(rows).slice(0,8).map(name=>({name,sub:''}));
+    const entries=countryEntries(rows);
+    return entries.map(name=>{
+      const key=compactPlace(name);
+      const aliasKey=compactPlace(COUNTRY_ALIASES[normalizePlace(query)]||'');
+      let score=levenshtein(q,key);
+      if(key.startsWith(q))score=-10+(key.length-q.length)/100;
+      else if(key.includes(q))score=-5+key.indexOf(q)/100;
+      if(aliasKey&&aliasKey===key)score=-20;
+      return {name,sub:'',score};
+    }).sort((a,b)=>a.score-b.score||a.name.localeCompare(b.name,'ru')).slice(0,8);
+  }
+
+  function resolvedCountryForFilter(rows,value){
+    const typed=normalizeCountry(value);
+    if(!typed)return '';
+    const exact=countryEntries(rows).find(name=>normalizeCountry(name)===typed);
+    if(exact)return normalizeCountry(exact);
+    const best=countryMatches(rows,value)[0];
+    if(best&&levenshtein(compactPlace(value),compactPlace(best.name))<=2)return normalizeCountry(best.name);
+    return '';
+  }
+
+  function cityMatches(rows,query,country){
+    const q=compactPlace(query);
+    const countryKey=resolvedCountryForFilter(rows,country);
+    const pool=(rows||[]).filter(row=>!countryKey||normalizeCountry(row?.country)===countryKey);
+    if(!q)return pool.slice(0,10).map(row=>({name:row.name,sub:row.country||'',row,score:0}));
+    return pool.map(row=>{
+      const names=[row?.name,...(Array.isArray(row?.aliases)?row.aliases:[])].filter(Boolean);
+      let best=Number.POSITIVE_INFINITY;
+      for(const name of names){
+        const key=compactPlace(name);
+        let score=levenshtein(q,key);
+        if(key.startsWith(q))score=-10+(key.length-q.length)/100;
+        else if(key.includes(q))score=-5+key.indexOf(q)/100;
+        if(score<best)best=score;
+      }
+      return {name:row.name,sub:row.country||'',row,score:best};
+    }).sort((a,b)=>a.score-b.score||String(a.name).localeCompare(String(b.name),'ru')).slice(0,10);
+  }
+
+  function correctionCandidate(kind,rows,value,country=''){
+    const typed=String(value||'').trim();
+    const q=compactPlace(typed);
+    if(q.length<3)return null;
+    const matches=kind==='country'?countryMatches(rows,typed):cityMatches(rows,typed,country);
+    const best=matches[0]||null;
+    if(!best)return null;
+    const target=compactPlace(best.name);
+    if(q===target)return best;
+    const distance=levenshtein(q,target);
+    const threshold=Math.max(1,Math.min(3,Math.floor(q.length*0.22)));
+    return distance<=threshold?best:null;
+  }
+
+  function suggestionBox(kind){
+    return q(kind==='country'?'ccCountrySuggestions':'ccCitySuggestions');
+  }
+
+  function locationInput(kind){
+    return q(kind==='country'?'ccCountry':'ccCity');
+  }
+
+  function hideLocationSuggestions(kind){
+    const box=suggestionBox(kind);
+    if(box){box.hidden=true;box.innerHTML='';}
+  }
+
+  function applyLocationSuggestion(kind,item){
+    const input=locationInput(kind);
+    if(!input||!item)return;
+    input.value=item.name||'';
+    dirty=true;
+    hideLocationSuggestions(kind);
+    if(kind==='country'){
+      renderLocationSuggestions('city');
+    }
+    updateClientTime();
+  }
+
+  async function renderLocationSuggestions(kind){
+    const input=locationInput(kind);
+    const box=suggestionBox(kind);
+    if(!input||!box)return;
+    const rows=await loadLocationCatalog();
+    if(document.activeElement!==input){
+      hideLocationSuggestions(kind);
+      return;
+    }
+    const value=input.value;
+    const matches=kind==='country'
+      ?countryMatches(rows,value)
+      :cityMatches(rows,value,q('ccCountry')?.value||'');
+    if(!matches.length){
+      hideLocationSuggestions(kind);
+      return;
+    }
+    const correction=correctionCandidate(kind,rows,value,q('ccCountry')?.value||'');
+    box.innerHTML=matches.map((item,index)=>{
+      const isCorrection=correction&&index===0&&compactPlace(value)!==compactPlace(item.name);
+      return `<button type="button" class="cc-place-suggestion${isCorrection?' correction':''}" data-index="${index}"><span class="cc-place-suggestion-main">${isCorrection?'Исправить на: ':''}${String(item.name||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</span>${item.sub?`<span class="cc-place-suggestion-sub">${String(item.sub).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</span>`:''}</button>`;
+    }).join('');
+    box.hidden=false;
+    box.querySelectorAll('.cc-place-suggestion').forEach((button,index)=>{
+      button.addEventListener('pointerdown',event=>{
+        event.preventDefault();
+        applyLocationSuggestion(kind,matches[index]);
+      });
+    });
+  }
+
+  async function autocorrectLocation(kind){
+    const input=locationInput(kind);
+    if(!input)return;
+    const value=input.value.trim();
+    if(!value){hideLocationSuggestions(kind);return;}
+    const rows=await loadLocationCatalog();
+    const best=correctionCandidate(kind,rows,value,q('ccCountry')?.value||'');
+    if(best&&compactPlace(value)!==compactPlace(best.name)){
+      input.value=best.name;
+      dirty=true;
+      updateClientTime();
+    }else if(best&&compactPlace(value)===compactPlace(best.name)&&value!==best.name){
+      input.value=best.name;
+      dirty=true;
+      updateClientTime();
+    }
+    hideLocationSuggestions(kind);
   }
 
   function loadLocationCatalog(){
@@ -344,8 +510,14 @@
 
   q('ccBirth').addEventListener('input', e => { q('ccAge').value = ageFromBirth(e.target.value); dirty=true; });
   fieldIds.forEach(id=>q(id)?.addEventListener('input',()=>{dirty=true;}));
-  q('ccCountry')?.addEventListener('input',updateClientTime);
-  q('ccCity')?.addEventListener('input',updateClientTime);
+  q('ccCountry')?.addEventListener('input',()=>{updateClientTime();renderLocationSuggestions('country');});
+  q('ccCity')?.addEventListener('input',()=>{updateClientTime();renderLocationSuggestions('city');});
+  q('ccCountry')?.addEventListener('focus',()=>renderLocationSuggestions('country'));
+  q('ccCity')?.addEventListener('focus',()=>renderLocationSuggestions('city'));
+  q('ccCountry')?.addEventListener('blur',()=>setTimeout(()=>autocorrectLocation('country'),80));
+  q('ccCity')?.addEventListener('blur',()=>setTimeout(()=>autocorrectLocation('city'),80));
+  q('ccCountry')?.addEventListener('keydown',e=>{if(e.key==='Escape')hideLocationSuggestions('country');});
+  q('ccCity')?.addEventListener('keydown',e=>{if(e.key==='Escape')hideLocationSuggestions('city');});
   q('ccGender')?.addEventListener('change',()=>{dirty=true;});
   q('ccCloseBtn').onclick = closeDraftAware;
   q('ccSaveBtn').onclick = saveCard;
