@@ -6,17 +6,16 @@
   if(!headerButtons||!settingsWrap||document.querySelector('#headerUtilityGroup')) return;
 
   const LANG={
-    ru:{weather:'Погода',forecast:'Погода · 7 дней',weatherUnavailable:'Нет данных',retry:'Повторить',cached:'Последние данные',converter:'Конвертер валют',from:'Из',to:'В',amount:'Сумма',loading:'Загрузка…',close:'Закрыть',local:'Моя геолокация',sourceWeather:'Данные Open-Meteo',sourceCurrency:'Курсы ЦБ РФ',weatherSettings:'Настройка погоды',locationMode:'Источник погоды',myLocation:'Моя геолокация',chosenCity:'Выбранный город',city:'Город',findCity:'Найти',saveCity:'Сохранить город',cityNotFound:'Город не найден'},
-    en:{weather:'Weather',forecast:'Weather · 7 days',weatherUnavailable:'No data',retry:'Retry',cached:'Last data',converter:'Currency converter',from:'From',to:'To',amount:'Amount',loading:'Loading…',close:'Close',local:'My location',sourceWeather:'Data: Open-Meteo',sourceCurrency:'Central Bank of Russia rates',weatherSettings:'Weather settings',locationMode:'Weather source',myLocation:'My location',chosenCity:'Selected city',city:'City',findCity:'Find',saveCity:'Save city',cityNotFound:'City not found'},
-    fr:{weather:'Météo',forecast:'Météo · 7 jours',weatherUnavailable:'Indisponible',retry:'Réessayer',cached:'Dernières données',converter:'Convertisseur de devises',from:'De',to:'Vers',amount:'Montant',loading:'Chargement…',close:'Fermer',local:'Ma position',sourceWeather:'Données Open-Meteo',sourceCurrency:'Taux de la Banque centrale de Russie',weatherSettings:'Réglages météo',locationMode:'Source météo',myLocation:'Ma position',chosenCity:'Ville choisie',city:'Ville',findCity:'Rechercher',saveCity:'Enregistrer la ville',cityNotFound:'Ville introuvable'},
-    de:{weather:'Wetter',forecast:'Wetter · 7 Tage',weatherUnavailable:'Keine Daten',retry:'Erneut',cached:'Letzte Daten',converter:'Währungsrechner',from:'Von',to:'Nach',amount:'Betrag',loading:'Laden…',close:'Schließen',local:'Mein Standort',sourceWeather:'Daten: Open-Meteo',sourceCurrency:'Kurse der Zentralbank Russlands',weatherSettings:'Wettereinstellungen',locationMode:'Wetterquelle',myLocation:'Mein Standort',chosenCity:'Gewählte Stadt',city:'Stadt',findCity:'Suchen',saveCity:'Stadt speichern',cityNotFound:'Stadt nicht gefunden'},
-    it:{weather:'Meteo',forecast:'Meteo · 7 giorni',weatherUnavailable:'Nessun dato',retry:'Riprova',cached:'Ultimi dati',converter:'Convertitore valuta',from:'Da',to:'A',amount:'Importo',loading:'Caricamento…',close:'Chiudi',local:'La mia posizione',sourceWeather:'Dati Open-Meteo',sourceCurrency:'Tassi della Banca centrale russa',weatherSettings:'Impostazioni meteo',locationMode:'Fonte meteo',myLocation:'La mia posizione',chosenCity:'Città selezionata',city:'Città',findCity:'Cerca',saveCity:'Salva città',cityNotFound:'Città non trovata'}
+    ru:{weather:'Погода',forecast:'Погода · 7 дней',weatherUnavailable:'Нет данных',retry:'Повторить',cached:'Последние данные',converter:'Конвертер валют',from:'Из',to:'В',amount:'Сумма',loading:'Загрузка…',close:'Закрыть',local:'Моя геолокация',sourceWeather:'Данные обновляются автоматически',sourceCurrency:'Курсы ЦБ РФ',weatherSettings:'Настройка погоды',locationMode:'Источник погоды',myLocation:'Моя геолокация',chosenCity:'Выбранный город',city:'Город',findCity:'Найти',saveCity:'Сохранить город',cityNotFound:'Город не найден'},
+    en:{weather:'Weather',forecast:'Weather · 7 days',weatherUnavailable:'No data',retry:'Retry',cached:'Last data',converter:'Currency converter',from:'From',to:'To',amount:'Amount',loading:'Loading…',close:'Close',local:'My location',sourceWeather:'Updates automatically',sourceCurrency:'Central Bank of Russia rates',weatherSettings:'Weather settings',locationMode:'Weather source',myLocation:'My location',chosenCity:'Selected city',city:'City',findCity:'Find',saveCity:'Save city',cityNotFound:'City not found'},
+    fr:{weather:'Météo',forecast:'Météo · 7 jours',weatherUnavailable:'Indisponible',retry:'Réessayer',cached:'Dernières données',converter:'Convertisseur de devises',from:'De',to:'Vers',amount:'Montant',loading:'Chargement…',close:'Fermer',local:'Ma position',sourceWeather:'Mise à jour automatique',sourceCurrency:'Taux de la Banque centrale de Russie',weatherSettings:'Réglages météo',locationMode:'Source météo',myLocation:'Ma position',chosenCity:'Ville choisie',city:'Ville',findCity:'Rechercher',saveCity:'Enregistrer la ville',cityNotFound:'Ville introuvable'},
+    de:{weather:'Wetter',forecast:'Wetter · 7 Tage',weatherUnavailable:'Keine Daten',retry:'Erneut',cached:'Letzte Daten',converter:'Währungsrechner',from:'Von',to:'Nach',amount:'Betrag',loading:'Laden…',close:'Schließen',local:'Mein Standort',sourceWeather:'Automatische Aktualisierung',sourceCurrency:'Kurse der Zentralbank Russlands',weatherSettings:'Wettereinstellungen',locationMode:'Wetterquelle',myLocation:'Mein Standort',chosenCity:'Gewählte Stadt',city:'Stadt',findCity:'Suchen',saveCity:'Stadt speichern',cityNotFound:'Stadt nicht gefunden'},
+    it:{weather:'Meteo',forecast:'Meteo · 7 giorni',weatherUnavailable:'Nessun dato',retry:'Riprova',cached:'Ultimi dati',converter:'Convertitore valuta',from:'Da',to:'A',amount:'Importo',loading:'Caricamento…',close:'Chiudi',local:'La mia posizione',sourceWeather:'Aggiornamento automatico',sourceCurrency:'Tassi della Banca centrale russa',weatherSettings:'Impostazioni meteo',locationMode:'Fonte meteo',myLocation:'La mia posizione',chosenCity:'Città selezionata',city:'Città',findCity:'Cerca',saveCity:'Salva città',cityNotFound:'Città non trovata'}
   };
   const lang=()=>window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';
   const tr=()=>LANG[lang()]||LANG.en;
-  const DEFAULT_CITY=Object.freeze({name:'Киров',latitude:58.6036,longitude:49.6680});
-  const weatherMode=()=>localStorage.getItem('diagnostika-weather-mode')||'city';
-  const savedCity=()=>{try{return JSON.parse(localStorage.getItem('diagnostika-weather-city')||'null')||DEFAULT_CITY}catch(_){return DEFAULT_CITY}};
+  const weatherMode=()=>localStorage.getItem('diagnostika-weather-mode')||'geo';
+  const savedCity=()=>{try{return JSON.parse(localStorage.getItem('diagnostika-weather-city')||'null')}catch(_){return null}};
   const cityOnly=v=>String(v||'').split(',')[0].trim()||tr().weather;
 
   const style=document.createElement('style');
@@ -52,166 +51,167 @@
   function weatherIcon(code,isDay=true){if(code===0)return isDay?'☀️':'🌙';if(code<=2)return'🌤️';if(code===3)return'☁️';if(code===45||code===48)return'🌫️';if(code>=51&&code<=67)return'🌧️';if(code>=71&&code<=77)return'🌨️';if(code>=80&&code<=82)return'🌦️';if(code>=85&&code<=86)return'🌨️';if(code>=95)return'⛈️';return'🌡️';}
   const finite=n=>Number.isFinite(Number(n));
   const signed=n=>finite(n)?`${Number(n)>0?'+':''}${Math.round(Number(n))}°`:'—°';
-  const WEATHER_CACHE_KEY='diagnostika-weather-cache-v2';
-  const WEATHER_CACHE_MAX_AGE=12*60*60*1000;
-  const WEATHER_TIMEOUT=7000;
-  let weatherData=null,weatherLabel='',weatherError='',weatherFromCache=false;
+  const WEATHER_FEED_URL='./weather-data.json';
+  const WEATHER_FEED_CACHE_KEY='diagnostika-weather-feed-local-v1';
+  const WEATHER_CURRENT_KEY='diagnostika-weather-current-local';
+  const WEATHER_FORECAST_KEY='diagnostika-weather-forecast-local';
+  const WEATHER_LAST_CITY_KEY='diagnostika-weather-last-city';
+  const WEATHER_REFRESH_MS=15*60*1000;
+  let weatherFeed=null,weatherData=null,weatherLabel='',weatherError='',weatherFromCache=false,weatherUpdatedAt='';
 
-  function normalizedWeather(data){
-    if(!data||typeof data!=='object')throw Error('weather-data');
-    if(!data.current&&data.current_weather){
-      const cw=data.current_weather||{};
-      data.current={
-        temperature_2m:cw.temperature,
-        apparent_temperature:cw.temperature,
-        weather_code:cw.weathercode,
-        is_day:cw.is_day
-      };
-    }
-    if(!finite(data.current?.temperature_2m))throw Error('weather-temperature');
-    return data;
+  function normalizeWeatherEntry(entry){
+    if(!entry||typeof entry!=='object')throw Error('weather-entry');
+    if(!finite(entry.current?.temperature_2m))throw Error('weather-temperature');
+    if(!Array.isArray(entry.daily?.time)||entry.daily.time.length<7)throw Error('weather-forecast');
+    return entry;
   }
 
-  function sameWeatherLocation(cache,lat,lon,label){
-    if(!cache)return false;
-    if(finite(cache.latitude)&&finite(cache.longitude)&&finite(lat)&&finite(lon)){
-      return Math.abs(Number(cache.latitude)-Number(lat))<0.15&&Math.abs(Number(cache.longitude)-Number(lon))<0.15;
-    }
-    return cityOnly(cache.label).toLowerCase()===cityOnly(label).toLowerCase();
+  function normalizeWeatherFeed(feed){
+    if(!feed||typeof feed!=='object'||!Array.isArray(feed.cities))throw Error('weather-feed');
+    const cities=feed.cities.map(normalizeWeatherEntry);
+    if(!cities.length)throw Error('weather-feed-empty');
+    return {...feed,cities};
   }
 
-  function readWeatherCache(){
+  function readFeedCache(){
     try{
-      const cache=JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY)||'null');
-      if(!cache?.data||!cache.savedAt)return null;
-      if(Date.now()-Number(cache.savedAt)>WEATHER_CACHE_MAX_AGE)return null;
-      return cache;
+      const cached=JSON.parse(localStorage.getItem(WEATHER_FEED_CACHE_KEY)||'null');
+      return cached?.feed?normalizeWeatherFeed(cached.feed):null;
     }catch(_){return null;}
   }
 
-  function saveWeatherCache(data,label,lat,lon){
+  function saveFeedCache(feed){
+    try{localStorage.setItem(WEATHER_FEED_CACHE_KEY,JSON.stringify({savedAt:Date.now(),feed}));}catch(_){}
+  }
+
+  function saveWeatherLocal(entry){
     try{
-      localStorage.setItem(WEATHER_CACHE_KEY,JSON.stringify({
-        savedAt:Date.now(),
-        label:cityOnly(label),
-        latitude:Number(lat),
-        longitude:Number(lon),
-        data
-      }));
+      const city={id:entry.id,name:entry.name,country:entry.country||'',admin:entry.admin||'',latitude:entry.latitude,longitude:entry.longitude};
+      localStorage.setItem(WEATHER_CURRENT_KEY,JSON.stringify({savedAt:Date.now(),city,current:entry.current}));
+      localStorage.setItem(WEATHER_FORECAST_KEY,JSON.stringify({savedAt:Date.now(),city,daily:entry.daily}));
+      localStorage.setItem(WEATHER_LAST_CITY_KEY,String(entry.id||entry.name||''));
     }catch(_){}
   }
 
-  function applyWeather(data,label,{cached=false,lat=null,lon=null}={}){
-    data=normalizedWeather(data);
-    weatherData=data;
-    weatherLabel=cityOnly(label);
-    weatherError='';
-    weatherFromCache=Boolean(cached);
-    const current=data.current||{};
-    weatherBtn.querySelector('.hu-icon').textContent=weatherIcon(Number(current.weather_code),current.is_day!==0);
-    weatherBtn.querySelector('.hu-main').textContent=signed(current.temperature_2m);
-    weatherBtn.querySelector('.hu-sub').textContent=weatherLabel;
-    weatherBtn.title=cached?`${tr().cached}: ${weatherLabel}`:weatherLabel;
-    if(!cached&&finite(lat)&&finite(lon))saveWeatherCache(data,weatherLabel,lat,lon);
-    return data;
-  }
-
-  function restoreWeatherCache(lat,lon,label){
-    const cache=readWeatherCache();
-    if(!sameWeatherLocation(cache,lat,lon,label))return false;
-    try{applyWeather(cache.data,cache.label||label,{cached:true,lat,lon});return true;}catch(_){return false;}
-  }
-
-  async function fetchJson(url,timeout=WEATHER_TIMEOUT){
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),timeout);
+  async function loadWeatherFeed({force=false}={}){
+    if(weatherFeed&&!force)return weatherFeed;
     try{
-      const r=await fetch(url,{cache:'no-store',signal:controller.signal});
-      if(!r.ok)throw Error(`http-${r.status}`);
-      return await r.json();
-    }finally{clearTimeout(timer);}
-  }
-
-  async function resolveCity(lat,lon){
-    try{
-      const url=`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=${encodeURIComponent(lang())}`;
-      const d=await fetchJson(url,4000);
-      return cityOnly(d.city||d.locality||d.principalSubdivision||tr().local);
-    }catch(_){return tr().local;}
-  }
-
-  async function fetchWeatherPayload(lat,lon){
-    const common=`latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7`;
-    const modern=`https://api.open-meteo.com/v1/forecast?${common}&current=temperature_2m,apparent_temperature,weather_code,is_day`;
-    const legacy=`https://api.open-meteo.com/v1/forecast?${common}&current_weather=true`;
-    let firstError=null;
-    for(const url of [modern,modern,legacy]){
-      try{return normalizedWeather(await fetchJson(url));}
-      catch(error){if(!firstError)firstError=error;}
-    }
-    const finalError=firstError||new Error('weather-fetch');
-    throw finalError;
-  }
-
-  async function fetchWeather(lat,lon,label){
-    const targetLabel=cityOnly(label);
-    if(!weatherData)restoreWeatherCache(lat,lon,targetLabel);
-    try{
-      const data=await fetchWeatherPayload(lat,lon);
-      return applyWeather(data,targetLabel,{cached:false,lat,lon});
-    }catch(error){
-      weatherError=String(error?.message||error||'weather');
-      if(restoreWeatherCache(lat,lon,targetLabel))return weatherData;
-      weatherData=null;
+      const response=await fetch(`${WEATHER_FEED_URL}?t=${Date.now()}`,{cache:'no-store',credentials:'same-origin'});
+      if(!response.ok)throw Error(`weather-json-${response.status}`);
+      const feed=normalizeWeatherFeed(await response.json());
+      weatherFeed=feed;
       weatherFromCache=false;
-      weatherLabel=targetLabel;
-      weatherBtn.querySelector('.hu-icon').textContent='⚠️';
-      weatherBtn.querySelector('.hu-main').textContent='—°';
-      weatherBtn.querySelector('.hu-sub').textContent=targetLabel||tr().weatherUnavailable;
-      weatherBtn.title=tr().weatherUnavailable;
+      weatherUpdatedAt=feed._updated_utc||'';
+      saveFeedCache(feed);
+      return feed;
+    }catch(error){
+      const cached=readFeedCache();
+      if(cached){
+        weatherFeed=cached;
+        weatherFromCache=true;
+        weatherUpdatedAt=cached._updated_utc||'';
+        return cached;
+      }
       throw error;
     }
   }
 
-  function loadGeoWeather(){
+  function haversineKm(aLat,aLon,bLat,bLon){
+    const rad=x=>Number(x)*Math.PI/180;
+    const dLat=rad(Number(bLat)-Number(aLat)),dLon=rad(Number(bLon)-Number(aLon));
+    const a=Math.sin(dLat/2)**2+Math.cos(rad(aLat))*Math.cos(rad(bLat))*Math.sin(dLon/2)**2;
+    return 6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+
+  function nearestWeatherCity(cities,lat,lon){
+    let best=null,bestDistance=Infinity;
+    for(const city of cities||[]){
+      if(!finite(city.latitude)||!finite(city.longitude))continue;
+      const distance=haversineKm(lat,lon,city.latitude,city.longitude);
+      if(distance<bestDistance){best=city;bestDistance=distance;}
+    }
+    return best;
+  }
+
+  function findWeatherCity(feed,ref){
+    if(!feed?.cities?.length||!ref)return null;
+    const id=String(ref.id||ref||'').toLowerCase();
+    const name=String(ref.name||'').toLowerCase();
+    return feed.cities.find(city=>String(city.id||'').toLowerCase()===id)
+      ||feed.cities.find(city=>String(city.name||'').toLowerCase()===name)
+      ||null;
+  }
+
+  function lastWeatherCity(feed){
+    const id=localStorage.getItem(WEATHER_LAST_CITY_KEY)||'';
+    return findWeatherCity(feed,id)||findWeatherCity(feed,savedCity());
+  }
+
+  function applyWeatherEntry(entry,{cached=weatherFromCache}={}){
+    entry=normalizeWeatherEntry(entry);
+    weatherData={current:entry.current,daily:entry.daily};
+    weatherLabel=cityOnly(entry.name);
+    weatherError='';
+    weatherFromCache=Boolean(cached);
+    const current=entry.current||{};
+    weatherBtn.querySelector('.hu-icon').textContent=weatherIcon(Number(current.weather_code),current.is_day!==0);
+    weatherBtn.querySelector('.hu-main').textContent=signed(current.temperature_2m);
+    weatherBtn.querySelector('.hu-sub').textContent=weatherLabel;
+    weatherBtn.title=weatherFromCache?`${tr().cached}: ${weatherLabel}`:weatherLabel;
+    saveWeatherLocal(entry);
+    return entry;
+  }
+
+  function showWeatherUnavailable(label=''){
+    weatherData=null;
+    weatherLabel=cityOnly(label||tr().weather);
+    weatherBtn.querySelector('.hu-icon').textContent='⚠️';
+    weatherBtn.querySelector('.hu-main').textContent='—°';
+    weatherBtn.querySelector('.hu-sub').textContent=weatherLabel;
+    weatherBtn.title=tr().weatherUnavailable;
+  }
+
+  function geolocationWeather(feed){
     return new Promise(resolve=>{
       const fallback=()=>{
-        restoreWeatherCache(58.6036,49.6680,'Киров');
-        fetchWeather(58.6036,49.6680,'Киров').then(resolve).catch(()=>resolve(null));
+        const last=lastWeatherCity(feed);
+        if(last){resolve(applyWeatherEntry(last));return;}
+        showWeatherUnavailable();
+        resolve(null);
       };
       if(!navigator.geolocation){fallback();return;}
-      navigator.geolocation.getCurrentPosition(async p=>{
-        const lat=p.coords.latitude,lon=p.coords.longitude;
-        restoreWeatherCache(lat,lon,tr().local);
-        const labelPromise=resolveCity(lat,lon);
-        try{
-          const data=await fetchWeather(lat,lon,tr().local);
-          const label=await labelPromise;
-          if(data&&label){
-            weatherLabel=cityOnly(label);
-            weatherBtn.querySelector('.hu-sub').textContent=weatherLabel;
-            weatherBtn.title=weatherFromCache?`${tr().cached}: ${weatherLabel}`:weatherLabel;
-            if(!weatherFromCache)saveWeatherCache(weatherData,weatherLabel,lat,lon);
-          }
-          resolve(data);
-        }catch(_){fallback();}
-      },fallback,{enableHighAccuracy:false,timeout:5000,maximumAge:1800000});
+      navigator.geolocation.getCurrentPosition(position=>{
+        const city=nearestWeatherCity(feed.cities,position.coords.latitude,position.coords.longitude);
+        if(city){resolve(applyWeatherEntry(city));return;}
+        fallback();
+      },fallback,{enableHighAccuracy:false,timeout:6000,maximumAge:30*60*1000});
     });
   }
 
-  function initWeather(){
-    const city=savedCity();
-    if(weatherMode()==='city'&&city?.latitude!=null&&city?.longitude!=null){
-      restoreWeatherCache(city.latitude,city.longitude,cityOnly(city.name));
-      return fetchWeather(city.latitude,city.longitude,cityOnly(city.name)).catch(()=>null);
+  async function initWeather({force=false}={}){
+    try{
+      const feed=await loadWeatherFeed({force});
+      if(weatherMode()==='city'){
+        const selected=findWeatherCity(feed,savedCity());
+        if(selected)return applyWeatherEntry(selected);
+      }
+      return await geolocationWeather(feed);
+    }catch(error){
+      weatherError=String(error?.message||error||'weather');
+      showWeatherUnavailable(weatherLabel);
+      return null;
     }
-    return loadGeoWeather();
   }
 
-  async function searchCities(q){
-    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${encodeURIComponent(lang())}&format=json`,{cache:'no-store'});
-    if(!r.ok)throw Error();
-    const d=await r.json();return d.results||[];
+  function searchCities(q){
+    const needle=String(q||'').trim().toLowerCase();
+    if(!needle||!weatherFeed?.cities?.length)return [];
+    return weatherFeed.cities
+      .filter(city=>{
+        const values=[city.name,city.admin,city.country,...(Array.isArray(city.aliases)?city.aliases:[])];
+        return values.some(value=>String(value||'').toLowerCase().includes(needle));
+      })
+      .slice(0,12);
   }
 
   function showWeather(){
@@ -223,7 +223,7 @@
       const run=async()=>{
         if(retry)retry.disabled=true;
         if(state)state.textContent=t.loading;
-        await initWeather();
+        await initWeather({force:true});
         if(overlay.hidden)return;
         if(weatherData){showWeather();return;}
         if(state)state.textContent=t.weatherUnavailable;
@@ -233,16 +233,51 @@
       run();
       return;
     }
+
     const c=weatherData.current||{},d=weatherData.daily||{};
-    const rows=(d.time||[]).map((date,i)=>{const day=new Intl.DateTimeFormat(lang()==='ru'?'ru-RU':lang(),{weekday:'short',day:'numeric',month:'short'}).format(new Date(date+'T12:00:00'));return `<div class="weather-day"><strong>${day}</strong><span>${weatherIcon(Number(d.weather_code?.[i]))}</span><span class="desc">💧 ${Math.round(Number(d.precipitation_probability_max?.[i]||0))}%</span><strong>${signed(d.temperature_2m_max?.[i])} / ${signed(d.temperature_2m_min?.[i])}</strong></div>`;}).join('');
-    const city=savedCity();
-    openPanel(`<div class="utility-head"><div><h2>${t.forecast}</h2><div class="utility-location-title">📍 ${weatherLabel}</div></div><button class="utility-close">×</button></div><div class="weather-current-card"><div class="weather-current-icon">${weatherIcon(Number(c.weather_code),Boolean(c.is_day))}</div><div class="weather-current-temp">${signed(c.temperature_2m)}</div><div class="weather-current-meta">${weatherFromCache?t.cached:t.local}<br><strong>${signed(c.apparent_temperature)}</strong></div></div><div class="weather-days">${rows}</div><div class="weather-settings"><div class="weather-settings-title">⚙ ${t.weatherSettings}</div><div class="weather-setting-row"><label>${t.locationMode}<select id="weatherModeSelect"><option value="geo" ${weatherMode()==='geo'?'selected':''}>${t.myLocation}</option><option value="city" ${weatherMode()==='city'?'selected':''}>${t.chosenCity}</option></select></label><label>${t.city}<div class="weather-city-row"><input id="weatherCityInput" value="${cityOnly(city?.name||'')}" placeholder="${t.city}"><button type="button" id="weatherCityFind" class="tk-btn">${t.findCity}</button></div></label></div><div id="weatherCityResults" class="weather-city-results"></div></div><div class="utility-source">${t.sourceWeather}</div>`);
-    const modeSel=overlay.querySelector('#weatherModeSelect'),input=overlay.querySelector('#weatherCityInput'),findBtn=overlay.querySelector('#weatherCityFind'),results=overlay.querySelector('#weatherCityResults');
-    modeSel.onchange=()=>{localStorage.setItem('diagnostika-weather-mode',modeSel.value);if(modeSel.value==='geo'){loadGeoWeather().then(()=>showWeather());}else if(savedCity()){const sc=savedCity();fetchWeather(sc.latitude,sc.longitude,cityOnly(sc.name)).then(()=>showWeather()).catch(()=>showWeather());}};
-    findBtn.onclick=async()=>{
-      const q=input.value.trim();if(!q)return;results.textContent=t.loading;
-      try{const found=await searchCities(q);if(!found.length){results.textContent=t.cityNotFound;return;}results.innerHTML=found.map((x,i)=>`<div class="weather-city-option" data-i="${i}"><strong>${x.name}</strong>${x.admin1?', '+x.admin1:''}${x.country?', '+x.country:''}</div>`).join('');results.querySelectorAll('.weather-city-option').forEach(el=>el.onclick=()=>{const x=found[Number(el.dataset.i)];const cityObj={name:x.name,latitude:x.latitude,longitude:x.longitude};localStorage.setItem('diagnostika-weather-city',JSON.stringify(cityObj));localStorage.setItem('diagnostika-weather-mode','city');fetchWeather(cityObj.latitude,cityObj.longitude,cityObj.name).then(()=>showWeather()).catch(()=>showWeather());});}catch(_){results.textContent=t.cityNotFound;}
+    const rows=(d.time||[]).map((date,i)=>{
+      const locale=lang()==='ru'?'ru-RU':lang();
+      const day=new Intl.DateTimeFormat(locale,{weekday:'short',day:'numeric',month:'short'}).format(new Date(date+'T12:00:00'));
+      const rain=Math.round(Number(d.precipitation_probability_max?.[i]||0));
+      const wind=Math.round(Number(d.wind_speed_10m_max?.[i]||0));
+      return `<div class="weather-day"><strong>${day}</strong><span>${weatherIcon(Number(d.weather_code?.[i]))}</span><span class="desc">💧 ${rain}% · 💨 ${wind} км/ч</span><strong>${signed(d.temperature_2m_max?.[i])} / ${signed(d.temperature_2m_min?.[i])}</strong></div>`;
+    }).join('');
+
+    const selected=savedCity();
+    openPanel(`<div class="utility-head"><div><h2>${t.forecast}</h2><div class="utility-location-title">📍 ${weatherLabel}</div></div><button class="utility-close">×</button></div><div class="weather-current-card"><div class="weather-current-icon">${weatherIcon(Number(c.weather_code),c.is_day!==0)}</div><div class="weather-current-temp">${signed(c.temperature_2m)}</div><div class="weather-current-meta">${weatherFromCache?t.cached:t.sourceWeather}<br><strong>${signed(c.apparent_temperature)}</strong></div></div><div class="weather-days">${rows}</div><div class="weather-settings"><div class="weather-settings-title">⚙ ${t.weatherSettings}</div><div class="weather-setting-row"><label>${t.locationMode}<select id="weatherModeSelect"><option value="geo" ${weatherMode()==='geo'?'selected':''}>${t.myLocation}</option><option value="city" ${weatherMode()==='city'?'selected':''}>${t.chosenCity}</option></select></label><label>${t.city}<div class="weather-city-row"><input id="weatherCityInput" value="${String(selected?.name||'').replace(/"/g,'&quot;')}" autocomplete="off"><button id="weatherCityFind" type="button" class="tk-btn">${t.findCity}</button></div></label></div><div id="weatherCityResults" class="weather-city-results"></div></div><div class="utility-source">${t.sourceWeather}${weatherUpdatedAt?' · '+new Date(weatherUpdatedAt).toLocaleString(lang()==='ru'?'ru-RU':lang()):''}</div>`);
+
+    const modeSelect=overlay.querySelector('#weatherModeSelect');
+    const input=overlay.querySelector('#weatherCityInput');
+    const find=overlay.querySelector('#weatherCityFind');
+    const results=overlay.querySelector('#weatherCityResults');
+
+    modeSelect.onchange=async()=>{
+      localStorage.setItem('diagnostika-weather-mode',modeSelect.value);
+      if(modeSelect.value==='geo'){
+        await initWeather();
+        showWeather();
+        return;
+      }
+      const selectedCity=findWeatherCity(weatherFeed,savedCity());
+      if(selectedCity){applyWeatherEntry(selectedCity);showWeather();return;}
+      input?.focus();
     };
+
+    const runSearch=()=>{
+      const found=searchCities(input?.value);
+      if(!found.length){results.textContent=t.cityNotFound;return;}
+      results.innerHTML=found.map((city,i)=>`<div class="weather-city-option" data-i="${i}"><strong>${city.name}</strong>${city.admin?', '+city.admin:''}${city.country?', '+city.country:''}</div>`).join('');
+      results.querySelectorAll('.weather-city-option').forEach(el=>el.onclick=()=>{
+        const city=found[Number(el.dataset.i)];
+        const cityObj={id:city.id,name:city.name,latitude:city.latitude,longitude:city.longitude};
+        localStorage.setItem('diagnostika-weather-city',JSON.stringify(cityObj));
+        localStorage.setItem('diagnostika-weather-mode','city');
+        applyWeatherEntry(city);
+        showWeather();
+      });
+    };
+    find.onclick=runSearch;
+    input.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();runSearch();}};
   }
   weatherBtn.onclick=showWeather;
 
@@ -278,5 +313,5 @@
     })
   });
 
-  initWeather();loadRates();setTimeout(refreshLanguage,0);
+  initWeather();loadRates();setTimeout(refreshLanguage,0);setInterval(()=>initWeather({force:true}),WEATHER_REFRESH_MS);
 })();
