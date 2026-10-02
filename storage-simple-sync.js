@@ -303,6 +303,7 @@
     const databaseState=await readJson(app,'database.json');
     const scanned=await readClientsFromFolders(app);
     const deletedIds=seedDeletedLedger(state);
+    const suppressedDeleted=scanned.clients.filter(c=>c?.id&&deletedIds.has(String(c.id))).length;
     const folderOnlyState=filterDeletedFromClientSet({clients:scanned.clients},deletedIds);
     const safeDatabaseState=filterDeletedFromClientSet(databaseState,deletedIds);
 
@@ -349,6 +350,7 @@
       scannedClients:scanned.clients.length,
       duplicates:scanned.duplicates,
       recoveredNames:scanned.recoveredNames,
+      suppressedDeleted,
       errors:scanned.errors
     };
   }
@@ -380,6 +382,7 @@
         const details=[];
         if(result.duplicates)details.push(`Объединено дубликатов папок: ${result.duplicates}.`);
         if(result.recoveredNames)details.push(`Восстановлено имён из названий папок: ${result.recoveredNames}.`);
+        if(result.suppressedDeleted)details.push(`Не восстановлено ранее удалённых клиентов: ${result.suppressedDeleted}.`);
         if(result.errors)details.push(`Не удалось прочитать папок: ${result.errors}.`);
         await AppDialog.alert(`Проверено папок клиентов: ${result.scannedFolders}.\nУникальных client.json: ${result.scannedClients}.\nВ базе после синхронизации: ${result.count} клиент(ов).${details.length?'\n'+details.join('\n'):''}`,'Синхронизация завершена');
         location.reload();
