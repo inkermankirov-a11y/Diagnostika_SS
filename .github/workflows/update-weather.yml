@@ -34,7 +34,6 @@ jobs:
       - name: Fetch weather on GitHub
         run: |
           python - <<'PY'
-          import concurrent.futures
           import datetime as dt
           import json
           import pathlib
@@ -45,45 +44,51 @@ jobs:
           root=pathlib.Path('.')
           locations=json.loads((root/'weather-locations.json').read_text(encoding='utf-8'))['cities']
           endpoint='https://api.open-meteo.com/v1/forecast'
+          rows=[]
 
-          def fetch_city(city):
+          def fetch_batch(batch):
               params={
-                  'latitude':city['latitude'],
-                  'longitude':city['longitude'],
+                  'latitude':','.join(str(city['latitude']) for city in batch),
+                  'longitude':','.join(str(city['longitude']) for city in batch),
                   'current':'temperature_2m,apparent_temperature,weather_code,is_day',
                   'daily':'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max',
                   'forecast_days':7,
                   'temperature_unit':'celsius',
                   'wind_speed_unit':'kmh',
-                  'timezone':city.get('timezone') or 'auto'
+                  'timezone':'auto'
               }
               url=endpoint+'?'+urllib.parse.urlencode(params)
               error=None
               for attempt in range(3):
                   try:
-                      request=urllib.request.Request(url,headers={'User-Agent':'DiagnostikaSS-weather/1.0'})
-                      with urllib.request.urlopen(request,timeout=25) as response:
+                      request=urllib.request.Request(url,headers={'User-Agent':'DiagnostikaSS-weather/1.1'})
+                      with urllib.request.urlopen(request,timeout=45) as response:
                           data=json.load(response)
-                      if not isinstance(data.get('current'),dict):
-                          raise RuntimeError('current missing')
-                      if not isinstance(data.get('daily',{}).get('time'),list) or len(data['daily']['time'])<7:
-                          raise RuntimeError('daily.time missing')
-                      return {
-                          **city,
-                          'timezone':data.get('timezone') or city.get('timezone') or 'auto',
-                          'current':data['current'],
-                          'daily':data['daily']
-                      }
+                      if isinstance(data,dict):
+                          data=[data]
+                      if not isinstance(data,list) or len(data)!=len(batch):
+                          raise RuntimeError(f'batch size mismatch: expected {len(batch)}, got {len(data) if isinstance(data,list) else "invalid"}')
+                      return data
                   except Exception as exc:
                       error=exc
-                      time.sleep(1.5*(attempt+1))
-              raise RuntimeError(f"{city['id']}: {error}")
+                      time.sleep(2*(attempt+1))
+              raise RuntimeError(f'weather batch failed: {error}')
 
-          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-              futures={pool.submit(fetch_city,city):i for i,city in enumerate(locations)}
-              rows=[None]*len(locations)
-              for future,index in futures.items():
-                  rows[index]=future.result()
+          batch_size=25
+          for start in range(0,len(locations),batch_size):
+              batch=locations[start:start+batch_size]
+              payloads=fetch_batch(batch)
+              for city,data in zip(batch,payloads):
+                  if not isinstance(data.get('current'),dict):
+                      raise RuntimeError(f"{city['id']}: current missing")
+                  if not isinstance(data.get('daily',{}).get('time'),list) or len(data['daily']['time'])<7:
+                      raise RuntimeError(f"{city['id']}: daily.time missing")
+                  rows.append({
+                      **city,
+                      'timezone':data.get('timezone') or city.get('timezone') or 'auto',
+                      'current':data['current'],
+                      'daily':data['daily']
+                  })
 
           existing=None
           target=root/'weather-data.json'
@@ -104,7 +109,7 @@ jobs:
                   'cities':rows
               }
               target.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-              print(f"Updated {len(rows)} cities.")
+              print(f"Updated {len(rows)} cities in {(len(rows)+batch_size-1)//batch_size} API batches.")
           PY
 
       - name: Validate weather-data.json
