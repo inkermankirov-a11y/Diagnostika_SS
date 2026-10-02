@@ -2,10 +2,10 @@
    Visual layer only: no layout ownership, data logic, or click behavior lives here. */
 
 .app-header{
-  --header-glass-top:rgba(74,90,112,.96);
-  --header-glass-bottom:rgba(29,42,59,.97);
+  --header-glass-top:rgba(53,68,91,.86);
+  --header-glass-bottom:rgba(17,27,43,.94);
   --header-glass-text:#f8fbff;
-  --header-glass-muted:#d9e7f5;
+  --header-glass-muted:#d8e6f5;
 }
 
 .app-header #headerWeatherBtn,
@@ -13,22 +13,25 @@
 .app-header #headerCurrencyBtn,
 .app-header #quickNotesBtn,
 .app-header #settingsMenuBtn{
-  --lg-accent-rgb:92,164,255;
+  --lg-accent-rgb:66,169,255;
+  --lg-accent2-rgb:79,117,255;
   height:44px!important;
-  border:1px solid rgba(226,240,255,.52)!important;
-  border-radius:14px!important;
+  border:1px solid rgba(var(--lg-accent-rgb),.60)!important;
+  border-radius:15px!important;
   color:var(--header-glass-text)!important;
   background:
-    radial-gradient(115% 170% at 50% -78%,rgba(255,255,255,.36) 0%,rgba(255,255,255,0) 58%),
-    radial-gradient(78% 115% at 5% 110%,rgba(var(--lg-accent-rgb),.22) 0%,rgba(var(--lg-accent-rgb),0) 68%),
+    radial-gradient(110% 190% at 4% 115%,rgba(var(--lg-accent-rgb),.56) 0%,rgba(var(--lg-accent-rgb),.18) 34%,rgba(var(--lg-accent-rgb),0) 67%),
+    radial-gradient(92% 170% at 96% -48%,rgba(var(--lg-accent2-rgb),.46) 0%,rgba(var(--lg-accent2-rgb),.12) 38%,rgba(var(--lg-accent2-rgb),0) 70%),
+    radial-gradient(120% 150% at 50% -90%,rgba(255,255,255,.54) 0%,rgba(255,255,255,.10) 48%,rgba(255,255,255,0) 67%),
     linear-gradient(180deg,var(--header-glass-top),var(--header-glass-bottom))!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.34),
-    inset 0 -1px 0 rgba(var(--lg-accent-rgb),.18),
-    0 5px 12px rgba(15,23,42,.22),
-    0 0 0 1px rgba(var(--lg-accent-rgb),.07)!important;
-  backdrop-filter:blur(12px) saturate(1.16);
-  -webkit-backdrop-filter:blur(12px) saturate(1.16);
+    inset 0 1px 0 rgba(255,255,255,.58),
+    inset 0 -1px 0 rgba(var(--lg-accent-rgb),.36),
+    inset 1px 0 0 rgba(255,255,255,.08),
+    0 6px 14px rgba(15,23,42,.25),
+    0 0 14px rgba(var(--lg-accent-rgb),.22)!important;
+  backdrop-filter:blur(18px) saturate(1.34);
+  -webkit-backdrop-filter:blur(18px) saturate(1.34);
   text-shadow:0 1px 1px rgba(0,0,0,.34);
   isolation:isolate;
   overflow:hidden!important;
@@ -36,11 +39,11 @@
   transition:transform .16s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease!important;
 }
 
-.app-header #headerWeatherBtn{--lg-accent-rgb:72,187,255}
-.app-header #headerCalendarBtn{--lg-accent-rgb:126,143,255}
-.app-header #headerCurrencyBtn{--lg-accent-rgb:67,205,174}
-.app-header #quickNotesBtn{--lg-accent-rgb:145,120,255}
-.app-header #settingsMenuBtn{--lg-accent-rgb:105,161,224}
+.app-header #headerWeatherBtn{--lg-accent-rgb:49,190,255;--lg-accent2-rgb:51,101,255}
+.app-header #headerCalendarBtn{--lg-accent-rgb:255,151,57;--lg-accent2-rgb:255,201,72}
+.app-header #headerCurrencyBtn{--lg-accent-rgb:74,224,181;--lg-accent2-rgb:49,190,211}
+.app-header #quickNotesBtn{--lg-accent-rgb:86,128,255;--lg-accent2-rgb:158,91,255}
+.app-header #settingsMenuBtn{--lg-accent-rgb:64,156,255;--lg-accent2-rgb:74,218,255}
 
 .app-header #headerWeatherBtn::before,
 .app-header #headerCalendarBtn::before,
@@ -51,10 +54,11 @@
   position:absolute!important;
   z-index:0!important;
   inset:1px 5px auto 5px!important;
-  height:42%!important;
-  border-radius:12px 12px 55% 55%!important;
-  background:linear-gradient(180deg,rgba(255,255,255,.31),rgba(255,255,255,.08) 56%,rgba(255,255,255,0))!important;
-  opacity:.9!important;
+  height:48%!important;
+  border-radius:13px 13px 58% 58%!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.48),rgba(255,255,255,.15) 48%,rgba(255,255,255,0) 100%)!important;
+  opacity:1!important;
   pointer-events:none!important;
 }
 
@@ -66,13 +70,13 @@
   content:"";
   position:absolute;
   z-index:0;
-  left:12%;
-  right:12%;
-  bottom:-1px;
-  height:2px;
+  left:8%;
+  right:8%;
+  bottom:0;
+  height:3px;
   border-radius:999px;
-  background:linear-gradient(90deg,transparent,rgba(var(--lg-accent-rgb),.62),transparent);
-  opacity:.72;
+  background:linear-gradient(90deg,rgba(var(--lg-accent2-rgb),0),rgba(var(--lg-accent-rgb),.96) 35%,rgba(var(--lg-accent2-rgb),.94) 68%,rgba(var(--lg-accent2-rgb),0));
+  opacity:.96;
   pointer-events:none;
 }
 
@@ -92,12 +96,12 @@
 .app-header #settingsMenuBtn:hover{
   transform:translateY(-1px) scale(1.012)!important;
   filter:none!important;
-  border-color:rgba(238,247,255,.72)!important;
+  border-color:rgba(var(--lg-accent-rgb),.88)!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.43),
-    inset 0 -1px 0 rgba(var(--lg-accent-rgb),.26),
-    0 7px 16px rgba(15,23,42,.26),
-    0 0 15px rgba(var(--lg-accent-rgb),.14)!important;
+    inset 0 1px 0 rgba(255,255,255,.68),
+    inset 0 -1px 0 rgba(var(--lg-accent-rgb),.46),
+    0 8px 18px rgba(15,23,42,.27),
+    0 0 22px rgba(var(--lg-accent-rgb),.34)!important;
 }
 
 .app-header #headerWeatherBtn:active,
@@ -131,13 +135,14 @@
   width:25px!important;
   height:25px!important;
   padding:0!important;
-  border:1px solid rgba(232,244,255,.25)!important;
+  border:1px solid rgba(var(--lg-accent-rgb),.46)!important;
   border-radius:9px!important;
   background:
-    linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.035))!important;
+    radial-gradient(90% 100% at 30% 10%,rgba(255,255,255,.30),rgba(255,255,255,.06) 52%,rgba(var(--lg-accent-rgb),.14) 100%)!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.18),
-    inset 0 -1px 0 rgba(0,0,0,.10)!important;
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -1px 0 rgba(var(--lg-accent-rgb),.20),
+    0 0 8px rgba(var(--lg-accent-rgb),.16)!important;
   text-shadow:0 1px 2px rgba(0,0,0,.34)!important;
 }
 
@@ -168,14 +173,17 @@
 
 /* Match the clock shell to the same material without touching its mechanism. */
 .app-header .header-flip-clock{
-  border-color:rgba(226,240,255,.46)!important;
+  border-color:rgba(82,166,255,.58)!important;
   background:
-    radial-gradient(120% 170% at 50% -82%,rgba(255,255,255,.29) 0%,rgba(255,255,255,0) 58%),
-    linear-gradient(180deg,rgba(72,88,109,.96),rgba(29,42,59,.97))!important;
+    radial-gradient(92% 150% at 7% 115%,rgba(47,184,255,.32) 0%,rgba(47,184,255,0) 66%),
+    radial-gradient(84% 145% at 94% -42%,rgba(94,91,255,.28) 0%,rgba(94,91,255,0) 65%),
+    radial-gradient(120% 170% at 50% -82%,rgba(255,255,255,.40) 0%,rgba(255,255,255,0) 58%),
+    linear-gradient(180deg,rgba(58,73,96,.88),rgba(20,30,47,.95))!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.30),
-    inset 0 -1px 0 rgba(97,169,255,.12),
-    0 5px 13px rgba(15,23,42,.23)!important;
+    inset 0 1px 0 rgba(255,255,255,.45),
+    inset 0 -1px 0 rgba(71,169,255,.24),
+    0 6px 15px rgba(15,23,42,.24),
+    0 0 16px rgba(57,156,255,.15)!important;
 }
 
 /* Open settings gets a restrained selected-state glow, not a neon state. */
