@@ -34,7 +34,7 @@
     .cal-day-tooltip-row{width:100%;display:grid;grid-template-columns:58px 44px minmax(0,1fr);gap:10px;align-items:center;font-size:13px;line-height:1.35;color:#334155;text-align:left;border:0;background:transparent;padding:4px 2px;font-family:inherit}.cal-day-tooltip-row+.cal-day-tooltip-row{margin-top:8px;padding-top:10px;border-top:1px solid #f0e2b5}.cal-day-tooltip-client-link{cursor:pointer;border-radius:8px}.cal-day-tooltip-client-link:hover{background:#fff5d6}.cal-day-tooltip-time{font-weight:900;color:#8a5b00;font-size:13px}.cal-day-tooltip-avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#e7eef7;color:#315475;font-size:12px;font-weight:900;box-shadow:0 0 0 1px #d4deea}.cal-day-tooltip-avatar img{width:100%;height:100%;object-fit:cover}.cal-day-tooltip-client{font-weight:800;font-size:13px;overflow-wrap:anywhere}
     .cal-side-title{font-size:15px;font-weight:900;margin-bottom:4px}.cal-selected-date{font-size:12px;color:#64748b;margin-bottom:10px}.cal-events{display:grid;gap:7px;max-height:300px;overflow:auto;margin-bottom:12px}.cal-empty{padding:14px;border:1px dashed #d6dee8;border-radius:10px;text-align:center;color:#94a3b8;font-size:12px}.cal-event{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:start;padding:9px;border:1px solid #e0e7ef;border-radius:10px;background:#f8fafc}.cal-event-time{font-size:12px;font-weight:900;color:#334155}.cal-event-title{font-size:12px;font-weight:900;color:#1e293b}.cal-event-meta{font-size:10px;color:#64748b;margin-top:2px}.cal-delete{width:28px;height:28px!important;padding:0!important;font-size:13px!important;color:#b42318!important}
     .cal-quick-assign{width:100%;height:38px!important;margin:2px 0 12px;background:linear-gradient(#4b90ed,#2f74d6)!important;color:#fff!important;font-weight:900!important}.cal-overlay.client-mode .cal-quick-assign{display:none}.cal-overlay.overview-mode .cal-form{display:none}.cal-overlay.overview-mode.assign-open .cal-form{display:block}
-    .cal-form{border-top:1px solid #e2e8f0;padding-top:12px}.cal-form-title{font-size:13px;font-weight:900;margin-bottom:8px}.cal-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cal-form label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#64748b}.cal-form input,.cal-form select,.cal-form textarea{width:100%;box-sizing:border-box;border:1px solid #c6d2df;border-radius:8px;background:#fff;padding:0 9px;font:600 12px 'Segoe UI',Arial,sans-serif;color:#243447}.cal-form input,.cal-form select{height:36px}.cal-form textarea{min-height:64px;padding-top:8px;resize:vertical}.cal-span2{grid-column:1/-1}.cal-save{width:100%;margin-top:9px;height:38px!important;background:linear-gradient(#48a873,#278656)!important;color:#fff!important;font-weight:900!important}
+    .cal-form{border-top:1px solid #e2e8f0;padding-top:12px}.cal-form-title{font-size:13px;font-weight:900;margin-bottom:8px}.cal-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cal-form label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#64748b}.cal-form input,.cal-form select,.cal-form textarea{width:100%;box-sizing:border-box;border:1px solid #c6d2df;border-radius:8px;background:#fff;padding:0 9px;font:600 12px 'Segoe UI',Arial,sans-serif;color:#243447}.cal-form input,.cal-form select{height:36px}.cal-form textarea{min-height:64px;padding-top:8px;resize:vertical}.cal-span2{grid-column:1/-1}.cal-client-time-preview{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-height:38px;padding:8px 10px;border:1px solid #d7e0eb;border-radius:8px;background:#f7f9fc;color:#53657a;font-size:11px;font-weight:800;box-sizing:border-box}.cal-client-time-preview strong{font-size:12px;color:#243447}.cal-client-time-preview.ok{border-color:#a9d9bd;background:#f1fbf5}.cal-client-time-preview.caution{border-color:#e8c86a;background:#fffaf0;color:#805900}.cal-client-time-preview.night{border-color:#e7a0a0;background:#fff3f3;color:#a63737}.cal-client-time-preview.night strong{color:#a63737}.cal-client-time-preview.unknown{border-color:#d7dde5;background:#f7f8fa;color:#6b7a8d}.cal-save{width:100%;margin-top:9px;height:38px!important;background:linear-gradient(#48a873,#278656)!important;color:#fff!important;font-weight:900!important}
     .cal-overlay.week-view .cal-day{min-height:150px}
     @media(max-width:820px){.cal-layout{grid-template-columns:1fr}.cal-day{min-height:76px}.cal-panel{padding:12px}.cal-toolbar{grid-template-columns:1fr}.cal-month-title{order:-1}.cal-nav{justify-content:center}.cal-today{justify-self:center}}
     @media(max-width:560px){.cal-overlay{padding:0;place-items:end center}.cal-panel{width:100%;max-height:94dvh;border-radius:18px 18px 0 0}.cal-grid,.cal-week{gap:3px}.cal-day{min-height:62px;padding:4px}.cal-chip,.cal-more{display:none}.cal-num{width:24px;height:24px}.cal-form-grid{grid-template-columns:1fr}.cal-span2{grid-column:auto}}
@@ -68,6 +68,7 @@
               <label>Дата<input class="cal-date" type="date"></label>
               <label>Время<input class="cal-time" type="time" value="19:00"></label>
               <label class="cal-span2">Клиент<select class="cal-client"></select></label>
+              <div class="cal-client-time-preview unknown" role="status" aria-live="polite">🕒 <strong>Время клиента:</strong> выберите клиента</div>
               <label class="cal-span2">Тип<select class="cal-type"><option>Сессия</option><option>Бесплатная консультация</option><option>Созвон</option><option>Напоминание</option><option>Другое</option></select></label>
               <label class="cal-span2">Комментарий<textarea class="cal-note" placeholder="Что запланировано"></textarea></label>
             </div>
@@ -85,6 +86,7 @@
   const dateInput=overlay.querySelector('.cal-date');
   const timeInput=overlay.querySelector('.cal-time');
   const clientSelect=overlay.querySelector('.cal-client');
+  const clientTimePreview=overlay.querySelector('.cal-client-time-preview');
   const typeSelect=overlay.querySelector('.cal-type');
   const noteInput=overlay.querySelector('.cal-note');
 
@@ -93,6 +95,8 @@
   let openMode='client';
   let viewMode='month';
   let assignOpen=false;
+  let locationCatalogPromise=null;
+  let clientTimePreviewRequest=0;
 
   function calendarApi(){
     const facade=window.DiagnostikaCalendar;
@@ -122,6 +126,166 @@
   function clientAvatarHtml(c){
     if(c?.photoData)return `<span class="cal-day-tooltip-avatar"><img src="${esc(c.photoData)}" alt=""></span>`;
     return `<span class="cal-day-tooltip-avatar">${esc(initials(c?.name))}</span>`;
+  }
+
+  function normalizePlace(value){
+    return String(value||'')
+      .trim()
+      .toLocaleLowerCase('ru-RU')
+      .replace(/ё/g,'е')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-zа-я0-9]+/gi,' ')
+      .trim()
+      .replace(/\s+/g,' ');
+  }
+
+  const COUNTRY_ALIASES=Object.freeze({
+    'russia':'россия','russian federation':'россия','российская федерация':'россия',
+    'germany':'германия','deutschland':'германия','poland':'польша',
+    'czechia':'чехия','czech republic':'чехия','finland':'финляндия',
+    'belarus':'беларусь','kazakhstan':'казахстан','georgia':'грузия',
+    'armenia':'армения','turkey':'турция','turkiye':'турция',
+    'france':'франция','united kingdom':'великобритания','uk':'великобритания',
+    'great britain':'великобритания','italy':'италия'
+  });
+
+  function normalizeCountry(value){
+    const key=normalizePlace(value);
+    return COUNTRY_ALIASES[key]||key;
+  }
+
+  function loadLocationCatalog(){
+    if(locationCatalogPromise)return locationCatalogPromise;
+    locationCatalogPromise=fetch('./weather-locations.json?v=20261002-calendar-client-time-1',{cache:'force-cache',credentials:'same-origin'})
+      .then(response=>{
+        if(!response.ok)throw new Error('location-catalog-'+response.status);
+        return response.json();
+      })
+      .then(data=>Array.isArray(data?.cities)?data.cities:[])
+      .catch(error=>{
+        console.warn('[Diagnostika] calendar timezone catalog unavailable',error);
+        return [];
+      });
+    return locationCatalogPromise;
+  }
+
+  function findClientLocation(rows,city,country){
+    const cityKey=normalizePlace(city);
+    if(!cityKey)return null;
+    const countryKey=normalizeCountry(country);
+    const candidates=(rows||[]).filter(row=>{
+      const names=[row?.name,...(Array.isArray(row?.aliases)?row.aliases:[])].map(normalizePlace);
+      return names.includes(cityKey);
+    });
+    if(!candidates.length)return null;
+    if(candidates.length===1)return candidates[0];
+    if(countryKey){
+      const matched=candidates.find(row=>normalizeCountry(row?.country)===countryKey);
+      if(matched)return matched;
+    }
+    return null;
+  }
+
+  function timeZoneOffsetMinutes(date,timeZone){
+    const parts=new Intl.DateTimeFormat('en-CA',{
+      timeZone,year:'numeric',month:'2-digit',day:'2-digit',
+      hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'
+    }).formatToParts(date);
+    const map=Object.fromEntries(parts.filter(part=>part.type!=='literal').map(part=>[part.type,part.value]));
+    const utcLike=Date.UTC(
+      Number(map.year),Number(map.month)-1,Number(map.day),
+      Number(map.hour),Number(map.minute),Number(map.second)
+    );
+    const instant=Math.floor(date.getTime()/1000)*1000;
+    return Math.round((utcLike-instant)/60000);
+  }
+
+  function formatOffsetDifference(minutes){
+    const rounded=Math.round(minutes);
+    if(!rounded)return 'то же время';
+    const abs=Math.abs(rounded);
+    const hours=Math.floor(abs/60);
+    const mins=abs%60;
+    const amount=[hours?hours+' ч':'',mins?mins+' мин':''].filter(Boolean).join(' ');
+    return rounded>0?'+'+amount:'−'+amount;
+  }
+
+  function clientDayRelation(localDate,clientParts){
+    const [year,month,day]=String(localDate||'').split('-').map(Number);
+    if(!year||!month||!day)return '';
+    const localDay=Date.UTC(year,month-1,day);
+    const clientDay=Date.UTC(Number(clientParts.year),Number(clientParts.month)-1,Number(clientParts.day));
+    const diff=Math.round((clientDay-localDay)/86400000);
+    if(diff===1)return 'следующий день';
+    if(diff===-1)return 'предыдущий день';
+    if(diff>1)return 'через '+diff+' дн.';
+    if(diff<-1)return Math.abs(diff)+' дн. назад';
+    return '';
+  }
+
+  function setClientTimePreview(state,text,title=''){
+    if(!clientTimePreview)return;
+    clientTimePreview.className='cal-client-time-preview '+state;
+    clientTimePreview.innerHTML='🕒 <strong>Время клиента:</strong> '+esc(text);
+    clientTimePreview.title=title;
+  }
+
+  async function updateClientTimePreview(){
+    const requestId=++clientTimePreviewRequest;
+    const clientIdValue=clientSelect.value||'';
+    const c=clientById(clientIdValue);
+    if(!c){
+      setClientTimePreview('unknown','выберите клиента');
+      return;
+    }
+
+    const date=dateInput.value||selected;
+    const time=timeInput.value||'';
+    if(!date||!time){
+      setClientTimePreview('unknown','укажите дату и время');
+      return;
+    }
+    if(!c.city){
+      setClientTimePreview('unknown','у клиента не указан город');
+      return;
+    }
+
+    setClientTimePreview('unknown','определяю…');
+    const rows=await loadLocationCatalog();
+    if(requestId!==clientTimePreviewRequest)return;
+    const location=findClientLocation(rows,c.city,c.country);
+    if(!location?.timezone){
+      setClientTimePreview('unknown','часовой пояс не найден · '+c.city);
+      return;
+    }
+
+    const localInstant=new Date(date+'T'+time+':00');
+    if(Number.isNaN(localInstant.getTime())){
+      setClientTimePreview('unknown','некорректная дата или время');
+      return;
+    }
+
+    try{
+      const parts=new Intl.DateTimeFormat('en-CA',{
+        timeZone:location.timezone,year:'numeric',month:'2-digit',day:'2-digit',
+        hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+      }).formatToParts(localInstant);
+      const map=Object.fromEntries(parts.filter(part=>part.type!=='literal').map(part=>[part.type,part.value]));
+      const clientTime=map.hour+':'+map.minute;
+      const relation=clientDayRelation(date,map);
+      const clientOffset=timeZoneOffsetMinutes(localInstant,location.timezone);
+      const localOffset=-localInstant.getTimezoneOffset();
+      const offsetText=formatOffsetDifference(clientOffset-localOffset);
+      const hour=Number(map.hour);
+      const state=hour>=0&&hour<6?'night':(hour>=22||hour<8?'caution':'ok');
+      const warning=state==='night'?'ночь':(state==='caution'?'позднее/раннее время':'');
+      const details=[clientTime,relation,offsetText,warning].filter(Boolean).join(' · ');
+      setClientTimePreview(state,details,(location.name||c.city)+' · '+location.timezone);
+    }catch(error){
+      console.warn('[Diagnostika] calendar client-time preview failed',error);
+      setClientTimePreview('unknown','не удалось рассчитать время');
+    }
   }
   function customEvents(){
     try{
@@ -276,7 +440,7 @@
     if(quick)quick.textContent=assignOpen?'Скрыть назначение':'＋ Выбрать и назначить';
   }
 
-  function render(){syncModeUi();fillClientOptions();renderMonth();renderDayDetails();}
+  function render(){syncModeUi();fillClientOptions();renderMonth();renderDayDetails();updateClientTimePreview();}
 
   function openCalendar(options={}){
     const now=new Date();
@@ -314,6 +478,9 @@
     syncModeUi();
     if(assignOpen)clientSelect.focus();
   };
+  dateInput.addEventListener('input',updateClientTimePreview);
+  timeInput.addEventListener('input',updateClientTimePreview);
+  clientSelect.addEventListener('change',updateClientTimePreview);
   overlay.addEventListener('click',e=>{if(e.target===overlay)closeCalendar();});
   overlay.addEventListener('cancel',e=>{e.preventDefault();closeCalendar();});
 
