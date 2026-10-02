@@ -120,7 +120,12 @@
     #hdClientAiWidget.hd-ai-expanded .hd-widget-title{font-size:17px!important;margin-bottom:4px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-client{font-size:13px!important;margin-bottom:10px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-messages{height:auto!important;min-height:0!important;flex:1 1 auto!important;font-size:14px!important;padding:12px!important;gap:10px!important}
-    #hdClientAiWidget.hd-ai-expanded .hd-ai-msg{font-size:14.5px!important;line-height:1.62!important;padding:13px 15px!important;max-width:90%!important;font-weight:500!important}\n    #hdClientAiWidget.hd-ai-expanded .hd-ai-msg.assistant{max-width:92%!important;color:#1f3348!important}\n    #hdClientAiWidget.hd-ai-expanded .hd-ai-section-title{font-size:13px!important;margin:13px 0 6px!important}\n    #hdClientAiWidget.hd-ai-expanded .hd-ai-rich p{margin-bottom:10px!important}\n    #hdClientAiWidget.hd-ai-expanded .hd-ai-list{margin:5px 0 11px!important}\n    #hdClientAiWidget.hd-ai-expanded .hd-ai-list li{margin:5px 0!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-msg{font-size:14.5px!important;line-height:1.62!important;padding:13px 15px!important;max-width:90%!important;font-weight:500!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-msg.assistant{max-width:92%!important;color:#1f3348!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-section-title{font-size:13px!important;margin:13px 0 6px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-rich p{margin-bottom:10px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-list{margin:5px 0 11px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-list li{margin:5px 0!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-msg-time{font-size:10px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-footer-tools{margin-top:10px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-hints-btn{height:32px;font-size:11px;padding:0 11px}
