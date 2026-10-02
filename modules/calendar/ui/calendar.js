@@ -254,7 +254,13 @@
     setClientTimePreview('unknown','определяю…');
     const rows=await loadLocationCatalog();
     if(requestId!==clientTimePreviewRequest)return;
-    const location=findClientLocation(rows,c.city,c.country);
+    const location=c.timezone?{
+      name:c.city||'',
+      country:c.country||'',
+      timezone:c.timezone,
+      latitude:c.latitude,
+      longitude:c.longitude
+    }:findClientLocation(rows,c.city,c.country);
     if(!location?.timezone){
       setClientTimePreview('unknown','часовой пояс не найден · '+c.city);
       return;
