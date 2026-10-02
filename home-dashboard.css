@@ -59,7 +59,7 @@
 .hd-main{min-height:calc(100vh - 108px);display:flex;flex-direction:column;overflow:hidden}
 .hd-main-inner{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:34px 50px;min-height:520px}
 .hd-main-inner.has-client{justify-content:flex-start}
-.hd-hero-icon{width:150px;height:118px;position:relative;margin-bottom:24px;display:grid;place-items:center}
+.hd-hero-icon{width:150px;height:118px;position:relative;margin-bottom:24px;display:grid;place-items:center;flex:0 0 auto}
 .hd-hero-icon.has-photo{width:132px;height:132px;margin-bottom:20px;border-radius:50%;overflow:hidden;border:5px solid #fff;box-shadow:0 10px 28px rgba(35,78,130,.18),0 0 0 1px #dbe7f4;background:#eef4fb}
 .hd-hero-photo{width:100%;height:100%;display:block;object-fit:cover}
 .hd-hero-cloud{position:absolute;inset:28px 12px 12px;border-radius:62px;background:linear-gradient(145deg,#f0f6ff,#e2edfc)}
