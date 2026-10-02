@@ -27,34 +27,24 @@
 }
 .header-flip-clock{
   position:relative;
-  display:flex;
+  display:grid;
+  grid-template-columns:68px 16px 68px;
   align-items:center;
-  gap:7px;
-  height:56px;
-  padding:7px 10px;
-  border-radius:6px;
-  background:linear-gradient(180deg,#d2a56e 0%,#c18d55 46%,#a96f3b 100%);
-  border:1px solid #8f5e32;
-  box-shadow:0 5px 14px rgba(47,34,21,.24),inset 0 1px 0 rgba(255,255,255,.42),inset 0 -2px 3px rgba(92,52,22,.22);
+  justify-items:center;
+  column-gap:8px;
+  height:66px;
+  padding:8px 11px;
+  border-radius:10px;
+  background:linear-gradient(#5d7188,#405268);
+  border:1px solid #3d4f66;
+  box-shadow:0 3px 9px rgba(30,41,59,.22),inset 0 1px 0 rgba(255,255,255,.18);
   box-sizing:border-box;
 }
-.header-flip-clock:before,.header-flip-clock:after{
-  content:'';
-  position:absolute;
-  top:8px;
-  bottom:8px;
-  width:5px;
-  border-radius:2px;
-  background:linear-gradient(180deg,#202126,#0f1013);
-  opacity:.9;
-}
-.header-flip-clock:before{left:5px}
-.header-flip-clock:after{right:5px}
 .header-flip-panel{
   position:relative;
-  width:54px;
-  height:40px;
-  border-radius:3px;
+  width:68px;
+  height:48px;
+  border-radius:5px;
   overflow:hidden;
   background:#111317;
   perspective:520px;
@@ -82,7 +72,7 @@
   overflow:hidden;
   background:#17191e;
   color:#f1f3f5;
-  font:500 27px/40px 'Segoe UI',Arial,sans-serif;
+  font:600 32px/48px 'Segoe UI',Arial,sans-serif;
   letter-spacing:1px;
   text-shadow:0 1px 2px rgba(0,0,0,.65);
   backface-visibility:hidden;
@@ -95,13 +85,13 @@
 .header-flip-panel.is-flipping .header-flip-fold-top{display:flex;animation:headerFlipTop .24s ease-in forwards}
 .header-flip-panel.is-flipping .header-flip-fold-bottom{display:flex;animation:headerFlipBottom .24s ease-out .24s forwards}
 .header-flip-colon{
-  width:8px;
-  color:#2d2a27;
-  font-size:24px;
+  width:16px;
+  color:#f3f6f9;
+  font-size:28px;
   font-weight:900;
   line-height:1;
   text-align:center;
-  text-shadow:0 1px 0 rgba(255,255,255,.35);
+  text-shadow:0 1px 2px rgba(0,0,0,.45);
 }
 @keyframes headerFlipTop{from{transform:rotateX(0deg)}to{transform:rotateX(-90deg)}}
 @keyframes headerFlipBottom{from{transform:rotateX(90deg)}to{transform:rotateX(0deg)}}
