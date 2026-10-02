@@ -93,7 +93,7 @@
 .hd-note-box{background:var(--hd-yellow);border:1px solid #f3dfad;border-radius:10px;padding:12px 13px;color:#65758d;font-size:13px;line-height:1.4;cursor:pointer}.hd-note-box:hover{filter:brightness(.99)}
 .hd-next-box{background:linear-gradient(135deg,#eefaf4,#f6fcf8);border-radius:10px;padding:13px;border:1px solid #d8f0e3;color:#61798e;font-size:13px;line-height:1.4}.hd-next-box strong{display:block;color:#2b405e;margin-bottom:4px}.hd-plan-btn{margin-top:10px;border:1px solid #bdd3ef;background:#fff;color:#2d6fda;border-radius:8px;height:36px;padding:0 15px;font-weight:800;cursor:pointer}
 
-.app-header{background:#f8fbff!important;border-bottom:1px solid #e1eaf5!important;box-shadow:0 2px 12px rgba(45,79,120,.05)!important;padding-left:24px!important;padding-right:22px!important;min-height:76px!important}
+.app-header{background:#f8fbff!important;border-bottom:1px solid #e1eaf5!important;box-shadow:0 2px 12px rgba(45,79,120,.05)!important;height:76px!important;min-height:76px!important;padding:10px 24px!important;align-items:center!important;box-sizing:border-box!important}
 .app-header h1{color:#0c2045!important;font-size:28px!important;letter-spacing:-.4px;display:flex;align-items:center;gap:11px}.app-header h1:before{content:'Ψ';display:grid;place-items:center;width:42px;height:42px;border-radius:13px;color:#327bf2;background:#e9f2ff;font-family:Georgia,serif;font-size:31px;font-weight:700}
 .header-btn,.quick-notes-btn,.settings-btn,.header-utility-btn{border-radius:9px!important}
 
