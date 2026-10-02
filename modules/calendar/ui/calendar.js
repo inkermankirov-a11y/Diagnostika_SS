@@ -23,9 +23,14 @@
     .cal-card{background:#fff;border:1px solid #d9e3ed;border-radius:14px;padding:12px;box-shadow:0 5px 18px rgba(15,23,42,.05)}
     .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}.cal-week div{text-align:center;font-size:11px;font-weight:900;color:#64748b;padding:6px 0}.cal-week div:nth-child(6),.cal-week div:nth-child(7){color:#b45309}
     .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-    .cal-day{position:relative;min-height:92px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:7px;box-sizing:border-box;cursor:pointer;transition:.14s ease;overflow:hidden}.cal-day:hover{border-color:#93b4dc;background:#f8fbff}.cal-day.out{opacity:.35;background:#f8fafc}.cal-day.selected{border-color:#2f80ed;box-shadow:0 0 0 2px rgba(47,128,237,.14);background:#f3f8ff}.cal-day.today{border-color:#40a36b}.cal-day.today .cal-num{background:#2f855a;color:#fff}
+    .cal-day{position:relative;min-height:92px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:7px;box-sizing:border-box;cursor:pointer;transition:.14s ease;overflow:visible}.cal-day:hover{border-color:#93b4dc;background:#f8fbff}.cal-day.out{opacity:.35;background:#f8fafc}.cal-day.selected{border-color:#2f80ed;box-shadow:0 0 0 2px rgba(47,128,237,.14);background:#f3f8ff}.cal-day.today{border-color:#40a36b}.cal-day.today .cal-num{background:#2f855a;color:#fff}
     .cal-num{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:900;color:#243447}.cal-day-weekend .cal-num{color:#b45309}
-    .cal-day-events{display:grid;gap:3px;margin-top:5px}.cal-chip{font-size:9px;line-height:1.2;padding:4px 5px;border-radius:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#e8f1ff;color:#215ca8;font-weight:800}.cal-chip.manual{background:#fff3d9;color:#9a5b00}.cal-more{font-size:9px;color:#64748b;font-weight:800;padding-left:3px}
+    .cal-day.has-events{border-color:#e8c86a}.cal-day.has-events:hover,.cal-day.has-events:focus{z-index:30;outline:none;border-color:#d9ad2d;box-shadow:0 0 0 2px rgba(244,183,42,.12)}
+    .cal-day-beacon{position:absolute;top:9px;right:9px;width:10px;height:10px;border-radius:50%;background:#f4b72a;border:2px solid #fff;box-shadow:0 0 0 1px #e4bd59,0 0 0 0 rgba(244,183,42,.18);animation:calDayBeaconPulse 1.25s ease-in-out infinite}
+    @keyframes calDayBeaconPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 1px #e4bd59,0 0 0 0 rgba(244,183,42,.12)}50%{transform:scale(1.14);box-shadow:0 0 0 1px #dcae38,0 0 0 5px rgba(244,183,42,.20)}}
+    .cal-day-tooltip{position:absolute;left:50%;top:36px;transform:translate(-50%,-4px);min-width:170px;max-width:240px;padding:8px 10px;border:1px solid #e2bd55;border-radius:9px;background:#fffdf6;box-shadow:0 10px 28px rgba(54,45,18,.18);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease,transform .12s ease;z-index:60;text-align:left}
+    .cal-day.has-events:hover .cal-day-tooltip,.cal-day.has-events:focus .cal-day-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0)}
+    .cal-day-tooltip-row{display:grid;grid-template-columns:44px minmax(0,1fr);gap:7px;align-items:start;font-size:11px;line-height:1.3;color:#334155}.cal-day-tooltip-row+.cal-day-tooltip-row{margin-top:5px;padding-top:5px;border-top:1px solid #f0e2b5}.cal-day-tooltip-time{font-weight:900;color:#8a5b00}.cal-day-tooltip-client{font-weight:800;overflow-wrap:anywhere}
     .cal-side-title{font-size:15px;font-weight:900;margin-bottom:4px}.cal-selected-date{font-size:12px;color:#64748b;margin-bottom:10px}.cal-events{display:grid;gap:7px;max-height:300px;overflow:auto;margin-bottom:12px}.cal-empty{padding:14px;border:1px dashed #d6dee8;border-radius:10px;text-align:center;color:#94a3b8;font-size:12px}.cal-event{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:start;padding:9px;border:1px solid #e0e7ef;border-radius:10px;background:#f8fafc}.cal-event-time{font-size:12px;font-weight:900;color:#334155}.cal-event-title{font-size:12px;font-weight:900;color:#1e293b}.cal-event-meta{font-size:10px;color:#64748b;margin-top:2px}.cal-delete{width:28px;height:28px!important;padding:0!important;font-size:13px!important;color:#b42318!important}
     .cal-form{border-top:1px solid #e2e8f0;padding-top:12px}.cal-form-title{font-size:13px;font-weight:900;margin-bottom:8px}.cal-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cal-form label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#64748b}.cal-form input,.cal-form select,.cal-form textarea{width:100%;box-sizing:border-box;border:1px solid #c6d2df;border-radius:8px;background:#fff;padding:0 9px;font:600 12px 'Segoe UI',Arial,sans-serif;color:#243447}.cal-form input,.cal-form select{height:36px}.cal-form textarea{min-height:64px;padding-top:8px;resize:vertical}.cal-span2{grid-column:1/-1}.cal-save{width:100%;margin-top:9px;height:38px!important;background:linear-gradient(#48a873,#278656)!important;color:#fff!important;font-weight:900!important}
     @media(max-width:820px){.cal-layout{grid-template-columns:1fr}.cal-day{min-height:76px}.cal-panel{padding:12px}.cal-toolbar{grid-template-columns:1fr}.cal-month-title{order:-1}.cal-nav{justify-content:center}.cal-today{justify-self:center}}
@@ -156,9 +161,14 @@
       const evs=eventsOn(ds);
       const cell=document.createElement('div');
       const weekend=(i%7)>=5;
-      cell.className='cal-day'+(d.getMonth()!==m?' out':'')+(ds===selected?' selected':'')+(ds===today?' today':'')+(weekend?' cal-day-weekend':'');
-      const chips=evs.slice(0,2).map(e=>`<div class="cal-chip manual">${esc((e.time?e.time+' ':'')+(e.clientName||e.title||''))}</div>`).join('');
-      cell.innerHTML=`<div class="cal-num">${d.getDate()}</div><div class="cal-day-events">${chips}${evs.length>2?`<div class="cal-more">ещё ${evs.length-2}</div>`:''}</div>`;
+      const hasEvents=evs.length>0;
+      cell.className='cal-day'+(d.getMonth()!==m?' out':'')+(ds===selected?' selected':'')+(ds===today?' today':'')+(weekend?' cal-day-weekend':'')+(hasEvents?' has-events':'');
+      if(hasEvents)cell.tabIndex=0;
+      const tooltip=hasEvents
+        ? `<div class="cal-day-tooltip" role="tooltip">${evs.map(e=>`<div class="cal-day-tooltip-row"><span class="cal-day-tooltip-time">${esc(e.time||'—')}</span><span class="cal-day-tooltip-client">${esc(e.clientName||e.title||e.type||'Запись')}</span></div>`).join('')}</div>`
+        : '';
+      cell.innerHTML=`<div class="cal-num">${d.getDate()}</div>${hasEvents?'<span class="cal-day-beacon" aria-hidden="true"></span>':''}${tooltip}`;
+      if(hasEvents)cell.setAttribute('aria-label',evs.map(e=>`${e.time||'—'} ${e.clientName||e.title||e.type||'Запись'}`).join('; '));
       cell.onclick=()=>{selected=ds;if(d.getMonth()!==m)cursor=new Date(d.getFullYear(),d.getMonth(),1);render();};
       grid.appendChild(cell);
     }
