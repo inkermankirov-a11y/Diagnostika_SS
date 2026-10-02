@@ -19,7 +19,7 @@
     .cal-panel{width:min(1040px,calc(100vw - 28px));max-height:92dvh;overflow:auto;background:#f8fafc;border:1px solid #cbd5e1;border-radius:18px;box-shadow:0 28px 80px rgba(15,23,42,.38);padding:18px;box-sizing:border-box;color:#243447}
     .cal-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}.cal-head h2{margin:0;font-size:24px}.cal-close{width:40px;height:40px;padding:0!important;font-size:20px!important}
     .cal-toolbar{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-bottom:12px}.cal-nav{display:flex;gap:7px}.cal-nav button,.cal-today{height:38px!important;padding:0 12px!important}.cal-month-title{text-align:center;font-size:20px;font-weight:900;color:#1e293b}
-    .cal-toolbar-right{display:flex;align-items:center;gap:8px}.cal-view-switch{display:flex;gap:4px;padding:3px;border:1px solid #d5dfeb;border-radius:9px;background:#eef3f8}.cal-view-btn{height:32px!important;padding:0 10px!important;border-radius:7px!important}.cal-view-btn.active{background:#2f80ed!important;color:#fff!important;border-color:#2f80ed!important}.cal-overlay.client-mode .cal-view-switch{display:none}
+    .cal-toolbar-right{display:flex;align-items:center;gap:8px}.cal-view-switch{display:flex;gap:4px;padding:3px;border:1px solid #d5dfeb;border-radius:9px;background:#eef3f8}.cal-view-btn{height:32px!important;padding:0 10px!important;border-radius:7px!important}.cal-view-btn.active,.cal-today.active{background:#2f80ed!important;color:#fff!important;border-color:#2f80ed!important}.cal-overlay.client-mode .cal-view-switch{display:none}
     .cal-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,.85fr);gap:16px;align-items:start}
     .cal-card{background:#fff;border:1px solid #d9e3ed;border-radius:14px;padding:12px;box-shadow:0 5px 18px rgba(15,23,42,.05)}
     .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}.cal-week div{text-align:center;font-size:11px;font-weight:900;color:#64748b;padding:6px 0}.cal-week div:nth-child(6),.cal-week div:nth-child(7){color:#b45309}
@@ -36,6 +36,9 @@
     .cal-quick-assign{width:100%;height:38px!important;margin:2px 0 12px;background:linear-gradient(#4b90ed,#2f74d6)!important;color:#fff!important;font-weight:900!important}.cal-overlay.client-mode .cal-quick-assign{display:none}.cal-overlay.overview-mode .cal-form{display:none}.cal-overlay.overview-mode.assign-open .cal-form{display:block}
     .cal-form{border-top:1px solid #e2e8f0;padding-top:12px}.cal-form-title{font-size:13px;font-weight:900;margin-bottom:8px}.cal-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cal-form label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#64748b}.cal-form input,.cal-form select,.cal-form textarea{width:100%;box-sizing:border-box;border:1px solid #c6d2df;border-radius:8px;background:#fff;padding:0 9px;font:600 12px 'Segoe UI',Arial,sans-serif;color:#243447}.cal-form input,.cal-form select{height:36px}.cal-form textarea{min-height:64px;padding-top:8px;resize:vertical}.cal-span2{grid-column:1/-1}.cal-client-time-preview{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-height:38px;padding:8px 10px;border:1px solid #d7e0eb;border-radius:8px;background:#f7f9fc;color:#53657a;font-size:11px;font-weight:800;box-sizing:border-box}.cal-client-time-preview strong{font-size:12px;color:#243447}.cal-client-time-preview.ok{border-color:#a9d9bd;background:#f1fbf5}.cal-client-time-preview.caution{border-color:#e8c86a;background:#fffaf0;color:#805900}.cal-client-time-preview.night{border-color:#e7a0a0;background:#fff3f3;color:#a63737}.cal-client-time-preview.night strong{color:#a63737}.cal-client-time-preview.unknown{border-color:#d7dde5;background:#f7f8fa;color:#6b7a8d}.cal-save{width:100%;margin-top:9px;height:38px!important;background:linear-gradient(#48a873,#278656)!important;color:#fff!important;font-weight:900!important}
     .cal-overlay.week-view .cal-day{min-height:150px}
+    .cal-overlay.day-view .cal-week{display:none}
+    .cal-overlay.day-view .cal-grid{grid-template-columns:1fr}
+    .cal-overlay.day-view .cal-day{min-height:220px}
     @media(max-width:820px){.cal-layout{grid-template-columns:1fr}.cal-day{min-height:76px}.cal-panel{padding:12px}.cal-toolbar{grid-template-columns:1fr}.cal-month-title{order:-1}.cal-nav{justify-content:center}.cal-today{justify-self:center}}
     @media(max-width:560px){.cal-overlay{padding:0;place-items:end center}.cal-panel{width:100%;max-height:94dvh;border-radius:18px 18px 0 0}.cal-grid,.cal-week{gap:3px}.cal-day{min-height:62px;padding:4px}.cal-chip,.cal-more{display:none}.cal-num{width:24px;height:24px}.cal-form-grid{grid-template-columns:1fr}.cal-span2{grid-column:auto}}
   `;
@@ -360,6 +363,10 @@
     return `${left} — ${right}`;
   }
 
+  function dayTitle(date){
+    return new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(date);
+  }
+
   function openClientFromCalendar(clientId){
     if(!clientId)return false;
     const api=clientsApi();
@@ -382,7 +389,11 @@
     const today=todayIso();
     let start,cellCount;
 
-    if(viewMode==='week'){
+    if(viewMode==='day'){
+      start=new Date(selected+'T12:00:00');
+      cellCount=1;
+      monthTitle.textContent=dayTitle(start);
+    }else if(viewMode==='week'){
       start=weekStart(new Date(selected+'T12:00:00'));
       cellCount=7;
       monthTitle.textContent=weekTitle(start);
@@ -395,7 +406,9 @@
     }
 
     overlay.classList.toggle('week-view',viewMode==='week');
+    overlay.classList.toggle('day-view',viewMode==='day');
     overlay.querySelectorAll('.cal-view-btn').forEach(button=>button.classList.toggle('active',button.dataset.view===viewMode));
+    overlay.querySelector('.cal-today')?.classList.toggle('active',viewMode==='day'&&selected===today);
     grid.innerHTML='';
 
     for(let i=0;i<cellCount;i++){
@@ -403,7 +416,7 @@
       const ds=iso(d.getFullYear(),d.getMonth(),d.getDate());
       const evs=eventsOn(ds);
       const cell=document.createElement('div');
-      const weekend=(i%7)>=5;
+      const weekend=viewMode==='day'?(d.getDay()===0||d.getDay()===6):(i%7)>=5;
       const hasEvents=evs.length>0;
       const outside=viewMode==='month'&&d.getMonth()!==m;
       cell.className='cal-day'+(outside?' out':'')+(ds===selected?' selected':'')+(ds===today?' today':'')+(weekend?' cal-day-weekend':'')+(hasEvents?' has-events':'');
@@ -465,18 +478,22 @@
 
   overlay.querySelector('.cal-close').onclick=closeCalendar;
   overlay.querySelector('.cal-prev').onclick=()=>{
-    if(viewMode==='week'){
+    if(viewMode==='day'){
+      const d=new Date(selected+'T12:00:00');d.setDate(d.getDate()-1);selected=iso(d.getFullYear(),d.getMonth(),d.getDate());cursor=new Date(d.getFullYear(),d.getMonth(),1);
+    }else if(viewMode==='week'){
       const d=new Date(selected+'T12:00:00');d.setDate(d.getDate()-7);selected=iso(d.getFullYear(),d.getMonth(),d.getDate());cursor=new Date(d.getFullYear(),d.getMonth(),1);
     }else cursor=new Date(cursor.getFullYear(),cursor.getMonth()-1,1);
     render();
   };
   overlay.querySelector('.cal-next').onclick=()=>{
-    if(viewMode==='week'){
+    if(viewMode==='day'){
+      const d=new Date(selected+'T12:00:00');d.setDate(d.getDate()+1);selected=iso(d.getFullYear(),d.getMonth(),d.getDate());cursor=new Date(d.getFullYear(),d.getMonth(),1);
+    }else if(viewMode==='week'){
       const d=new Date(selected+'T12:00:00');d.setDate(d.getDate()+7);selected=iso(d.getFullYear(),d.getMonth(),d.getDate());cursor=new Date(d.getFullYear(),d.getMonth(),1);
     }else cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1);
     render();
   };
-  overlay.querySelector('.cal-today').onclick=()=>{const n=new Date();selected=todayIso();cursor=new Date(n.getFullYear(),n.getMonth(),1);render();};
+  overlay.querySelector('.cal-today').onclick=()=>{const n=new Date();viewMode='day';selected=todayIso();cursor=new Date(n.getFullYear(),n.getMonth(),1);render();};
   overlay.querySelectorAll('.cal-view-btn').forEach(button=>button.onclick=()=>{viewMode=button.dataset.view==='week'?'week':'month';render();});
   overlay.querySelector('.cal-quick-assign').onclick=()=>{
     assignOpen=!assignOpen;
