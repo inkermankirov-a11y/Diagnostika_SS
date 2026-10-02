@@ -68,12 +68,12 @@
       const mode=getMode();
       next.responseMode=mode;
       if(mode==='short'){
-        next.message='РЕЖИМ КОРОТКО. Ответь содержательно, но кратко: обычно 4–7 предложений или максимум 6 коротких пунктов. Сначала дай главный вывод, затем только самое важное. Не пересказывай весь контекст клиента. Если данных недостаточно, скажи об этом одной короткой фразой.\n\nВопрос пользователя: '+String(next.message||'');
+        next.message='РЕЖИМ КОРОТКО. Ответь содержательно, но кратко: обычно 4–7 предложений или максимум 6 коротких пунктов. Сначала дай главный вывод, затем только самое важное. ОФОРМЛЕНИЕ: разбей ответ на 2–4 коротких смысловых блока; каждый блок начинай с короткого заголовка; ключевые выводы, риски, гипотезы и действия выделяй как **ключевой текст**; последовательности оформляй пунктами через «- ». Не пиши сплошной стеной текста. Не пересказывай весь контекст клиента. Если данных недостаточно, скажи об этом одной короткой фразой.\n\nВопрос пользователя: '+String(next.message||'');
         next.clientContext=compactContext(next.clientContext);
         next.chatHistory=(Array.isArray(next.chatHistory)?next.chatHistory:[]).slice(-6).map(m=>({role:m?.role||'user',text:clip(m?.text,900)}));
         next.maxOutputTokens=500;
       }else{
-        next.message='РЕЖИМ ГЛУБОКО. Дай подробный, но без лишних повторов анализ. Используй весь доступный контекст клиента.\n\nВопрос пользователя: '+String(next.message||'');
+        next.message='РЕЖИМ ГЛУБОКО. Дай подробный, но без лишних повторов анализ. Используй весь доступный контекст клиента. ОФОРМЛЕНИЕ: раздели ответ на понятные смысловые блоки с короткими заголовками; ключевые выводы, риски, гипотезы, факты и следующие действия выделяй как **ключевой текст**; где есть последовательность или план — используй пункты через «- » или нумерацию. Абзацы делай короткими, не пиши сплошной стеной текста.\n\nВопрос пользователя: '+String(next.message||'');
         next.maxOutputTokens=1800;
       }
       return next;
@@ -120,7 +120,12 @@
     #hdClientAiWidget.hd-ai-expanded .hd-widget-title{font-size:17px!important;margin-bottom:4px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-client{font-size:13px!important;margin-bottom:10px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-messages{height:auto!important;min-height:0!important;flex:1 1 auto!important;font-size:14px!important;padding:12px!important;gap:10px!important}
-    #hdClientAiWidget.hd-ai-expanded .hd-ai-msg{font-size:14px!important;line-height:1.5!important;padding:10px 12px!important;max-width:84%!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-msg{font-size:14.5px!important;line-height:1.62!important;padding:13px 15px!important;max-width:90%!important;font-weight:500!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-msg.assistant{max-width:92%!important;color:#1f3348!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-section-title{font-size:13px!important;margin:13px 0 6px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-rich p{margin-bottom:10px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-list{margin:5px 0 11px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-list li{margin:5px 0!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-msg-time{font-size:10px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-footer-tools{margin-top:10px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-hints-btn{height:32px;font-size:11px;padding:0 11px}
