@@ -1,10 +1,9 @@
 'use strict';
 
 (() => {
-  const appHeader=document.querySelector('.app-header');
   const headerButtons=document.querySelector('.header-buttons');
   const settingsWrap=document.querySelector('.settings-wrap');
-  if(!appHeader||!headerButtons||!settingsWrap||document.querySelector('#headerUtilityGroup')) return;
+  if(!headerButtons||!settingsWrap||document.querySelector('#headerUtilityGroup')) return;
 
   const LANG={
     ru:{calendar:'Календарь',weather:'Погода',forecast:'Погода · 7 дней',weatherUnavailable:'Нет данных',retry:'Повторить',cached:'Последние данные',converter:'Конвертер валют',from:'Из',to:'В',amount:'Сумма',loading:'Загрузка…',close:'Закрыть',local:'Моя геолокация',sourceWeather:'Данные обновляются автоматически',sourceCurrency:'Курсы ЦБ РФ',weatherSettings:'Настройка погоды',locationMode:'Источник погоды',myLocation:'Моя геолокация',chosenCity:'Выбранный город',city:'Город',findCity:'Найти',saveCity:'Сохранить город',cityNotFound:'Город не найден'},
@@ -21,25 +20,6 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    .app-header{position:relative!important}
-    .header-flip-clock-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none}
-    .header-flip-clock{position:relative;display:flex;align-items:center;gap:7px;height:56px;padding:7px 10px;border-radius:6px;background:linear-gradient(180deg,#d2a56e 0%,#c18d55 46%,#a96f3b 100%);border:1px solid #8f5e32;box-shadow:0 5px 14px rgba(47,34,21,.24),inset 0 1px 0 rgba(255,255,255,.42),inset 0 -2px 3px rgba(92,52,22,.22);box-sizing:border-box}
-    .header-flip-clock:before,.header-flip-clock:after{content:'';position:absolute;top:8px;bottom:8px;width:5px;border-radius:2px;background:linear-gradient(180deg,#202126,#0f1013);opacity:.9}.header-flip-clock:before{left:5px}.header-flip-clock:after{right:5px}
-    .header-flip-panel{position:relative;width:54px;height:40px;border-radius:3px;overflow:hidden;background:#111317;perspective:520px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 2px 5px rgba(0,0,0,.28)}
-    .header-flip-panel:after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.08);box-shadow:0 1px 0 rgba(0,0,0,.65);z-index:8;pointer-events:none}
-    .header-flip-top,.header-flip-bottom,.header-flip-fold-top,.header-flip-fold-bottom{position:absolute;left:0;width:100%;height:50%;display:flex;justify-content:center;overflow:hidden;background:#17191e;color:#f1f3f5;font:500 27px/40px 'Segoe UI',Arial,sans-serif;letter-spacing:1px;text-shadow:0 1px 2px rgba(0,0,0,.65);backface-visibility:hidden;box-sizing:border-box}
-    .header-flip-top,.header-flip-fold-top{top:0;align-items:flex-start}
-    .header-flip-bottom,.header-flip-fold-bottom{bottom:0;align-items:flex-end;background:#111318}
-    .header-flip-top,.header-flip-fold-top{padding-top:0}
-    .header-flip-bottom,.header-flip-fold-bottom{padding-bottom:0}
-    .header-flip-fold-top{transform-origin:bottom;z-index:7;display:none}
-    .header-flip-fold-bottom{transform-origin:top;transform:rotateX(90deg);z-index:7;display:none}
-    .header-flip-panel.is-flipping .header-flip-fold-top{display:flex;animation:headerFlipTop .24s ease-in forwards}
-    .header-flip-panel.is-flipping .header-flip-fold-bottom{display:flex;animation:headerFlipBottom .24s ease-out .24s forwards}
-    .header-flip-colon{width:8px;color:#2d2a27;font-size:24px;font-weight:900;line-height:1;text-align:center;text-shadow:0 1px 0 rgba(255,255,255,.35)}
-    @keyframes headerFlipTop{from{transform:rotateX(0deg)}to{transform:rotateX(-90deg)}}
-    @keyframes headerFlipBottom{from{transform:rotateX(90deg)}to{transform:rotateX(0deg)}}
-    @media(max-width:760px){.header-flip-clock-wrap{display:none!important}}
     .header-utility-group{display:flex;align-items:center;gap:8px;margin-right:8px}
     .header-util-btn{height:42px;width:94px;min-width:94px;max-width:94px;padding:4px 8px;border:1px solid #3d4f66;border-radius:10px;background:linear-gradient(#5d7188,#405268);color:#fff;display:grid;grid-template-columns:auto 1fr;grid-template-areas:'icon main' 'sub sub';column-gap:5px;row-gap:1px;align-content:center;justify-content:center;cursor:pointer;box-shadow:0 3px 9px rgba(30,41,59,.22);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
     .header-util-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 14px rgba(30,41,59,.24)}
@@ -58,107 +38,6 @@
     @media(max-width:760px){.header-utility-group{gap:5px;margin-right:5px}.header-util-btn{width:78px;min-width:78px;max-width:78px;height:42px;padding:4px 6px}.hu-icon{font-size:15px}.hu-main{font-size:12px}.hu-sub{font-size:10px;max-width:68px}.app-header h1{font-size:18px!important}.utility-overlay{place-items:end center;padding:0}.utility-panel{width:100%;max-height:88dvh;border-radius:18px 18px 0 0}.weather-day{grid-template-columns:72px 30px 1fr auto}.weather-day .desc{display:none}.weather-setting-row{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
-
-  function buildFlipPanel(unit){
-    const panel=document.createElement('div');
-    panel.className='header-flip-panel';
-    panel.dataset.unit=unit;
-    panel.innerHTML='<div class="header-flip-top">00</div><div class="header-flip-bottom">00</div><div class="header-flip-fold-top">00</div><div class="header-flip-fold-bottom">00</div>';
-    return panel;
-  }
-
-  const clockWrap=document.createElement('div');
-  clockWrap.id='headerFlipClockWrap';
-  clockWrap.className='header-flip-clock-wrap';
-  clockWrap.setAttribute('role','timer');
-  clockWrap.setAttribute('aria-label','Текущее время');
-  const clock=document.createElement('div');
-  clock.className='header-flip-clock';
-  clock.title='Текущее время';
-  const hourPanel=buildFlipPanel('hours');
-  const minutePanel=buildFlipPanel('minutes');
-  const colon=document.createElement('span');
-  colon.className='header-flip-colon';
-  colon.textContent=':';
-  clock.append(hourPanel,colon,minutePanel);
-  clockWrap.appendChild(clock);
-  appHeader.appendChild(clockWrap);
-
-  function setFlipPanelStatic(panel,value){
-    panel.querySelector('.header-flip-top').textContent=value;
-    panel.querySelector('.header-flip-bottom').textContent=value;
-    panel.querySelector('.header-flip-fold-top').textContent=value;
-    panel.querySelector('.header-flip-fold-bottom').textContent=value;
-    panel.dataset.value=value;
-  }
-
-  function animateFlipPanel(panel,nextValue){
-    const current=panel.dataset.value??nextValue;
-    if(current===nextValue)return;
-    const top=panel.querySelector('.header-flip-top');
-    const bottom=panel.querySelector('.header-flip-bottom');
-    const foldTop=panel.querySelector('.header-flip-fold-top');
-    const foldBottom=panel.querySelector('.header-flip-fold-bottom');
-
-    foldTop.textContent=current;
-    foldBottom.textContent=nextValue;
-    top.textContent=nextValue;
-    bottom.textContent=current;
-    panel.classList.remove('is-flipping');
-    void panel.offsetWidth;
-    panel.classList.add('is-flipping');
-
-    setTimeout(()=>{
-      bottom.textContent=nextValue;
-      panel.dataset.value=nextValue;
-    },240);
-    setTimeout(()=>{
-      panel.classList.remove('is-flipping');
-      setFlipPanelStatic(panel,nextValue);
-    },520);
-  }
-
-  function clockParts(){
-    const now=new Date();
-    return {
-      hours:String(now.getHours()).padStart(2,'0'),
-      minutes:String(now.getMinutes()).padStart(2,'0')
-    };
-  }
-
-  function updateFlipClock(initial=false){
-    const parts=clockParts();
-    if(initial){
-      setFlipPanelStatic(hourPanel,parts.hours);
-      setFlipPanelStatic(minutePanel,parts.minutes);
-    }else{
-      animateFlipPanel(hourPanel,parts.hours);
-      animateFlipPanel(minutePanel,parts.minutes);
-    }
-    clockWrap.setAttribute('aria-label','Текущее время '+parts.hours+':'+parts.minutes);
-  }
-
-  function syncFlipClockVisibility(){
-    const title=appHeader.querySelector('h1');
-    if(!title){clockWrap.hidden=false;return;}
-    const titleRect=title.getBoundingClientRect();
-    const buttonsRect=headerButtons.getBoundingClientRect();
-    const available=buttonsRect.left-titleRect.right;
-    clockWrap.hidden=available<185;
-  }
-
-  updateFlipClock(true);
-  syncFlipClockVisibility();
-  let flipClockMinute=new Date().getMinutes();
-  setInterval(()=>{
-    const minute=new Date().getMinutes();
-    if(minute!==flipClockMinute){
-      flipClockMinute=minute;
-      updateFlipClock(false);
-    }
-  },1000);
-  window.addEventListener('resize',syncFlipClockVisibility,{passive:true});
-  setTimeout(syncFlipClockVisibility,0);
 
   const calendarDateLabel=()=>new Intl.DateTimeFormat(lang()==='ru'?'ru-RU':lang(),{day:'numeric',month:'long'}).format(new Date());
   const group=document.createElement('div');group.id='headerUtilityGroup';group.className='header-utility-group';
