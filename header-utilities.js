@@ -96,7 +96,7 @@
   async function loadWeatherFeed({force=false}={}){
     if(weatherFeed&&!force)return weatherFeed;
     try{
-      const response=await fetch(`${WEATHER_FEED_URL}?t=${Date.now()}`,{cache:'no-store',credentials:'same-origin'});
+      const response=await fetch(`./weather-data.json?t=${Date.now()}`,{cache:'no-store',credentials:'same-origin'});
       if(!response.ok)throw Error(`weather-json-${response.status}`);
       const feed=normalizeWeatherFeed(await response.json());
       weatherFeed=feed;
