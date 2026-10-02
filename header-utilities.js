@@ -47,11 +47,11 @@
 
   function openExistingCalendar(){
     if(typeof window.DiagnostikaCalendar?.open==='function'){
-      window.DiagnostikaCalendar.open();
+      window.DiagnostikaCalendar.open({mode:'overview'});
       return true;
     }
     if(typeof window.DiagnostikaCalendarUI?.open==='function'){
-      window.DiagnostikaCalendarUI.open();
+      window.DiagnostikaCalendarUI.open({mode:'overview'});
       return true;
     }
     const clientCalendar=document.getElementById('ccCalendarBtn');

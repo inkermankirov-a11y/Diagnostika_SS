@@ -12,6 +12,9 @@ assert.ok(calendar.includes('cal-day.has-events:hover .cal-day-tooltip'),'toolti
 assert.ok(calendar.includes("e.time||'—'"),'tooltip does not include appointment time');
 assert.ok(calendar.includes("e.clientName||e.title||e.type||'Запись'"),'tooltip does not include client/name fallback');
 assert.ok(calendar.includes('if(hasEvents)cell.tabIndex=0'),'calendar record day is not keyboard-focusable');
-assert.ok(index.includes('modules/calendar/ui/calendar.js?v=20261002-day-beacon-1'),'calendar cache key not bumped');
+assert.ok(calendar.includes('cal-day-tooltip-avatar'),'calendar tooltip client avatar missing');
+assert.ok(calendar.includes('cal-day-tooltip-client-link'),'calendar tooltip client link missing');
+assert.ok(calendar.includes('openClientFromCalendar'),'calendar tooltip cannot navigate to a client');
+assert.ok(index.includes('modules/calendar/ui/calendar.js?v=20261002-overview-clientnav-1'),'calendar cache key not bumped');
 
 console.log('CALENDAR_DAY_BEACON_TOOLTIP_AUDIT_OK');
