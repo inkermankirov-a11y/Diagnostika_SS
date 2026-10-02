@@ -18,6 +18,8 @@ assert.equal(/window\.fetch\s*=/.test(fullContextSource),false,'Full-context hel
 assert.equal(/window\.fetch\s*=/.test(viewSource),false,'AI chat view still monkey-patches global fetch');
 assert(clientSource.includes('DiagnostikaClientAIFullContext?.enrichPayload'),'Client transport does not explicitly enrich full context');
 assert(clientSource.includes('DiagnostikaClientAIChatView?.preparePayload'),'Client transport does not expose explicit response-mode preparation');
+assert(clientSource.includes('formatAssistantText(m.text)'),'Client AI replies are not rendered through the structured formatter');
+assert(clientSource.includes('hd-ai-key'),'Client AI key-term styling is missing');
 assert(serviceSource.includes("return c&&Array.isArray(c.aiChat)?clone(c.aiChat):null;"),'Client chat read leaks live store array');
 assert(serviceSource.includes("return s&&Array.isArray(s.aiChat)?clone(s.aiChat):null;"),'Session chat read leaks live store array');
 assert.equal(serviceSource.includes("typeof save==='function'"),false,'AIService still calls global save directly');
@@ -28,7 +30,7 @@ for(const token of [
   'ai-api.js?v=20260919-ai6d'
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
-  'modules/ai/ui/client-chat.js?v=20261001-modular-stage7-10',
+  'modules/ai/ui/client-chat.js?v=20261003-readable-ai-1',
   'client-ai-full-context.js?v=20260919-ai6d',
   'modules/ai/ui/session-chat.js?v=20261001-modular-stage7-10'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
@@ -187,6 +189,8 @@ assert.equal(viewCheck.sameFetch,true,'Loading AI view reintroduced global fetch
 assert.equal(viewCheck.prepared.responseMode,'short');
 assert.equal(viewCheck.prepared.maxOutputTokens,500);
 assert(String(viewCheck.prepared.message).includes('РЕЖИМ КОРОТКО'));
+assert(String(viewCheck.prepared.message).includes('ОФОРМЛЕНИЕ:'),'Structured response instruction is missing');
+await page.locator('#hdClientAiWidget .hd-ai-msg.assistant .hd-ai-rich').last().waitFor({state:'visible',timeout:5000});
 
 const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}'));
 const persistedClient=persisted.clients.find(x=>x.id==='ai-6d-client');
