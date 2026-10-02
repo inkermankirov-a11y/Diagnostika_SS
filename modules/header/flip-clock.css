@@ -56,12 +56,12 @@
 .header-flip-clock{
   position:relative;
   display:grid;
-  grid-template-columns:62px 12px 62px;
+  grid-template-columns:68px 14px 68px;
   align-items:center;
   justify-items:center;
-  column-gap:6px;
+  column-gap:7px;
   height:42px;
-  padding:4px 7px;
+  padding:3px 8px;
   border-radius:10px;
   background:linear-gradient(#5d7188,#405268);
   border:1px solid #3d4f66;
@@ -70,8 +70,8 @@
 }
 .header-flip-panel{
   position:relative;
-  width:62px;
-  height:32px;
+  width:68px;
+  height:34px;
   border-radius:5px;
   overflow:hidden;
   background:#111317;
@@ -100,7 +100,7 @@
   overflow:hidden;
   background:#17191e;
   color:#f1f3f5;
-  font:600 23px/32px 'Segoe UI',Arial,sans-serif;
+  font:700 25px/34px 'Segoe UI',Arial,sans-serif;
   letter-spacing:1px;
   text-shadow:0 1px 2px rgba(0,0,0,.65);
   backface-visibility:hidden;
@@ -113,9 +113,9 @@
 .header-flip-panel.is-flipping .header-flip-fold-top{display:flex;animation:headerFlipTop .24s ease-in forwards}
 .header-flip-panel.is-flipping .header-flip-fold-bottom{display:flex;animation:headerFlipBottom .24s ease-out .24s forwards}
 .header-flip-colon{
-  width:12px;
+  width:14px;
   color:#f3f6f9;
-  font-size:22px;
+  font-size:24px;
   font-weight:900;
   line-height:1;
   text-align:center;
