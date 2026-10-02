@@ -1,0 +1,114 @@
+.app-header{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:18px!important;
+}
+.app-header>h1{
+  grid-column:1;
+  grid-row:1;
+  justify-self:start;
+  min-width:0;
+  white-space:nowrap;
+}
+.app-header>.header-buttons{
+  grid-column:3;
+  grid-row:1;
+  justify-self:end;
+  min-width:0;
+}
+.header-flip-clock-wrap{
+  grid-column:2;
+  grid-row:1;
+  justify-self:center;
+  align-self:center;
+  pointer-events:none;
+  z-index:6;
+}
+.header-flip-clock{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  height:56px;
+  padding:7px 10px;
+  border-radius:6px;
+  background:linear-gradient(180deg,#d2a56e 0%,#c18d55 46%,#a96f3b 100%);
+  border:1px solid #8f5e32;
+  box-shadow:0 5px 14px rgba(47,34,21,.24),inset 0 1px 0 rgba(255,255,255,.42),inset 0 -2px 3px rgba(92,52,22,.22);
+  box-sizing:border-box;
+}
+.header-flip-clock:before,.header-flip-clock:after{
+  content:'';
+  position:absolute;
+  top:8px;
+  bottom:8px;
+  width:5px;
+  border-radius:2px;
+  background:linear-gradient(180deg,#202126,#0f1013);
+  opacity:.9;
+}
+.header-flip-clock:before{left:5px}
+.header-flip-clock:after{right:5px}
+.header-flip-panel{
+  position:relative;
+  width:54px;
+  height:40px;
+  border-radius:3px;
+  overflow:hidden;
+  background:#111317;
+  perspective:520px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 2px 5px rgba(0,0,0,.28);
+}
+.header-flip-panel:after{
+  content:'';
+  position:absolute;
+  left:0;
+  right:0;
+  top:50%;
+  height:1px;
+  background:rgba(255,255,255,.08);
+  box-shadow:0 1px 0 rgba(0,0,0,.65);
+  z-index:8;
+  pointer-events:none;
+}
+.header-flip-top,.header-flip-bottom,.header-flip-fold-top,.header-flip-fold-bottom{
+  position:absolute;
+  left:0;
+  width:100%;
+  height:50%;
+  display:flex;
+  justify-content:center;
+  overflow:hidden;
+  background:#17191e;
+  color:#f1f3f5;
+  font:500 27px/40px 'Segoe UI',Arial,sans-serif;
+  letter-spacing:1px;
+  text-shadow:0 1px 2px rgba(0,0,0,.65);
+  backface-visibility:hidden;
+  box-sizing:border-box;
+}
+.header-flip-top,.header-flip-fold-top{top:0;align-items:flex-start}
+.header-flip-bottom,.header-flip-fold-bottom{bottom:0;align-items:flex-end;background:#111318}
+.header-flip-fold-top{transform-origin:bottom;z-index:7;display:none}
+.header-flip-fold-bottom{transform-origin:top;transform:rotateX(90deg);z-index:7;display:none}
+.header-flip-panel.is-flipping .header-flip-fold-top{display:flex;animation:headerFlipTop .24s ease-in forwards}
+.header-flip-panel.is-flipping .header-flip-fold-bottom{display:flex;animation:headerFlipBottom .24s ease-out .24s forwards}
+.header-flip-colon{
+  width:8px;
+  color:#2d2a27;
+  font-size:24px;
+  font-weight:900;
+  line-height:1;
+  text-align:center;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+@keyframes headerFlipTop{from{transform:rotateX(0deg)}to{transform:rotateX(-90deg)}}
+@keyframes headerFlipBottom{from{transform:rotateX(90deg)}to{transform:rotateX(0deg)}}
+
+/* Below this width the right controls need the center track, so the clock yields cleanly. */
+@media(max-width:1420px){
+  .app-header{grid-template-columns:minmax(0,1fr) auto!important}
+  .app-header>.header-buttons{grid-column:2}
+  .header-flip-clock-wrap{display:none!important}
+}
