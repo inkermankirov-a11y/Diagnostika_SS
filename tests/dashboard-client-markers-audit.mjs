@@ -7,8 +7,9 @@ const loader=fs.readFileSync('app-loader.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 
 assert.ok(js.includes('function hasUpcomingSession(c,days=7)'),'upcoming-session calculation missing');
-assert.ok(js.includes("time>=today&&time<limit"),'upcoming-session window must be less than seven days');
+assert.ok(js.includes('time>=now&&time<limit'),'upcoming-session window must be less than seven days');
 assert.ok(js.includes("row.classList.toggle('new-client',newClient)"),'new-client row marker missing');
+assert.ok(js.includes('return !sessions.some(session=>'),'new-client marker must remain until the first session actually starts');
 assert.equal(js.includes('hd-new-client-dot'),false,'old blinking green new-client dot returned');
 assert.ok(js.includes('hd-upcoming-session-dot'),'yellow upcoming-session indicator missing');
 assert.ok(js.includes("'session:created','session:updated','session:deleted'"),'session lifecycle does not refresh client markers');

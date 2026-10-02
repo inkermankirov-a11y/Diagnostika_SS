@@ -100,10 +100,6 @@
     }).length;
   }
 
-  function isNewClient(c){
-    return !!c && (!Array.isArray(c.sessions) || c.sessions.length===0);
-  }
-
   function sessionStartTime(session){
     const raw=String(session?.date||'').trim();
     if(!raw)return NaN;
@@ -115,14 +111,24 @@
     return Number.isFinite(parsed)?parsed:NaN;
   }
 
+  function isNewClient(c){
+    if(!c)return false;
+    const sessions=Array.isArray(c.sessions)?c.sessions:[];
+    if(!sessions.length)return true;
+    const now=Date.now();
+    return !sessions.some(session=>{
+      const time=sessionStartTime(session);
+      return Number.isFinite(time)&&time<=now;
+    });
+  }
+
   function hasUpcomingSession(c,days=7){
     if(!c||!Array.isArray(c.sessions)||!c.sessions.length)return false;
-    const now=new Date();
-    const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
-    const limit=today+days*24*60*60*1000;
+    const now=Date.now();
+    const limit=now+days*24*60*60*1000;
     return c.sessions.some(session=>{
       const time=sessionStartTime(session);
-      return Number.isFinite(time)&&time>=today&&time<limit;
+      return Number.isFinite(time)&&time>=now&&time<limit;
     });
   }
 
