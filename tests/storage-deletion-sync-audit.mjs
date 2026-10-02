@@ -14,6 +14,13 @@ assert.ok(sync.includes("events.on('client:purged'"), 'client purge event not tr
 assert.ok(sync.includes('rememberDeletedClient(detail?.clientId)'), 'deleted client is not persisted in ledger');
 assert.ok(sync.includes('forgetDeletedClient(detail?.clientId)'), 'restored client is not removed from ledger');
 assert.ok(sync.includes('merged=filterDeletedFromClientSet(merged,deletedIds)'), 'merged state can still resurrect deleted clients');
-assert.ok(settings.includes('storage-simple-sync.js?v=20261002-delete-sync-1'),'storage sync cache key not bumped');
+assert.ok(settings.includes('storage-simple-sync.js?v=20261002-purge-folder-1'),'storage sync cache key not bumped');
+assert.ok(sync.includes('removeClientFoldersByIds'),'permanent client folder cleanup missing');
+assert.ok(sync.includes("removeEntry(name,{recursive:true})"),'client folder is not removed recursively');
+assert.ok(sync.includes('permanentDeletedIds(state)'),'permanent-delete tombstones are not swept during sync');
+assert.ok(sync.includes('purgeClientFromConnectedStorage(detail?.clientId)'),'permanent delete does not remove connected folder immediately');
+assert.ok(sync.includes("AppDialog.alert(\`Клиентов в базе: \${result.count}.\`,'Синхронизация завершена')"),'sync completion dialog is still verbose');
+assert.equal(sync.includes('Проверено папок клиентов:'),false,'verbose folder count returned');
+assert.equal(sync.includes('Уникальных client.json:'),false,'verbose client.json count returned');
 
 console.log('STORAGE_DELETION_SYNC_AUDIT_OK');
