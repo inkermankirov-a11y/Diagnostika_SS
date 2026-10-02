@@ -96,8 +96,11 @@ jobs:
           if existing and existing.get('cities')==rows:
               print('Weather payload unchanged.')
           else:
+              reference=next((city for city in rows if city.get('id')=='kirov'),rows[0])
               payload={
                   '_updated_utc':dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),
+                  'current':reference['current'],
+                  'daily':reference['daily'],
                   'cities':rows
               }
               target.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
@@ -109,6 +112,10 @@ jobs:
           python - <<'PY'
           import json
           data=json.load(open('weather-data.json',encoding='utf-8'))
+          if data.get('current',{}).get('temperature_2m') is None:
+              raise SystemExit('top-level current.temperature_2m missing')
+          if len(data.get('daily',{}).get('time') or []) < 7:
+              raise SystemExit('top-level daily.time missing')
           cities=data.get('cities') or []
           if not cities:
               raise SystemExit('weather cities missing')
