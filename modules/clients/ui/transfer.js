@@ -31,7 +31,6 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    .db-export-btn{background:linear-gradient(#7b8ea5,#5a6f87)!important;color:#fff!important;border:1px solid #52657a!important;border-radius:6px!important;padding:7px 10px!important;font-weight:700!important}
     .db-import-btn{margin-left:8px;background:linear-gradient(#3fa56f,#218955)!important;color:#fff!important;border:0!important;border-radius:7px!important;padding:9px 13px!important;font-weight:700!important;box-shadow:0 3px 8px rgba(15,23,42,.16)}
     .client-specialist-info{width:min(435px,100%);margin:24px auto 2px;padding:0;font-size:14px;color:#64748b;display:flex;align-items:center;justify-content:center;min-height:36px}
     .client-specialist-current{width:100%;display:grid;grid-template-columns:170px minmax(0,1fr);align-items:center;column-gap:12px;line-height:1}
@@ -343,7 +342,11 @@
   function refreshLabels(){
     const imp=document.querySelector('#clientImportBtn');
     if(imp) imp.textContent=t('import');
-    document.querySelectorAll('.db-export-btn').forEach(b=>b.textContent=t('export'));
+    document.querySelectorAll('.db-export-btn').forEach(b=>{
+      b.textContent='⇩';
+      b.title=t('export');
+      b.setAttribute('aria-label',t('export'));
+    });
     updateClientSpecialistInfo();
   }
 
@@ -353,14 +356,28 @@
     rows.forEach((tr,index)=>{
       const c=clients[index];
       const group=tr.querySelector('.db-action-group');
-      if(!c||!group||group.querySelector('.db-export-btn')) return;
-      const exportBtn=document.createElement('button');
-      exportBtn.type='button';
-      exportBtn.className='db-export-btn';
-      exportBtn.textContent=t('export');
+      if(!c||!group) return;
+
+      let exportBtn=group.querySelector('.db-export-btn');
+      if(!exportBtn){
+        exportBtn=document.createElement('button');
+        exportBtn.type='button';
+        exportBtn.className='db-export-btn db-icon-action-btn';
+        const deleteBtn=group.querySelector('.db-delete-btn');
+        if(deleteBtn) group.insertBefore(exportBtn,deleteBtn); else group.appendChild(exportBtn);
+      }
+      exportBtn.textContent='⇩';
+      exportBtn.title=t('export');
+      exportBtn.setAttribute('aria-label',t('export'));
       exportBtn.onclick=e=>{e.stopPropagation();exportClient(c);};
+
       const deleteBtn=group.querySelector('.db-delete-btn');
-      if(deleteBtn) group.insertBefore(exportBtn,deleteBtn); else group.appendChild(exportBtn);
+      if(deleteBtn){
+        deleteBtn.classList.add('db-delete-btn-compact','db-icon-action-btn');
+        deleteBtn.textContent='×';
+        deleteBtn.title='Удалить клиента';
+        deleteBtn.setAttribute('aria-label','Удалить клиента');
+      }
     });
     setupImport();
     refreshLabels();
@@ -502,6 +519,12 @@
     updateClientSpecialistInfo();
   }
   initialize();
+  document.addEventListener('diagnostika:client-export-request',e=>{
+    const id=e?.detail?.clientId;
+    if(!id)return;
+    const client=clientsApi()?.findById?.(id)||clientsApi()?.list?.().find?.(x=>String(x?.id)===String(id))||null;
+    if(client)exportClient(client);
+  });
   window.addEventListener('diagnostika:dashboard-loaded',updateClientSpecialistInfo);
   window.addEventListener('diagnostika:client-database-rendered',decorateDatabaseRows);
   window.addEventListener('diagnostika:platform-core-ready',()=>{bindClientEvents();updateClientSpecialistInfo();},{once:true});
@@ -519,6 +542,7 @@
   window.addEventListener('diagnostika-specialist-profile-change',()=>setTimeout(updateClientSpecialistInfo,0));
 
   window.DiagnostikaClientTransfer=Object.freeze({
+    exportClient,
     openSpecialistHistory,
     buildSpecialistPeriods:client=>clone(buildSpecialistPeriods(client||clientsApi()?.current?.()||null))
   });
