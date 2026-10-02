@@ -21,36 +21,7 @@
     </aside>
 
     <main class="hd-main hd-card">
-      <div id="hdHomeView" class="hd-home-view">
-        <div class="hd-home-head">
-          <div>
-            <div class="hd-home-kicker">ГЛАВНАЯ</div>
-            <h2>Рабочий день</h2>
-            <div id="hdHomeDate" class="hd-home-date"></div>
-          </div>
-          <button id="hdHomeCalendar" type="button" class="hd-home-calendar-btn">Открыть календарь</button>
-        </div>
-
-        <section class="hd-home-section hd-home-today">
-          <div class="hd-home-section-head"><div><span class="hd-home-section-icon">◷</span><strong>Сегодня</strong></div><span id="hdTodayCount" class="hd-home-count"></span></div>
-          <div id="hdTodayList" class="hd-home-agenda"></div>
-        </section>
-
-        <section class="hd-home-section">
-          <div class="hd-home-section-head"><div><span class="hd-home-section-icon">▦</span><strong>Ближайшие встречи</strong></div><span class="hd-home-muted">7 дней</span></div>
-          <div id="hdUpcomingList" class="hd-home-agenda"></div>
-        </section>
-
-        <section class="hd-home-section">
-          <div class="hd-home-section-head"><div><span class="hd-home-section-icon">!</span><strong>Требует внимания</strong></div></div>
-          <div id="hdAttention" class="hd-attention-grid"></div>
-        </section>
-
-        <section class="hd-home-section">
-          <div class="hd-home-section-head"><div><span class="hd-home-section-icon">↺</span><strong>Последние клиенты</strong></div></div>
-          <div id="hdRecentClients" class="hd-recent-grid"></div>
-        </section>
-      </div>
+      <div id="hdHomeView" class="hd-home-view" aria-label="Главная"></div>
 
       <div id="hdClientView" class="hd-main-inner hd-client-view">
         <div class="hd-hero-icon" aria-hidden="true"></div>
@@ -67,16 +38,6 @@
     </main>
 
     <aside class="hd-right">
-      <section class="hd-widget hd-card hd-home-only hd-home-notes-widget">
-        <div class="hd-widget-title"><span>▤</span><span>Общие заметки</span></div>
-        <div id="hdHomeNotes" class="hd-note-box">Откройте быстрые заметки, чтобы записать идею, задачу или важную мысль.</div>
-      </section>
-
-      <section class="hd-widget hd-card hd-home-only hd-home-next-widget">
-        <div class="hd-widget-title"><span>◷</span><span>Ближайшая встреча</span></div>
-        <div id="hdHomeNext" class="hd-next-box"><strong>Пока ничего не назначено</strong>Записи из календаря появятся здесь автоматически.</div>
-      </section>
-
       <section class="hd-widget hd-card hd-client-only hd-client-notes-widget">
         <div class="hd-widget-title"><span>▤</span><span>Заметки</span></div>
         <div id="hdOpenNotes" class="hd-note-box">Выберите клиента, чтобы открыть его заметки.</div>
@@ -249,155 +210,6 @@
   function hasUpcomingInteraction(c,days=7){
     const next=nextInteractionTime(c);
     return Number.isFinite(next)&&next<Date.now()+days*24*60*60*1000;
-  }
-
-  function localDateIso(date=new Date()){
-    const y=date.getFullYear();
-    const m=String(date.getMonth()+1).padStart(2,'0');
-    const d=String(date.getDate()).padStart(2,'0');
-    return `${y}-${m}-${d}`;
-  }
-
-  function calendarEvents(){
-    try{
-      const rows=calendarApi()?.list?.({});
-      return Array.isArray(rows)?rows:[];
-    }catch(_){return [];}
-  }
-
-  function clientById(id){
-    if(id===undefined||id===null||id==='')return null;
-    return clientsApi()?.findById?.(id)||allClients().find(c=>String(c?.id)===String(id))||null;
-  }
-
-  function eventClient(event){
-    return clientById(event?.clientId)||null;
-  }
-
-  function eventTitle(event){
-    return String(event?.type||event?.title||'Встреча').trim()||'Встреча';
-  }
-
-  function eventTimeLabel(event){
-    const raw=String(event?.time||'').trim();
-    return /^\d{1,2}:\d{2}/.test(raw)?raw.slice(0,5):'—';
-  }
-
-  function homeAgendaRow(event,{showDate=false}={}){
-    const c=eventClient(event);
-    const name=c?.name||event?.clientName||'Без клиента';
-    const avatar=c?.photoData
-      ? `<span class="hd-home-avatar"><img src="${esc(c.photoData)}" alt=""></span>`
-      : `<span class="hd-home-avatar">${esc(initials(name))}</span>`;
-    const dateText=showDate
-      ? new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short'}).format(new Date(String(event.date)+'T12:00:00'))
-      : '';
-    const clickClass=c?.id?' is-clickable':'';
-    const clientAttr=c?.id?` data-client-id="${esc(c.id)}"`:'';
-    return `<div class="hd-home-agenda-row${clickClass}"${clientAttr}><span class="hd-home-agenda-time">${esc(eventTimeLabel(event))}</span>${avatar}<span class="hd-home-agenda-main"><strong>${esc(name)}</strong><span>${esc(eventTitle(event))}</span></span>${showDate?`<span class="hd-home-agenda-date">${esc(dateText)}</span>`:''}</div>`;
-  }
-
-  function bindHomeClientLinks(root=homeView){
-    root?.querySelectorAll?.('[data-client-id]')?.forEach(node=>{
-      node.addEventListener('click',()=>selectClient(node.dataset.clientId));
-    });
-  }
-
-  function clientActivityTime(c){
-    let best=0;
-    const take=value=>{
-      if(!value)return;
-      const raw=/^\d{4}-\d{2}-\d{2}$/.test(String(value))?String(value)+'T12:00:00':value;
-      const time=Date.parse(raw);
-      if(Number.isFinite(time)&&time>best)best=time;
-    };
-    take(c?.updatedAt);take(c?.createdAt);
-    for(const session of Array.isArray(c?.sessions)?c.sessions:[]){take(session?.updatedAt);take(session?.date);take(session?.createdAt);}
-    for(const request of Array.isArray(c?.requests)?c.requests:[]){take(request?.updatedAt);take(request?.createdAt);take(request?.date);}
-    return best;
-  }
-
-  function recentClients(limit=6){
-    return allClients()
-      .map((c,index)=>({c,index,activity:clientActivityTime(c)}))
-      .sort((a,b)=>b.activity-a.activity||b.index-a.index)
-      .slice(0,limit)
-      .map(item=>item.c);
-  }
-
-  function renderHome(){
-    const now=new Date();
-    const today=localDateIso(now);
-    const end=now.getTime()+7*24*60*60*1000;
-    const events=calendarEvents()
-      .map(event=>({event,start:calendarEventStartTime(event)}))
-      .filter(item=>Number.isFinite(item.start))
-      .sort((a,b)=>a.start-b.start);
-
-    const todayEvents=events.filter(item=>String(item.event?.date||'')===today).map(item=>item.event);
-    const upcomingEvents=events
-      .filter(item=>item.start>now.getTime()&&item.start<=end&&String(item.event?.date||'')!==today)
-      .slice(0,8)
-      .map(item=>item.event);
-
-    $('#hdHomeDate').textContent=new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(now);
-    $('#hdTodayCount').textContent=todayEvents.length?String(todayEvents.length):'';
-    $('#hdTodayList').innerHTML=todayEvents.length
-      ? todayEvents.map(event=>homeAgendaRow(event)).join('')
-      : '<div class="hd-home-empty">На сегодня встреч нет.</div>';
-    $('#hdUpcomingList').innerHTML=upcomingEvents.length
-      ? upcomingEvents.map(event=>homeAgendaRow(event,{showDate:true})).join('')
-      : '<div class="hd-home-empty">На ближайшие 7 дней встреч нет.</div>';
-
-    const clients=allClients();
-    const newCount=clients.filter(isNewClient).length;
-    const withoutNext=clients.filter(c=>!isNewClient(c)&&!Number.isFinite(nextInteractionTime(c))).length;
-    const unpaidCount=clients.filter(c=>unpaidSessionCount(c)>0).length;
-    $('#hdAttention').innerHTML=
-      `<button type="button" class="hd-attention-card" data-filter="new"><span>Новые</span><strong>${newCount}</strong><small>до первой сессии</small></button>`+
-      `<div class="hd-attention-card neutral"><span>Без следующей записи</span><strong>${withoutNext}</strong><small>нужно запланировать</small></div>`+
-      `<button type="button" class="hd-attention-card danger" data-filter="unpaid"><span>Не оплатили</span><strong>${unpaidCount}</strong><small>клиентов</small></button>`;
-
-    const recent=recentClients();
-    $('#hdRecentClients').innerHTML=recent.length
-      ? recent.map(c=>{
-          const avatar=c.photoData
-            ? `<span class="hd-home-avatar large"><img src="${esc(c.photoData)}" alt=""></span>`
-            : `<span class="hd-home-avatar large">${esc(initials(c.name))}</span>`;
-          return `<button type="button" class="hd-recent-client" data-client-id="${esc(c.id)}">${avatar}<span><strong>${esc(c.name||'Без имени')}</strong><small>${esc(clientMeta(c))}</small></span></button>`;
-        }).join('')
-      : '<div class="hd-home-empty">Клиентов пока нет.</div>';
-
-    $('#hdAttention')?.querySelectorAll('[data-filter]').forEach(button=>{
-      button.onclick=()=>{
-        clientFilter=button.dataset.filter;
-        try{localStorage.setItem(CLIENT_FILTER_KEY,clientFilter);}catch(_){}
-        syncClientFilterButtons();
-        renderClients();
-      };
-    });
-    bindHomeClientLinks();
-    renderHomeRight(events,now);
-  }
-
-  function renderHomeRight(events,now){
-    const next=events.find(item=>item.start>=now.getTime())||null;
-    const box=$('#hdHomeNext');
-    if(!box)return;
-    if(!next){
-      box.innerHTML='<strong>Пока ничего не назначено</strong>Записи из календаря появятся здесь автоматически.<br><button type="button" class="hd-plan-btn" data-open-calendar>Открыть календарь</button>';
-    }else{
-      const event=next.event;
-      const c=eventClient(event);
-      const when=new Intl.DateTimeFormat('ru-RU',{weekday:'short',day:'numeric',month:'short'}).format(new Date(String(event.date)+'T12:00:00'));
-      box.innerHTML=`<strong>${esc(eventTimeLabel(event))} · ${esc(c?.name||event?.clientName||'Без клиента')}</strong>${esc(when)} · ${esc(eventTitle(event))}<br><button type="button" class="hd-plan-btn" data-open-calendar>Открыть календарь</button>`;
-    }
-    box.querySelector('[data-open-calendar]')?.addEventListener('click',openOverviewCalendar);
-  }
-
-  function openOverviewCalendar(){
-    if(calendarApi()?.open?.({mode:'overview'}))return;
-    unavailable('Календарь ещё не загрузился. Обновите страницу.','Календарь');
   }
 
   function syncDashboardView(){
@@ -683,16 +495,13 @@
   function refresh(){
     syncDashboardView();
     renderClients();
-    if(dashboardView==='home')renderHome();
-    else renderHero();
+    if(dashboardView==='client')renderHero();
     syncVisibility();
   }
 
   syncClientFilterButtons();
   for(const button of filterButtons)button.addEventListener('click',()=>setClientFilter(button.dataset.filter));
   search.addEventListener('input',renderClients);
-  $('#hdHomeCalendar').onclick=openOverviewCalendar;
-  $('#hdHomeNotes').onclick=openQuickNotes;
   $('#hdOpenNotes').onclick=openQuickNotes;
   $('#hdPlanBtn').onclick=openQuickNotes;
 
