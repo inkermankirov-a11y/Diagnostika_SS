@@ -33,6 +33,10 @@
             <button id="ccFreeConsultBtn" type="button" class="cc-top-action-btn cc-free-consult-btn">Бесплатная консультация</button>
             <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
           </div>
+          <div id="ccClientTime" class="cc-client-time cc-client-time-idle" role="status" aria-live="polite">
+            <span class="cc-client-time-icon">🕒</span>
+            <span class="cc-client-time-copy"><strong>Время клиента</strong><span class="cc-client-time-value">Укажите город</span></span>
+          </div>
         </div>
 
         <div class="cc-long-fields">
@@ -57,6 +61,9 @@
   let draft=null;
   let dirty=false;
   let photoData='';
+  let locationCatalogPromise=null;
+  let clientClockTimer=null;
+  let clientTimeRequest=0;
 
   function clientsApi(){
     return window.DiagnostikaClients || null;
@@ -66,6 +73,146 @@
     return window.DiagnostikaClientUIContext?.currentClient?.()
       || clientsApi()?.current?.()
       || null;
+  }
+
+  function normalizePlace(value){
+    return String(value||'')
+      .trim()
+      .toLocaleLowerCase('ru-RU')
+      .replace(/ё/g,'е')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-zа-я0-9]+/gi,' ')
+      .trim()
+      .replace(/\s+/g,' ');
+  }
+
+  const COUNTRY_ALIASES=Object.freeze({
+    'russia':'россия','russian federation':'россия','российская федерация':'россия',
+    'germany':'германия','deutschland':'германия',
+    'poland':'польша','czechia':'чехия','czech republic':'чехия',
+    'finland':'финляндия','belarus':'беларусь','kazakhstan':'казахстан',
+    'georgia':'грузия','armenia':'армения','turkey':'турция','turkiye':'турция',
+    'france':'франция','united kingdom':'великобритания','uk':'великобритания',
+    'great britain':'великобритания','italy':'италия'
+  });
+
+  function normalizeCountry(value){
+    const key=normalizePlace(value);
+    return COUNTRY_ALIASES[key]||key;
+  }
+
+  function loadLocationCatalog(){
+    if(locationCatalogPromise)return locationCatalogPromise;
+    locationCatalogPromise=fetch('./weather-locations.json?v=20261002-client-time-1',{cache:'force-cache',credentials:'same-origin'})
+      .then(response=>{
+        if(!response.ok)throw new Error('location-catalog-'+response.status);
+        return response.json();
+      })
+      .then(data=>Array.isArray(data?.cities)?data.cities:[])
+      .catch(error=>{
+        console.warn('[Diagnostika] client timezone catalog unavailable',error);
+        return [];
+      });
+    return locationCatalogPromise;
+  }
+
+  function findClientLocation(rows,city,country){
+    const cityKey=normalizePlace(city);
+    if(!cityKey)return null;
+    const countryKey=normalizeCountry(country);
+    const candidates=(rows||[]).filter(row=>{
+      const names=[row?.name,...(Array.isArray(row?.aliases)?row.aliases:[])].map(normalizePlace);
+      return names.includes(cityKey);
+    });
+    if(!candidates.length)return null;
+    if(candidates.length===1)return candidates[0];
+    if(countryKey){
+      const matched=candidates.find(row=>normalizeCountry(row?.country)===countryKey);
+      if(matched)return matched;
+    }
+    return null;
+  }
+
+  function timeZoneOffsetMinutes(date,timeZone){
+    const parts=new Intl.DateTimeFormat('en-CA',{
+      timeZone,year:'numeric',month:'2-digit',day:'2-digit',
+      hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'
+    }).formatToParts(date);
+    const map=Object.fromEntries(parts.filter(part=>part.type!=='literal').map(part=>[part.type,part.value]));
+    const utcLike=Date.UTC(
+      Number(map.year),Number(map.month)-1,Number(map.day),
+      Number(map.hour),Number(map.minute),Number(map.second)
+    );
+    const instant=Math.floor(date.getTime()/1000)*1000;
+    return Math.round((utcLike-instant)/60000);
+  }
+
+  function formatTimeDifference(minutes){
+    const rounded=Math.round(minutes);
+    if(!rounded)return 'то же время, что у вас';
+    const abs=Math.abs(rounded);
+    const hours=Math.floor(abs/60);
+    const mins=abs%60;
+    const amount=[hours?hours+' ч':'',mins?mins+' мин':''].filter(Boolean).join(' ');
+    return rounded>0?'на '+amount+' впереди вас':'на '+amount+' позади вас';
+  }
+
+  function setClientTimeState(state,value,detail=''){
+    const root=q('ccClientTime');
+    if(!root)return;
+    root.className='cc-client-time cc-client-time-'+state;
+    const valueNode=root.querySelector('.cc-client-time-value');
+    if(valueNode)valueNode.textContent=detail?value+' · '+detail:value;
+  }
+
+  async function updateClientTime(){
+    const requestId=++clientTimeRequest;
+    const city=q('ccCity')?.value?.trim()||'';
+    const country=q('ccCountry')?.value?.trim()||'';
+    if(!city){
+      setClientTimeState('idle','Укажите город');
+      return;
+    }
+
+    setClientTimeState('loading','Определяю время…');
+    const rows=await loadLocationCatalog();
+    if(requestId!==clientTimeRequest)return;
+    const location=findClientLocation(rows,city,country);
+    if(!location?.timezone){
+      setClientTimeState('unknown','Часовой пояс не найден',city);
+      return;
+    }
+
+    try{
+      const now=new Date();
+      const formatter=new Intl.DateTimeFormat('ru-RU',{
+        timeZone:location.timezone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+      });
+      const time=formatter.format(now);
+      const hourPart=formatter.formatToParts(now).find(part=>part.type==='hour')?.value;
+      const hour=Number(hourPart);
+      const clientOffset=timeZoneOffsetMinutes(now,location.timezone);
+      const localOffset=-now.getTimezoneOffset();
+      const difference=formatTimeDifference(clientOffset-localOffset);
+      const state=hour>=0&&hour<6?'night':(hour>=22||hour<8?'caution':'ok');
+      const label=state==='night'?'ночь у клиента':(state==='caution'?'позднее/раннее время':'');
+      setClientTimeState(state,time,label?difference+' · '+label:difference);
+      q('ccClientTime').title=(location.name||city)+' · '+location.timezone;
+    }catch(error){
+      console.warn('[Diagnostika] client timezone formatting failed',error);
+      setClientTimeState('unknown','Не удалось показать время',city);
+    }
+  }
+
+  function startClientClock(){
+    if(clientClockTimer)clearInterval(clientClockTimer);
+    updateClientTime();
+    clientClockTimer=setInterval(updateClientTime,30000);
+  }
+
+  function stopClientClock(){
+    if(clientClockTimer){clearInterval(clientClockTimer);clientClockTimer=null;}
   }
 
   function ageFromBirth(value){
@@ -112,6 +259,7 @@
     q('ccClientNotes').value = c.clientNotes || c.notes || '';
     setPhoto(c.photoData||'');
     dirty=false;
+    updateClientTime();
   }
 
   function collectData(){
@@ -181,6 +329,7 @@
     q('ccSaveBtn').textContent='Сохранить карточку';
     fillFrom(c);
     dlg.showModal();
+    startClientClock();
   }
 
   function openNew(){
@@ -189,11 +338,14 @@
     q('ccSaveBtn').textContent='Сохранить клиента';
     fillFrom(draft);
     dlg.showModal();
+    startClientClock();
     setTimeout(()=>q('ccName')?.focus(),0);
   }
 
   q('ccBirth').addEventListener('input', e => { q('ccAge').value = ageFromBirth(e.target.value); dirty=true; });
   fieldIds.forEach(id=>q(id)?.addEventListener('input',()=>{dirty=true;}));
+  q('ccCountry')?.addEventListener('input',updateClientTime);
+  q('ccCity')?.addEventListener('input',updateClientTime);
   q('ccGender')?.addEventListener('change',()=>{dirty=true;});
   q('ccCloseBtn').onclick = closeDraftAware;
   q('ccSaveBtn').onclick = saveCard;
@@ -208,6 +360,7 @@
 
   dlg.addEventListener('click', e => { if(e.target === dlg) closeDraftAware(); });
   dlg.addEventListener('cancel',e=>{e.preventDefault();closeDraftAware();});
+  dlg.addEventListener('close',stopClientClock);
 
   window.DiagnostikaClientCard={openExisting,openNew,isDraft:()=>draftMode};
 })();
