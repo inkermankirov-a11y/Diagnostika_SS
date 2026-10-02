@@ -267,6 +267,80 @@
   }
   function shortId(v){return String(v||'id').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,8)||'id';}
 
+  function permanentDeletedIds(data){
+    return new Set((data?.deletedClientTombstones||[]).filter(Boolean).map(String));
+  }
+
+  async function removeClientFoldersByIds(app,ids){
+    if(!app||!ids?.size)return 0;
+    let clientsDir;
+    try{clientsDir=await app.getDirectoryHandle('clients',{create:false});}
+    catch(e){if(e?.name==='NotFoundError')return 0;throw e;}
+
+    const removeNames=[];
+    for await(const [name,handle] of clientsDir.entries()){
+      if(handle?.kind!=='directory')continue;
+      let match=false;
+      try{
+        const client=await readJson(handle,'client.json');
+        if(client?.id&&ids.has(String(client.id)))match=true;
+      }catch(_){}
+      if(!match){
+        for(const id of ids){
+          if(name.endsWith('_'+shortId(id))){match=true;break;}
+        }
+      }
+      if(match)removeNames.push(name);
+    }
+
+    let removed=0;
+    for(const name of removeNames){
+      try{
+        await clientsDir.removeEntry(name,{recursive:true});
+        removed++;
+      }catch(e){
+        if(e?.name!=='NotFoundError')throw e;
+      }
+    }
+    return removed;
+  }
+
+  async function purgeClientFromConnectedStorage(id){
+    if(id===undefined||id===null||id==='')return false;
+    let root;
+    try{root=await getSavedHandle();}catch(_){return false;}
+    if(!root)return false;
+
+    try{
+      const access=await root.queryPermission({mode:'readwrite'});
+      if(access!=='granted')return false;
+    }catch(_){return false;}
+
+    let app;
+    try{app=await root.getDirectoryHandle(APP_DIR,{create:false});}
+    catch(e){if(e?.name==='NotFoundError')return false;throw e;}
+
+    const key=String(id);
+    await removeClientFoldersByIds(app,new Set([key]));
+
+    const database=await readJson(app,'database.json');
+    if(database&&typeof database==='object'){
+      database.clients=(database.clients||[]).filter(c=>!c?.id||String(c.id)!==key);
+      database.deletedClients=(database.deletedClients||[]).filter(c=>!c?.id||String(c.id)!==key);
+      if(!Array.isArray(database.deletedClientTombstones))database.deletedClientTombstones=[];
+      if(!database.deletedClientTombstones.some(value=>String(value)===key))database.deletedClientTombstones.push(id);
+      await writeJson(app,'database.json',database);
+
+      const settings=await readJson(app,'settings.json')||{};
+      await writeJson(app,'settings.json',{
+        ...settings,
+        updatedAt:new Date().toISOString(),
+        clientCount:database.clients.length
+      });
+    }
+    return true;
+  }
+
   async function writeStateTree(app,data){
     await writeJson(app,'database.json',data);
     await writeJson(app,'settings.json',{
@@ -300,9 +374,11 @@
     try{app=await handle.getDirectoryHandle(APP_DIR,{create:false});}
     catch(e){if(e?.name==='NotFoundError')app=await handle.getDirectoryHandle(APP_DIR,{create:true});else throw e;}
 
+    const deletedIds=seedDeletedLedger(state);
+    const permanentIds=permanentDeletedIds(state);
+    const removedPurgedFolders=await removeClientFoldersByIds(app,permanentIds);
     const databaseState=await readJson(app,'database.json');
     const scanned=await readClientsFromFolders(app);
-    const deletedIds=seedDeletedLedger(state);
     const suppressedDeleted=scanned.clients.filter(c=>c?.id&&deletedIds.has(String(c.id))).length;
     const folderOnlyState=filterDeletedFromClientSet({clients:scanned.clients},deletedIds);
     const safeDatabaseState=filterDeletedFromClientSet(databaseState,deletedIds);
@@ -351,6 +427,7 @@
       duplicates:scanned.duplicates,
       recoveredNames:scanned.recoveredNames,
       suppressedDeleted,
+      removedPurgedFolders,
       errors:scanned.errors
     };
   }
@@ -379,12 +456,7 @@
       try{
         sync.disabled=true;sync.textContent='Синхронизация…';
         const result=await synchronize();
-        const details=[];
-        if(result.duplicates)details.push(`Объединено дубликатов папок: ${result.duplicates}.`);
-        if(result.recoveredNames)details.push(`Восстановлено имён из названий папок: ${result.recoveredNames}.`);
-        if(result.suppressedDeleted)details.push(`Не восстановлено ранее удалённых клиентов: ${result.suppressedDeleted}.`);
-        if(result.errors)details.push(`Не удалось прочитать папок: ${result.errors}.`);
-        await AppDialog.alert(`Проверено папок клиентов: ${result.scannedFolders}.\nУникальных client.json: ${result.scannedClients}.\nВ базе после синхронизации: ${result.count} клиент(ов).${details.length?'\n'+details.join('\n'):''}`,'Синхронизация завершена');
+        await AppDialog.alert(`Клиентов в базе: ${result.count}.`,'Синхронизация завершена');
         location.reload();
       }catch(e){
         if(e?.name!=='AbortError')await AppDialog.alert(e?.message||'Не удалось выполнить синхронизацию.','Ошибка');
@@ -416,6 +488,8 @@
     events.on('client:purged',detail=>{
       rememberDeletedClient(detail?.clientId);
       markBrowserUpdated();
+      purgeClientFromConnectedStorage(detail?.clientId)
+        .catch(error=>console.warn('Не удалось сразу удалить папку клиента из хранилища',error));
     });
 
     lifecycleEventsBound=true;
