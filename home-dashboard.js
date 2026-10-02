@@ -100,8 +100,36 @@
     }).length;
   }
 
+  function sessionStartTime(session){
+    const raw=String(session?.date||'').trim();
+    if(!raw)return NaN;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){
+      const [year,month,day]=raw.split('-').map(Number);
+      return new Date(year,month-1,day,12,0,0,0).getTime();
+    }
+    const parsed=Date.parse(raw);
+    return Number.isFinite(parsed)?parsed:NaN;
+  }
+
   function isNewClient(c){
-    return !!c && (!Array.isArray(c.sessions) || c.sessions.length===0);
+    if(!c)return false;
+    const sessions=Array.isArray(c.sessions)?c.sessions:[];
+    if(!sessions.length)return true;
+    const now=Date.now();
+    return !sessions.some(session=>{
+      const time=sessionStartTime(session);
+      return Number.isFinite(time)&&time<=now;
+    });
+  }
+
+  function hasUpcomingSession(c,days=7){
+    if(!c||!Array.isArray(c.sessions)||!c.sessions.length)return false;
+    const now=Date.now();
+    const limit=now+days*24*60*60*1000;
+    return c.sessions.some(session=>{
+      const time=sessionStartTime(session);
+      return Number.isFinite(time)&&time>=now&&time<limit;
+    });
   }
 
   function renderHeroVisual(c){
@@ -255,11 +283,14 @@
       const avatar=c.photoData?`<div class="hd-avatar"><img src="${esc(c.photoData)}" alt=""></div>`:`<div class="hd-avatar">${esc(initials(c.name))}</div>`;
       const unpaid=unpaidSessionCount(c);
       const flag=unpaid?`<span class="hd-unpaid-flag" aria-label="Есть неоплаченные сессии" title="Есть неоплаченные сессии">⚑</span>`:'';
-      const newClientDot=isNewClient(c)?`<span class="hd-new-client-dot" aria-label="Новый клиент" title="Новый клиент"></span>`:'';
+      const newClient=isNewClient(c);
+      const upcoming=hasUpcomingSession(c,7);
+      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot" aria-label="Сессия в ближайшие 7 дней" title="Сессия в ближайшие 7 дней"></span>`:'';
       const pinned=pinRank.has(String(c.id));
       const pin=pinned?`<span class="hd-client-pin" aria-label="Закреплённый клиент" title="Закреплён">📌</span>`:'';
       row.classList.toggle('pinned',pinned);
-      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools">${pin}${newClientDot}${flag}<button class="hd-client-more" type="button" title="Действия с клиентом" aria-haspopup="menu" aria-expanded="false">⋮</button></div>`;
+      row.classList.toggle('new-client',newClient);
+      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools"><span class="hd-client-pin-cell">${pin}</span><span class="hd-client-status-cell">${upcomingDot}</span>${flag}<button class="hd-client-more" type="button" title="Действия с клиентом" aria-haspopup="menu" aria-expanded="false">⋮</button></div>`;
       row.onclick=e=>{if(e.target.closest('.hd-client-more'))return;selectClient(c.id);};
       row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();openClientMenu(c,e.currentTarget);};
       list.appendChild(row);
@@ -335,7 +366,7 @@
   const dashboardEvents=[
     'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged',
     'request:created','request:selected','request:activated','request:completed','request:resumed',
-    'session:created','session:updated',
+    'session:created','session:updated','session:deleted',
     'payment:updated','payment:added','payment:deleted','session-payment:updated'
   ];
   let eventBusBound=false;
