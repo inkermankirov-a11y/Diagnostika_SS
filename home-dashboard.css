@@ -25,16 +25,18 @@
 .hd-search input:focus{border-color:#78a9f5;box-shadow:0 0 0 3px rgba(47,124,246,.10)}
 .hd-add-client{height:48px;border:0;border-radius:9px;background:linear-gradient(180deg,#3688ff,#2472ea);color:white;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 7px 16px rgba(36,114,234,.20);margin-bottom:10px}
 .hd-add-client:hover{filter:brightness(1.04)}
-.hd-client-list{overflow:auto;min-height:100px;padding-right:3px;flex:1}
-.hd-client-row{display:grid;grid-template-columns:48px 1fr auto;gap:11px;align-items:center;padding:10px 9px;border-radius:10px;cursor:pointer;border-left:4px solid transparent;transition:.15s ease;margin-bottom:3px}
+.hd-client-list{overflow:auto;min-height:100px;padding-right:10px;flex:1}
+.hd-client-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:11px;align-items:center;padding:10px 9px;border-radius:10px;cursor:pointer;border-left:4px solid transparent;transition:.15s ease;margin-bottom:3px;position:relative}
 .hd-client-row:hover{background:#f4f8fd}
 .hd-client-row.active{background:#eaf4ff;border-left-color:#3b82f6}
 .hd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#e8eef6;color:#304661;font-size:15px;font-weight:800;overflow:hidden}
 .hd-avatar img{width:100%;height:100%;object-fit:cover}
 .hd-client-name{font-weight:800;color:#152746;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hd-client-meta{margin-top:3px;color:#7587a3;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hd-client-tools{display:flex;align-items:center;gap:5px}
-.hd-client-more{border:0;background:transparent;color:#46617e;font-size:22px;line-height:1;padding:5px;cursor:pointer}
+.hd-client-tools{display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:64px;padding-right:1px}
+.hd-client-pin-cell{width:20px;height:22px;display:grid;place-items:center;flex:0 0 20px}
+.hd-client-status-cell{width:12px;height:22px;display:grid;place-items:center;flex:0 0 12px}
+.hd-client-more{width:28px;height:32px;border:0;background:transparent;color:#46617e;font-size:22px;line-height:1;padding:0;display:grid;place-items:center;cursor:pointer;flex:0 0 28px}
 .hd-client-pin{display:grid;place-items:center;width:20px;height:20px;font-size:13px;line-height:1;filter:saturate(.9)}
 .hd-client-menu{position:fixed;z-index:18000;min-width:210px;padding:6px;background:#fff;border:1px solid #d5e0ec;border-radius:10px;box-shadow:0 14px 38px rgba(15,35,65,.18);box-sizing:border-box}
 .hd-client-menu[hidden]{display:none!important}
@@ -43,8 +45,9 @@
 .hd-client-menu-icon{width:18px;text-align:center;flex:0 0 auto}
 .hd-unpaid-flag{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;color:#dc2626;background:#fff1f1;border:1px solid #f0aaaa;font-size:16px;line-height:1;pointer-events:none;box-shadow:0 2px 6px rgba(220,38,38,.18);animation:hdUnpaidPulse 1.15s ease-in-out infinite;transform-origin:center}
 @keyframes hdUnpaidPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,.08)}50%{transform:scale(1.08);box-shadow:0 0 0 5px rgba(220,38,38,.14)}}
-.hd-new-client-dot{width:10px;height:10px;border-radius:50%;display:block;background:#22c55e;border:2px solid #fff;box-shadow:0 0 0 1px #86dca7,0 0 0 0 rgba(34,197,94,.18);cursor:help;animation:hdNewClientPulse 1.25s ease-in-out infinite;flex:0 0 auto}
-@keyframes hdNewClientPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 1px #86dca7,0 0 0 0 rgba(34,197,94,.12)}50%{transform:scale(1.14);box-shadow:0 0 0 1px #69cf91,0 0 0 5px rgba(34,197,94,.16)}}
+.hd-client-row.new-client::after{content:'';position:absolute;left:5px;top:50%;width:3px;height:34px;transform:translateY(-50%);border-radius:999px;background:#35b86b;box-shadow:0 0 0 1px rgba(53,184,107,.08)}
+.hd-upcoming-session-dot{width:10px;height:10px;border-radius:50%;display:block;background:#f4b72a;border:2px solid #fff;box-shadow:0 0 0 1px #e4bd59,0 0 0 0 rgba(244,183,42,.20);cursor:help;animation:hdUpcomingSessionPulse 1.25s ease-in-out infinite}
+@keyframes hdUpcomingSessionPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 1px #e4bd59,0 0 0 0 rgba(244,183,42,.12)}50%{transform:scale(1.14);box-shadow:0 0 0 1px #dcae38,0 0 0 5px rgba(244,183,42,.20)}}
 .hd-client-count{padding:10px 5px 0;color:#8da0bb;font-size:12px}
 .hd-empty-list{padding:22px 10px;text-align:center;color:#8a9ab3;font-size:13px}
 
