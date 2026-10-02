@@ -24,6 +24,8 @@
     .header-util-btn{height:42px;width:94px;min-width:94px;max-width:94px;padding:4px 8px;border:1px solid #3d4f66;border-radius:10px;background:linear-gradient(#5d7188,#405268);color:#fff;display:grid;grid-template-columns:auto 1fr;grid-template-areas:'icon main' 'sub sub';column-gap:5px;row-gap:1px;align-content:center;justify-content:center;cursor:pointer;box-shadow:0 3px 9px rgba(30,41,59,.22);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
     .header-util-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 14px rgba(30,41,59,.24)}
     .header-util-btn:active{transform:translateY(1px)}
+    .header-calendar-btn{width:112px;min-width:112px;max-width:112px;grid-template-areas:'icon main';grid-template-rows:1fr;align-items:center}
+    .header-calendar-btn .hu-main{text-align:center}
     .hu-icon{grid-area:icon;font-size:17px;line-height:1}.hu-main{grid-area:main;font-size:14px;line-height:1;font-weight:800;white-space:nowrap;min-width:0;text-align:left;letter-spacing:.1px}.hu-sub{grid-area:sub;font-size:12px;line-height:1;font-weight:700;opacity:1;text-align:center;white-space:nowrap;max-width:82px;overflow:hidden;text-overflow:ellipsis;margin:0 auto;color:#fff}
     .utility-overlay{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.54);backdrop-filter:blur(6px)}
     .utility-overlay[hidden]{display:none!important}
@@ -37,10 +39,9 @@
   `;
   document.head.appendChild(style);
 
+  const calendarDateLabel=()=>new Intl.DateTimeFormat(lang()==='ru'?'ru-RU':lang(),{day:'numeric',month:'long'}).format(new Date());
   const group=document.createElement('div');group.id='headerUtilityGroup';group.className='header-utility-group';
-  const nowForCalendar=new Date();
-  const calendarDay=String(nowForCalendar.getDate()).padStart(2,'0');
-  group.innerHTML=`<button id="headerWeatherBtn" type="button" class="header-util-btn"><span class="hu-icon">🌤️</span><span class="hu-main">—°</span><span class="hu-sub">${tr().weather}</span></button><button id="headerCalendarBtn" type="button" class="header-util-btn"><span class="hu-icon">📅</span><span class="hu-main">${calendarDay}</span><span class="hu-sub">${tr().calendar}</span></button><button id="headerCurrencyBtn" type="button" class="header-util-btn"><span class="hu-icon">💱</span><span class="hu-main">— ₽</span><span class="hu-sub">USD</span></button>`;
+  group.innerHTML=`<button id="headerWeatherBtn" type="button" class="header-util-btn"><span class="hu-icon">🌤️</span><span class="hu-main">—°</span><span class="hu-sub">${tr().weather}</span></button><button id="headerCalendarBtn" type="button" class="header-util-btn header-calendar-btn" title="${tr().calendar}" aria-label="${tr().calendar}"><span class="hu-icon">📅</span><span class="hu-main">${calendarDateLabel()}</span></button><button id="headerCurrencyBtn" type="button" class="header-util-btn"><span class="hu-icon">💱</span><span class="hu-main">— ₽</span><span class="hu-sub">USD</span></button>`;
   headerButtons.insertBefore(group,settingsWrap);
   const weatherBtn=group.querySelector('#headerWeatherBtn'),calendarBtn=group.querySelector('#headerCalendarBtn'),currencyBtn=group.querySelector('#headerCurrencyBtn');
 
@@ -321,7 +322,9 @@
 
   function refreshLanguage(){
     weatherBtn.querySelector('.hu-sub').textContent=weatherLabel||tr().weather;
-    calendarBtn.querySelector('.hu-sub').textContent=tr().calendar;
+    calendarBtn.querySelector('.hu-main').textContent=calendarDateLabel();
+    calendarBtn.title=tr().calendar;
+    calendarBtn.setAttribute('aria-label',tr().calendar);
   }
   const oldSet=window.DiagnostikaI18n?.setLanguage;if(oldSet){window.DiagnostikaI18n.setLanguage=function(l){const r=oldSet.call(this,l);setTimeout(()=>{refreshLanguage();initWeather();},0);return r;};}
   window.DiagnostikaWeather=Object.freeze({
