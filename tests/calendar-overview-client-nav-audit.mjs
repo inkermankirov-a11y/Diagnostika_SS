@@ -16,6 +16,8 @@ assert.ok(calendar.includes("viewMode==='week'"),'week calendar rendering missin
 assert.ok(calendar.includes('weekTitle(start)'),'week range title missing');
 assert.ok(calendar.includes('clientAvatarHtml(c)'),'tooltip avatar source missing');
 assert.ok(calendar.includes("api.select(clientId,{source:'calendar-tooltip-open-client'})"),'tooltip client navigation does not select client');
+assert.ok(calendar.includes("shell?.setMode?.('card')"),'tooltip client navigation does not return to the client dashboard');
+assert.ok(calendar.includes('shell?.renderMode?.()'),'tooltip client navigation does not render dashboard mode');
 assert.ok(calendar.includes("document.getElementById('clientCardDialog')"),'client navigation does not close an open client card');
 assert.ok(index.includes('modules/calendar/ui/calendar.js?v=20261002-overview-clientnav-1'),'calendar cache key missing');
 assert.ok(index.includes('header-utilities.js?v=20261002-calendar-overview-1'),'header cache key missing');

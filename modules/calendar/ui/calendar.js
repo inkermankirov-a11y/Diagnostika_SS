@@ -194,10 +194,16 @@
     if(!clientId)return false;
     const api=clientsApi();
     if(typeof api?.select!=='function'||!api.select(clientId,{source:'calendar-tooltip-open-client'}))return false;
+    const shell=window.DiagnostikaPlatform?.shell;
+    shell?.setMode?.('card');
+    shell?.renderMode?.();
     closeCalendar();
     const card=document.getElementById('clientCardDialog');
     if(card?.open)card.close();
-    setTimeout(()=>window.DiagnostikaHomeDashboard?.refresh?.(),0);
+    setTimeout(()=>{
+      shell?.refreshDashboard?.();
+      window.DiagnostikaHomeDashboard?.refresh?.();
+    },0);
     return true;
   }
 
