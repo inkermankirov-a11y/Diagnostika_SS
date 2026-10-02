@@ -1,0 +1,200 @@
+/* Premium liquid-glass treatment for the persistent header controls.
+   Visual layer only: no layout ownership, data logic, or click behavior lives here. */
+
+.app-header{
+  --header-glass-top:rgba(74,90,112,.96);
+  --header-glass-bottom:rgba(29,42,59,.97);
+  --header-glass-text:#f8fbff;
+  --header-glass-muted:#d9e7f5;
+}
+
+.app-header #headerWeatherBtn,
+.app-header #headerCalendarBtn,
+.app-header #headerCurrencyBtn,
+.app-header #quickNotesBtn,
+.app-header #settingsMenuBtn{
+  --lg-accent-rgb:92,164,255;
+  height:44px!important;
+  border:1px solid rgba(226,240,255,.52)!important;
+  border-radius:14px!important;
+  color:var(--header-glass-text)!important;
+  background:
+    radial-gradient(115% 170% at 50% -78%,rgba(255,255,255,.36) 0%,rgba(255,255,255,0) 58%),
+    radial-gradient(78% 115% at 5% 110%,rgba(var(--lg-accent-rgb),.22) 0%,rgba(var(--lg-accent-rgb),0) 68%),
+    linear-gradient(180deg,var(--header-glass-top),var(--header-glass-bottom))!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.34),
+    inset 0 -1px 0 rgba(var(--lg-accent-rgb),.18),
+    0 5px 12px rgba(15,23,42,.22),
+    0 0 0 1px rgba(var(--lg-accent-rgb),.07)!important;
+  backdrop-filter:blur(12px) saturate(1.16);
+  -webkit-backdrop-filter:blur(12px) saturate(1.16);
+  text-shadow:0 1px 1px rgba(0,0,0,.34);
+  isolation:isolate;
+  overflow:hidden!important;
+  filter:none!important;
+  transition:transform .16s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease!important;
+}
+
+.app-header #headerWeatherBtn{--lg-accent-rgb:72,187,255}
+.app-header #headerCalendarBtn{--lg-accent-rgb:126,143,255}
+.app-header #headerCurrencyBtn{--lg-accent-rgb:67,205,174}
+.app-header #quickNotesBtn{--lg-accent-rgb:145,120,255}
+.app-header #settingsMenuBtn{--lg-accent-rgb:105,161,224}
+
+.app-header #headerWeatherBtn::before,
+.app-header #headerCalendarBtn::before,
+.app-header #headerCurrencyBtn::before,
+.app-header #quickNotesBtn::before,
+.app-header #settingsMenuBtn::before{
+  content:""!important;
+  position:absolute!important;
+  z-index:0!important;
+  inset:1px 5px auto 5px!important;
+  height:42%!important;
+  border-radius:12px 12px 55% 55%!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.31),rgba(255,255,255,.08) 56%,rgba(255,255,255,0))!important;
+  opacity:.9!important;
+  pointer-events:none!important;
+}
+
+.app-header #headerWeatherBtn::after,
+.app-header #headerCalendarBtn::after,
+.app-header #headerCurrencyBtn::after,
+.app-header #quickNotesBtn::after,
+.app-header #settingsMenuBtn::after{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:12%;
+  right:12%;
+  bottom:-1px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent,rgba(var(--lg-accent-rgb),.62),transparent);
+  opacity:.72;
+  pointer-events:none;
+}
+
+.app-header #headerWeatherBtn>*,
+.app-header #headerCalendarBtn>*,
+.app-header #headerCurrencyBtn>*,
+.app-header #quickNotesBtn>*,
+.app-header #settingsMenuBtn>*{
+  position:relative;
+  z-index:1;
+}
+
+.app-header #headerWeatherBtn:hover,
+.app-header #headerCalendarBtn:hover,
+.app-header #headerCurrencyBtn:hover,
+.app-header #quickNotesBtn:hover,
+.app-header #settingsMenuBtn:hover{
+  transform:translateY(-1px) scale(1.012)!important;
+  filter:none!important;
+  border-color:rgba(238,247,255,.72)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.43),
+    inset 0 -1px 0 rgba(var(--lg-accent-rgb),.26),
+    0 7px 16px rgba(15,23,42,.26),
+    0 0 15px rgba(var(--lg-accent-rgb),.14)!important;
+}
+
+.app-header #headerWeatherBtn:active,
+.app-header #headerCalendarBtn:active,
+.app-header #headerCurrencyBtn:active,
+.app-header #quickNotesBtn:active,
+.app-header #settingsMenuBtn:active{
+  transform:translateY(1px) scale(.992)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 2px 6px rgba(3,10,20,.25),
+    0 2px 6px rgba(15,23,42,.18)!important;
+}
+
+.app-header #headerWeatherBtn:focus-visible,
+.app-header #headerCalendarBtn:focus-visible,
+.app-header #headerCurrencyBtn:focus-visible,
+.app-header #quickNotesBtn:focus-visible,
+.app-header #settingsMenuBtn:focus-visible{
+  outline:2px solid rgba(125,194,255,.92)!important;
+  outline-offset:3px!important;
+}
+
+/* Small glass wells keep emoji/symbol icons from looking pasted onto the button. */
+.app-header .header-util-btn .hu-icon,
+.app-header #quickNotesBtn>span:first-child,
+.app-header #settingsMenuBtn .settings-gear{
+  display:grid!important;
+  place-items:center!important;
+  min-width:25px!important;
+  width:25px!important;
+  height:25px!important;
+  padding:0!important;
+  border:1px solid rgba(232,244,255,.25)!important;
+  border-radius:9px!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.035))!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -1px 0 rgba(0,0,0,.10)!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.34)!important;
+}
+
+.app-header #headerCurrencyBtn.currency-compact-display .hu-icon{
+  border-right:1px solid rgba(232,244,255,.25)!important;
+  padding-right:0!important;
+  font-size:18px!important;
+}
+
+.app-header .header-util-btn .hu-main,
+.app-header #quickNotesBtn .quick-notes-label,
+.app-header #settingsMenuBtn .settings-label{
+  color:#fff!important;
+  font-weight:800!important;
+  letter-spacing:.01em!important;
+}
+
+.app-header .header-util-btn .hu-sub,
+.app-header #headerCurrencyBtn.currency-compact-display .hu-sub{
+  color:var(--header-glass-muted)!important;
+  opacity:.95!important;
+}
+
+.app-header #headerCalendarBtn{
+  padding-left:9px!important;
+  padding-right:14px!important;
+}
+
+/* Match the clock shell to the same material without touching its mechanism. */
+.app-header .header-flip-clock{
+  border-color:rgba(226,240,255,.46)!important;
+  background:
+    radial-gradient(120% 170% at 50% -82%,rgba(255,255,255,.29) 0%,rgba(255,255,255,0) 58%),
+    linear-gradient(180deg,rgba(72,88,109,.96),rgba(29,42,59,.97))!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -1px 0 rgba(97,169,255,.12),
+    0 5px 13px rgba(15,23,42,.23)!important;
+}
+
+/* Open settings gets a restrained selected-state glow, not a neon state. */
+.app-header .settings-wrap.open #settingsMenuBtn{
+  border-color:rgba(197,225,255,.72)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.39),
+    inset 0 -1px 0 rgba(105,161,224,.28),
+    0 7px 17px rgba(15,23,42,.25),
+    0 0 16px rgba(105,161,224,.14)!important;
+}
+
+@media(max-width:760px){
+  .app-header #headerWeatherBtn,
+  .app-header #headerCalendarBtn,
+  .app-header #headerCurrencyBtn,
+  .app-header #quickNotesBtn,
+  .app-header #settingsMenuBtn{
+    height:42px!important;
+    border-radius:12px!important;
+  }
+}

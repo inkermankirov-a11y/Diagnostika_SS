@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const css=fs.readFileSync('modules/header/flip-clock.css','utf8');
+const glass=fs.readFileSync('modules/header/liquid-glass.css','utf8');
 const index=fs.readFileSync('index.html','utf8');
 
 assert.ok(index.includes('<span class="app-title-text"><span>Психологическая</span><span>диагностика</span></span>'),'two-line app title missing');
@@ -17,5 +18,9 @@ assert.ok(css.includes('.header-utility-group')&&css.includes('margin-right:0!im
 assert.ok(css.includes('.quick-notes-wrap')&&css.includes('margin-right:0!important'),'notes extra margin still remains');
 assert.ok(css.includes('@media(max-width:1180px)'),'clock responsive threshold was not updated');
 assert.ok(index.includes('modules/header/flip-clock.css?v=20261003-clock-static-colon-1'),'clock CSS cache key missing');
+assert.ok(index.includes('modules/header/liquid-glass.css?v=20261003-header-glass-1'),'header liquid-glass CSS cache key missing');
+assert.ok(glass.includes('#headerWeatherBtn')&&glass.includes('#headerCalendarBtn')&&glass.includes('#headerCurrencyBtn'),'utility liquid-glass selectors missing');
+assert.ok(glass.includes('#quickNotesBtn')&&glass.includes('#settingsMenuBtn'),'notes/settings liquid-glass selectors missing');
+assert.ok(glass.includes('backdrop-filter:blur(12px)'),'liquid-glass material effect missing');
 
 console.log('UNIFIED_HEADER_LAYOUT_AUDIT_OK');
