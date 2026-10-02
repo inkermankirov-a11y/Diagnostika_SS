@@ -1,0 +1,140 @@
+name: Update weather data
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/update-weather.yml'
+      - 'weather-locations.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weather-data-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch weather on GitHub
+        run: |
+          python - <<'PY'
+          import concurrent.futures
+          import datetime as dt
+          import json
+          import pathlib
+          import time
+          import urllib.parse
+          import urllib.request
+
+          root=pathlib.Path('.')
+          locations=json.loads((root/'weather-locations.json').read_text(encoding='utf-8'))['cities']
+          endpoint='https://api.open-meteo.com/v1/forecast'
+
+          def fetch_city(city):
+              params={
+                  'latitude':city['latitude'],
+                  'longitude':city['longitude'],
+                  'current':'temperature_2m,apparent_temperature,weather_code,is_day',
+                  'daily':'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max',
+                  'forecast_days':7,
+                  'temperature_unit':'celsius',
+                  'wind_speed_unit':'kmh',
+                  'timezone':city.get('timezone') or 'auto'
+              }
+              url=endpoint+'?'+urllib.parse.urlencode(params)
+              error=None
+              for attempt in range(3):
+                  try:
+                      request=urllib.request.Request(url,headers={'User-Agent':'DiagnostikaSS-weather/1.0'})
+                      with urllib.request.urlopen(request,timeout=25) as response:
+                          data=json.load(response)
+                      if not isinstance(data.get('current'),dict):
+                          raise RuntimeError('current missing')
+                      if not isinstance(data.get('daily',{}).get('time'),list) or len(data['daily']['time'])<7:
+                          raise RuntimeError('daily.time missing')
+                      return {
+                          **city,
+                          'timezone':data.get('timezone') or city.get('timezone') or 'auto',
+                          'current':data['current'],
+                          'daily':data['daily']
+                      }
+                  except Exception as exc:
+                      error=exc
+                      time.sleep(1.5*(attempt+1))
+              raise RuntimeError(f"{city['id']}: {error}")
+
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+              futures={pool.submit(fetch_city,city):i for i,city in enumerate(locations)}
+              rows=[None]*len(locations)
+              for future,index in futures.items():
+                  rows[index]=future.result()
+
+          existing=None
+          target=root/'weather-data.json'
+          if target.exists():
+              try:
+                  existing=json.loads(target.read_text(encoding='utf-8'))
+              except Exception:
+                  existing=None
+
+          if existing and existing.get('cities')==rows:
+              print('Weather payload unchanged.')
+          else:
+              reference=next((city for city in rows if city.get('id')=='kirov'),rows[0])
+              payload={
+                  '_updated_utc':dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),
+                  'current':reference['current'],
+                  'daily':reference['daily'],
+                  'cities':rows
+              }
+              target.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+              print(f"Updated {len(rows)} cities.")
+          PY
+
+      - name: Validate weather-data.json
+        run: |
+          python - <<'PY'
+          import json
+          data=json.load(open('weather-data.json',encoding='utf-8'))
+          if data.get('current',{}).get('temperature_2m') is None:
+              raise SystemExit('top-level current.temperature_2m missing')
+          if len(data.get('daily',{}).get('time') or []) < 7:
+              raise SystemExit('top-level daily.time missing')
+          cities=data.get('cities') or []
+          if not cities:
+              raise SystemExit('weather cities missing')
+          for city in cities:
+              if city.get('current',{}).get('temperature_2m') is None:
+                  raise SystemExit(f"current.temperature_2m missing for {city.get('id')}")
+              if len(city.get('daily',{}).get('time') or []) < 7:
+                  raise SystemExit(f"7-day forecast missing for {city.get('id')}")
+          print(f"Validated {len(cities)} cities.")
+          PY
+
+      - name: Commit changed weather data
+        run: |
+          git add weather-data.json
+          if git diff --cached --quiet; then
+            echo "Weather data unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update weather data"
+          git push origin HEAD:main
