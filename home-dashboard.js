@@ -37,15 +37,6 @@
 
     <aside class="hd-right">
       <section class="hd-widget hd-card">
-        <div class="hd-widget-title"><span>🚀</span><span>Быстрый старт</span></div>
-        <div class="hd-step"><div class="hd-step-num">1</div><div><strong>Создайте клиента</strong>Добавьте нового или выберите существующего.</div></div>
-        <div class="hd-step"><div class="hd-step-num">2</div><div><strong>Заполните карточку</strong>Основные данные и контакты клиента.</div></div>
-        <div class="hd-step"><div class="hd-step-num">3</div><div><strong>Сформулируйте запрос</strong>Зафиксируйте текущий запрос клиента.</div></div>
-        <div class="hd-step"><div class="hd-step-num">4</div><div><strong>Проведите диагностику</strong>Перейдите к рабочей схеме диагностики.</div></div>
-        <div class="hd-step"><div class="hd-step-num">5</div><div><strong>Зафиксируйте следующий шаг</strong>Сессия, заметка или дальнейшая работа.</div></div>
-      </section>
-
-      <section class="hd-widget hd-card">
         <div class="hd-widget-title"><span>▤</span><span>Заметки</span></div>
         <div id="hdOpenNotes" class="hd-note-box">Здесь будут ваши быстрые заметки. Нажмите, чтобы открыть заметки и записать идею или важную мысль.</div>
       </section>
