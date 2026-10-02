@@ -37,43 +37,43 @@
 
   function renderAssistantInline(value){
     let html=esc(value);
-    html=html.replace(/\\*\\*([^*\\n]+)\\*\\*/g,'<strong class="hd-ai-key">$1</strong>');
-    html=html.replace(/«([^»\\n]{1,120})»/g,'<span class="hd-ai-quote-key">«$1»</span>');
-    html=html.replace(/(\\b\\d+(?:[.,]\\d+)?(?:\\s*[–—-]\\s*\\d+(?:[.,]\\d+)?)?\\s+из\\s+10\\b)/gi,'<span class="hd-ai-score-key">$1</span>');
+    html=html.replace(/\*\*([^*\n]+)\*\*/g,'<strong class="hd-ai-key">$1</strong>');
+    html=html.replace(/«([^»\n]{1,120})»/g,'<span class="hd-ai-quote-key">«$1»</span>');
+    html=html.replace(/(\b\d+(?:[.,]\d+)?(?:\s*[–—-]\s*\d+(?:[.,]\d+)?)?\s+из\s+10\b)/gi,'<span class="hd-ai-score-key">$1</span>');
     return html;
   }
   function formatAssistantText(value){
-    const lines=String(value??'').replace(/\\r/g,'').split('\\n');
+    const lines=String(value??'').replace(/\r/g,'').split('\n');
     const out=[];
     let listType='';
-    const closeList=()=>{if(listType){out.push(\`</\${listType}>\`);listType='';}};
-    const openList=type=>{if(listType===type)return;if(listType)closeList();listType=type;out.push(\`<\${type} class="hd-ai-list">\`);};
+    const closeList=()=>{if(listType){out.push('</'+listType+'>');listType='';}};
+    const openList=type=>{if(listType===type)return;if(listType)closeList();listType=type;out.push('<'+type+' class="hd-ai-list">');};
 
     for(const raw of lines){
       const line=raw.trim();
       if(!line){closeList();continue;}
 
-      const mdHeading=line.match(/^#{1,4}\\s+(.+)$/);
-      const boldHeading=line.match(/^\\*\\*([^*]+)\\*\\*:?$/);
+      const mdHeading=line.match(/^#{1,4}\s+(.+)$/);
+      const boldHeading=line.match(/^\*\*([^*]+)\*\*:?$/);
       if(mdHeading||boldHeading||(line.length<=64&&/:$/.test(line))){
         closeList();
         const heading=(mdHeading?.[1]||boldHeading?.[1]||line.replace(/:$/,'')).trim();
-        out.push(\`<div class="hd-ai-section-title">\${renderAssistantInline(heading)}</div>\`);
+        out.push('<div class="hd-ai-section-title">'+renderAssistantInline(heading)+'</div>');
         continue;
       }
 
-      const bullet=line.match(/^[-•*]\\s+(.+)$/);
-      if(bullet){openList('ul');out.push(\`<li>\${renderAssistantInline(bullet[1])}</li>\`);continue;}
+      const bullet=line.match(/^[-•*]\s+(.+)$/);
+      if(bullet){openList('ul');out.push('<li>'+renderAssistantInline(bullet[1])+'</li>');continue;}
 
-      const numbered=line.match(/^\\d+[.)]\\s+(.+)$/);
-      if(numbered){openList('ol');out.push(\`<li>\${renderAssistantInline(numbered[1])}</li>\`);continue;}
+      const numbered=line.match(/^\d+[.)]\s+(.+)$/);
+      if(numbered){openList('ol');out.push('<li>'+renderAssistantInline(numbered[1])+'</li>');continue;}
 
       closeList();
-      const labelled=line.match(/^(.{2,48}?)(:\\s+|\\s+—\\s+)(.+)$/);
+      const labelled=line.match(/^(.{2,48}?)(:\s+|\s+—\s+)(.+)$/);
       if(labelled&&!/^https?:/i.test(line)){
-        out.push(\`<p><span class="hd-ai-lead">\${renderAssistantInline(labelled[1])}</span><span class="hd-ai-separator">\${esc(labelled[2])}</span>\${renderAssistantInline(labelled[3])}</p>\`);
+        out.push('<p><span class="hd-ai-lead">'+renderAssistantInline(labelled[1])+'</span><span class="hd-ai-separator">'+esc(labelled[2])+'</span>'+renderAssistantInline(labelled[3])+'</p>');
       }else{
-        out.push(\`<p>\${renderAssistantInline(line)}</p>\`);
+        out.push('<p>'+renderAssistantInline(line)+'</p>');
       }
     }
     closeList();
