@@ -101,19 +101,42 @@
     window.alert(message);
   }
 
+  function paymentNumber(value){
+    const n=Number(String(value??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));
+    return Number.isFinite(n)?n:0;
+  }
+
   function unpaidSessionCount(c){
-    if(!c||!Array.isArray(c.sessions))return 0;
+    if(!c)return 0;
     const requests=Array.isArray(c.requests)?c.requests:[];
+    const sessions=Array.isArray(c.sessions)?c.sessions:[];
     const sessionModeRequests=requests.filter(r=>r?.payment?.mode==='session');
-    return c.sessions.filter(s=>{
-      if(s?.payment?.paid===true)return false;
-      const linkedId=s?.payment?.requestId||s?.requestId||'';
-      const linked=requests.find(r=>r.id===linkedId)||null;
-      if(linked?.payment?.mode==='session')return true;
-      if(s?.payment&&('paid' in s.payment||Number(s.payment.amount)>0||s.payment.manualAmount))return true;
-      if(!linkedId&&sessionModeRequests.length===1)return true;
-      return false;
-    }).length;
+    let unpaid=0;
+
+    for(const r of requests){
+      const p=r?.payment;
+      if(!p||typeof p!=='object'||!p.mode)continue;
+
+      if(p.mode==='session'){
+        const linkedSessions=sessions.filter(s=>{
+          const linkedId=s?.payment?.requestId||s?.requestId||'';
+          if(linkedId)return String(linkedId)===String(r.id);
+          return sessionModeRequests.length===1;
+        });
+        unpaid+=linkedSessions.filter(s=>s?.payment?.paid!==true).length;
+        continue;
+      }
+
+      if(p.mode==='full'||p.mode==='parts'){
+        const total=Math.max(0,paymentNumber(p.total));
+        if(total<=0)continue;
+        const paid=(Array.isArray(p.payments)?p.payments:[])
+          .reduce((sum,item)=>sum+Math.max(0,paymentNumber(item?.amount)),0);
+        if(paid<total)unpaid++;
+      }
+    }
+
+    return unpaid;
   }
 
   function sessionStartTime(session){
