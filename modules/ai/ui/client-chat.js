@@ -35,12 +35,57 @@
   }
   function fmt(ts){try{return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(ts));}catch(_){return'';}}
 
+  function renderAssistantInline(value){
+    let html=esc(value);
+    html=html.replace(/\\*\\*([^*\\n]+)\\*\\*/g,'<strong class="hd-ai-key">$1</strong>');
+    html=html.replace(/«([^»\\n]{1,120})»/g,'<span class="hd-ai-quote-key">«$1»</span>');
+    html=html.replace(/(\\b\\d+(?:[.,]\\d+)?(?:\\s*[–—-]\\s*\\d+(?:[.,]\\d+)?)?\\s+из\\s+10\\b)/gi,'<span class="hd-ai-score-key">$1</span>');
+    return html;
+  }
+  function formatAssistantText(value){
+    const lines=String(value??'').replace(/\\r/g,'').split('\\n');
+    const out=[];
+    let listType='';
+    const closeList=()=>{if(listType){out.push(\`</\${listType}>\`);listType='';}};
+    const openList=type=>{if(listType===type)return;if(listType)closeList();listType=type;out.push(\`<\${type} class="hd-ai-list">\`);};
+
+    for(const raw of lines){
+      const line=raw.trim();
+      if(!line){closeList();continue;}
+
+      const mdHeading=line.match(/^#{1,4}\\s+(.+)$/);
+      const boldHeading=line.match(/^\\*\\*([^*]+)\\*\\*:?$/);
+      if(mdHeading||boldHeading||(line.length<=64&&/:$/.test(line))){
+        closeList();
+        const heading=(mdHeading?.[1]||boldHeading?.[1]||line.replace(/:$/,'')).trim();
+        out.push(\`<div class="hd-ai-section-title">\${renderAssistantInline(heading)}</div>\`);
+        continue;
+      }
+
+      const bullet=line.match(/^[-•*]\\s+(.+)$/);
+      if(bullet){openList('ul');out.push(\`<li>\${renderAssistantInline(bullet[1])}</li>\`);continue;}
+
+      const numbered=line.match(/^\\d+[.)]\\s+(.+)$/);
+      if(numbered){openList('ol');out.push(\`<li>\${renderAssistantInline(numbered[1])}</li>\`);continue;}
+
+      closeList();
+      const labelled=line.match(/^(.{2,48}?)(:\\s+|\\s+—\\s+)(.+)$/);
+      if(labelled&&!/^https?:/i.test(line)){
+        out.push(\`<p><span class="hd-ai-lead">\${renderAssistantInline(labelled[1])}</span><span class="hd-ai-separator">\${esc(labelled[2])}</span>\${renderAssistantInline(labelled[3])}</p>\`);
+      }else{
+        out.push(\`<p>\${renderAssistantInline(line)}</p>\`);
+      }
+    }
+    closeList();
+    return out.join('')||'<p></p>';
+  }
+
   const style=document.createElement('style');
   style.textContent=`
     #clientNotesOverlay{position:fixed;inset:0;z-index:15000;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.54);backdrop-filter:blur(6px)}
     #clientNotesOverlay[hidden]{display:none!important}.client-notes-panel{width:min(680px,calc(100vw - 24px));max-height:86dvh;overflow:auto;background:#f8fafc;border:1px solid #cbd5e1;border-radius:16px;box-shadow:0 25px 70px rgba(15,23,42,.35);padding:16px;box-sizing:border-box;color:#243447}.client-notes-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.client-notes-head h2{margin:0;font-size:20px}.client-notes-editor{padding:12px;border:1px solid #d8e3ec;border-radius:12px;background:#fff}.client-notes-text{width:100%;min-height:105px;resize:vertical;border:1px solid #b9c6d4;border-radius:9px;padding:10px 12px;box-sizing:border-box;font:14px/1.45 'Segoe UI',Arial,sans-serif}.client-notes-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}.client-notes-list{display:grid;gap:8px;margin-top:12px}.client-note-item{display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 12px;border:1px solid #dbe4ed;border-radius:10px;background:#fff;cursor:pointer}.client-note-item:hover{background:#f4f8fc}.client-note-content{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.4}.client-note-date{font-size:10px;color:#8290a1;margin-top:5px}.client-note-delete{height:30px!important;padding:0 9px!important;font-size:11px!important;background:#d95353!important;color:#fff!important}.client-note-empty{padding:16px;text-align:center;color:#94a3b8;font-size:12px}
     .hd-note-box .hd-note-preview-head{font-weight:800;color:#344b68;margin-bottom:5px}.hd-note-box .hd-note-preview-meta{font-size:11px;color:#8a9bb4;margin-top:5px}
-    .hd-ai-widget{padding:14px!important}.hd-ai-widget .hd-widget-title{margin-bottom:6px!important}.hd-ai-client{font-size:11px;color:#7b8da8;margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hd-ai-quick{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}.hd-ai-quick button{border:1px solid #cbdcf2;background:#f6faff;color:#356aa9;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800;cursor:pointer}.hd-ai-quick button:hover{background:#eaf4ff}.hd-ai-messages{height:190px;overflow:auto;border:1px solid #dbe7f4;border-radius:10px;background:#f8fbff;padding:8px;display:flex;flex-direction:column;gap:7px;box-sizing:border-box}.hd-ai-empty{margin:auto;text-align:center;color:#91a0b5;font-size:11px;line-height:1.45;padding:10px}.hd-ai-msg{max-width:90%;padding:7px 9px;border-radius:10px;font-size:11px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}.hd-ai-msg.user{align-self:flex-end;background:#2f7cf6;color:#fff;border-bottom-right-radius:4px}.hd-ai-msg.assistant{align-self:flex-start;background:#fff;border:1px solid #d8e4f2;color:#314861;border-bottom-left-radius:4px}.hd-ai-msg-time{display:block;font-size:9px;opacity:.65;margin-top:4px}.hd-ai-compose{display:grid;grid-template-columns:1fr 38px;gap:6px;margin-top:8px}.hd-ai-input{width:100%;height:38px;box-sizing:border-box;border:1px solid #cbd9ea;border-radius:9px;padding:0 10px;font:12px 'Segoe UI',Arial,sans-serif;outline:none}.hd-ai-input:focus{border-color:#72a6f2;box-shadow:0 0 0 2px rgba(47,124,246,.10)}.hd-ai-send{width:38px;height:38px;border:0;border-radius:9px;background:#2f7cf6;color:#fff;font-size:17px;font-weight:900;cursor:pointer}.hd-ai-send:disabled,.hd-ai-input:disabled,.hd-ai-quick button:disabled{opacity:.5;cursor:not-allowed}.hd-ai-status{min-height:15px;margin-top:6px;font-size:10px;color:#72839a}.hd-ai-status.error{color:#b33a3a}.hd-ai-status.busy{color:#2f70d4}
+    .hd-ai-widget{padding:14px!important}.hd-ai-widget .hd-widget-title{margin-bottom:6px!important}.hd-ai-client{font-size:11px;color:#7b8da8;margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hd-ai-quick{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}.hd-ai-quick button{border:1px solid #cbdcf2;background:#f6faff;color:#356aa9;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800;cursor:pointer}.hd-ai-quick button:hover{background:#eaf4ff}.hd-ai-messages{height:190px;overflow:auto;border:1px solid #dbe7f4;border-radius:10px;background:#f8fbff;padding:8px;display:flex;flex-direction:column;gap:7px;box-sizing:border-box}.hd-ai-empty{margin:auto;text-align:center;color:#91a0b5;font-size:11px;line-height:1.45;padding:10px}.hd-ai-msg{max-width:90%;padding:8px 10px;border-radius:10px;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.hd-ai-msg.user{align-self:flex-end;background:#2f7cf6;color:#fff;border-bottom-right-radius:4px}.hd-ai-msg.assistant{align-self:flex-start;background:#fff;border:1px solid #d8e4f2;color:#24364b;border-bottom-left-radius:4px;font-size:12.5px;line-height:1.58;font-weight:500;white-space:normal}.hd-ai-rich{display:block;letter-spacing:.002em}.hd-ai-rich p{margin:0 0 8px}.hd-ai-rich p:last-child{margin-bottom:0}.hd-ai-section-title{margin:10px 0 5px;color:#1d4ed8;font-size:11px;font-weight:800;line-height:1.35;letter-spacing:.015em}.hd-ai-section-title:first-child{margin-top:0}.hd-ai-list{margin:3px 0 9px;padding-left:20px}.hd-ai-list li{margin:4px 0;padding-left:1px}.hd-ai-key,.hd-ai-lead{color:#1d4ed8;font-weight:800}.hd-ai-quote-key{color:#0f5f9f;font-weight:700}.hd-ai-score-key{color:#7c3aed;font-weight:800}.hd-ai-separator{color:#64748b;font-weight:700}.hd-ai-msg-time{display:block;font-size:9px;opacity:.62;margin-top:7px;font-weight:500}.hd-ai-compose{display:grid;grid-template-columns:1fr 38px;gap:6px;margin-top:8px}.hd-ai-input{width:100%;height:38px;box-sizing:border-box;border:1px solid #cbd9ea;border-radius:9px;padding:0 10px;font:12px 'Segoe UI',Arial,sans-serif;outline:none}.hd-ai-input:focus{border-color:#72a6f2;box-shadow:0 0 0 2px rgba(47,124,246,.10)}.hd-ai-send{width:38px;height:38px;border:0;border-radius:9px;background:#2f7cf6;color:#fff;font-size:17px;font-weight:900;cursor:pointer}.hd-ai-send:disabled,.hd-ai-input:disabled,.hd-ai-quick button:disabled{opacity:.5;cursor:not-allowed}.hd-ai-status{min-height:15px;margin-top:6px;font-size:10px;color:#72839a}.hd-ai-status.error{color:#b33a3a}.hd-ai-status.busy{color:#2f70d4}
     @media(max-width:760px){#clientNotesOverlay{place-items:end center;padding:0}.client-notes-panel{width:100%;max-height:88dvh;border-radius:18px 18px 0 0}.hd-ai-messages{height:230px}}
   `;
   document.head.appendChild(style);
@@ -183,7 +228,7 @@
     if(!c){messages.innerHTML='<div class="hd-ai-empty">Выберите клиента. AI будет видеть только данные выбранного клиента.</div>';return;}
     const history=chatOf(c);
     if(!history.length){messages.innerHTML='<div class="hd-ai-empty">Здесь будет отдельный AI-диалог по этому клиенту. Контекст других клиентов не отправляется.</div>';return;}
-    history.slice(-30).forEach(m=>{const div=document.createElement('div');div.className=`hd-ai-msg ${m.role==='assistant'?'assistant':'user'}`;div.innerHTML=`${esc(m.text)}<span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`;messages.appendChild(div);});messages.scrollTop=messages.scrollHeight;
+    history.slice(-30).forEach(m=>{const div=document.createElement('div');const assistant=m.role==='assistant';div.className=`hd-ai-msg ${assistant?'assistant':'user'}`;div.innerHTML=assistant?`<div class="hd-ai-rich">${formatAssistantText(m.text)}</div><span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`:`${esc(m.text)}<span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`;messages.appendChild(div);});messages.scrollTop=messages.scrollHeight;
   }
   function setStatus(text,kind=''){if(!widget)return;const s=widget.querySelector('.hd-ai-status');s.textContent=text||'';s.className=`hd-ai-status ${kind}`.trim();}
   async function send(raw){
