@@ -19,6 +19,10 @@
 
 .hd-sidebar{padding:16px 12px;display:flex;flex-direction:column;min-height:calc(100vh - 108px);overflow:hidden}
 .hd-side-title{display:flex;align-items:center;justify-content:space-between;font-size:22px;font-weight:800;color:var(--hd-text);padding:0 4px 12px}
+.hd-client-base-slot{display:flex;align-items:center;min-width:0}
+.hd-client-base-btn{border:0;background:transparent;color:var(--hd-text);font:inherit;font-size:22px;font-weight:800;line-height:1.15;padding:4px 7px;margin-left:-7px;border-radius:8px;cursor:pointer;text-align:left;box-shadow:none}
+.hd-client-base-btn:hover{background:#eef5ff;color:#1559b7}
+.hd-client-base-btn:focus-visible{outline:2px solid #78a9f5;outline-offset:2px}
 .hd-search{position:relative;margin-bottom:12px}
 .hd-search:before{content:'⌕';position:absolute;left:13px;top:7px;color:#7d90ad;font-size:23px;line-height:1}
 .hd-search input{width:100%;height:42px;padding:0 12px 0 38px;border:1px solid #cbd9ea;border-radius:9px;background:#fff;box-sizing:border-box;font-size:14px;outline:none;color:#263a59}
