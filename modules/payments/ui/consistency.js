@@ -4,6 +4,17 @@
   const SYMBOLS={RUB:'₽',USD:'$',EUR:'€',KZT:'₸'};
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
+  const formatRuDate=value=>{
+    const raw=String(value||'').trim();
+    if(!raw)return '—';
+    const iso=raw.slice(0,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+      const [year,month,day]=iso.split('-').map(Number);
+      return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
+    }
+    const d=new Date(raw);
+    return Number.isNaN(d.getTime())?raw:new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+  };
   const ui=()=>window.DiagnostikaPaymentUIContext||null;
   const currentClient=()=>ui()?.currentClient?.()||null;
   const paymentWriter=()=>window.DiagnostikaPayments?.moduleAware===true?window.DiagnostikaPayments:null;
@@ -139,7 +150,7 @@
         <div class="payment-head"><strong>РЕДАКТИРОВАТЬ ПЛАТЁЖ</strong><button type="button" class="payment-x pce-close">×</button></div>
         <div class="payment-sub pce-context"></div>
         <div class="payment-grid" style="grid-template-columns:1fr">
-          <label class="payment-field">Дата оплаты<input class="pce-date" type="date"></label>
+          <label class="payment-field">Дата оплаты<input class="pce-date" type="date" lang="ru-RU"></label>
           <label class="payment-field">Сумма<input class="pce-amount" type="number" min="0" step="1"></label>
           <label class="payment-field">Комментарий<input class="pce-note" type="text"></label>
           <label class="payment-field">Ссылка на чек<input class="pce-receipt" type="url" placeholder="https://..."></label>
@@ -303,7 +314,7 @@
       const row=document.createElement('div');
       row.className='all-payment-row';
       row.style.gridTemplateColumns='105px 120px minmax(0,1fr) 92px';
-      row.innerHTML=`<span>${x.date||'—'}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn pc-edit-payment">Изменить</button>`;
+      row.innerHTML=`<span>${formatRuDate(x.date)}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn pc-edit-payment">Изменить</button>`;
       row.querySelector('.pc-edit-payment').onclick=()=>editPayment(x);
       list.appendChild(row);
     });
