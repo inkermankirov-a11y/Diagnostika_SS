@@ -219,6 +219,18 @@
     return best;
   }
 
+  function nextUpcomingReminder(c){
+    const now=Date.now();
+    let best=null;
+    for(const event of calendarEventsForClient(c)){
+      if(upcomingBeaconKind(event)!=='reminder')continue;
+      const time=calendarEventStartTime(event);
+      if(!Number.isFinite(time)||time<now)continue;
+      if(!best||time<best.time)best={event,time};
+    }
+    return best;
+  }
+
   function upcomingBeaconKind(event){
     const type=String(event?.type||'').trim().toLowerCase();
     const title=String(event?.title||'').trim().toLowerCase();
@@ -279,8 +291,8 @@
     heroReminder.replaceChildren();
     if(!c)return;
 
-    const upcoming=nextUpcomingInteraction(c);
-    if(!upcoming||upcoming.time>=Date.now()+7*24*60*60*1000)return;
+    const upcoming=nextUpcomingReminder(c);
+    if(!upcoming)return;
     if(upcomingBeaconKind(upcoming.event)!=='reminder')return;
 
     const event=upcoming.event;
@@ -561,14 +573,21 @@
       const upcomingText=upcoming?upcomingInteractionLabel(upcomingInfo):'';
       const upcomingKind=upcoming?upcomingBeaconKind(upcomingInfo.event):'neutral';
       const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-tooltip="${esc(upcomingText)}"></span>`:'';
+      const reminderInfo=nextUpcomingReminder(c);
+      const reminderIsTop=!!reminderInfo&&upcoming&&upcomingBeaconKind(upcomingInfo.event)==='reminder'
+        &&(reminderInfo.event===upcomingInfo.event||(reminderInfo.event?.id&&String(reminderInfo.event.id)===String(upcomingInfo.event?.id||'')));
+      const reminderText=reminderInfo?upcomingInteractionLabel(reminderInfo):'';
+      const reminderDot=reminderInfo&&!reminderIsTop
+        ?`<span class="hd-upcoming-session-dot is-reminder" tabindex="0" aria-label="Напоминание: ${esc(reminderText)}" data-kind="reminder" data-tooltip="${esc(reminderText)}"></span>`
+        :'';
       const pinned=pinRank.has(String(c.id));
       const pin=pinned?`<span class="hd-client-pin" aria-label="Закреплённый клиент" title="Закреплён">📌</span>`:'';
       row.classList.toggle('pinned',pinned);
       row.classList.toggle('new-client',newClient);
-      row.innerHTML=`${avatar}<div class="hd-client-info"><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools"><span class="hd-client-pin-cell">${pin}</span><span class="hd-client-status-stack" aria-label="Статусы клиента"><span class="hd-client-status-slot hd-client-status-top">${upcomingDot}</span><span class="hd-client-status-slot hd-client-status-middle" aria-hidden="true"></span><span class="hd-client-status-slot hd-client-status-bottom">${flag}</span></span><button class="hd-client-more" type="button" title="Действия с клиентом" aria-haspopup="menu" aria-expanded="false">⋮</button></div>`;
+      row.innerHTML=`${avatar}<div class="hd-client-info"><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools"><span class="hd-client-pin-cell">${pin}</span><span class="hd-client-status-stack" aria-label="Статусы клиента"><span class="hd-client-status-slot hd-client-status-top">${upcomingDot}</span><span class="hd-client-status-slot hd-client-status-middle">${reminderDot}</span><span class="hd-client-status-slot hd-client-status-bottom">${flag}</span></span><button class="hd-client-more" type="button" title="Действия с клиентом" aria-haspopup="menu" aria-expanded="false">⋮</button></div>`;
       row.onclick=e=>{if(e.target.closest('.hd-client-more'))return;selectClient(c.id);};
       row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();openClientMenu(c,e.currentTarget);};
-      bindUpcomingTooltip(row.querySelector('.hd-upcoming-session-dot'));
+      row.querySelectorAll('.hd-upcoming-session-dot').forEach(bindUpcomingTooltip);
       list.appendChild(row);
     });
     count.textContent=clientFilter==='all'

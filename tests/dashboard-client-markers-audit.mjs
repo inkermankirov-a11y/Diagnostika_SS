@@ -9,6 +9,7 @@ const debtFlags=fs.readFileSync('modules/payments/ui/client-debt-flags.js','utf8
 const sessionsUi=fs.readFileSync('home-dashboard-sessions.js','utf8');
 
 assert.ok(js.includes('function nextUpcomingInteraction(c)'),'next planned calendar interaction calculation missing');
+assert.ok(js.includes('function nextUpcomingReminder(c)'),'future client reminder calculation missing');
 assert.ok(js.includes('function nextInteractionTime(c)'),'client ordering calculation missing');
 assert.ok(js.includes('function hasUpcomingInteraction(c,days=7)'),'upcoming client interaction calculation missing');
 assert.ok(js.includes('calendarEventsForClient(c)'),'calendar client events are not used for appointment beacons');
@@ -27,6 +28,9 @@ assert.ok(js.includes("if(type==='сессия'||/^сессия №\\d+$/i.test"
 assert.ok(js.includes("return `${upcomingBeaconTypeLabel(event)} • ${dateText} • ${timeText}`"),'beacon tooltip does not identify appointment type');
 assert.ok(js.includes("const heroReminder=$('#hdHeroReminder')"),'client hero reminder container missing');
 assert.ok(js.includes("if(upcomingBeaconKind(upcoming.event)!=='reminder')return;"),'client hero reminder is not limited to reminder events');
+assert.ok(js.includes('const upcoming=nextUpcomingReminder(c);'),'client hero reminder still depends on the 7-day appointment window');
+assert.ok(js.includes('const reminderDot=reminderInfo&&!reminderIsTop'),'future reminder dot is not rendered separately from the 7-day appointment marker');
+assert.ok(js.includes('hd-client-status-middle">${reminderDot}'),'future reminder is not anchored to the client status stack');
 assert.ok(js.includes("note=String(event?.note||'').trim()"),'client hero reminder does not use calendar note text');
 assert.ok(js.includes("calendarEventDateLabel(event)"),'client hero reminder date/time formatter missing');
 assert.ok(js.includes("'calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced'"),'calendar lifecycle does not refresh client markers');
@@ -66,7 +70,7 @@ assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
 assert.ok(loader.includes('home-dashboard.css?v=20261003-hero-reminder-1'),'dashboard CSS cache key missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261003-ru-date-1'),'dashboard JS cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261003-ru-date-1&reminders=20261003-2'),'dashboard reminder cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-ru-date-1'),'dashboard sessions cache key missing');
 assert.ok(index.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1&beacons=20261003-1&reminder=20261003-1&dates=20261003-1'),'app-loader cache key missing');
 assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-planned-session-1'),'client debt flags cache key missing');
