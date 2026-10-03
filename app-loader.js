@@ -164,7 +164,7 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const l=document.createElement('link');
       l.rel='stylesheet';
-      l.href='home-dashboard.css?v=20261003-hero-reminder-1';
+      l.href='home-dashboard.css?v=20261003-client-main-left-1';
       l.setAttribute('data-home-dashboard','1');
       document.head.appendChild(l);
     }
