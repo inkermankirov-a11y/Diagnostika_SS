@@ -95,7 +95,11 @@ assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'client
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
 assert.ok(loader.includes('home-dashboard.css?v=20261003-glass-rail-5'),'dashboard CSS cache key missing');
 assert.ok(loader.includes('home-dashboard.js?v=20261003-glass-rail-5'),'dashboard client-main cache key missing');
-assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-full-history-3'),'dashboard sessions cache key missing');
+assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-capsule-4'),'dashboard sessions cache key missing');
+assert.ok(sessionsUi.includes('border:2px solid #b9d3ea'),'sessions capsule border is not visible enough');
+assert.ok(sessionsUi.includes('font-size:13px;line-height:1.35;color:#536b89;font-weight:750'),'sessions empty count is not readable enough');
+assert.ok(sessionsUi.includes('border:2px dashed #b9cee3'),'sessions empty-state border is not visible enough');
+assert.ok(sessionsUi.includes('font-size:14px;line-height:1.45;font-weight:700'),'sessions empty-state text is not readable enough');
 assert.ok(css.includes('.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget'),'blue glass AI widget style missing');
 assert.ok(css.includes('.home-dashboard .hd-right > .hd-client-notes-widget'),'green glass client notes style missing');
 assert.ok(css.includes('backdrop-filter:blur(22px) saturate(1.22)'),'AI frosted-glass blur missing');
