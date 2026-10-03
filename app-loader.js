@@ -140,7 +140,7 @@
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261003-ru-date-1&reminders=20261003-2','data-home-dashboard-preload'],
+      ['home-dashboard.js?v=20261003-ru-date-1&reminders=20261003-2&workactions=20261003-2','data-home-dashboard-preload'],
       ['home-dashboard-sessions.js?v=20261003-ru-date-1','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
