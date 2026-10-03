@@ -24,12 +24,14 @@
       <div id="hdHomeView" class="hd-home-view" aria-label="Главная"></div>
 
       <div id="hdClientView" class="hd-main-inner hd-client-view">
-        <div class="hd-hero-icon" aria-hidden="true"></div>
-        <h2 id="hdHeroTitle">Выберите клиента</h2>
-        <div id="hdHeroSub" class="hd-main-sub"></div>
+        <section class="hd-client-profile">
+          <div class="hd-hero-icon" aria-hidden="true"></div>
+          <h2 id="hdHeroTitle">Выберите клиента</h2>
+          <div id="hdHeroSub" class="hd-main-sub"></div>
+          <div id="hdHeroActions" class="hd-client-actions"></div>
+          <div id="hdSummary" class="hd-selected-summary" hidden></div>
+        </section>
         <aside id="hdHeroReminder" class="hd-hero-reminder" hidden aria-live="polite"></aside>
-        <div id="hdHeroActions" class="hd-client-actions"></div>
-        <div id="hdSummary" class="hd-selected-summary" hidden></div>
         <div class="hd-features">
           <div class="hd-feature"><div class="hd-feature-icon">♙</div>Храните историю<br>клиентов</div>
           <div class="hd-feature"><div class="hd-feature-icon">▥</div>Проводите<br>диагностику</div>
@@ -620,9 +622,10 @@
     }
 
     heroTitle.textContent=c.name;
-    heroSub.textContent=clientMeta(c);
+    heroSub.textContent=c.city||'Город не указан';
     const card=document.createElement('button');card.className='hd-secondary';card.type='button';card.textContent='Карточка клиента';card.onclick=openCard;
-    heroActions.append(card);
+    const payment=document.createElement('button');payment.className='hd-secondary hd-payment-btn';payment.type='button';payment.textContent='Оплата';payment.onclick=openPayment;
+    heroActions.append(card,payment);
 
     const currentReq=requestsApi()?.current?.()||(c.requests||[])[0]||null;
     const lastSession=(c.sessions||[]).filter(s=>!(s?.planned===true||String(s?.status||'')==='planned')).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
