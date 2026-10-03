@@ -7,6 +7,17 @@
   const num=v=>{const n=Number(String(v??'').replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
   const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(num(v)).replace(/[\u00A0\u202F]/g,' ');
   const todayLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
+  const formatRuDate=value=>{
+    const raw=String(value||'').trim();
+    if(!raw)return '—';
+    const iso=raw.slice(0,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+      const [year,month,day]=iso.split('-').map(Number);
+      return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
+    }
+    const d=new Date(raw);
+    return Number.isNaN(d.getTime())?raw:new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+  };
   const ui=()=>window.DiagnostikaPaymentUIContext||null;
   const currentClient=()=>ui()?.currentClient?.()||null;
   const currentRequest=(c=currentClient())=>ui()?.currentRequest?.(c)||null;
@@ -124,7 +135,7 @@
     </div>
     <div id="paymentSummary" class="payment-summary-card"></div>
     <div id="paymentSessionHint" class="payment-session-note" hidden>В этом режиме оплата отмечается только в каждой сессии, относящейся к текущему запросу.</div>
-    <div id="paymentHistoryWrap"><div class="payment-history-title">ИСТОРИЯ ПЛАТЕЖЕЙ</div><div class="payment-add"><input id="paymentDate" type="date"><input id="paymentAmount" type="number" min="0" step="1" placeholder="Сумма"><input id="paymentNote" class="wide" type="text" placeholder="Комментарий"><input id="paymentReceipt" class="wide" type="url" placeholder="Ссылка на чек"><button id="paymentAddBtn" type="button" class="tk-btn">+ Платёж</button></div><div id="paymentList" class="payment-list"></div></div>
+    <div id="paymentHistoryWrap"><div class="payment-history-title">ИСТОРИЯ ПЛАТЕЖЕЙ</div><div class="payment-add"><input id="paymentDate" type="date" lang="ru-RU"><input id="paymentAmount" type="number" min="0" step="1" placeholder="Сумма"><input id="paymentNote" class="wide" type="text" placeholder="Комментарий"><input id="paymentReceipt" class="wide" type="url" placeholder="Ссылка на чек"><button id="paymentAddBtn" type="button" class="tk-btn">+ Платёж</button></div><div id="paymentList" class="payment-list"></div></div>
     <div class="payment-footer"><button id="allClientPaymentsBtn" type="button" class="tk-btn">Все платежи клиента</button><button id="paymentClose" type="button" class="tk-btn">Закрыть</button></div>
   </div>`;
   document.body.appendChild(dlg);
@@ -147,7 +158,7 @@
     if(!p.payments.length){root.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:6px 2px">Платежей по этому запросу пока нет.</div>';return;}
     [...p.payments].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).forEach(pay=>{
       const row=document.createElement('div');row.className='payment-row';
-      row.innerHTML=`<input class="pr-date" type="date"><input class="pr-amount" type="number" min="0" step="1"><input class="pr-note wide" type="text"><input class="pr-receipt wide" type="url" placeholder="Ссылка на чек"><div class="payment-row-actions"><button type="button" class="tk-btn pr-save">Сохранить</button><button type="button" class="db-delete-btn pr-delete">Удалить</button></div>`;
+      row.innerHTML=`<input class="pr-date" type="date" lang="ru-RU"><input class="pr-amount" type="number" min="0" step="1"><input class="pr-note wide" type="text"><input class="pr-receipt wide" type="url" placeholder="Ссылка на чек"><div class="payment-row-actions"><button type="button" class="tk-btn pr-save">Сохранить</button><button type="button" class="db-delete-btn pr-delete">Удалить</button></div>`;
       row.querySelector('.pr-date').value=pay.date||'';
       row.querySelector('.pr-amount').value=num(pay.amount)||'';
       row.querySelector('.pr-note').value=pay.note||'';
@@ -211,7 +222,7 @@
     const c=currentClient();if(!c)return;
     const rows=allRows(c),root=allDlg.querySelector('#allPaymentsList'),summaryEl=allDlg.querySelector('#allPaymentsSummary');
     root.innerHTML='';const totals={};rows.forEach(x=>totals[x.sym]=(totals[x.sym]||0)+x.amount);summaryEl.textContent=rows.length?`Всего платежей: ${rows.length} · ${Object.entries(totals).map(([s,v])=>`${money(v)} ${s}`).join(' · ')}`:'Платежей пока нет';
-    rows.forEach(x=>{const row=document.createElement('div');row.className='all-payment-row';row.innerHTML=`<span>${x.date||'—'}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn ap-edit">Изменить</button>`;row.querySelector('.ap-edit').onclick=()=>{if(x.pay){dlg.showModal?.();dlg.close?.();const req=x.request;dialogRequestId=req.id;renderDialog();dlg.showModal();setTimeout(()=>{const target=[...q('#paymentList').querySelectorAll('.payment-row')].find(rw=>num(rw.querySelector('.pr-amount')?.value)===num(x.pay.amount)&&rw.querySelector('.pr-date')?.value===x.pay.date);target?.querySelector('.pr-note')?.focus();},0);}else if(x.session){allDlg.close();const cnow=currentClient();const chronological=(ui()?.sessionList?.(cnow)||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));ui()?.openSessionEditor?.(cnow,x.session,chronological.indexOf(x.session)+1);}};root.appendChild(row);});
+    rows.forEach(x=>{const row=document.createElement('div');row.className='all-payment-row';row.innerHTML=`<span>${formatRuDate(x.date)}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn ap-edit">Изменить</button>`;row.querySelector('.ap-edit').onclick=()=>{if(x.pay){dlg.showModal?.();dlg.close?.();const req=x.request;dialogRequestId=req.id;renderDialog();dlg.showModal();setTimeout(()=>{const target=[...q('#paymentList').querySelectorAll('.payment-row')].find(rw=>num(rw.querySelector('.pr-amount')?.value)===num(x.pay.amount)&&rw.querySelector('.pr-date')?.value===x.pay.date);target?.querySelector('.pr-note')?.focus();},0);}else if(x.session){allDlg.close();const cnow=currentClient();const chronological=(ui()?.sessionList?.(cnow)||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));ui()?.openSessionEditor?.(cnow,x.session,chronological.indexOf(x.session)+1);}};root.appendChild(row);});
   }
   q('#allClientPaymentsBtn').onclick=()=>{allDlg.dataset.forceRender='1';renderAllPayments();delete allDlg.dataset.forceRender;allDlg.showModal();};
   allDlg.querySelector('.payment-x').onclick=()=>allDlg.close();allDlg.querySelector('.all-payments-close').onclick=()=>allDlg.close();allDlg.addEventListener('click',e=>{if(e.target===allDlg)allDlg.close();});
