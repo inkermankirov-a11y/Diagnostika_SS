@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+
+const view=fs.readFileSync('client-ai-chat-view.js','utf8');
+const css=fs.readFileSync('home-dashboard.css','utf8');
+const index=fs.readFileSync('index.html','utf8');
+
+new Function(view);
+
+assert(view.includes('hd-ai-hints-menu-portal'),'Hints portal class missing');
+assert(view.includes('document.body.appendChild(menu)'),'Hints menu is not portaled to body');
+assert(view.includes('function positionHintsMenu(btn,menu)'),'Hints viewport positioning missing');
+assert(view.includes('function hideHintsMenu()'),'Hints menu cleanup missing');
+assert(css.includes('width:350px!important'),'Right column width is not fixed');
+assert(css.includes('min-width:350px!important'),'Right column can still shrink');
+assert(css.includes('height:190px!important'),'AI message area can still collapse');
+assert(css.includes('min-width:760px'),'Very narrow desktop layout can still stack/collapse');
+assert(index.includes('client-ai-chat-view.js?v=20261003-hints-portal-4'),'AI view cache key missing');
+
+console.log('CLIENT_AI_FIXED_COLUMN_AUDIT_OK');
