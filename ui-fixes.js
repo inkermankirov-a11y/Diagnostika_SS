@@ -63,7 +63,7 @@ function openSessionEditor(c,s,number){
   const wrap=document.createElement('div');wrap.className='session-edit-card';
   const h=document.createElement('div');h.className='session-edit-title';h.textContent=`Сессия №${number}`;
   const grid=document.createElement('div');grid.className='session-edit-grid';
-  const dateInput=document.createElement('input');dateInput.type='date';dateInput.value=s.date||today();
+  const dateInput=document.createElement('input');dateInput.type='date';dateInput.lang='ru-RU';dateInput.value=s.date||today();
   const link=document.createElement('select');link.innerHTML='<option value="">— Без связи —</option>';
   c.requests.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.title||'Без названия';link.appendChild(o);});
   link.value=s.requestId||'';
