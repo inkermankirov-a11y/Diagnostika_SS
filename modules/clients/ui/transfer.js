@@ -472,7 +472,7 @@
       info=document.createElement('div');
       info.id='clientSpecialistInfo';
       info.className='client-specialist-info';
-      const anchor=document.querySelector('#hdHeroSub');
+      const anchor=document.querySelector('#hdHeroActions')||document.querySelector('#hdHeroSub');
       if(anchor) anchor.insertAdjacentElement('afterend',info); else home.prepend(info);
     }
     const c=clientsApi()?.current?.()||null;

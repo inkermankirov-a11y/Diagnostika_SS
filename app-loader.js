@@ -135,12 +135,12 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const css=document.createElement('link');
       css.rel='stylesheet';
-      css.href='home-dashboard.css?v=20261003-client-main-left-1';
+      css.href='home-dashboard.css?v=20261003-client-main-round-2';
       css.setAttribute('data-home-dashboard','1');
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261003-client-main-left-1','data-home-dashboard-preload'],
+      ['home-dashboard.js?v=20261003-client-main-round-2','data-home-dashboard-preload'],
       ['home-dashboard-sessions.js?v=20261003-ru-date-1','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
