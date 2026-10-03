@@ -849,7 +849,7 @@
 
   function openNew(){
     draftMode=true;
-    draft=typeof newClient==='function' ? newClient() : {id:(crypto.randomUUID?crypto.randomUUID():Date.now()+''),name:'Новый клиент',city:'',age:'',birth:'',photoData:'',vk:'',telegram:'',max:'',sessions:[],requests:[]};
+    draft=typeof newClient==='function' ? newClient() : {id:(crypto.randomUUID?crypto.randomUUID():Date.now()+''),name:'Новый клиент',city:'',age:'',ageAuto:false,birth:'',birthTime:'',photoData:'',photoSourceData:'',photoCrop:{x:50,y:50,zoom:1},vk:'',telegram:'',max:'',sessions:[],requests:[]};
     q('ccSaveBtn').textContent='Сохранить клиента';
     fillFrom(draft);
     dlg.showModal();
