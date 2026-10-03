@@ -916,6 +916,7 @@
 .hd-client-view.has-client .hd-client-profile-copy{
   padding-top:6px;
 }
+.hd-client-view:not(.has-client) .hd-client-right-rail{display:none}
 .hd-client-right-rail{
   position:absolute;
   top:30px;
