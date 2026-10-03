@@ -120,6 +120,72 @@
     </section>`;
   document.body.appendChild(overlay);
 
+  const hoverTooltip=document.createElement('div');
+  hoverTooltip.className='cal-hover-tooltip is-neutral';
+  hoverTooltip.hidden=true;
+  hoverTooltip.setAttribute('role','tooltip');
+  overlay.appendChild(hoverTooltip);
+
+  let hoverTooltipHideTimer=0;
+  function cancelHoverTooltipHide(){
+    if(hoverTooltipHideTimer){clearTimeout(hoverTooltipHideTimer);hoverTooltipHideTimer=0;}
+  }
+  function hideHoverTooltip(){
+    cancelHoverTooltipHide();
+    hoverTooltip.hidden=true;
+    hoverTooltip.innerHTML='';
+    hoverTooltip.style.left='';
+    hoverTooltip.style.top='';
+  }
+  function scheduleHoverTooltipHide(){
+    cancelHoverTooltipHide();
+    hoverTooltipHideTimer=setTimeout(hideHoverTooltip,120);
+  }
+  function calendarTooltipTheme(kind){
+    return ['reminder','free-consultation','session','neutral'].includes(kind)?kind:'neutral';
+  }
+  function eventTooltipLabel(e){
+    const title=String(e?.title||e?.type||'Запись').trim()||'Запись';
+    const note=String(e?.note||e?.meta||'').trim();
+    return note?title+' — '+note:title;
+  }
+  function positionHoverTooltip(anchor){
+    if(!anchor||hoverTooltip.hidden)return;
+    const rect=anchor.getBoundingClientRect();
+    const tip=hoverTooltip.getBoundingClientRect();
+    const margin=12;
+    let left=rect.left+(rect.width-tip.width)/2;
+    left=Math.max(margin,Math.min(window.innerWidth-tip.width-margin,left));
+    let top=rect.bottom+8;
+    if(top+tip.height>window.innerHeight-margin)top=rect.top-tip.height-8;
+    top=Math.max(margin,Math.min(window.innerHeight-tip.height-margin,top));
+    hoverTooltip.style.left=Math.round(left)+'px';
+    hoverTooltip.style.top=Math.round(top)+'px';
+  }
+  function showHoverTooltip(anchor,evs){
+    cancelHoverTooltipHide();
+    const rows=Array.isArray(evs)?evs:[];
+    const kind=calendarTooltipTheme(calendarDayKind(rows));
+    hoverTooltip.className='cal-hover-tooltip is-'+kind;
+    hoverTooltip.innerHTML=rows.map(e=>{
+      const client=clientById(e.clientId);
+      const name=client?.name||e.clientName||'Без клиента';
+      const tag=client&&e.clientId?'button':'div';
+      const attrs=client&&e.clientId?` type="button" class="cal-day-tooltip-row cal-day-tooltip-client-link" data-client-id="${esc(e.clientId)}"`:' class="cal-day-tooltip-row"';
+      return `<${tag}${attrs}><span class="cal-day-tooltip-time">${esc(e.time||'—')}</span>${clientAvatarHtml(client)}<span class="cal-day-tooltip-details"><span class="cal-day-tooltip-client">${esc(name)}</span><span class="cal-day-tooltip-event">${esc(eventTooltipLabel(e))}</span></span></${tag}>`;
+    }).join('');
+    hoverTooltip.hidden=false;
+    hoverTooltip.querySelectorAll('.cal-day-tooltip-client-link').forEach(link=>{
+      link.addEventListener('click',event=>{
+        event.stopPropagation();
+        openClientFromCalendar(link.dataset.clientId);
+      });
+    });
+    requestAnimationFrame(()=>positionHoverTooltip(anchor));
+  }
+  hoverTooltip.addEventListener('mouseenter',cancelHoverTooltipHide);
+  hoverTooltip.addEventListener('mouseleave',scheduleHoverTooltipHide);
+
   const grid=overlay.querySelector('.cal-grid');
   const monthTitle=overlay.querySelector('.cal-month-title');
   const eventsBox=overlay.querySelector('.cal-events');
