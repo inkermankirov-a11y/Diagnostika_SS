@@ -1515,3 +1515,94 @@
   border:2px solid rgba(255,255,255,.72);
   border-radius:999px;
 }
+
+
+/* Dashboard v9 — fixed third column width; never collapse the client AI panel. */
+.home-dashboard:not([hidden]){
+  grid-template-columns:minmax(200px,220px) minmax(0,1fr) 350px!important;
+}
+.home-dashboard:not([hidden]) > .hd-right{
+  width:350px!important;
+  min-width:350px!important;
+  max-width:350px!important;
+  flex:0 0 350px!important;
+  grid-column:auto!important;
+  grid-template-columns:1fr!important;
+  grid-template-rows:auto auto!important;
+  align-content:start!important;
+}
+.home-dashboard:not([hidden]) > .hd-right > #hdClientAiWidget,
+.home-dashboard:not([hidden]) > .hd-right > .hd-client-notes-widget{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+}
+
+/* Do not shrink the AI itself when the browser becomes shorter.
+   The whole right column scrolls instead. */
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-messages{
+  height:190px!important;
+  min-height:190px!important;
+  max-height:190px!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget{
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+}
+
+/* Preserve the full third column even when the browser narrows.
+   The middle column is allowed to compress; the right rail is not. */
+@media(max-width:1180px){
+  .home-dashboard:not([hidden]){
+    display:grid!important;
+    grid-template-columns:minmax(190px,210px) minmax(0,1fr) 350px!important;
+    gap:10px!important;
+    padding:10px 12px 14px!important;
+  }
+  .home-dashboard:not([hidden]) > .hd-right{
+    width:350px!important;
+    min-width:350px!important;
+    max-width:350px!important;
+    grid-column:auto!important;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+  }
+}
+@media(max-width:820px){
+  .home-dashboard:not([hidden]){
+    display:grid!important;
+    min-width:760px;
+    grid-template-columns:180px minmax(0,1fr) 350px!important;
+    gap:10px!important;
+    padding:10px!important;
+  }
+  .home-dashboard:not([hidden]) > .hd-right{
+    width:350px!important;
+    min-width:350px!important;
+    max-width:350px!important;
+    margin-top:0!important;
+  }
+}
+
+/* Hints are rendered as a viewport-level menu and must never be clipped by the glass card. */
+.hd-ai-hints-menu.hd-ai-hints-menu-portal{
+  position:fixed!important;
+  z-index:20050!important;
+  width:220px!important;
+  max-width:calc(100vw - 16px)!important;
+  max-height:min(420px,calc(100dvh - 16px))!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  left:auto;
+  top:auto;
+  bottom:auto!important;
+  margin:0!important;
+  padding:5px!important;
+  border:1px solid #dbe3ec!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  box-shadow:0 14px 36px rgba(15,23,42,.22)!important;
+  box-sizing:border-box!important;
+}
