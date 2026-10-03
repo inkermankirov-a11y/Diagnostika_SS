@@ -25,7 +25,8 @@ assert.ok(css.includes('.hd-client-row.active::before{content:\'\';position:abso
 assert.ok(css.includes('border-radius:10px 0 0 10px'),'selected client edge accent is not integrated into card radius');
 assert.ok(css.includes('.hd-client-row.new-client .hd-avatar{box-shadow:0 0 0 2px #fff,0 0 0 5px #35b86b'),'new client green avatar ring missing');
 assert.ok(css.includes('.hd-client-row.active.new-client .hd-avatar{box-shadow:0 0 0 2px #eaf4ff,0 0 0 5px #35b86b'),'green avatar ring is not adapted for selected row background');
-assert.equal(css.includes('background-image:url("data:image/svg+xml'),false,'old crescent marker assets still present');
+assert.equal(css.includes("stroke='%233b82f6'"),false,'old blue crescent marker asset still present');
+assert.equal(css.includes("stroke='%2335b86b'"),false,'old green crescent marker asset still present');
 assert.equal(css.includes('hdNewClientPulse'),false,'green new-client marker must not blink');
 assert.ok(css.includes('@keyframes hdUpcomingSessionPulse'),'yellow upcoming-session pulse missing');
 assert.ok(css.includes('.hd-upcoming-tooltip'),'upcoming appointment tooltip style missing');
