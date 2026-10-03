@@ -6,7 +6,7 @@ const planningSource=fs.readFileSync('modules/calendar/ui/session-planning.js','
 const indexSource=fs.readFileSync('index.html','utf8');
 
 assert(planningSource.includes("version:'8E'"),'Calendar session planning version is not 8E');
-assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261003-planned-session-1'),'Calendar session planner module marker is stale');
+assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261003-planned-session-2'),'Calendar session planner module marker is stale');
 
 for(const forbidden of [
   "typeof save==='function'",
