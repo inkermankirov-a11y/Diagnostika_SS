@@ -1,411 +1,523 @@
-/* White-site + module glass design.
-   Visual-only layer based on the approved reference: the page stays white,
-   while each utility keeps its own restrained translucent material and accent. */
+/* Glass windows v2 — approved visual direction.
+   White site canvas, reduced background blur, clear glowing edges,
+   smooth gradient glass and rounded internal tiles. */
 
 :root{
   --pg-text:#10234a;
   --pg-muted:#667b99;
-  --pg-line:rgba(121,154,198,.30);
   --pg-white:rgba(255,255,255,.74);
-  --pg-white-strong:rgba(255,255,255,.88);
-  --pg-shadow:0 24px 64px rgba(33,67,110,.16),0 7px 20px rgba(33,67,110,.08);
+  --pg-border:rgba(255,255,255,.92);
+  --pg-line:rgba(104,149,205,.28);
+  --pg-shadow:0 26px 70px rgba(36,76,126,.17),0 8px 24px rgba(36,76,126,.10);
 }
 
-/* Keep the application canvas deliberately neutral. */
 html,
 body,
 .desktop-app,
 .home-dashboard{
   background:#fff!important;
 }
-body{
-  color:var(--pg-text);
-}
+body{color:var(--pg-text)}
 .home-dashboard{
   --hd-bg:#fff!important;
-  --hd-card:rgba(255,255,255,.82)!important;
+  --hd-card:rgba(255,255,255,.88)!important;
   --hd-border:rgba(139,169,207,.28)!important;
 }
 .app-header{
-  background:rgba(255,255,255,.94)!important;
+  background:rgba(255,255,255,.96)!important;
   border-bottom:1px solid rgba(141,170,207,.24)!important;
-  box-shadow:0 8px 28px rgba(41,73,115,.07)!important;
-  backdrop-filter:blur(22px) saturate(1.15);
-  -webkit-backdrop-filter:blur(22px) saturate(1.15);
+  box-shadow:0 8px 26px rgba(41,73,115,.06)!important;
+  backdrop-filter:blur(10px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(1.08)!important;
 }
 .hd-card,
 .hd-sidebar,
 .hd-main{
-  background:
-    linear-gradient(145deg,rgba(255,255,255,.93),rgba(248,251,255,.78))!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(248,251,255,.88))!important;
   border-color:rgba(132,164,204,.28)!important;
-  box-shadow:0 12px 34px rgba(48,82,126,.07),inset 0 1px 0 rgba(255,255,255,.96)!important;
-  backdrop-filter:blur(18px) saturate(1.12);
-  -webkit-backdrop-filter:blur(18px) saturate(1.12);
+  box-shadow:0 12px 30px rgba(48,82,126,.07),inset 0 1px 0 rgba(255,255,255,.98)!important;
+  backdrop-filter:blur(8px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(8px) saturate(1.06)!important;
 }
-.hd-home-view{
-  background:transparent!important;
-}
-.hd-search input,
-.hd-summary-box,
-#hdClientAiWidget .hd-ai-messages,
-#hdClientAiWidget .hd-ai-compose,
-.hd-note-box{
-  background:rgba(255,255,255,.72)!important;
-  border-color:rgba(134,165,204,.30)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 6px 18px rgba(54,86,128,.05)!important;
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
-}
+.hd-home-view{background:transparent!important}
 
-/* Shared modal atmosphere: blur the page but do not recolor the page itself. */
+/* Background behind open windows: still readable, only lightly softened. */
 .utility-overlay,
-.quick-notes-overlay{
-  background:rgba(235,243,252,.40)!important;
-  backdrop-filter:blur(16px) saturate(1.10)!important;
-  -webkit-backdrop-filter:blur(16px) saturate(1.10)!important;
+.quick-notes-overlay,
+.settings-modal-backdrop{
+  background:rgba(236,244,252,.24)!important;
+  backdrop-filter:blur(5px) saturate(1.02)!important;
+  -webkit-backdrop-filter:blur(5px) saturate(1.02)!important;
 }
 .cal-overlay::backdrop{
-  background:rgba(235,243,252,.42)!important;
-  backdrop-filter:blur(16px) saturate(1.10)!important;
-  -webkit-backdrop-filter:blur(16px) saturate(1.10)!important;
+  background:rgba(236,244,252,.26)!important;
+  backdrop-filter:blur(5px) saturate(1.02)!important;
+  -webkit-backdrop-filter:blur(5px) saturate(1.02)!important;
 }
 
-/* Shared glass material. */
+/* Common window shape. */
 .utility-panel,
 .quick-notes-panel,
 .cal-panel,
 .settings-panel{
+  position:relative!important;
+  isolation:isolate;
   color:var(--pg-text)!important;
-  border:1px solid rgba(117,154,204,.36)!important;
+  border:1px solid rgba(255,255,255,.96)!important;
+  border-radius:28px!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.98),
-    inset 0 -1px 0 rgba(112,150,201,.12),
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -1px 0 rgba(85,141,207,.18),
+    0 0 0 1px rgba(96,163,232,.34),
     var(--pg-shadow)!important;
-  backdrop-filter:blur(30px) saturate(1.30)!important;
-  -webkit-backdrop-filter:blur(30px) saturate(1.30)!important;
+  backdrop-filter:blur(18px) saturate(1.18)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(1.18)!important;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(76,114,160,.58) rgba(255,255,255,.28);
 }
-.utility-panel,
-.quick-notes-panel,
-.cal-panel{
-  border-radius:24px!important;
+.utility-panel::-webkit-scrollbar,
+.quick-notes-panel::-webkit-scrollbar,
+.cal-panel::-webkit-scrollbar,
+.settings-panel::-webkit-scrollbar{width:10px}
+.utility-panel::-webkit-scrollbar-track,
+.quick-notes-panel::-webkit-scrollbar-track,
+.cal-panel::-webkit-scrollbar-track,
+.settings-panel::-webkit-scrollbar-track{
+  background:rgba(255,255,255,.28);
+  border-radius:999px;
+  margin:18px 5px;
 }
+.utility-panel::-webkit-scrollbar-thumb,
+.quick-notes-panel::-webkit-scrollbar-thumb,
+.cal-panel::-webkit-scrollbar-thumb,
+.settings-panel::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,rgba(92,137,188,.70),rgba(65,102,150,.56));
+  border:2px solid rgba(255,255,255,.50);
+  border-radius:999px;
+}
+
+/* Thin luminous edge, no illustrated textures. */
+.utility-panel::before,
+.quick-notes-panel::before,
+.cal-panel::before,
+.settings-panel::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background:linear-gradient(122deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,.08) 31%,rgba(255,255,255,0) 56%,rgba(255,255,255,.20) 100%);
+}
+.utility-panel::after,
+.quick-notes-panel::after,
+.cal-panel::after,
+.settings-panel::after{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  inset:-2px;
+  border-radius:30px;
+  pointer-events:none;
+  opacity:.88;
+  filter:blur(10px);
+}
+
 .utility-head,
 .quick-notes-head,
-.cal-head{
-  position:relative;
-  z-index:1;
-}
+.cal-head,
+.settings-panel-title{position:relative;z-index:2}
 .utility-head h2,
 .quick-notes-head h2,
-.cal-head strong{
+.cal-head strong,
+.settings-panel-title-text{
   color:#10234a!important;
   letter-spacing:-.02em;
 }
 .utility-close,
 .quick-notes-close,
 .cal-close{
-  border:1px solid rgba(113,151,203,.34)!important;
+  width:38px!important;
+  height:38px!important;
+  border:1px solid rgba(255,255,255,.92)!important;
   border-radius:13px!important;
-  background:rgba(255,255,255,.58)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(255,255,255,.48))!important;
   color:#17335a!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 5px 14px rgba(42,72,110,.09)!important;
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(84,134,193,.18),
+    0 6px 16px rgba(42,72,110,.10)!important;
+  backdrop-filter:blur(10px)!important;
+  -webkit-backdrop-filter:blur(10px)!important;
 }
 .utility-close:hover,
 .quick-notes-close:hover,
 .cal-close:hover{
-  background:rgba(255,255,255,.84)!important;
   transform:translateY(-1px);
+  background:rgba(255,255,255,.94)!important;
 }
 
-/* WEATHER — airy sky glass, blue with a small warm sun accent. */
-.utility-panel-weather{
-  width:min(650px,calc(100vw - 24px))!important;
-  background:
-    radial-gradient(78% 54% at 7% 6%,rgba(80,183,255,.34) 0%,rgba(80,183,255,.13) 44%,rgba(80,183,255,0) 72%),
-    radial-gradient(58% 48% at 94% 8%,rgba(255,194,92,.30) 0%,rgba(255,194,92,.10) 42%,rgba(255,194,92,0) 72%),
-    linear-gradient(145deg,rgba(255,255,255,.83),rgba(237,247,255,.64))!important;
-  border-color:rgba(72,168,238,.48)!important;
+/* Shared glass tiles. */
+.weather-current-card,
+.weather-day,
+.weather-settings,
+.currency-card,
+.currency-result,
+.quick-notes-editor,
+.quick-note-item,
+.cal-card,
+.cal-event,
+.settings-section-btn,
+.settings-interface-content,
+.language-menu{
+  border-radius:16px!important;
+}
+.utility-panel .weather-current-card,
+.utility-panel .weather-day,
+.utility-panel .weather-settings,
+.utility-panel .currency-card,
+.quick-notes-panel .quick-notes-editor,
+.quick-notes-panel .quick-note-item,
+.cal-panel .cal-card,
+.cal-panel .cal-event,
+.settings-panel .settings-section-btn,
+.settings-panel .settings-interface-content{
+  background:linear-gradient(145deg,rgba(255,255,255,.76),rgba(255,255,255,.46))!important;
+  border:1px solid rgba(255,255,255,.88)!important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.98),
-    0 26px 72px rgba(45,122,183,.18),
-    0 0 34px rgba(77,175,244,.10)!important;
+    inset 0 -1px 0 rgba(91,132,184,.10),
+    0 0 0 1px rgba(91,132,184,.14),
+    0 8px 20px rgba(37,75,117,.07)!important;
+  backdrop-filter:blur(10px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(1.08)!important;
 }
-.utility-panel-weather .utility-location-title{
-  color:#143d6c!important;
-}
-.utility-panel-weather .weather-current-card{
+
+/* WEATHER — clean blue -> ice -> warm gold transition. */
+.utility-panel-weather{
+  width:min(680px,calc(100vw - 28px))!important;
+  max-height:min(88dvh,760px)!important;
+  overflow:auto!important;
   background:
-    radial-gradient(85% 150% at 92% 0%,rgba(255,213,129,.44) 0%,rgba(255,213,129,.08) 42%,rgba(255,213,129,0) 67%),
-    linear-gradient(135deg,rgba(221,243,255,.82),rgba(255,255,255,.63))!important;
-  border:1px solid rgba(86,170,229,.38)!important;
-  border-radius:18px!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 9px 24px rgba(62,129,181,.09)!important;
-  backdrop-filter:blur(18px);
+    linear-gradient(132deg,
+      rgba(172,221,255,.88) 0%,
+      rgba(218,240,255,.82) 30%,
+      rgba(248,251,255,.78) 58%,
+      rgba(255,231,180,.76) 100%)!important;
+  border-color:rgba(255,255,255,.98)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(70,185,255,.62),
+    0 0 26px rgba(73,191,255,.34),
+    18px 18px 44px rgba(255,184,68,.12),
+    0 28px 72px rgba(41,108,169,.20)!important;
+}
+.utility-panel-weather::after{
+  background:linear-gradient(120deg,rgba(46,190,255,.82),rgba(92,196,255,.18) 42%,rgba(255,199,75,.70));
+}
+.utility-panel-weather .utility-location-title{color:#123d6f!important}
+.utility-panel-weather .weather-current-card{
+  min-height:92px;
+  border-radius:20px!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(78,173,231,.20),
+    0 10px 24px rgba(53,123,178,.08)!important;
 }
 .utility-panel-weather .weather-current-icon{
-  filter:drop-shadow(0 5px 9px rgba(28,88,137,.14));
+  font-size:40px!important;
+  filter:drop-shadow(0 5px 8px rgba(35,92,139,.14));
 }
 .utility-panel-weather .weather-current-temp{
-  color:#124d86!important;
-  font-size:34px!important;
+  color:#124c86!important;
+  font-size:38px!important;
+  font-weight:900!important;
   letter-spacing:-.04em;
 }
 .utility-panel-weather .weather-day{
-  background:rgba(255,255,255,.58)!important;
-  border:1px solid rgba(94,161,211,.28)!important;
-  border-radius:12px!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.90),0 4px 14px rgba(56,110,153,.05)!important;
-  backdrop-filter:blur(14px);
+  min-height:44px;
+  border-radius:14px!important;
 }
 .utility-panel-weather .weather-day:hover{
-  background:rgba(255,255,255,.78)!important;
-  border-color:rgba(69,151,212,.42)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.90),rgba(255,255,255,.62))!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(70,166,228,.24),
+    0 9px 22px rgba(45,115,168,.08)!important;
 }
-.utility-panel-weather .weather-settings{
-  background:rgba(255,255,255,.54)!important;
-  border:1px solid rgba(91,160,215,.28)!important;
-  border-radius:16px!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.88)!important;
-}
+.utility-panel-weather .weather-settings{border-radius:18px!important}
 .utility-panel-weather .weather-setting-row select,
-.utility-panel-weather .weather-city-row input{
-  background:rgba(255,255,255,.70)!important;
-  border-color:rgba(91,151,201,.35)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.94)!important;
+.utility-panel-weather .weather-city-row input,
+.utility-panel-weather .weather-city-option{
+  background:linear-gradient(145deg,rgba(255,255,255,.86),rgba(255,255,255,.60))!important;
+  border:1px solid rgba(255,255,255,.92)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,1),0 0 0 1px rgba(83,145,199,.16)!important;
 }
 
-/* CALENDAR — warm coral + lilac glass, still mostly white. */
+/* CALENDAR — lilac -> ice -> soft coral. */
 .cal-panel{
+  width:min(1080px,calc(100vw - 32px))!important;
+  height:min(84dvh,760px)!important;
+  min-height:0!important;
+  max-height:min(84dvh,760px)!important;
+  overflow:auto!important;
   background:
-    radial-gradient(72% 45% at 8% 2%,rgba(255,174,112,.24) 0%,rgba(255,174,112,.08) 43%,rgba(255,174,112,0) 70%),
-    radial-gradient(72% 52% at 94% 5%,rgba(155,113,255,.23) 0%,rgba(155,113,255,.08) 45%,rgba(155,113,255,0) 72%),
-    linear-gradient(145deg,rgba(255,255,255,.86),rgba(249,247,255,.68))!important;
-  border-color:rgba(170,133,236,.40)!important;
+    linear-gradient(132deg,
+      rgba(215,205,255,.86) 0%,
+      rgba(241,244,255,.80) 44%,
+      rgba(255,224,219,.77) 100%)!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.98),
-    0 26px 74px rgba(92,71,145,.16),
-    0 0 34px rgba(255,169,100,.08)!important;
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(153,118,255,.56),
+    0 0 28px rgba(151,109,255,.28),
+    18px 15px 42px rgba(255,133,112,.10),
+    0 28px 74px rgba(86,71,145,.18)!important;
 }
-.cal-panel .cal-card{
-  background:rgba(255,255,255,.62)!important;
-  border:1px solid rgba(150,151,202,.25)!important;
-  border-radius:17px!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 8px 24px rgba(83,78,130,.06)!important;
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
+.cal-panel::after{
+  background:linear-gradient(120deg,rgba(144,111,255,.72),rgba(121,173,255,.16) 48%,rgba(255,148,127,.62));
 }
+.cal-panel .cal-card{border-radius:18px!important}
 .cal-panel .cal-view-switch{
-  background:rgba(255,255,255,.48)!important;
-  border-color:rgba(132,143,193,.25)!important;
+  background:rgba(255,255,255,.46)!important;
+  border:1px solid rgba(255,255,255,.86)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95)!important;
 }
 .cal-panel .cal-day{
-  background:rgba(255,255,255,.58)!important;
-  border-color:rgba(148,157,198,.22)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.85);
+  background:linear-gradient(145deg,rgba(255,255,255,.68),rgba(255,255,255,.42))!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  border-radius:12px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 0 0 1px rgba(112,118,174,.10)!important;
 }
 .cal-panel .cal-day:hover{
-  background:rgba(255,255,255,.78)!important;
+  background:rgba(255,255,255,.86)!important;
 }
 .cal-panel .cal-day.selected{
-  background:rgba(237,242,255,.82)!important;
-}
-.cal-panel .cal-day.has-events.is-reminder{
-  background:linear-gradient(145deg,rgba(251,247,255,.88),rgba(245,238,255,.66))!important;
-}
-.cal-panel .cal-events .cal-event{
-  background:rgba(255,255,255,.60)!important;
-  backdrop-filter:blur(12px);
+  background:linear-gradient(145deg,rgba(235,240,255,.96),rgba(246,236,255,.82))!important;
 }
 .cal-panel .cal-form input,
 .cal-panel .cal-form select,
 .cal-panel .cal-form textarea{
-  background:rgba(255,255,255,.72)!important;
-  border-color:rgba(131,147,190,.28)!important;
+  background:rgba(255,255,255,.74)!important;
+  border:1px solid rgba(255,255,255,.90)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 0 0 1px rgba(111,121,174,.15)!important;
 }
 
-/* CURRENCY — mint/teal finance glass. */
+/* CURRENCY — aqua -> white -> mint. */
 .utility-panel-currency{
+  width:min(800px,calc(100vw - 28px))!important;
+  max-height:min(88dvh,780px)!important;
+  overflow:auto!important;
   background:
-    radial-gradient(75% 52% at 96% 2%,rgba(54,222,190,.30) 0%,rgba(54,222,190,.10) 45%,rgba(54,222,190,0) 72%),
-    radial-gradient(68% 50% at 2% 12%,rgba(61,184,234,.18) 0%,rgba(61,184,234,.06) 48%,rgba(61,184,234,0) 72%),
-    linear-gradient(145deg,rgba(255,255,255,.86),rgba(238,252,249,.66))!important;
-  border-color:rgba(51,190,163,.45)!important;
+    linear-gradient(132deg,
+      rgba(172,245,233,.87) 0%,
+      rgba(227,251,248,.82) 42%,
+      rgba(248,253,255,.78) 66%,
+      rgba(181,238,226,.78) 100%)!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.98),
-    0 26px 72px rgba(31,137,118,.15),
-    0 0 34px rgba(53,208,181,.10)!important;
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(49,207,177,.56),
+    0 0 28px rgba(48,214,183,.27),
+    0 28px 72px rgba(34,132,112,.17)!important;
 }
-.utility-panel-currency .currency-card{
-  background:rgba(255,255,255,.58)!important;
-  border:1px solid rgba(54,176,153,.28)!important;
-  border-radius:18px!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 9px 24px rgba(34,127,111,.07)!important;
-  backdrop-filter:blur(18px);
+.utility-panel-currency::after{
+  background:linear-gradient(120deg,rgba(42,215,181,.74),rgba(87,205,211,.16) 48%,rgba(74,229,189,.56));
 }
 .utility-panel-currency .currency-field select,
 .utility-panel-currency .currency-field input{
-  background:rgba(255,255,255,.73)!important;
-  border-color:rgba(65,161,145,.30)!important;
+  background:rgba(255,255,255,.76)!important;
+  border:1px solid rgba(255,255,255,.90)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 0 0 1px rgba(55,153,136,.15)!important;
 }
 .utility-panel-currency .currency-result{
-  background:
-    linear-gradient(145deg,rgba(219,249,239,.76),rgba(244,255,251,.64))!important;
-  border-color:rgba(53,184,151,.32)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 8px 22px rgba(38,137,111,.08)!important;
+  background:linear-gradient(145deg,rgba(220,251,241,.88),rgba(255,255,255,.56))!important;
+  border:1px solid rgba(255,255,255,.92)!important;
 }
-.utility-panel-currency .currency-result-main{
-  color:#157a60!important;
-}
+.utility-panel-currency .currency-result-main{color:#14765e!important}
 .utility-panel-currency .currency-swap{
-  color:#157a60!important;
-  background:rgba(255,255,255,.68)!important;
-  border:1px solid rgba(54,172,147,.30)!important;
-}
-.utility-panel-currency .currency-calculator-direct{
-  border-top-color:rgba(54,172,147,.22)!important;
+  background:rgba(255,255,255,.72)!important;
+  border:1px solid rgba(255,255,255,.92)!important;
+  color:#14765e!important;
 }
 .utility-panel-currency .ccd-shell{
-  background:
-    radial-gradient(95% 110% at 0 0,rgba(59,213,185,.18),rgba(59,213,185,0) 58%),
-    linear-gradient(145deg,rgba(236,250,248,.76),rgba(217,239,237,.66))!important;
-  border:1px solid rgba(54,165,147,.28)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 12px 28px rgba(38,115,103,.12)!important;
+  background:linear-gradient(145deg,rgba(221,246,241,.88),rgba(244,252,250,.72))!important;
+  border:1px solid rgba(255,255,255,.92)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 0 0 1px rgba(62,151,137,.15),0 12px 28px rgba(31,112,99,.10)!important;
 }
 .utility-panel-currency .ccd-screen{
-  background:rgba(255,255,255,.72)!important;
-  border-color:rgba(66,147,135,.30)!important;
-  box-shadow:inset 0 2px 6px rgba(25,89,80,.08)!important;
-}
-.utility-panel-currency .ccd-memory button,
-.utility-panel-currency .ccd-functions button{
-  background:linear-gradient(180deg,rgba(56,145,132,.92),rgba(31,111,101,.94))!important;
+  background:rgba(255,255,255,.80)!important;
+  border-color:rgba(255,255,255,.94)!important;
 }
 .utility-panel-currency .ccd-key{
-  background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(239,249,247,.90))!important;
-  border-color:rgba(74,151,140,.24)!important;
-  box-shadow:0 2px 0 rgba(71,132,123,.32),0 4px 9px rgba(35,100,91,.10)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(236,248,246,.92))!important;
+  border-color:rgba(255,255,255,.94)!important;
 }
 .utility-panel-currency .ccd-key.eq{
-  background:linear-gradient(180deg,#47d9af,#22b88f)!important;
+  background:linear-gradient(180deg,#56dfb7,#24bb90)!important;
   border-color:#1aa47f!important;
   color:#083f33!important;
-  box-shadow:0 2px 0 #158a6c,0 5px 12px rgba(29,154,120,.20)!important;
 }
 
-/* NOTES — violet/lilac, softer than the header button. */
+/* NOTES — violet -> lavender -> cool blue. */
 .quick-notes-panel{
+  width:min(760px,calc(100vw - 28px))!important;
+  max-height:min(88dvh,760px)!important;
+  overflow:auto!important;
   background:
-    radial-gradient(74% 52% at 7% 2%,rgba(137,95,255,.29) 0%,rgba(137,95,255,.09) 46%,rgba(137,95,255,0) 72%),
-    radial-gradient(64% 44% at 96% 10%,rgba(75,151,255,.18) 0%,rgba(75,151,255,.06) 46%,rgba(75,151,255,0) 72%),
-    linear-gradient(145deg,rgba(255,255,255,.86),rgba(247,242,255,.68))!important;
-  border-color:rgba(137,95,231,.43)!important;
+    linear-gradient(132deg,
+      rgba(218,203,255,.88) 0%,
+      rgba(242,237,255,.82) 45%,
+      rgba(213,230,255,.78) 100%)!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.98),
-    0 26px 72px rgba(94,65,150,.15),
-    0 0 34px rgba(133,91,234,.10)!important;
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(137,95,231,.58),
+    0 0 28px rgba(139,91,238,.28),
+    0 28px 72px rgba(91,68,153,.17)!important;
 }
-.quick-notes-panel .quick-notes-editor{
-  background:rgba(255,255,255,.56)!important;
-  border:1px solid rgba(137,112,195,.25)!important;
-  border-radius:17px!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.92)!important;
-  backdrop-filter:blur(16px);
+.quick-notes-panel::after{
+  background:linear-gradient(120deg,rgba(140,91,239,.75),rgba(116,114,255,.16) 50%,rgba(81,151,255,.60));
 }
+.quick-notes-panel .quick-notes-editor{border-radius:18px!important}
 .quick-notes-panel .quick-notes-text{
-  background:rgba(255,255,255,.68)!important;
-  border-color:rgba(124,104,176,.28)!important;
-  border-radius:13px!important;
+  background:rgba(255,255,255,.74)!important;
+  border:1px solid rgba(255,255,255,.92)!important;
+  border-radius:14px!important;
   color:#2c2450!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 7px 18px rgba(84,61,132,.05)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 0 0 1px rgba(117,91,174,.14)!important;
 }
-.quick-notes-panel .quick-note-item{
-  background:rgba(255,255,255,.58)!important;
-  border:1px solid rgba(132,109,193,.23)!important;
-  border-radius:13px!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 5px 16px rgba(88,64,139,.05)!important;
-  backdrop-filter:blur(14px);
-}
+.quick-notes-panel .quick-note-item{border-radius:14px!important}
 .quick-notes-panel .quick-note-item:hover{
-  background:rgba(255,255,255,.78)!important;
-  border-color:rgba(128,92,211,.34)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.90),rgba(255,255,255,.62))!important;
 }
 .quick-notes-panel .quick-notes-save{
   color:#fff!important;
-  border:1px solid rgba(112,69,213,.58)!important;
-  background:linear-gradient(180deg,#9b6cff,#7450e8)!important;
-  box-shadow:0 7px 18px rgba(112,80,220,.18)!important;
+  border:1px solid rgba(255,255,255,.74)!important;
+  background:linear-gradient(180deg,#9c72ff,#744de7)!important;
+  box-shadow:0 0 18px rgba(128,82,231,.24),0 7px 18px rgba(112,80,220,.17)!important;
 }
 
-/* SETTINGS — clean blue technical glass. */
+/* SETTINGS — now a real centered glass window. */
+.settings-modal-backdrop{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:6400;
+}
+.settings-wrap.open .settings-modal-backdrop{display:block}
+html.settings-modal-open{overflow:hidden!important}
 .settings-panel{
-  width:min(390px,calc(100vw - 18px))!important;
-  padding:13px!important;
-  border-radius:18px!important;
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  top:50%!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  z-index:6500!important;
+  width:min(760px,calc(100vw - 32px))!important;
+  max-height:min(84dvh,720px)!important;
+  overflow:auto!important;
+  padding:18px!important;
+  display:none!important;
   background:
-    radial-gradient(85% 76% at 98% 0%,rgba(61,166,255,.24) 0%,rgba(61,166,255,.07) 48%,rgba(61,166,255,0) 72%),
-    linear-gradient(145deg,rgba(255,255,255,.91),rgba(240,248,255,.78))!important;
-  border-color:rgba(70,150,226,.38)!important;
+    linear-gradient(132deg,
+      rgba(198,226,255,.88) 0%,
+      rgba(238,247,255,.83) 48%,
+      rgba(210,239,255,.78) 100%)!important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.98),
-    0 22px 55px rgba(45,99,156,.17),
-    0 0 28px rgba(59,156,242,.08)!important;
-  backdrop-filter:blur(28px) saturate(1.22)!important;
-  -webkit-backdrop-filter:blur(28px) saturate(1.22)!important;
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(57,159,255,.56),
+    0 0 28px rgba(56,165,255,.28),
+    0 28px 72px rgba(48,106,164,.18)!important;
+}
+.settings-wrap.open .settings-panel{
+  display:grid!important;
+  gap:10px!important;
+  animation:settingsGlassIn .16s ease-out!important;
+}
+@keyframes settingsGlassIn{
+  from{opacity:0;transform:translate(-50%,-48%) scale(.985)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+.settings-panel::after{
+  background:linear-gradient(120deg,rgba(59,171,255,.72),rgba(100,193,255,.14) 50%,rgba(67,203,255,.56));
 }
 .settings-panel-title{
   display:flex;
   align-items:center;
   gap:10px;
-  margin:1px 1px 10px;
-  padding:4px 3px 10px;
-  border-bottom:1px solid rgba(72,143,210,.18);
+  margin:0 0 4px;
+  padding:2px 2px 12px;
+  border-bottom:1px solid rgba(255,255,255,.72);
   color:#173b63;
-  font-size:16px;
+  font-size:20px;
   font-weight:900;
 }
 .settings-panel-title-icon{
-  width:34px;
-  height:34px;
+  width:38px;
+  height:38px;
   display:grid;
   place-items:center;
-  border:1px solid rgba(64,156,255,.34);
-  border-radius:11px;
-  background:linear-gradient(145deg,rgba(228,243,255,.88),rgba(255,255,255,.64));
+  border:1px solid rgba(255,255,255,.92);
+  border-radius:13px;
+  background:linear-gradient(145deg,rgba(255,255,255,.86),rgba(221,241,255,.60));
   color:#2477d8;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 5px 14px rgba(41,115,186,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,1),0 0 0 1px rgba(48,145,232,.15),0 6px 16px rgba(41,115,186,.08);
 }
 .settings-panel .settings-section-btn{
-  min-height:48px!important;
-  border:1px solid rgba(100,151,204,.27)!important;
-  border-radius:12px!important;
-  background:rgba(255,255,255,.58)!important;
+  min-height:52px!important;
   color:#234566!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.90)!important;
 }
 .settings-panel .settings-section-btn:hover{
-  background:rgba(255,255,255,.80)!important;
-  border-color:rgba(69,140,211,.38)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.90),rgba(255,255,255,.64))!important;
 }
 .settings-panel .settings-section-btn.active{
-  background:linear-gradient(145deg,rgba(226,242,255,.88),rgba(240,247,255,.72))!important;
-  border-color:rgba(58,135,215,.42)!important;
+  background:linear-gradient(145deg,rgba(224,241,255,.96),rgba(245,250,255,.74))!important;
   color:#1766b5!important;
 }
+.settings-panel .settings-interface-content{
+  padding:10px!important;
+  border-radius:16px!important;
+}
 .settings-panel .language-menu{
-  background:rgba(255,255,255,.62)!important;
-  border-radius:12px!important;
-  backdrop-filter:blur(14px);
+  background:rgba(255,255,255,.74)!important;
+  border:1px solid rgba(255,255,255,.88)!important;
+  border-radius:14px!important;
 }
 
-/* Inputs and action buttons inside glass utilities inherit the same tactile material. */
+/* Inputs inside all windows should look like inset glass tiles. */
+.utility-panel input,
+.utility-panel select,
+.utility-panel textarea,
+.quick-notes-panel input,
+.quick-notes-panel select,
+.quick-notes-panel textarea,
+.cal-panel input,
+.cal-panel select,
+.cal-panel textarea,
+.settings-panel input,
+.settings-panel select,
+.settings-panel textarea{
+  outline:none;
+}
+.utility-panel input:focus,
+.utility-panel select:focus,
+.utility-panel textarea:focus,
+.quick-notes-panel input:focus,
+.quick-notes-panel textarea:focus,
+.cal-panel input:focus,
+.cal-panel select:focus,
+.cal-panel textarea:focus,
+.settings-panel input:focus,
+.settings-panel select:focus{
+  border-color:rgba(87,157,229,.60)!important;
+  box-shadow:0 0 0 3px rgba(71,151,232,.12),inset 0 1px 0 rgba(255,255,255,.98)!important;
+}
+
+/* Tactile motion stays subtle. */
 .utility-panel .tk-btn,
 .quick-notes-panel .tk-btn,
 .cal-panel .tk-btn,
 .settings-panel button{
-  transition:transform .14s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease;
+  transition:transform .14s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease!important;
 }
 .utility-panel .tk-btn:hover,
 .quick-notes-panel .tk-btn:hover,
@@ -414,7 +526,6 @@ body{
   transform:translateY(-1px);
 }
 
-/* Accessibility: keep the material but remove motion for users who request it. */
 @media(prefers-reduced-motion:reduce){
   .utility-panel *,
   .quick-notes-panel *,
@@ -429,9 +540,13 @@ body{
   .utility-panel,
   .quick-notes-panel,
   .cal-panel{
-    border-radius:20px 20px 0 0!important;
+    width:100%!important;
+    max-height:92dvh!important;
+    border-radius:24px 24px 0 0!important;
   }
   .settings-panel{
-    border-radius:18px!important;
+    width:calc(100vw - 18px)!important;
+    max-height:88dvh!important;
+    border-radius:22px!important;
   }
 }
