@@ -93,7 +93,7 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-glass-rail-5'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-ai-column-scroll-6'),'dashboard CSS cache key missing');
 assert.ok(loader.includes('home-dashboard.js?v=20261003-glass-rail-5'),'dashboard client-main cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-capsule-4'),'dashboard sessions cache key missing');
 assert.ok(sessionsUi.includes('border:2px solid #b9d3ea'),'sessions capsule border is not visible enough');
@@ -102,6 +102,11 @@ assert.ok(sessionsUi.includes('border:2px dashed #b9cee3'),'sessions empty-state
 assert.ok(sessionsUi.includes('font-size:14px;line-height:1.45;font-weight:700'),'sessions empty-state text is not readable enough');
 assert.ok(css.includes('.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget'),'blue glass AI widget style missing');
 assert.ok(css.includes('.home-dashboard .hd-right > .hd-client-notes-widget'),'green glass client notes style missing');
+assert.ok(css.includes('/* Dashboard v6 — compact intact AI screen + independent third-column scroll. */'),'compact AI/third-column v6 override missing');
+assert.ok(css.includes('height:clamp(150px,22dvh,190px)!important'),'AI message viewport is not compact');
+assert.ok(css.includes('direction:rtl'),'third-column scrollbar is not moved to the left');
+assert.ok(css.includes('@media(min-width:1021px) and (max-width:1180px)'),'third column is not preserved while browser narrows');
+assert.ok(index.includes('client-ai-chat-view.js?v=20261003-compact-screen-3'),'compact AI view cache key missing');
 assert.ok(css.includes('backdrop-filter:blur(22px) saturate(1.22)'),'AI frosted-glass blur missing');
 assert.ok(css.includes('backdrop-filter:blur(22px) saturate(1.20)'),'notes frosted-glass blur missing');
 assert.ok(css.includes('.hd-client-view.has-client .hd-client-profile-copy{\n  min-height:182px'),'Client card button baseline alignment missing');
