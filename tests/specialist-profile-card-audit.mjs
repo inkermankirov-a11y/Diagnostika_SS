@@ -9,7 +9,7 @@ new Function(account);
 new Function(transfer);
 
 assert(index.includes('account-settings.js?v=20261003-specialist-card-1'),'Specialist profile cache marker missing');
-assert(index.includes('modules/clients/ui/transfer.js?v=20261003-specialist-profile-1'),'Specialist transfer cache marker missing');
+assert(index.includes('modules/clients/ui/transfer.js?v=20261003-specialist-placement-2'),'Specialist transfer cache marker missing');
 assert(account.includes('st.specialistProfile=profile'),'Specialist profile is not stored in application state');
 assert(account.includes("save({source:'specialist-profile-migration'})"),'Legacy specialist profile migration is missing');
 assert(account.includes("specialist-profile-card-save"),'Specialist profile save path missing');
