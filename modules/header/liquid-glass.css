@@ -235,25 +235,25 @@
   position:absolute;
   inset:0;
   border-radius:15px;
-  padding:1.5px;
+  padding:2px;
   background:
-    linear-gradient(
-      180deg,
-      rgba(255,255,255,.95) 0%,
-      rgba(216,224,232,.90) 16%,
-      rgba(121,134,150,.82) 38%,
-      rgba(52,62,75,.86) 58%,
-      rgba(178,190,203,.88) 80%,
-      rgba(250,252,255,.96) 100%
+    linear-gradient(180deg,
+      #ffffff 0%,
+      #d9e2ea 14%,
+      #82909f 34%,
+      #364250 53%,
+      #aebac5 72%,
+      #f8fbff 100%
     ),
-    linear-gradient(
-      120deg,
-      rgba(80,190,255,.13) 12%,
-      rgba(132,105,255,.10) 30%,
-      rgba(255,120,195,.11) 44%,
-      rgba(255,205,110,.13) 59%,
-      rgba(92,232,205,.11) 75%,
-      rgba(90,155,255,.10) 90%
+    conic-gradient(
+      from 18deg,
+      rgba(74,198,255,.72),
+      rgba(154,107,255,.54) 16%,
+      rgba(255,105,185,.62) 31%,
+      rgba(255,204,83,.68) 48%,
+      rgba(78,231,198,.58) 66%,
+      rgba(84,153,255,.68) 82%,
+      rgba(74,198,255,.72)
     );
   background-blend-mode:screen;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
@@ -261,39 +261,41 @@
   mask-composite:exclude;
   pointer-events:none;
   z-index:2;
+  opacity:.96;
+}
+@property --clock-metal-glint-angle{
+  syntax:"<angle>";
+  inherits:false;
+  initial-value:0deg;
 }
 .app-header .header-flip-clock::after{
   content:"";
   position:absolute;
   inset:0;
   border-radius:15px;
-  padding:1.5px;
-  background:linear-gradient(
-    112deg,
-    transparent 0%,
-    transparent 40%,
-    rgba(110,205,255,0) 43%,
-    rgba(145,220,255,.26) 46%,
-    rgba(255,255,255,.98) 49%,
-    rgba(255,231,180,.42) 50.5%,
-    rgba(255,166,215,.28) 52%,
-    rgba(132,231,215,.20) 54%,
-    rgba(255,255,255,0) 57%,
-    transparent 60%,
-    transparent 100%
+  padding:2px;
+  background:conic-gradient(
+    from var(--clock-metal-glint-angle),
+    transparent 0deg 294deg,
+    rgba(76,183,255,0) 296deg,
+    rgba(76,183,255,.72) 301deg,
+    rgba(255,255,255,1) 306deg,
+    rgba(255,255,255,1) 311deg,
+    rgba(255,219,112,.90) 315deg,
+    rgba(255,108,194,.74) 320deg,
+    rgba(116,99,255,.64) 324deg,
+    transparent 331deg 360deg
   );
-  background-size:240% 100%;
-  background-position:150% 0;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;
   mask-composite:exclude;
   pointer-events:none;
   z-index:3;
-  animation:headerClockMetalGlint 5.8s cubic-bezier(.45,0,.55,1) infinite;
+  opacity:1;
+  animation:headerClockMetalGlint 4.4s linear infinite;
 }
 @keyframes headerClockMetalGlint{
-  0%,14%{background-position:150% 0}
-  86%,100%{background-position:-150% 0}
+  to{--clock-metal-glint-angle:360deg}
 }
 @media(prefers-reduced-motion:reduce){
   .app-header .header-flip-clock::after{animation:none}
@@ -346,4 +348,18 @@
     height:42px!important;
     border-radius:12px!important;
   }
+}
+
+/* Header popovers must render above the fixed client AI rail. */
+.app-header{
+  position:relative!important;
+  z-index:30000!important;
+  overflow:visible!important;
+}
+.app-header .settings-wrap{
+  position:relative!important;
+  z-index:30010!important;
+}
+.app-header .settings-panel{
+  z-index:30020!important;
 }
