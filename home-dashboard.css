@@ -1255,3 +1255,108 @@
   .hd-client-view.has-client .hd-social-btn{height:36px}
   .hd-client-view.has-client .hd-client-actions .hd-secondary{height:36px!important;min-height:36px!important}
 }
+
+
+/* Dashboard v6 — compact intact AI screen + independent third-column scroll. */
+.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  display:flex!important;
+  flex-direction:column!important;
+  box-sizing:border-box!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-messages{
+  height:clamp(150px,22dvh,190px)!important;
+  min-height:150px!important;
+  max-height:190px!important;
+  flex:0 0 auto!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  border:1px solid rgba(120,174,226,.52)!important;
+  border-radius:15px!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-footer-tools,
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-compose,
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-status{
+  flex:0 0 auto!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-footer-tools{
+  min-height:30px;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-compose{
+  min-height:42px;
+}
+
+/* Put the third-column scrollbar on its LEFT edge on desktop. */
+@media(min-width:1181px){
+  .home-dashboard:not([hidden]) > .hd-right{
+    direction:rtl;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(92,131,176,.72) transparent;
+    padding-left:4px;
+    padding-right:0;
+  }
+  .home-dashboard:not([hidden]) > .hd-right > *{
+    direction:ltr;
+  }
+  .home-dashboard:not([hidden]) > .hd-right::-webkit-scrollbar{width:8px}
+  .home-dashboard:not([hidden]) > .hd-right::-webkit-scrollbar-track{background:transparent}
+  .home-dashboard:not([hidden]) > .hd-right::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg,rgba(124,160,202,.78),rgba(86,125,171,.66));
+    border:2px solid transparent;
+    background-clip:padding-box;
+    border-radius:999px;
+  }
+}
+
+/* Keep the third column as a real third column longer while the browser narrows.
+   If wrapped content makes it taller, only this column scrolls. */
+@media(min-width:1021px) and (max-width:1180px){
+  .home-dashboard{
+    grid-template-columns:240px minmax(420px,1fr) 285px!important;
+    gap:10px!important;
+    padding:10px 12px 14px!important;
+  }
+  .home-dashboard > .hd-right{
+    grid-column:auto!important;
+    grid-template-columns:1fr!important;
+    max-height:calc(100dvh - 104px);
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    align-content:start;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(92,131,176,.72) transparent;
+    direction:rtl;
+    padding-left:4px;
+    padding-right:0;
+  }
+  .home-dashboard > .hd-right > *{direction:ltr}
+  .home-dashboard > .hd-right::-webkit-scrollbar{width:8px}
+  .home-dashboard > .hd-right::-webkit-scrollbar-track{background:transparent}
+  .home-dashboard > .hd-right::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg,rgba(124,160,202,.78),rgba(86,125,171,.66));
+    border:2px solid transparent;
+    background-clip:padding-box;
+    border-radius:999px;
+  }
+  .home-dashboard .hd-right > #hdClientAiWidget .hd-ai-messages{
+    height:160px!important;
+    min-height:160px!important;
+    max-height:160px!important;
+  }
+}
+
+@media(max-height:720px) and (min-width:1021px){
+  .home-dashboard .hd-right > #hdClientAiWidget .hd-ai-messages{
+    height:145px!important;
+    min-height:145px!important;
+    max-height:145px!important;
+  }
+}
