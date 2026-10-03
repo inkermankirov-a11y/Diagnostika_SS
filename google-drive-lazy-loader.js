@@ -10,7 +10,7 @@
 
   function hasGoogleSession() {
     try {
-      const raw=sessionStorage.getItem(TOKEN_KEY);
+      const raw=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY);
       if(!raw)return false;
       const value=JSON.parse(raw);
       return Boolean(value?.access_token && Date.now()<Number(value.expires_at||0)-30000);
