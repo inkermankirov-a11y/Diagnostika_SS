@@ -9,6 +9,18 @@ function sessionToday(){
   return new Date().toISOString().slice(0,10);
 }
 
+function sessionDisplayDate(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '—';
+  const iso=raw.slice(0,10);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+    const [year,month,day]=iso.split('-').map(Number);
+    return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
+  }
+  const d=new Date(raw);
+  return Number.isNaN(d.getTime())?raw:new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+}
+
 // Compatibility wrappers for older storage code. Persistence ownership lives in FileService.
 async function mediaDbPut(record){
   const api=filesApi();
@@ -166,7 +178,7 @@ function openSessionEditor(c,s,number){
   plannedBanner.className='session-planned-banner';
   plannedBanner.hidden=!planned;
   const plannedType=String(s?.appointmentType||'Сессия');
-  const plannedDate=String(s?.date||sessionToday());
+  const plannedDate=sessionDisplayDate(s?.date||sessionToday());
   const plannedTime=String(s?.scheduledTime||'').trim();
   const plannedBannerTop=document.createElement('div');plannedBannerTop.className='session-planned-banner-top';
   const plannedState=document.createElement('span');plannedState.className='session-planned-state';plannedState.textContent='● ЗАПЛАНИРОВАНО';
@@ -177,7 +189,7 @@ function openSessionEditor(c,s,number){
   plannedBanner.append(plannedBannerTop,plannedWhen,plannedHint);
 
   const grid=document.createElement('div');grid.className='session-edit-grid';
-  const dateInput=document.createElement('input');dateInput.type='date';dateInput.value=s.date||sessionToday();
+  const dateInput=document.createElement('input');dateInput.type='date';dateInput.lang='ru-RU';dateInput.value=s.date||sessionToday();
   if(planned){dateInput.disabled=true;dateInput.title='Дата запланированной записи меняется в календаре';}
   const link=document.createElement('select');link.innerHTML='<option value="">— Без связи —</option>';
   c.requests.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.title||'Без названия';link.appendChild(o);});
