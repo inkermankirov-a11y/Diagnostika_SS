@@ -528,26 +528,14 @@
       cell.className='cal-day'+(outside?' out':'')+(ds===selected?' selected':'')+(ds===today?' today':'')+(weekend?' cal-day-weekend':'')+eventClass;
       if(hasEvents)cell.tabIndex=0;
 
-      const tooltip=hasEvents
-        ? `<div class="cal-day-tooltip" role="tooltip">${evs.map(e=>{
-            const c=clientById(e.clientId);
-            const name=c?.name||e.clientName||e.title||e.type||'Запись';
-            const tag=c&&e.clientId?'button':'div';
-            const attrs=c&&e.clientId?` type="button" class="cal-day-tooltip-row cal-day-tooltip-client-link" data-client-id="${esc(e.clientId)}"`:' class="cal-day-tooltip-row"';
-            return `<${tag}${attrs}><span class="cal-day-tooltip-time">${esc(e.time||'—')}</span>${clientAvatarHtml(c)}<span class="cal-day-tooltip-client">${esc(name)}</span></${tag}>`;
-          }).join('')}</div>`
-        : '';
-
-      cell.innerHTML=`<div class="cal-num">${d.getDate()}</div>${hasEvents?'<span class="cal-day-beacon" aria-hidden="true"></span>':''}${tooltip}`;
-      if(hasEvents)cell.setAttribute('aria-label',evs.map(e=>`${e.time||'—'} ${clientById(e.clientId)?.name||e.clientName||e.title||e.type||'Запись'}`).join('; '));
-
-      cell.querySelectorAll('.cal-day-tooltip-client-link').forEach(link=>{
-        link.addEventListener('click',event=>{
-          event.stopPropagation();
-          openClientFromCalendar(link.dataset.clientId);
-        });
-      });
-
+      cell.innerHTML=`<div class="cal-num">${d.getDate()}</div>${hasEvents?'<span class="cal-day-beacon" aria-hidden="true"></span>':''}`;
+      if(hasEvents){
+        cell.setAttribute('aria-label',evs.map(e=>`${e.time||'—'} ${clientById(e.clientId)?.name||e.clientName||'Без клиента'} — ${eventTooltipLabel(e)}`).join('; '));
+        cell.addEventListener('mouseenter',()=>showHoverTooltip(cell,evs));
+        cell.addEventListener('mouseleave',scheduleHoverTooltipHide);
+        cell.addEventListener('focusin',()=>showHoverTooltip(cell,evs));
+        cell.addEventListener('focusout',scheduleHoverTooltipHide);
+      }
       cell.onclick=()=>{
         selected=ds;
         if(d.getMonth()!==m)cursor=new Date(d.getFullYear(),d.getMonth(),1);
@@ -738,12 +726,12 @@
     if(quick)quick.textContent=assignOpen?'Скрыть назначение':'＋ Выбрать и назначить';
   }
 
-  function render(){syncModeUi();fillClientOptions();renderCalendarSurface();renderDayDetails();updateClientTimePreview();}
+  function render(){hideHoverTooltip();syncModeUi();fillClientOptions();renderCalendarSurface();renderDayDetails();updateClientTimePreview();}
 
   function openCalendar(options={}){
     const now=new Date();
     openMode=options?.mode==='overview'?'overview':'client';
-    viewMode=openMode==='overview'&&options?.view==='week'?'week':'month';
+    viewMode=options?.view==='week'?'week':'month';
     assignOpen=false;
     selected=todayIso();
     cursor=new Date(now.getFullYear(),now.getMonth(),1);
@@ -753,7 +741,7 @@
     document.documentElement.style.overflow='hidden';
     return true;
   }
-  function closeCalendar(){if(overlay.open)overlay.close();document.documentElement.style.overflow='';}
+  function closeCalendar(){hideHoverTooltip();if(overlay.open)overlay.close();document.documentElement.style.overflow='';}
 
   overlay.querySelector('.cal-close').onclick=closeCalendar;
   overlay.querySelector('.cal-prev').onclick=()=>{
