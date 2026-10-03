@@ -196,28 +196,18 @@
     section.hidden=false;
     const r=currentRequest(c);
     const all=numberedSessions(c);
-    const display=r?all.filter(item=>belongsTo(item.s,r)):[];
-    const archived=all.filter(item=>!r||!belongsTo(item.s,r));
-
+    const display=all;
     const plannedCount=display.filter(item=>isPlannedSession(item.s)).length;
     const conductedCount=display.length-plannedCount;
-    count.textContent=r
-      ?(display.length
-        ?(plannedCount?`Проведено: ${conductedCount} · Запланировано: ${plannedCount}`:`Всего: ${conductedCount}`)
-        :'Сессий по текущему запросу пока нет')
-      :'Нет текущего запроса';
-    archiveBtn.textContent=`Архив сессий${archived.length?` (${archived.length})`:''}`;
-    archiveBtn.hidden=!archived.length;
+    count.textContent=display.length
+      ?(plannedCount?`Всего: ${display.length} · Проведено: ${conductedCount} · Запланировано: ${plannedCount}`:`Всего: ${conductedCount}`)
+      :'Сессий пока нет';
+    archiveBtn.hidden=true;
     list.innerHTML='';
     updateDashboardSummary(c,r,display);
 
-    if(!r){
-      list.innerHTML='<div class="hd-sessions-empty">Сначала выберите текущий запрос.</div>';
-      emitSessionsRendered();
-      return;
-    }
     if(!display.length){
-      list.innerHTML='<div class="hd-sessions-empty">По текущему запросу сессий пока нет.</div>';
+      list.innerHTML='<div class="hd-sessions-empty">Сессий пока нет. Здесь будет вся история работы с клиентом.</div>';
       emitSessionsRendered();
       return;
     }
