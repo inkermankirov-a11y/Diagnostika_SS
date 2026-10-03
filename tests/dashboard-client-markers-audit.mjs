@@ -94,7 +94,7 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-client-ai-binding-7'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-right-scroll-8'),'dashboard CSS cache key missing');
 assert.ok(loader.includes('home-dashboard.js?v=20261003-client-ai-binding-7'),'dashboard client-main cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-capsule-4'),'dashboard sessions cache key missing');
 assert.ok(sessionsUi.includes('border:2px solid #b9d3ea'),'sessions capsule border is not visible enough');
@@ -109,6 +109,10 @@ assert.ok(css.includes('direction:rtl'),'third-column scrollbar is not moved to 
 assert.ok(css.includes('@media(min-width:821px) and (max-width:1180px)'),'third column is not preserved while browser narrows');
 assert.ok(index.includes('client-ai-chat-view.js?v=20261003-compact-screen-3'),'compact AI view cache key missing');
 assert.ok(index.includes('modules/ai/ui/client-chat.js?v=20261003-client-binding-2'),'AI client-binding cache key missing');
+assert.ok(css.includes('/* Dashboard v8 — hard viewport height for the right client column.'),'hard right-column viewport rule missing');
+assert.ok(css.includes('height:calc(100dvh - 104px)!important'),'right client column is not explicitly viewport-bounded');
+assert.ok(css.includes('overflow-y:scroll!important'),'right client column does not force its own scrollbar');
+assert.ok(css.includes('@media(max-width:820px)'),'narrow browser right-column scroll rule missing');
 assert.ok(css.includes('.home-dashboard.dashboard-home-mode .hd-right > #hdClientAiWidget'),'AI widget is not force-hidden on dashboard home');
 assert.ok(css.includes('.home-dashboard.dashboard-home-mode .hd-right > .hd-client-notes-widget'),'client notes are not force-hidden on dashboard home');
 assert.ok(clientAi.includes('function dashboardClientMode()'),'AI chat does not check client dashboard mode');
