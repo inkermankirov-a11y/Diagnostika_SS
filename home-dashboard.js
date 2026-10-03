@@ -279,11 +279,7 @@
     const previousView=dashboardView;
     dashboardView='client';
     syncDashboardView();
-    if(clientsApi()?.select?.(id,{source:'home-dashboard-open-client'})){
-      document.dispatchEvent(new CustomEvent('diagnostika:dashboard-client-opened',{detail:{clientId:id,source:'home-dashboard-open-client'}}));
-      refresh();
-      return;
-    }
+    if(clientsApi()?.select?.(id,{source:'home-dashboard-open-client'})){refresh();return;}
     dashboardView=previousView;
     syncDashboardView();
     unavailable('Модуль выбора клиента не загрузился. Обновите страницу.','Клиенты');
@@ -604,9 +600,6 @@
     for(const type of dashboardEvents)events.on(type,detail=>{
       if(type==='client:selected'&&detail?.source!=='last-client-restore'){
         dashboardView='client';
-        if(detail?.source!=='home-dashboard-open-client'){
-          document.dispatchEvent(new CustomEvent('diagnostika:dashboard-client-opened',{detail:{clientId:detail?.clientId,source:detail?.source||'client:selected'}}));
-        }
       }
       setTimeout(refresh,0);
     });
