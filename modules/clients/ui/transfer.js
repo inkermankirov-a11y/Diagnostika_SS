@@ -472,8 +472,15 @@
       info=document.createElement('div');
       info.id='clientSpecialistInfo';
       info.className='client-specialist-info';
-      const anchor=document.querySelector('#hdHeroActions')||document.querySelector('#hdHeroSub');
-      if(anchor) anchor.insertAdjacentElement('afterend',info); else home.prepend(info);
+      const slot=document.querySelector('#hdClientSpecialistSlot');
+      if(slot)slot.appendChild(info);
+      else{
+        const anchor=document.querySelector('#hdHeroActions')||document.querySelector('#hdHeroSub');
+        if(anchor)anchor.insertAdjacentElement('afterend',info);else home.prepend(info);
+      }
+    }else{
+      const slot=document.querySelector('#hdClientSpecialistSlot');
+      if(slot&&info.parentElement!==slot)slot.appendChild(info);
     }
     const c=clientsApi()?.current?.()||null;
     const current=c?.specialistMeta?.currentSpecialist||specialistName()||'';

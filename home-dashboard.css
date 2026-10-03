@@ -905,3 +905,115 @@
   .hd-client-view.has-client .hd-summary-last,
   .hd-client-view.has-client .hd-summary-result{grid-column:1}
 }
+
+
+/* Client main v4: reserve the right side for reminder + specialist. */
+.hd-client-view.has-client .hd-client-profile-head{
+  width:calc(100% - 340px);
+  max-width:720px;
+  gap:34px;
+}
+.hd-client-view.has-client .hd-client-profile-copy{
+  padding-top:6px;
+}
+.hd-client-view:not(.has-client) .hd-client-right-rail{display:none}
+.hd-client-right-rail{
+  position:absolute;
+  top:30px;
+  right:30px;
+  width:min(300px,34%);
+  display:grid;
+  grid-template-rows:minmax(145px,auto) auto;
+  gap:12px;
+  z-index:3;
+}
+.hd-reminder-slot{
+  width:100%;
+  min-height:145px;
+  box-sizing:border-box;
+}
+.hd-reminder-slot .hd-hero-reminder{
+  position:static!important;
+  top:auto!important;
+  right:auto!important;
+  width:100%!important;
+  margin:0!important;
+}
+.hd-client-specialist-slot{
+  width:100%;
+  min-height:46px;
+  box-sizing:border-box;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-info{
+  width:100%!important;
+  max-width:none!important;
+  min-height:46px!important;
+  margin:0!important;
+  padding:8px 10px!important;
+  border:1px solid #d5e1ee;
+  border-radius:11px;
+  background:linear-gradient(145deg,#fff,#f7faff);
+  box-shadow:0 5px 15px rgba(34,72,116,.07),inset 0 1px 0 rgba(255,255,255,.95);
+  display:flex;
+  align-items:center;
+  justify-content:flex-start!important;
+  box-sizing:border-box;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-current{
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:130px minmax(0,1fr)!important;
+  column-gap:9px!important;
+  align-items:center!important;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-history-btn{
+  width:100%!important;
+  height:30px!important;
+  min-width:0!important;
+  padding:0 8px!important;
+  border-radius:7px!important;
+  font-size:11px!important;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-name{
+  min-width:0!important;
+  color:#334155!important;
+  font-size:12.5px!important;
+  line-height:1.25!important;
+  font-weight:800!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+@media(max-width:1040px){
+  .hd-client-view.has-client .hd-client-profile-head{
+    width:calc(100% - 300px);
+    gap:28px;
+  }
+  .hd-client-right-rail{
+    right:22px;
+    width:min(275px,34%);
+  }
+}
+@media(max-width:860px){
+  .hd-client-view.has-client .hd-client-profile-head{
+    width:100%;
+    max-width:none;
+  }
+  .hd-client-right-rail{
+    position:static;
+    width:100%;
+    display:grid;
+    grid-template-rows:auto auto;
+    gap:10px;
+    margin:0 0 18px;
+    order:-1;
+  }
+  .hd-reminder-slot{
+    min-height:0;
+  }
+}
+@media(max-width:560px){
+  .hd-client-view.has-client .hd-client-profile-head{
+    gap:20px;
+  }
+}

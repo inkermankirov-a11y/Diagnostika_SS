@@ -38,7 +38,12 @@
           </div>
           <div id="hdSummary" class="hd-selected-summary" hidden></div>
         </section>
-        <aside id="hdHeroReminder" class="hd-hero-reminder" hidden aria-live="polite"></aside>
+        <aside class="hd-client-right-rail" aria-label="Напоминание и специалист">
+          <div class="hd-reminder-slot">
+            <aside id="hdHeroReminder" class="hd-hero-reminder" hidden aria-live="polite"></aside>
+          </div>
+          <div id="hdClientSpecialistSlot" class="hd-client-specialist-slot" aria-live="polite"></div>
+        </aside>
         <div class="hd-features">
           <div class="hd-feature"><div class="hd-feature-icon">♙</div>Храните историю<br>клиентов</div>
           <div class="hd-feature"><div class="hd-feature-icon">▥</div>Проводите<br>диагностику</div>
