@@ -355,6 +355,28 @@ body{
   backdrop-filter:blur(28px) saturate(1.22)!important;
   -webkit-backdrop-filter:blur(28px) saturate(1.22)!important;
 }
+.settings-panel-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:1px 1px 10px;
+  padding:4px 3px 10px;
+  border-bottom:1px solid rgba(72,143,210,.18);
+  color:#173b63;
+  font-size:16px;
+  font-weight:900;
+}
+.settings-panel-title-icon{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(64,156,255,.34);
+  border-radius:11px;
+  background:linear-gradient(145deg,rgba(228,243,255,.88),rgba(255,255,255,.64));
+  color:#2477d8;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 5px 14px rgba(41,115,186,.08);
+}
 .settings-panel .settings-section-btn{
   min-height:48px!important;
   border:1px solid rgba(100,151,204,.27)!important;
