@@ -94,7 +94,7 @@
           <div class="cal-form">
             <div class="cal-form-title">+ Добавить запись</div>
             <div class="cal-form-grid">
-              <label>Дата<input class="cal-date" type="date"></label>
+              <label>Дата<input class="cal-date" type="date" lang="ru-RU"></label>
               <label>Время<input class="cal-time" type="time" value="19:00"></label>
               <label class="cal-span2">Клиент<select class="cal-client"></select></label>
               <div class="cal-client-time-preview unknown" role="status" aria-live="polite">🕒 <strong>Время клиента:</strong> выберите клиента</div>
