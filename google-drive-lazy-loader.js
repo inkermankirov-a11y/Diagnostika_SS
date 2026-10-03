@@ -6,6 +6,18 @@
 
   let loading = false;
   let loaded = false;
+  const TOKEN_KEY='diagnostika-google-drive-token-v2';
+
+  function hasGoogleSession() {
+    try {
+      const raw=sessionStorage.getItem(TOKEN_KEY);
+      if(!raw)return false;
+      const value=JSON.parse(raw);
+      return Boolean(value?.access_token && Date.now()<Number(value.expires_at||0)-30000);
+    } catch (_) {
+      return false;
+    }
+  }
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -45,7 +57,7 @@
       await loadScript('google-oauth-config.js?v=20260914-2');
       await loadScript('google-drive-storage.js?v=20260914-5&db=14d');
       await loadScript('google-drive-auth-popup-fix.js?v=20260914-1');
-      await loadScript('google-drive-sync-safe.js?v=20260914-2&db=14d');
+      await loadScript('google-drive-sync-safe.js?v=20261003-auto-sync-1&db=14d');
       loaded = true;
     } catch (error) {
       console.error('[Google Drive lazy loader]', error);
@@ -61,6 +73,11 @@
     button.addEventListener('click', () => setTimeout(loadGoogleDriveModule, 0));
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
-  else bind();
+  function start(){
+    bind();
+    if(hasGoogleSession()) setTimeout(loadGoogleDriveModule,250);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
 })();
