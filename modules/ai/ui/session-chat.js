@@ -9,7 +9,7 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const uid=prefix=>`${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
   const clip=(v,n=1200)=>{const s=String(v??'');return s.length>n?s.slice(0,n)+'…':s;};
-  const fmt=ts=>{try{return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(ts));}catch(_){return'';}};
+  const fmt=ts=>{try{return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(ts));}catch(_){return'';}};
 
   function currentClient(){
     return window.DiagnostikaAIUIContext?.currentClient?.()||null;
