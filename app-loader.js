@@ -170,7 +170,7 @@
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20261003-ru-date-1';
+      s.src='home-dashboard.js?v=20261003-ru-date-1&reminders=20261003-2';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
