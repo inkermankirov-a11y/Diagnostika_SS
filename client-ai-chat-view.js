@@ -10,6 +10,8 @@
   let widget=null;
   let backdrop=null;
   let platformEventsHooked=false;
+  let activeHintsMenu=null;
+  let activeHintsButton=null;
 
   function getMode(){
     try{
@@ -106,7 +108,7 @@
     .hd-ai-hints-wrap{position:relative}
     .hd-ai-hints-btn{height:28px;border:1px solid #d9e2ec;background:#fff;color:#64748b;border-radius:8px;padding:0 9px;font-size:10px;font-weight:700;cursor:pointer}
     .hd-ai-hints-btn:hover{background:#f8fafc}
-    .hd-ai-hints-menu{position:absolute;left:0;bottom:34px;z-index:30;width:190px;padding:5px;background:#fff;border:1px solid #dbe3ec;border-radius:10px;box-shadow:0 12px 32px rgba(15,23,42,.16)}
+    .hd-ai-hints-menu{position:fixed;z-index:20050;width:220px;max-width:calc(100vw - 16px);max-height:min(420px,calc(100dvh - 16px));overflow-y:auto;overflow-x:hidden;padding:5px;background:#fff;border:1px solid #dbe3ec;border-radius:10px;box-shadow:0 14px 36px rgba(15,23,42,.22);box-sizing:border-box}
     .hd-ai-hints-menu[hidden]{display:none!important}
     .hd-ai-hint-item{display:block;width:100%;border:0;background:transparent;text-align:left;border-radius:7px;padding:8px 9px;color:#334155;font-size:11px;cursor:pointer}
     .hd-ai-hint-item:hover{background:#f1f5f9}
@@ -155,22 +157,59 @@
     return bar;
   }
 
+  function positionHintsMenu(btn,menu){
+    if(!btn||!menu||menu.hidden)return;
+    const rect=btn.getBoundingClientRect();
+    const viewportW=Math.max(320,window.innerWidth||document.documentElement.clientWidth||0);
+    const viewportH=Math.max(240,window.innerHeight||document.documentElement.clientHeight||0);
+    const width=Math.min(220,viewportW-16);
+    menu.style.width=width+'px';
+    menu.style.maxHeight=Math.max(120,viewportH-16)+'px';
+    menu.style.left=Math.max(8,Math.min(rect.left,viewportW-width-8))+'px';
+    menu.style.top='8px';
+    const menuH=Math.min(menu.scrollHeight,viewportH-16);
+    const below=viewportH-rect.bottom-8;
+    const above=rect.top-8;
+    const preferBelow=below>=Math.min(menuH,180)||below>=above;
+    const top=preferBelow
+      ?Math.min(viewportH-menuH-8,rect.bottom+6)
+      :Math.max(8,rect.top-menuH-6);
+    menu.style.top=Math.max(8,top)+'px';
+  }
+
+  function hideHintsMenu(){
+    if(activeHintsMenu)activeHintsMenu.hidden=true;
+    activeHintsMenu=null;
+    activeHintsButton=null;
+  }
+
   function makeHints(){
     const wrap=document.createElement('div');
     wrap.className='hd-ai-hints-wrap';
     const btn=document.createElement('button');
     btn.type='button';btn.className='hd-ai-hints-btn';btn.textContent='Подсказки ▾';btn.title='Быстрые вопросы';
     const menu=document.createElement('div');
-    menu.className='hd-ai-hints-menu';menu.hidden=true;
+    menu.className='hd-ai-hints-menu hd-ai-hints-menu-portal';menu.hidden=true;
     const sourceButtons=[...widget.querySelectorAll('.hd-ai-quick button')];
     sourceButtons.forEach(source=>{
       const item=document.createElement('button');
       item.type='button';item.className='hd-ai-hint-item';item.textContent=source.textContent||'Быстрый вопрос';
-      item.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();menu.hidden=true;source.click();});
+      item.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();hideHintsMenu();source.click();});
       menu.appendChild(item);
     });
-    btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();menu.hidden=!menu.hidden;});
-    wrap.append(btn,menu);
+    btn.addEventListener('click',e=>{
+      e.preventDefault();e.stopPropagation();
+      const opening=menu.hidden;
+      hideHintsMenu();
+      if(opening){
+        menu.hidden=false;
+        activeHintsMenu=menu;
+        activeHintsButton=btn;
+        positionHintsMenu(btn,menu);
+      }
+    });
+    wrap.append(btn);
+    document.body.appendChild(menu);
     return wrap;
   }
 
@@ -273,15 +312,16 @@
   }
 
   document.addEventListener('click',e=>{
-    const menu=widget?.querySelector('.hd-ai-hints-menu');
-    if(menu&&!menu.hidden&&!e.target.closest('.hd-ai-hints-wrap'))menu.hidden=true;
+    if(activeHintsMenu&&!activeHintsMenu.hidden&&!activeHintsMenu.contains(e.target)&&e.target!==activeHintsButton)hideHintsMenu();
   });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){
-      const menu=widget?.querySelector('.hd-ai-hints-menu');if(menu&&!menu.hidden){menu.hidden=true;return;}
+      if(activeHintsMenu&&!activeHintsMenu.hidden){hideHintsMenu();return;}
       if(widget?.classList.contains('hd-ai-expanded'))setExpanded(false);
     }
   });
+  window.addEventListener('resize',()=>{if(activeHintsMenu&&!activeHintsMenu.hidden)positionHintsMenu(activeHintsButton,activeHintsMenu);});
+  window.addEventListener('scroll',()=>{if(activeHintsMenu&&!activeHintsMenu.hidden)positionHintsMenu(activeHintsButton,activeHintsMenu);},true);
   window.addEventListener('diagnostika:client-ai-widget-ready',()=>setTimeout(()=>{install();normalizeHeader();},0));
   document.addEventListener('diagnostika:dashboard-clients-rendered',()=>setTimeout(normalizeHeader,0));
   window.addEventListener('diagnostika:platform-core-ready',()=>hookPlatformEvents(),{once:true});
