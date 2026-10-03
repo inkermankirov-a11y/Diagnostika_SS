@@ -38,9 +38,21 @@
     try{return databaseApi()?.writeState?.(value,{source})===true;}catch{return false;}
   }
 
-  function getSession(key){try{return JSON.parse(sessionStorage.getItem(key)||'null');}catch{return null;}}
-  function setSession(key,value){try{sessionStorage.setItem(key,JSON.stringify(value));}catch{}}
-  function delSession(key){try{sessionStorage.removeItem(key);}catch{}}
+  function getSession(key){
+    try{
+      const raw=localStorage.getItem(key)||sessionStorage.getItem(key);
+      return JSON.parse(raw||'null');
+    }catch{return null;}
+  }
+  function setSession(key,value){
+    const raw=JSON.stringify(value);
+    try{localStorage.setItem(key,raw);}catch{}
+    try{sessionStorage.setItem(key,raw);}catch{}
+  }
+  function delSession(key){
+    try{localStorage.removeItem(key);}catch{}
+    try{sessionStorage.removeItem(key);}catch{}
+  }
   function token(){const t=getSession(TOKEN_KEY);return t?.access_token&&Date.now()<Number(t.expires_at||0)-30000?t:null;}
   async function notify(message,title='Google Drive'){if(window.AppDialog?.alert)return AppDialog.alert(message,title);alert(message);}
   async function confirmAction(message,title,ok='Продолжить'){if(window.AppDialog?.confirm)return AppDialog.confirm(message,title,ok,'Отмена');return confirm(`${title}\n\n${message}`);}

@@ -14,18 +14,21 @@
   let tokenClient = null;
 
   function getSession(key) {
-    try { return JSON.parse(sessionStorage.getItem(key) || 'null'); }
-    catch { return null; }
+    try {
+      const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+      return JSON.parse(raw || 'null');
+    } catch { return null; }
   }
 
   function setSession(key, value) {
-    try { sessionStorage.setItem(key, JSON.stringify(value)); }
-    catch {}
+    const raw = JSON.stringify(value);
+    try { localStorage.setItem(key, raw); } catch {}
+    try { sessionStorage.setItem(key, raw); } catch {}
   }
 
   function delSession(key) {
-    try { sessionStorage.removeItem(key); }
-    catch {}
+    try { localStorage.removeItem(key); } catch {}
+    try { sessionStorage.removeItem(key); } catch {}
   }
 
   function validToken() {
