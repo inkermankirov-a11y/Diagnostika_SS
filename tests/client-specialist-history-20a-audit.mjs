@@ -9,7 +9,7 @@ assert(!transferSource.includes('Первичный специалист'),'Lega
 assert(transferSource.includes('client-specialist-history-btn'),'Current specialist button missing');
 assert(transferSource.includes('clientSpecialistHistoryDialog'),'Specialist history dialog missing');
 assert(transferSource.includes('requests:requestsForPeriod(incoming,start,transferredAt)'),'Transfer does not snapshot requests');
-assert(index.includes('modules/clients/ui/transfer.js?v=20260930-modular-stage5-18'),'Specialist row module/cache marker missing');
+assert(index.includes('modules/clients/ui/transfer.js?v=20261003-specialist-profile-1'),'Specialist row module/cache marker missing');
 
 const fixture={
   version:4,
