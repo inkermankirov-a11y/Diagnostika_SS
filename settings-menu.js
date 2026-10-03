@@ -65,7 +65,8 @@
       <span class="settings-gear" aria-hidden="true">⚙</span>
       <span class="settings-label">Настройки</span>
     </button>
-    <div class="settings-panel" id="settingsPanel">
+    <div class="settings-modal-backdrop" aria-hidden="true"></div>
+    <div class="settings-panel" id="settingsPanel" role="dialog" aria-modal="true" aria-label="Настройки">
       <div class="settings-panel-title"><span class="settings-panel-title-icon" aria-hidden="true">⚙</span><span class="settings-panel-title-text">Настройки</span></div>
       <button type="button" class="settings-section-btn settings-accounts-btn"><span>Учетные записи</span><span>›</span></button>
       <button type="button" class="settings-section-btn settings-interface-btn"><span>Настройки интерфейса</span><span class="settings-section-chevron">⌄</span></button>
@@ -74,6 +75,7 @@
 
   const btn=wrap.querySelector('#settingsMenuBtn');
   const panel=wrap.querySelector('#settingsPanel');
+  const backdrop=wrap.querySelector('.settings-modal-backdrop');
   const accountsBtn=wrap.querySelector('.settings-accounts-btn');
   const interfaceBtn=wrap.querySelector('.settings-interface-btn');
   const interfaceContent=wrap.querySelector('.settings-interface-content');
@@ -130,6 +132,7 @@
   function setOpen(open){
     wrap.classList.toggle('open',open);
     btn.setAttribute('aria-expanded',String(open));
+    document.documentElement.classList.toggle('settings-modal-open',open);
     updateLabel();
   }
   function toggleInterface(){
@@ -141,6 +144,10 @@
   btn.addEventListener('click',e=>{
     e.stopPropagation();
     setOpen(!wrap.classList.contains('open'));
+  });
+  backdrop?.addEventListener('click',e=>{
+    e.stopPropagation();
+    setOpen(false);
   });
   accountsBtn.addEventListener('click',async e=>{
     e.stopPropagation();
