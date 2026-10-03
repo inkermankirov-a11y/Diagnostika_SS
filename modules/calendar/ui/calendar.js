@@ -42,29 +42,29 @@
     .cal-overlay.week-view .cal-grid,.cal-overlay.day-view .cal-grid{display:block}
     .cal-overlay.week-view .cal-card:first-child,.cal-overlay.day-view .cal-card:first-child{padding:0;overflow:hidden}
     .cal-timegrid{height:474px;display:flex;flex-direction:column;background:#fff}
-    .cal-timegrid-head{display:grid;flex:0 0 52px;border-bottom:1px solid #dadce0;background:#fff}
-    .cal-time-axis-head{border-right:1px solid #eef0f2}
-    .cal-time-day-head{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;border-left:1px solid #eef0f2;background:#fff;color:#5f6368;cursor:pointer;font-family:inherit}
-    .cal-time-day-head:hover{background:#f8fafd}
-    .cal-time-day-head.selected{background:#f1f6ff}
-    .cal-time-day-weekday{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
-    .cal-time-day-number{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;color:#3c4043}
+    .cal-timegrid-head{display:grid;flex:0 0 58px;box-sizing:border-box;border-bottom:1px solid #dadce0;background:#fff}
+    .cal-time-axis-head{border-right:1px solid #eef0f2;background:#fff}
+    .cal-time-day-head{min-width:0;height:58px!important;min-height:58px!important;margin:0!important;padding:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0!important;border-left:1px solid #eef0f2!important;border-radius:0!important;background:#fff!important;color:#5f6368;cursor:pointer;font-family:'Segoe UI',Arial,sans-serif!important;box-shadow:none!important;transform:none!important;filter:none!important}
+    .cal-time-day-head:hover{background:#f8fafd!important;box-shadow:none!important;transform:none!important}
+    .cal-time-day-head.selected{background:#f1f6ff!important}
+    .cal-time-day-weekday{font-size:12px;font-weight:800;line-height:1.1;text-transform:uppercase;letter-spacing:.03em}
+    .cal-time-day-number{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:800;line-height:1;color:#3c4043}
     .cal-time-day-head.today .cal-time-day-number{background:#1a73e8;color:#fff}
     .cal-timegrid-scroll{position:relative;flex:1;overflow:auto;background:#fff;scrollbar-gutter:stable}
     .cal-timegrid-body{display:grid;position:relative;min-width:0}
     .cal-time-axis{position:relative;border-right:1px solid #eef0f2;background:#fff}
-    .cal-time-label{position:absolute;right:8px;transform:translateY(-7px);font-size:10px;line-height:14px;color:#70757a;white-space:nowrap}
+    .cal-time-label{position:absolute;right:10px;transform:translateY(-8px);font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700;line-height:16px;color:#5f6368;white-space:nowrap}
     .cal-time-column{position:relative;min-width:0;border-left:1px solid #eef0f2;background:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,#f1f3f4 27px,#f1f3f4 28px,transparent 28px,transparent 55px,#dadce0 55px,#dadce0 56px);cursor:crosshair}
     .cal-time-column.selected{background-color:#fbfdff}
     .cal-time-column.today{box-shadow:inset 0 0 0 1px rgba(26,115,232,.08)}
     .cal-time-event{position:absolute;left:4px;right:4px;z-index:4;min-height:30px;padding:5px 7px;border:1px solid #9ec1f6;border-left:4px solid #1a73e8;border-radius:6px;background:#d2e3fc;color:#174ea6;box-sizing:border-box;overflow:hidden;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(60,64,67,.12);font-family:inherit}
     .cal-time-event:hover{background:#c5dafb;box-shadow:0 2px 6px rgba(60,64,67,.16)}
-    .cal-time-event-time{font-size:10px;font-weight:900;line-height:1.15}
-    .cal-time-event-title{margin-top:2px;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .cal-time-event-meta{margin-top:1px;font-size:9px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.88}
+    .cal-time-event-time{font-size:12px;font-weight:900;line-height:1.2}
+    .cal-time-event-title{margin-top:2px;font-size:13px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cal-time-event-meta{margin-top:2px;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
     .cal-now-line{position:absolute;left:0;right:0;z-index:6;height:2px;background:#d93025;pointer-events:none}
     .cal-now-line:before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#d93025}
-    .cal-time-empty-note{position:absolute;top:14px;left:14px;z-index:2;color:#9aa0a6;font-size:11px;pointer-events:none}
+    .cal-time-empty-note{position:absolute;top:14px;left:14px;z-index:2;color:#80868b;font-size:13px;font-weight:600;pointer-events:none}
     @media(max-width:820px){.cal-layout{grid-template-columns:1fr}.cal-day{min-height:76px}.cal-panel{padding:12px}.cal-toolbar{grid-template-columns:1fr}.cal-month-title{order:-1}.cal-nav{justify-content:center}.cal-today{justify-self:center}.cal-timegrid{height:430px}}
     @media(max-width:560px){.cal-overlay{padding:0;place-items:end center}.cal-panel{width:100%;height:94dvh;min-height:94dvh;max-height:none;border-radius:18px 18px 0 0}.cal-grid,.cal-week{gap:3px}.cal-day{min-height:62px;padding:4px}.cal-chip,.cal-more{display:none}.cal-num{width:24px;height:24px}.cal-form-grid{grid-template-columns:1fr}.cal-span2{grid-column:auto}.cal-timegrid{height:420px}.cal-timegrid-head,.cal-timegrid-body{min-width:700px}.cal-overlay.day-view .cal-timegrid-head,.cal-overlay.day-view .cal-timegrid-body{min-width:0}}
   `;
@@ -502,7 +502,7 @@
 
     const head=document.createElement('div');
     head.className='cal-timegrid-head';
-    head.style.gridTemplateColumns=`56px repeat(${days.length},minmax(0,1fr))`;
+    head.style.gridTemplateColumns=`64px repeat(${days.length},minmax(0,1fr))`;
     const axisHead=document.createElement('div');
     axisHead.className='cal-time-axis-head';
     head.appendChild(axisHead);
@@ -530,7 +530,7 @@
 
     const body=document.createElement('div');
     body.className='cal-timegrid-body';
-    body.style.gridTemplateColumns=`56px repeat(${days.length},minmax(0,1fr))`;
+    body.style.gridTemplateColumns=`64px repeat(${days.length},minmax(0,1fr))`;
     const totalHeight=(TIME_GRID_END-TIME_GRID_START)*TIME_GRID_HOUR_PX;
     body.style.height=totalHeight+'px';
 
@@ -625,6 +625,8 @@
     grid.appendChild(wrap);
 
     requestAnimationFrame(()=>{
+      const scrollbarWidth=Math.max(0,scroll.offsetWidth-scroll.clientWidth);
+      head.style.paddingRight=scrollbarWidth+'px';
       scroll.scrollTop=0;
     });
   }
