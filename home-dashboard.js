@@ -5,6 +5,16 @@
   const header=document.querySelector('.app-header');
   if(!diagnosisWorkspace||!header||document.querySelector('.home-dashboard')) return;
 
+  const displayDate=value=>{
+    try{
+      const formatted=window.DiagnostikaDate?.date?.(value,'');
+      if(formatted)return formatted;
+    }catch(_){}
+    const raw=String(value||'').trim();
+    const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m?`${m[3]}.${m[2]}.${m[1]}`:(raw||'—');
+  };
+
   const dashboard=document.createElement('section');
   dashboard.className='home-dashboard dashboard-home-mode';
   dashboard.innerHTML=`
@@ -602,7 +612,7 @@
     const items=[
       ['Текущий запрос',currentReq?.title||'Не указан','wide'],
       ['Сессии',String((c.sessions||[]).length),''],
-      ['Последняя сессия',lastSession?.date||'—',''],
+      ['Последняя сессия',lastSession?displayDate(lastSession.date||lastSession.createdAt):'—',''],
       ['Желаемый итог',desiredResult,'wide']
     ];
     summary.innerHTML=items.map(([a,b,cls])=>`<div class="hd-summary-box ${cls==='wide'?'hd-summary-wide':''}"><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
