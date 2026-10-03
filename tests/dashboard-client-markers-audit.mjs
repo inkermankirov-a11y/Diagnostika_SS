@@ -53,7 +53,7 @@ assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pin
 assert.ok(loader.includes('home-dashboard.css?v=20261003-avatar-ring-selected-strip-1'),'dashboard CSS cache key missing');
 assert.ok(loader.includes('home-dashboard.js?v=20261003-planned-session-1'),'dashboard JS cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-planned-session-1'),'dashboard sessions cache key missing');
-assert.ok(index.includes('app-loader.js?v=20261003-planned-session-1'),'app-loader cache key missing');
+assert.ok(index.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1'),'app-loader cache key missing');
 assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-planned-session-1'),'client debt flags cache key missing');
 
 console.log('DASHBOARD_CLIENT_MARKERS_AUDIT_OK');
