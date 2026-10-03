@@ -89,7 +89,12 @@
   }
 
   function scheduledLabel(s){
-    const date=String(s?.date||'').trim()||'Дата не указана';
+    const raw=String(s?.date||'').trim();
+    let date=raw||'Дата не указана';
+    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){
+      const [year,month,day]=raw.split('-').map(Number);
+      date=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
+    }
     const time=String(s?.scheduledTime||'').trim();
     return time?`${date} • ${time}`:date;
   }
@@ -114,12 +119,13 @@
     if(!sum)return;
     const boxes=[...sum.querySelectorAll('.hd-summary-box')];
     const byLabel=label=>boxes.find(box=>(box.querySelector('.hd-summary-label')?.textContent||'').trim().toLowerCase()===label.toLowerCase());
+    const conducted=currentItems.filter(item=>!isPlannedSession(item.s));
     const sessionsBox=byLabel('Сессии');
-    if(sessionsBox){const v=sessionsBox.querySelector('.hd-summary-value');if(v)v.textContent=String(currentItems.length);}
+    if(sessionsBox){const v=sessionsBox.querySelector('.hd-summary-value');if(v)v.textContent=String(conducted.length);}
     const lastBox=byLabel('Последняя сессия');
     if(lastBox){
       const v=lastBox.querySelector('.hd-summary-value');
-      if(v)v.textContent=currentItems[0]?.s?.date||'—';
+      if(v)v.textContent=conducted[0]?.s?.date||'—';
     }
     const reqBox=byLabel('Текущий запрос');
     if(reqBox&&r){const v=reqBox.querySelector('.hd-summary-value');if(v)v.textContent=r.title||'Не указан';}
@@ -185,7 +191,13 @@
     const display=r?all.filter(item=>belongsTo(item.s,r)):[];
     const archived=all.filter(item=>!r||!belongsTo(item.s,r));
 
-    count.textContent=r?(display.length?`Всего: ${display.length}`:'Сессий по текущему запросу пока нет'):'Нет текущего запроса';
+    const plannedCount=display.filter(item=>isPlannedSession(item.s)).length;
+    const conductedCount=display.length-plannedCount;
+    count.textContent=r
+      ?(display.length
+        ?(plannedCount?`Проведено: ${conductedCount} · Запланировано: ${plannedCount}`:`Всего: ${conductedCount}`)
+        :'Сессий по текущему запросу пока нет')
+      :'Нет текущего запроса';
     archiveBtn.textContent=`Архив сессий${archived.length?` (${archived.length})`:''}`;
     archiveBtn.hidden=!archived.length;
     list.innerHTML='';
@@ -227,7 +239,7 @@
         <div class="hd-session-top">
           <strong>Сессия №${number}</strong>
           ${plannedHtml}
-          <span class="hd-session-date">◷ ${esc(planned?scheduledLabel(s):(s.date||'—'))}</span>
+          <span class="hd-session-date">${planned?'Назначено:':'◷'} ${esc(planned?scheduledLabel(s):(s.date||'—'))}</span>
           ${typeHtml}
           <span class="hd-session-request">• ${esc(requestName(c,s))}</span>
           ${paymentHtml}
