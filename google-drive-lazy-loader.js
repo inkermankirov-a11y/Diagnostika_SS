@@ -57,7 +57,7 @@
       await loadScript('google-oauth-config.js?v=20260914-2');
       await loadScript('google-drive-storage.js?v=20260914-5&db=14d');
       await loadScript('google-drive-auth-popup-fix.js?v=20260914-1');
-      await loadScript('google-drive-sync-safe.js?v=20260914-2&db=14d');
+      await loadScript('google-drive-sync-safe.js?v=20261003-auto-sync-1&db=14d');
       loaded = true;
     } catch (error) {
       console.error('[Google Drive lazy loader]', error);
