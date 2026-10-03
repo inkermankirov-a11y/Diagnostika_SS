@@ -135,12 +135,12 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const css=document.createElement('link');
       css.rel='stylesheet';
-      css.href='home-dashboard.css?v=20261003-ai-column-scroll-6';
+      css.href='home-dashboard.css?v=20261003-client-ai-binding-7';
       css.setAttribute('data-home-dashboard','1');
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261003-glass-rail-5','data-home-dashboard-preload'],
+      ['home-dashboard.js?v=20261003-client-ai-binding-7','data-home-dashboard-preload'],
       ['home-dashboard-sessions.js?v=20261003-capsule-4','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
@@ -164,13 +164,13 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const l=document.createElement('link');
       l.rel='stylesheet';
-      l.href='home-dashboard.css?v=20261003-ai-column-scroll-6';
+      l.href='home-dashboard.css?v=20261003-client-ai-binding-7';
       l.setAttribute('data-home-dashboard','1');
       document.head.appendChild(l);
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20261003-glass-rail-5';
+      s.src='home-dashboard.js?v=20261003-client-ai-binding-7';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){

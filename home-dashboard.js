@@ -344,6 +344,7 @@
     }
     closeClientMenu();
     refresh();
+    setTimeout(()=>window.DiagnostikaClientAIChat?.refresh?.(),0);
     document.dispatchEvent(new CustomEvent('diagnostika:dashboard-home-opened'));
     return true;
   }
@@ -416,7 +417,12 @@
     const previousView=dashboardView;
     dashboardView='client';
     syncDashboardView();
-    if(clientsApi()?.select?.(id,{source:'home-dashboard-open-client'})){refresh();return;}
+    if(clientsApi()?.select?.(id,{source:'home-dashboard-open-client'})){
+      refresh();
+      setTimeout(()=>window.DiagnostikaClientAIChat?.refresh?.(),0);
+      setTimeout(()=>window.DiagnostikaClientAIChat?.refresh?.(),90);
+      return;
+    }
     dashboardView=previousView;
     syncDashboardView();
     unavailable('Модуль выбора клиента не загрузился. Обновите страницу.','Клиенты');

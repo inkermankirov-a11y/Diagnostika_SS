@@ -221,11 +221,28 @@
     if(!notes.length){box.innerHTML=`<div class="hd-note-preview-head">${esc(c.name||'Клиент')}</div><div>Заметок пока нет. Нажмите, чтобы добавить.</div>`;return;}
     const last=notes[0];const text=String(last.text||'');box.innerHTML=`<div class="hd-note-preview-head">${esc(c.name||'Клиент')}</div><div>${esc(text.length>130?text.slice(0,130)+'…':text)}</div><div class="hd-note-preview-meta">Заметок: ${notes.length} • ${esc(fmt(last.updatedAt||last.createdAt))}</div>`;
   }
+  function dashboardClientMode(){
+    const dash=document.querySelector('.home-dashboard');
+    return !!dash&&dash.classList.contains('dashboard-client-mode');
+  }
+
   function renderChat(){
-    if(!widget&&!buildWidget())return;const c=currentClient();const input=widget.querySelector('.hd-ai-input'),sendBtn=widget.querySelector('.hd-ai-send'),quick=[...widget.querySelectorAll('.hd-ai-quick button')],clientEl=widget.querySelector('.hd-ai-client'),messages=widget.querySelector('.hd-ai-messages');
-    const disabled=!c||sending;input.disabled=disabled;sendBtn.disabled=disabled;quick.forEach(b=>b.disabled=disabled);clientEl.textContent=c?`Контекст: ${c.name||'выбранный клиент'}`:'Выберите клиента слева';
+    if(!widget&&!buildWidget())return;
+    const c=dashboardClientMode()?currentClient():null;
+    const input=widget.querySelector('.hd-ai-input'),sendBtn=widget.querySelector('.hd-ai-send'),quick=[...widget.querySelectorAll('.hd-ai-quick button')],clientEl=widget.querySelector('.hd-ai-client'),messages=widget.querySelector('.hd-ai-messages');
+    const nextClientId=c?.id!=null?String(c.id):'';
+    if(widget.dataset.clientId!==nextClientId){
+      widget.dataset.clientId=nextClientId;
+      setStatus('');
+    }
+    const disabled=!c||sending;
+    input.disabled=disabled;sendBtn.disabled=disabled;quick.forEach(b=>b.disabled=disabled);
+    clientEl.textContent=c?String(c.name||'Клиент'):'';
     messages.innerHTML='';
-    if(!c){messages.innerHTML='<div class="hd-ai-empty">Выберите клиента. AI будет видеть только данные выбранного клиента.</div>';return;}
+    if(!c){
+      messages.innerHTML='<div class="hd-ai-empty">Выберите клиента слева. Помощник работает только с выбранным клиентом.</div>';
+      return;
+    }
     const history=chatOf(c);
     if(!history.length){messages.innerHTML='<div class="hd-ai-empty">Здесь будет отдельный AI-диалог по этому клиенту. Контекст других клиентов не отправляется.</div>';return;}
     history.slice(-30).forEach(m=>{const div=document.createElement('div');const assistant=m.role==='assistant';div.className=`hd-ai-msg ${assistant?'assistant':'user'}`;div.innerHTML=assistant?`<div class="hd-ai-rich">${formatAssistantText(m.text)}</div><span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`:`${esc(m.text)}<span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`;messages.appendChild(div);});messages.scrollTop=messages.scrollHeight;
@@ -295,7 +312,10 @@
       setTimeout(refresh,0);
     });
     for(const type of ['client:selected','client:updated','client:created','client:restored','client:deleted']){
-      events.on(type,()=>setTimeout(refresh,0));
+      events.on(type,detail=>{
+        setTimeout(refresh,0);
+        if(type==='client:selected')setTimeout(refresh,80);
+      });
     }
     platformEventsHooked=true;
     return true;
@@ -309,7 +329,9 @@
     initAttempts++;
     if(initAttempts<40)setTimeout(init,250);
   }
-  document.addEventListener('click',e=>{if(e.target?.closest?.('.hd-client-row'))setTimeout(refresh,0);},true);
+  document.addEventListener('click',e=>{if(e.target?.closest?.('.hd-client-row')){setTimeout(refresh,0);setTimeout(refresh,90);}},true);
+  document.addEventListener('diagnostika:dashboard-clients-rendered',()=>setTimeout(refresh,0));
+  document.addEventListener('diagnostika:dashboard-home-opened',()=>setTimeout(refresh,0));
   window.addEventListener('diagnostika-client-notes-changed',()=>setTimeout(refresh,0));
   window.addEventListener('diagnostika-client-ai-chat-changed',()=>setTimeout(refresh,0));
   window.DiagnostikaClientAIChat={refresh,openNotes,buildContext,send};
