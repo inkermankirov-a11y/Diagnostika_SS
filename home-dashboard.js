@@ -491,7 +491,7 @@
       const pin=pinned?`<span class="hd-client-pin" aria-label="Закреплённый клиент" title="Закреплён">📌</span>`:'';
       row.classList.toggle('pinned',pinned);
       row.classList.toggle('new-client',newClient);
-      row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools"><span class="hd-client-pin-cell">${pin}</span><span class="hd-client-status-cell">${upcomingDot}</span>${flag}<button class="hd-client-more" type="button" title="Действия с клиентом" aria-haspopup="menu" aria-expanded="false">⋮</button></div>`;
+      row.innerHTML=`${avatar}<div class="hd-client-info"><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools"><span class="hd-client-pin-cell">${pin}</span><span class="hd-client-status-stack" aria-label="Статусы клиента"><span class="hd-client-status-slot hd-client-status-top">${upcomingDot}</span><span class="hd-client-status-slot hd-client-status-middle" aria-hidden="true"></span><span class="hd-client-status-slot hd-client-status-bottom">${flag}</span></span><button class="hd-client-more" type="button" title="Действия с клиентом" aria-haspopup="menu" aria-expanded="false">⋮</button></div>`;
       row.onclick=e=>{if(e.target.closest('.hd-client-more'))return;selectClient(c.id);};
       row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();openClientMenu(c,e.currentTarget);};
       bindUpcomingTooltip(row.querySelector('.hd-upcoming-session-dot'));
