@@ -126,6 +126,7 @@
 
       if(p.mode==='session'){
         const linkedSessions=sessions.filter(s=>{
+          if(s?.planned===true||String(s?.status||'')==='planned')return false;
           const linkedId=s?.payment?.requestId||s?.requestId||'';
           if(linkedId)return String(linkedId)===String(r.id);
           return sessionModeRequests.length===1;
@@ -163,6 +164,7 @@
     if(!sessions.length)return true;
     const now=Date.now();
     return !sessions.some(session=>{
+      if(session?.planned===true||String(session?.status||'')==='planned')return false;
       const time=sessionStartTime(session);
       return Number.isFinite(time)&&time<=now;
     });
