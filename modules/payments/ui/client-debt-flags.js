@@ -35,7 +35,8 @@
 
   function sessionsFor(c,r){
     if(!r?.id)return[];
-    return ui()?.sessionsForRequest?.(c,r.id)||[];
+    const rows=ui()?.sessionsForRequest?.(c,r.id)||[];
+    return rows.filter(s=>!(s?.planned===true||String(s?.status||'')==='planned'));
   }
 
   function fallbackPaidTotal(c,r){

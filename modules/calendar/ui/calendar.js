@@ -98,7 +98,7 @@
               <label>Время<input class="cal-time" type="time" value="19:00"></label>
               <label class="cal-span2">Клиент<select class="cal-client"></select></label>
               <div class="cal-client-time-preview unknown" role="status" aria-live="polite">🕒 <strong>Время клиента:</strong> выберите клиента</div>
-              <label class="cal-span2">Тип<select class="cal-type"><option>Сессия</option><option>Бесплатная консультация</option><option>Созвон</option><option>Напоминание</option><option>Другое</option></select></label>
+              <label class="cal-span2">Тип<select class="cal-type"><option>Сессия</option><option>Диагностика</option><option>Бесплатная консультация</option><option>Созвон</option><option>Напоминание</option><option>Другое</option></select></label>
               <label class="cal-span2">Комментарий<textarea class="cal-note" placeholder="Что запланировано"></textarea></label>
             </div>
             <button type="button" class="tk-btn cal-save">Сохранить запись</button>
@@ -700,7 +700,8 @@
     const note=noteInput.value.trim();
     const api=calendarApi();
     if(typeof api?.create!=='function')return;
-    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note};
+    const plannedSessionSkeleton=['Сессия','Диагностика','Бесплатная консультация','Созвон','Другое'].includes(type);
+    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,plannedSessionSkeleton};
     if(!api.create(item,{source:'calendar-ui-create'}))return;
     noteInput.value='';
     selected=date;

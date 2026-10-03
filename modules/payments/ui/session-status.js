@@ -33,6 +33,7 @@
       const chronological=(ui()?.sessionList?.(c)||[]).map((s,index)=>({s,index,time:new Date(s.date||s.createdAt||0).getTime()||index})).sort((a,b)=>a.time-b.time||a.index-b.index);
       const s=chronological[Number(m[1])-1]?.s;
       if(!s){existing?.remove();return;}
+      if(s?.planned===true||String(s?.status||'')==='planned'){existing?.remove();return;}
       const r=requestForSession(c,s),p=paymentOf(c,r);
       if(!r||p?.mode!=='session'){existing?.remove();return;}
       const sp=sessionPay(c,s);
@@ -81,7 +82,7 @@
       const p=paymentOf(c,r);
       if(p?.mode==='session'){
         const sessions=ui()?.sessionsForRequest?.(c,r.id)||[];
-        unpaid=sessions.filter(s=>!sessionPay(c,s).paid);
+        unpaid=sessions.filter(s=>!(s?.planned===true||String(s?.status||'')==='planned')&&!sessionPay(c,s).paid);
       }
     }
     const shouldAttention=unpaid.length>0;

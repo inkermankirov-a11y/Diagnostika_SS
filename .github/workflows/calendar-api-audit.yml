@@ -85,8 +85,8 @@ jobs:
           ]:
               if token not in loader:
                   errors.append('calendar loader missing/stale: '+token)
-          if 'loadCalendarApi()' not in loader:
-              errors.append('calendar API is not in application loader chain')
+          if "id:'calendar'" not in loader or 'calendar-api.js?v=20260919-calendar8d' not in loader:
+              errors.append('calendar domain/API is not in application loader chain')
           build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
           loader_match=re.search(r'app-loader[.]js[?]v=([^"&]+)',index)
           if not build_match or not loader_match:
@@ -102,20 +102,25 @@ jobs:
                   errors.append('calendar 8B UI service boundary missing '+token)
           if 'normalizePlannedSessions' not in planning:
               errors.append('calendar session planning baseline missing')
-          if "version:'8C'" not in planning:
-              errors.append('calendar session planning is not 8C')
+          if "version:'8E'" not in planning:
+              errors.append('calendar session planning is not 8E')
           for token in [
               "sessionsApi()?.forRequest?.(r.id,c)",
               "api.list({clientId:c.id})",
               "api.update(e.id,patch,{source:'calendar-session-linkage'})",
+              "sessions.create({",
+              "source:'calendar-planned-session-create'",
+              "source:'calendar-planned-session-sync'",
+              "source:'calendar-planned-session-orphan-remove'",
+              "'calendar:event-created'","'calendar:event-updated'","'calendar:event-deleted'",
               "'session:created'","'session:updated'","'session:deleted'"
           ]:
               if token not in planning:
-                  errors.append('calendar 8C session linkage missing '+token)
+                  errors.append('calendar 8E session linkage missing '+token)
           for forbidden in ["typeof save==='function'", 'st.calendarEvents', 'e.sessionNumber=', 'e.requestId=']:
               if forbidden in planning:
-                  errors.append('calendar 8C legacy mutation remains: '+forbidden)
-          if 'modules/calendar/ui/session-planning.js?v=20261001-modular-stage8-7' not in index:
+                  errors.append('calendar 8E legacy mutation remains: '+forbidden)
+          if 'modules/calendar/ui/session-planning.js?v=20261003-planned-session-1' not in index:
               errors.append('calendar session planning module marker is stale')
 
           for token in ["version:'8D'", 'window.DiagnostikaCalendarUI=ui', "if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui", 'row.dataset.calendarEventId']:
@@ -125,7 +130,7 @@ jobs:
               if token not in google:
                   errors.append('calendar 8D Google bridge hardening missing '+token)
           for token in [
-              'modules/calendar/ui/calendar.js?v=20261001-modular-stage8-6',
+              'modules/calendar/ui/calendar.js?v=20261003-planned-session-1',
               'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
           ]:
               if token not in index:

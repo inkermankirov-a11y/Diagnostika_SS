@@ -126,6 +126,7 @@
 
       if(p.mode==='session'){
         const linkedSessions=sessions.filter(s=>{
+          if(s?.planned===true||String(s?.status||'')==='planned')return false;
           const linkedId=s?.payment?.requestId||s?.requestId||'';
           if(linkedId)return String(linkedId)===String(r.id);
           return sessionModeRequests.length===1;
@@ -163,6 +164,7 @@
     if(!sessions.length)return true;
     const now=Date.now();
     return !sessions.some(session=>{
+      if(session?.planned===true||String(session?.status||'')==='planned')return false;
       const time=sessionStartTime(session);
       return Number.isFinite(time)&&time<=now;
     });
@@ -533,7 +535,7 @@
     heroActions.append(card,diag,payment);
 
     const currentReq=requestsApi()?.current?.()||(c.requests||[])[0]||null;
-    const lastSession=(c.sessions||[]).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
+    const lastSession=(c.sessions||[]).filter(s=>!(s?.planned===true||String(s?.status||'')==='planned')).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
     const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
     const desiredResult=desiredResults.length?desiredResults[desiredResults.length-1]:'Не указан';
     const items=[

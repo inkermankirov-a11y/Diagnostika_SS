@@ -83,12 +83,17 @@ assert(api.includes('window.DiagnostikaPayments=Object.freeze(facade)'),'Payment
 assert(api.includes('window.DiagnostikaPaymentUI'),'Payment API does not compose modular UI');
 assert.equal((api.match(/window\.DiagnostikaPayments=/g)||[]).length,1,'Payment facade owner count changed');
 
+const paymentContext=fs.readFileSync('modules/payments/ui/context.js','utf8');
+assert(paymentContext.includes("rows.filter(s=>!(s?.planned===true||String(s?.status||'')==='planned'))"),'Payment context still exposes planned session skeletons as billable sessions');
+
 const sessionEditor=fs.readFileSync('modules/payments/ui/session-editor.js','utf8');
 assert(sessionEditor.includes("'diagnostika:session-editor-opened'"),'Session payment editor is not event-driven');
 assert(sessionEditor.includes("source:'session-payment-editor-toggle'"),'Canonical session payment toggle source missing');
+assert(sessionEditor.includes("if(s?.planned===true||String(s?.status||'')==='planned')return;"),'Planned session editor still shows payment controls');
 
 const status=fs.readFileSync('modules/payments/ui/session-status.js','utf8');
 assert(status.includes("'diagnostika:dashboard-sessions-rendered'"),'Session payment status render event missing');
+assert(status.includes("s?.planned===true||String(s?.status||'')==='planned'"),'Session payment status still treats planned skeletons as unpaid');
 
 console.log('PAYMENT_UI_BOUNDARY_25A_SUCCESS',JSON.stringify({
   retiredRoots:retiredRoots.length,

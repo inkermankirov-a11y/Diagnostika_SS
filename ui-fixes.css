@@ -56,6 +56,22 @@ html:not(.diagnostika-dashboard-ready) .app-header{display:none!important}
 .session-edit-grid input,.session-edit-grid select{height:34px;border:1px solid #cbd5df;background:#fff;padding:4px 8px;border-radius:6px}
 .session-edit-text{width:100%;min-height:160px;resize:vertical;border:1px solid #c4cfda;background:#fffdf9;padding:10px;font:inherit;border-radius:7px;line-height:1.45}
 .session-edit-text:focus,.session-edit-grid input:focus,.session-edit-grid select:focus{outline:2px solid rgba(85,126,174,.18);border-color:#8eabc9}
+.session-planned-banner{margin:0 0 12px;padding:12px 13px;border:1px solid #edc667;border-left:5px solid #f59e0b;border-radius:9px;background:linear-gradient(180deg,#fff9e5,#fff3c7);box-shadow:0 3px 10px rgba(180,119,10,.08)}
+.session-planned-banner[hidden]{display:none!important}
+.session-planned-banner-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.session-planned-state{display:inline-flex;padding:5px 9px;border-radius:999px;background:#f59e0b;color:#fff;font-size:10px;font-weight:900;letter-spacing:.05em}
+.session-planned-undone{display:inline-flex;padding:4px 8px;border:1px solid #dfb24e;border-radius:999px;background:#fff8dd;color:#845d08;font-size:10px;font-weight:900;letter-spacing:.05em}
+.session-planned-when{margin-top:7px;color:#5f4612;font-size:14px;font-weight:900}
+.session-planned-hint{margin-top:4px;color:#8b723c;font-size:11px;font-weight:600;line-height:1.35}
+.session-plan-editor{margin:12px 0;border:1px solid #c9d9ee;border-radius:9px;background:#f6f9fe;padding:11px}
+.session-plan-editor[hidden]{display:none!important}
+.session-plan-editor-title,.session-notes-editor-title{margin:0 0 6px;color:#536b86;font-size:10px;font-weight:900;letter-spacing:.08em}
+.session-plan-editor-title{color:#315f95}
+.session-plan-editor-text{width:100%;min-height:118px;resize:vertical;box-sizing:border-box;border:1px solid #b9cde5;border-radius:7px;background:#fff;padding:10px;font:inherit;line-height:1.45;color:#243a58}
+.session-plan-editor-text:focus{outline:2px solid rgba(47,124,246,.15);border-color:#7fa8dc}
+.session-plan-editor-hint{margin-top:6px;color:#7288a3;font-size:11px;line-height:1.35}
+.session-notes-editor-title{margin-top:12px;color:#9a7a58}
+.session-edit-grid input:disabled{background:#f1f4f8;color:#78899e;cursor:not-allowed}
 .session-edit-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
 .session-edit-actions button{border:1px solid #d1d9e1;background:#edf1f5;padding:8px 15px;cursor:pointer;border-radius:6px}
 .session-edit-actions .primary{background:#4f78a8;border-color:#4f78a8;color:#fff}

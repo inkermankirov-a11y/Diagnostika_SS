@@ -18,6 +18,7 @@ assert.ok(js.includes('function upcomingInteractionLabel(upcoming)'),'upcoming b
 assert.ok(js.includes('data-tooltip=')&&js.includes('bindUpcomingTooltip'),'upcoming beacon hover tooltip binding missing');
 assert.ok(js.includes("row.classList.toggle('new-client',newClient)"),'new-client row marker missing');
 assert.ok(js.includes('return !sessions.some(session=>'),'new-client marker must remain until the first session actually starts');
+assert.ok(js.includes("session?.planned===true||String(session?.status||'')==='planned'"),'planned session skeleton can incorrectly clear new-client status');
 assert.equal(js.includes('hd-new-client-dot'),false,'old blinking green new-client dot returned');
 assert.ok(js.includes('hd-upcoming-session-dot'),'yellow upcoming-session indicator missing');
 assert.ok(js.includes("'calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced'"),'calendar lifecycle does not refresh client markers');
@@ -36,6 +37,7 @@ assert.ok(css.includes('.hd-client-status-top')&&css.includes('.hd-client-status
 assert.ok(js.includes('hd-client-status-middle'),'future green status slot is not reserved');
 assert.ok(css.includes('white-space:normal')&&css.includes('overflow-wrap:anywhere'),'client names can still be clipped');
 assert.ok(debtFlags.includes("row.querySelector('.hd-client-status-bottom')"),'unpaid flag is not anchored to bottom status slot');
+assert.ok(debtFlags.includes("rows.filter(s=>!(s?.planned===true||String(s?.status||'')==='planned'))"),'planned session skeletons are still counted as debt');
 assert.ok(css.includes('padding-right:10px'),'client list is still too close to its scrollbar');
 assert.ok(debtFlags.includes("flag.title=hasSessionTarget?'Не оплачена сессия':'Есть задолженность'"),'unpaid session flag hover label missing');
 assert.ok(debtFlags.includes('focusUnpaidSession(c,target)'),'unpaid client flag does not navigate to the unpaid session');
@@ -49,9 +51,9 @@ assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
 assert.ok(loader.includes('home-dashboard.css?v=20261003-avatar-ring-selected-strip-1'),'dashboard CSS cache key missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261003-status-stack-1'),'dashboard JS cache key missing');
-assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-unpaid-jump-1'),'dashboard sessions cache key missing');
-assert.ok(index.includes('app-loader.js?v=20261003-avatar-ring-selected-strip-1'),'app-loader cache key missing');
-assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-status-stack-1'),'client debt flags cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261003-planned-session-1'),'dashboard JS cache key missing');
+assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-planned-session-1'),'dashboard sessions cache key missing');
+assert.ok(index.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1'),'app-loader cache key missing');
+assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-planned-session-1'),'client debt flags cache key missing');
 
 console.log('DASHBOARD_CLIENT_MARKERS_AUDIT_OK');

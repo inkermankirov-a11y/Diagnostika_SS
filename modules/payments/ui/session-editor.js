@@ -166,6 +166,7 @@
     if(!dlg||dlg.dataset.paymentEditorReady==='1')return;
     const grid=dlg.querySelector('.session-edit-grid'),requestSelect=grid?.querySelector('select');if(!grid)return;
     const c=clientRef||currentClient(),s=sessionRef||getDialogSession(c,dlg);if(!c||!s)return;
+    if(s?.planned===true||String(s?.status||'')==='planned')return;
     dlg.dataset.paymentEditorReady='1';dlg.dataset.sessionId=s.id;
     const dateInput=grid.querySelector('input[type="date"]');
     const dateWrap=document.createElement('div');dateWrap.className='session-date-payment-wrap';

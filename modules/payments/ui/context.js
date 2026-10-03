@@ -38,7 +38,8 @@
   }
 
   function sessionsForRequest(clientRef,requestRef){
-    return sessions()?.forRequest?.(requestRef,clientRef)||[];
+    const rows=sessions()?.forRequest?.(requestRef,clientRef)||[];
+    return rows.filter(s=>!(s?.planned===true||String(s?.status||'')==='planned'));
   }
 
   function refreshSessions(){
