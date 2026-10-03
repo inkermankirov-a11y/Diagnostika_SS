@@ -63,6 +63,11 @@ assert.ok(css.includes('border:2px solid #bfd7ec'),'summary cards are not visual
 assert.ok(css.includes('font-size:16px'),'summary values are still too small');
 assert.ok(css.includes('.hd-client-view.has-client .hd-features{\n  display:none;'),'client view still wastes space on generic feature cards');
 assert.ok(css.includes('.hd-client-view.has-client .hd-hero-reminder{'),'right-side client reminder override missing');
+assert.ok(js.includes('class="hd-client-right-rail"'),'client right rail missing');
+assert.ok(js.includes('class="hd-reminder-slot"'),'reserved reminder slot missing');
+assert.ok(js.includes('id="hdClientSpecialistSlot"'),'specialist slot below reminder missing');
+assert.ok(css.includes('grid-template-rows:minmax(145px,auto) auto'),'right rail does not reserve reminder space');
+assert.ok(css.includes('gap:34px'),'client name block is not shifted away from avatar');
 assert.ok(js.includes('id="hdClientSocials"'),'client social icon row missing');
 assert.ok(js.includes("['vk','VK',c?.vk]")&&js.includes("['max','MAX',c?.max]")&&js.includes("['telegram','Telegram',c?.telegram]"),'client social buttons are incomplete');
 assert.ok(js.includes("btn.disabled=!href"),'empty social contacts are not disabled');
@@ -88,8 +93,8 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-balanced-main-3'),'dashboard CSS cache key missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261003-balanced-main-3'),'dashboard client-main cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-specialist-rail-4'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261003-specialist-rail-4'),'dashboard client-main cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-full-history-3'),'dashboard sessions cache key missing');
 assert.ok(index.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1&beacons=20261003-1&reminder=20261003-1&dates=20261003-1'),'app-loader cache key missing');
 assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-planned-session-1'),'client debt flags cache key missing');
