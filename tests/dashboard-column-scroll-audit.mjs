@@ -22,11 +22,13 @@ assert.ok(css.includes('grid-template-columns:minmax(200px,220px) minmax(0,1fr) 
 assert.ok(css.includes('@media(max-width:1180px)'),'narrow browser fixed-third-column override missing');
 assert.ok(css.includes('grid-template-columns:minmax(190px,210px) minmax(0,1fr) 350px!important'),'narrow browser can still shrink the third column');
 assert.ok(css.includes('width:350px!important')&&css.includes('min-width:350px!important'),'right rail can still collapse in width');
+assert.ok(css.includes('grid-template-rows:max-content max-content!important'),'right rail can still compress its child cards');
+assert.ok(css.includes('grid-auto-rows:max-content!important'),'right rail implicit rows can still compress');
 assert.ok(css.includes('.home-dashboard:not([hidden]) .hd-client-list{overflow-y:auto!important;overscroll-behavior:contain;scrollbar-gutter:stable}'),'left column independent scrolling is not enforced');
 assert.ok(css.includes('.hd-hero-icon{width:150px;height:118px;position:relative;margin-bottom:24px;display:grid;place-items:center;flex:0 0 auto}'),'client avatar shrink protection missing');
 assert.ok(css.includes('height:84px!important;min-height:84px!important;padding:12px 24px!important;align-items:center!important'),'header vertical spacing is not enforced');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-fixed-right-ai-9'),'dashboard CSS cache key not bumped');
-assert.ok(index.includes('aicolumn=20261003-9'),'app-loader AI-column cache key not bumped');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-layout-regression-10'),'dashboard CSS cache key not bumped');
+assert.ok(index.includes('aicolumn=20261003-10'),'app-loader AI-column cache key not bumped');
 
 const baseMain=css.indexOf('.hd-main{min-height:calc(100vh - 108px);display:flex;flex-direction:column;overflow:hidden}');
 const desktopMain=css.lastIndexOf('.home-dashboard:not([hidden]) > .hd-main{overflow-y:auto!important');

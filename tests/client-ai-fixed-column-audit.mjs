@@ -14,6 +14,8 @@ assert(view.includes('function hideHintsMenu()'),'Hints menu cleanup missing');
 assert(css.includes('width:350px!important'),'Right column width is not fixed');
 assert(css.includes('min-width:350px!important'),'Right column can still shrink');
 assert(css.includes('height:190px!important'),'AI message area can still collapse');
+assert(css.includes('min-height:395px!important'),'AI card can still cut off its footer/input controls');
+assert(css.includes('grid-template-rows:max-content max-content!important'),'Right column can still compress the AI card');
 assert(css.includes('min-width:760px'),'Very narrow desktop layout can still stack/collapse');
 assert(index.includes('client-ai-chat-view.js?v=20261003-hints-portal-4'),'AI view cache key missing');
 
