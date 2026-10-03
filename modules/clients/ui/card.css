@@ -40,8 +40,9 @@
 .cc-free-consult-btn{background:linear-gradient(#34A96F,#248455)!important;color:#fff!important;border-color:#1E7048!important}
 .cc-calendar-btn{background:linear-gradient(#5A82EE,#3E65D7)!important;color:#fff!important;border-color:#3458C1!important}
 .cc-diagnosis-btn{background:linear-gradient(#8B6BE8,#6547C4)!important;color:#fff!important;border-color:#573AAD!important}
+.cc-payment-btn{background:linear-gradient(#64748b,#475569)!important;color:#fff!important;border-color:#39475a!important}
 .cc-top-actions #ccQuestionnairesBtn{background:linear-gradient(#f8fafc,#edf1f5);border:1px solid #c8d0da;color:#202124}
-.cc-free-consult-btn:hover,.cc-calendar-btn:hover,.cc-diagnosis-btn:hover,.cc-top-actions #ccQuestionnairesBtn:hover{filter:saturate(1.08) brightness(1.03)}
+.cc-free-consult-btn:hover,.cc-calendar-btn:hover,.cc-diagnosis-btn:hover,.cc-payment-btn:hover,.cc-top-actions #ccQuestionnairesBtn:hover{filter:saturate(1.08) brightness(1.03)}
 
 .cc-client-time{grid-column:1/3;width:min(360px,100%);display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:center;min-height:42px;padding:6px 9px;border:1px solid #d5dfeb;border-radius:8px;background:#f7f9fc;box-sizing:border-box;transition:.15s ease}
 .cc-client-time-icon{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#e9eef5;font-size:14px}

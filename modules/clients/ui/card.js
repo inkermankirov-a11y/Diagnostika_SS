@@ -41,9 +41,11 @@
           </div>
 
           <div class="cc-top-actions">
-            <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
-            <button id="ccDiagnosisBtn" type="button" class="cc-top-action-btn cc-diagnosis-btn">Диагностика</button>
+            <button id="ccQuestionnairesBtn" type="button" class="cc-top-action-btn cc-questionnaires-btn">Анкеты</button>
             <button id="ccFreeConsultBtn" type="button" class="cc-top-action-btn cc-free-consult-btn">Бесплатная консультация</button>
+            <button id="ccDiagnosisBtn" type="button" class="cc-top-action-btn cc-diagnosis-btn">Диагностика</button>
+            <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
+            <button id="ccPaymentBtn" type="button" class="cc-top-action-btn cc-payment-btn">Оплата</button>
           </div>
         </div>
 
@@ -873,6 +875,14 @@
   q('ccGender')?.addEventListener('change',()=>{dirty=true;});
   q('ccCloseBtn').onclick = closeDraftAware;
   q('ccSaveBtn').onclick = saveCard;
+  q('ccQuestionnairesBtn').onclick=()=>{
+    if(draftMode){
+      if(window.AppDialog?.alert)window.AppDialog.alert('Сначала сохраните клиента, затем откройте анкеты.','Анкеты');
+      else alert('Сначала сохраните клиента, затем откройте анкеты.');
+      return;
+    }
+    window.DiagnostikaQuestionnaires?.open?.();
+  };
   q('ccDiagnosisBtn').onclick=()=>{
     if(draftMode){
       if(window.AppDialog?.alert)window.AppDialog.alert('Сначала сохраните клиента, затем откройте диагностику.','Диагностика');
@@ -884,6 +894,20 @@
       if(window.DiagnostikaDiagnosis?.open){window.DiagnostikaDiagnosis.open();return;}
       if(window.AppDialog?.alert)window.AppDialog.alert('Модуль диагностики не загрузился. Обновите страницу.','Диагностика');
       else alert('Модуль диагностики не загрузился. Обновите страницу.');
+    },0);
+  };
+  q('ccPaymentBtn').onclick=()=>{
+    if(draftMode){
+      if(window.AppDialog?.alert)window.AppDialog.alert('Сначала сохраните клиента, затем откройте оплату.','Оплата');
+      else alert('Сначала сохраните клиента, затем откройте оплату.');
+      return;
+    }
+    dlg.close();
+    setTimeout(()=>{
+      const openPayment=window.DiagnostikaPayments?.open||window.DiagnostikaPaymentUI?.open;
+      if(typeof openPayment==='function'){openPayment();return;}
+      if(window.AppDialog?.alert)window.AppDialog.alert('Модуль оплаты не загрузился. Обновите страницу.','Оплата');
+      else alert('Модуль оплаты не загрузился. Обновите страницу.');
     },0);
   };
   q('ccPhotoFrame').onclick=()=>{

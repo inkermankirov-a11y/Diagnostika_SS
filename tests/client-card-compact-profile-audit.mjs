@@ -17,10 +17,13 @@ assert(js.includes('id="ccAgeAuto" type="checkbox"'),'Automatic age toggle missi
 assert(js.includes("ageAuto:q('ccAgeAuto').checked===true"),'Age mode is not persisted');
 assert(js.includes("birthTime:q('ccBirthTime').value"),'Birth time is not persisted');
 assert(js.includes('cc-social-column'),'Social contacts are not grouped in one column');
-const calendarPos=js.indexOf('id="ccCalendarBtn"');
-const diagnosisPos=js.indexOf('id="ccDiagnosisBtn"');
+const questionnairesPos=js.indexOf('id="ccQuestionnairesBtn"');
 const freePos=js.indexOf('id="ccFreeConsultBtn"');
-assert(calendarPos>=0&&diagnosisPos>calendarPos&&freePos>diagnosisPos,'Client action order must be Calendar → Diagnosis → Free consultation');
+const diagnosisPos=js.indexOf('id="ccDiagnosisBtn"');
+const calendarPos=js.indexOf('id="ccCalendarBtn"');
+const paymentPos=js.indexOf('id="ccPaymentBtn"');
+assert(questionnairesPos>=0&&freePos>questionnairesPos&&diagnosisPos>freePos&&calendarPos>diagnosisPos&&paymentPos>calendarPos,'Client action order must be Questionnaires → Free consultation → Diagnosis → Calendar → Payment');
+assert(js.includes("q('ccPaymentBtn').onclick"),'Payment button handler missing');
 assert(js.includes("q('ccDiagnosisBtn').onclick"),'Diagnosis button handler missing');
 assert(js.includes('window.DiagnostikaDiagnosis?.open'),'Diagnosis button does not open the diagnosis module');
 assert(css.includes('.cc-diagnosis-btn'),'Diagnosis button style missing');
@@ -43,7 +46,7 @@ assert(css.includes('.cc-photo-editor-preview'),'Client photo thumbnail editor s
 assert(app.includes("birthTime:''")&&app.includes("photoSourceData:''"),'Legacy newClient defaults missing new profile fields');
 assert(service.includes("birthTime: ''")&&service.includes("photoSourceData: ''"),'Client service defaults missing new profile fields');
 assert(loader.includes('modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23b&profile=20261003-1'),'Client service cache marker missing');
-assert(index.includes('modules/clients/ui/card.css?v=20261003-diagnosis-action-1'),'Client card CSS cache marker missing');
-assert(index.includes('modules/clients/ui/card.js?v=20261003-diagnosis-action-1'),'Client card JS cache marker missing');
+assert(index.includes('modules/clients/ui/card.css?v=20261003-work-actions-2'),'Client card CSS cache marker missing');
+assert(index.includes('modules/clients/ui/card.js?v=20261003-work-actions-2'),'Client card JS cache marker missing');
 
 console.log('CLIENT_CARD_COMPACT_PROFILE_AUDIT_SUCCESS');

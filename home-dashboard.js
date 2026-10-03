@@ -622,9 +622,7 @@
     heroTitle.textContent=c.name;
     heroSub.textContent=clientMeta(c);
     const card=document.createElement('button');card.className='hd-secondary';card.type='button';card.textContent='Карточка клиента';card.onclick=openCard;
-    const diag=document.createElement('button');diag.className='hd-primary';diag.type='button';diag.textContent='Диагностика';diag.onclick=openDiagnosis;
-    const payment=document.createElement('button');payment.className='hd-secondary hd-payment-btn';payment.type='button';payment.textContent='Оплата';payment.onclick=openPayment;
-    heroActions.append(card,diag,payment);
+    heroActions.append(card);
 
     const currentReq=requestsApi()?.current?.()||(c.requests||[])[0]||null;
     const lastSession=(c.sessions||[]).filter(s=>!(s?.planned===true||String(s?.status||'')==='planned')).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
