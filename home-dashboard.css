@@ -1360,3 +1360,90 @@
     max-height:145px!important;
   }
 }
+
+
+/* Dashboard v7 — client-only AI + resilient third-column scrolling. */
+
+/* The AI assistant and client notes must never appear on the dashboard home screen. */
+.home-dashboard.dashboard-home-mode .hd-right > #hdClientAiWidget,
+.home-dashboard.dashboard-home-mode .hd-right > .hd-client-notes-widget{
+  display:none!important;
+}
+
+/* The third column is its own scroll surface. */
+.home-dashboard:not([hidden]) > .hd-right{
+  min-height:0!important;
+  max-height:100%!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  align-content:start!important;
+}
+.home-dashboard:not([hidden]) > .hd-right > *{
+  flex:none;
+}
+
+/* Keep the right rail as the third column while a desktop/tablet viewport narrows.
+   Lack of vertical space is solved by scrolling this rail, not by clipping widgets. */
+@media(min-width:821px) and (max-width:1180px){
+  .home-dashboard:not([hidden]){
+    grid-template-columns:220px minmax(300px,1fr) 270px!important;
+    gap:10px!important;
+    padding:10px 12px 14px!important;
+  }
+  .home-dashboard:not([hidden]) > .hd-right{
+    grid-column:auto!important;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    grid-template-rows:auto auto!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    align-self:stretch!important;
+    direction:rtl;
+    padding-left:4px!important;
+    padding-right:0!important;
+  }
+  .home-dashboard:not([hidden]) > .hd-right > *{
+    direction:ltr;
+    min-width:0!important;
+  }
+}
+
+/* When the browser becomes shorter, reduce only the chat history viewport.
+   Input, mode buttons and send button stay visible. */
+@media(max-height:760px) and (min-width:821px){
+  .home-dashboard .hd-right > #hdClientAiWidget .hd-ai-messages{
+    height:135px!important;
+    min-height:135px!important;
+    max-height:135px!important;
+  }
+}
+@media(max-height:650px) and (min-width:821px){
+  .home-dashboard .hd-right > #hdClientAiWidget .hd-ai-messages{
+    height:110px!important;
+    min-height:110px!important;
+    max-height:110px!important;
+  }
+}
+
+/* Left-side scrollbar for the client rail. */
+@media(min-width:821px){
+  .home-dashboard:not([hidden]) > .hd-right{
+    direction:rtl;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(92,131,176,.74) transparent;
+  }
+  .home-dashboard:not([hidden]) > .hd-right > *{direction:ltr}
+  .home-dashboard:not([hidden]) > .hd-right::-webkit-scrollbar{width:8px}
+  .home-dashboard:not([hidden]) > .hd-right::-webkit-scrollbar-track{background:transparent}
+  .home-dashboard:not([hidden]) > .hd-right::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg,rgba(124,160,202,.80),rgba(86,125,171,.68));
+    border:2px solid transparent;
+    background-clip:padding-box;
+    border-radius:999px;
+  }
+}
