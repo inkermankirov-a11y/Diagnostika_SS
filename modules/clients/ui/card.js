@@ -655,7 +655,11 @@
       timezone:c.timezone||''
     }:null;
     q('ccBirth').value = c.birth || '';
-    q('ccAge').value = c.age || ageFromBirth(c.birth) || '';
+    q('ccBirthTime').value = c.birthTime || '';
+    const autoAge = c.ageAuto !== undefined ? c.ageAuto === true : Boolean(c.birth);
+    q('ccAgeAuto').checked = autoAge;
+    q('ccAge').value = autoAge ? (ageFromBirth(c.birth) || '') : (c.age || '');
+    applyAgeMode();
     q('ccVk').value = c.vk || '';
     q('ccTelegram').value = c.telegram || '';
     q('ccMax').value = c.max || '';
@@ -664,7 +668,7 @@
     q('ccTried').value = c.tried || '';
     q('ccDesiredOutcome').value = c.desiredOutcome || '';
     q('ccClientNotes').value = c.clientNotes || c.notes || '';
-    setPhoto(c.photoData||'');
+    setPhoto(c.photoData||'',c.photoSourceData||c.photoData||'',c.photoCrop||{x:50,y:50,zoom:1});
     dirty=false;
     updateClientTime();
   }
@@ -683,7 +687,9 @@
       latitude:selectedLocationMeta?.latitude??null,
       longitude:selectedLocationMeta?.longitude??null,
       birth,
-      age:q('ccAge').value.trim() || ageFromBirth(birth) || '',
+      birthTime:q('ccBirthTime').value,
+      ageAuto:q('ccAgeAuto').checked===true,
+      age:(q('ccAgeAuto').checked===true ? ageFromBirth(birth) : q('ccAge').value.trim()) || '',
       vk:q('ccVk').value.trim(),
       telegram:q('ccTelegram').value.trim(),
       max:q('ccMax').value.trim(),
@@ -692,7 +698,9 @@
       tried:q('ccTried').value,
       desiredOutcome:q('ccDesiredOutcome').value,
       clientNotes:q('ccClientNotes').value,
-      photoData:photoData || ''
+      photoData:photoData || '',
+      photoSourceData:photoSourceData || photoData || '',
+      photoCrop:{...photoCrop}
     };
   }
 
