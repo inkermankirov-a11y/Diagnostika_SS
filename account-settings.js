@@ -225,99 +225,120 @@
 
   saveBtn.addEventListener('click',e=>{
     e.stopPropagation();
-    localStorage.setItem(NAME_KEY,input.value.trim());
+    if(!persistProfile(profileFromForm(),'specialist-profile-card-save'))return;
     render();
-    saveBtn.textContent = t().saved;
-    setTimeout(()=>{ saveBtn.textContent = t().save; },900);
-    window.dispatchEvent(new CustomEvent('diagnostika-specialist-profile-change',{detail:{name:getName(),avatar:getAvatar()}}));
+    saveBtn.textContent=t().saved;
+    setTimeout(()=>{saveBtn.textContent=t().save;},900);
   });
 
-  const dlg = document.createElement('dialog');
-  dlg.className = 'avatar-editor-dialog';
-  dlg.innerHTML = `<div class="avatar-editor-card"><div class="avatar-editor-title"></div><div class="avatar-editor-hint"></div><div class="avatar-editor-preview"><img alt=""></div><div class="avatar-editor-actions"><button type="button" class="avatar-editor-cancel"></button><button type="button" class="avatar-editor-save"></button></div></div>`;
+  reviewAddBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const text=reviewTextInput.value.trim();
+    if(!text)return;
+    const profile=profileFromForm();
+    profile.reviews.push({id:uid(),author:reviewAuthorInput.value.trim(),text,createdAt:Date.now()});
+    if(!persistProfile(profile,'specialist-profile-review-add'))return;
+    reviewAuthorInput.value='';reviewTextInput.value='';render();
+  });
+
+  const dlg=document.createElement('dialog');
+  dlg.className='avatar-editor-dialog';
+  dlg.innerHTML='<div class="avatar-editor-card"><div class="avatar-editor-title"></div><div class="avatar-editor-hint"></div><div class="avatar-editor-preview"><img alt=""></div><div class="avatar-zoom-row"><span class="avatar-zoom-label"></span><input class="avatar-zoom" type="range" min="1" max="3" step="0.05" value="1"><span class="avatar-zoom-value">100%</span></div><div class="avatar-editor-actions"><button type="button" class="avatar-editor-cancel"></button><button type="button" class="avatar-editor-save"></button></div></div>';
   document.body.appendChild(dlg);
 
-  const preview = dlg.querySelector('.avatar-editor-preview');
-  const previewImg = preview.querySelector('img');
-  let sourceImage = null;
-  let pos = {x:50,y:50};
-  let dragging = false;
-  let startX = 0, startY = 0, startPosX = 50, startPosY = 50;
+  const preview=dlg.querySelector('.avatar-editor-preview');
+  const previewImg=preview.querySelector('img');
+  const zoomInput=dlg.querySelector('.avatar-zoom');
+  const zoomValue=dlg.querySelector('.avatar-zoom-value');
+  let sourceImage=null,sourceData='';
+  let pos={x:50,y:50,zoom:1};
+  let dragging=false,startX=0,startY=0,startPosX=50,startPosY=50;
 
   function paintEditorText(){
     const tr=t();
     dlg.querySelector('.avatar-editor-title').textContent=tr.avatarTitle;
     dlg.querySelector('.avatar-editor-hint').textContent=tr.avatarHint;
+    dlg.querySelector('.avatar-zoom-label').textContent=tr.zoom;
     dlg.querySelector('.avatar-editor-cancel').textContent=tr.cancel;
     dlg.querySelector('.avatar-editor-save').textContent=tr.avatarSave;
   }
-  function paintPreview(){ previewImg.style.objectPosition = `${pos.x}% ${pos.y}%`; }
-
-  preview.addEventListener('pointerdown',e=>{
-    if (!sourceImage) return;
-    dragging=true;
-    preview.classList.add('dragging');
-    preview.setPointerCapture?.(e.pointerId);
-    startX=e.clientX; startY=e.clientY; startPosX=pos.x; startPosY=pos.y;
-    e.preventDefault();
-  });
-  preview.addEventListener('pointermove',e=>{
-    if(!dragging) return;
-    const r=preview.getBoundingClientRect();
-    pos.x=clamp(startPosX-(e.clientX-startX)/Math.max(1,r.width)*100,0,100);
-    pos.y=clamp(startPosY-(e.clientY-startY)/Math.max(1,r.height)*100,0,100);
-    paintPreview();
-    e.preventDefault();
-  });
-  function stopDrag(){ dragging=false; preview.classList.remove('dragging'); }
-  preview.addEventListener('pointerup',stopDrag);
-  preview.addEventListener('pointercancel',stopDrag);
-
-  function cropAvatar(img,p){
-    const w=img.naturalWidth||img.width;
-    const h=img.naturalHeight||img.height;
-    const side=Math.min(w,h);
-    const sx=(w-side)*(p.x/100);
-    const sy=(h-side)*(p.y/100);
-    const canvas=document.createElement('canvas');
-    canvas.width=256; canvas.height=256;
-    const ctx=canvas.getContext('2d');
-    ctx.drawImage(img,sx,sy,side,side,0,0,256,256);
-    return canvas.toDataURL('image/jpeg',0.88);
+  function paintPreview(){
+    previewImg.style.objectPosition=pos.x+'% '+pos.y+'%';
+    previewImg.style.transform='scale('+pos.zoom+')';
+    previewImg.style.transformOrigin=pos.x+'% '+pos.y+'%';
+    zoomInput.value=String(pos.zoom);
+    zoomValue.textContent=Math.round(pos.zoom*100)+'%';
+  }
+  function loadImage(data){
+    return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=data;});
+  }
+  function compressSource(img){
+    const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,max=1600,scale=Math.min(1,max/Math.max(w,h));
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',0.90);
+  }
+  async function openEditor(data,crop={x:50,y:50,zoom:1}){
+    if(!data)return false;
+    try{
+      sourceImage=await loadImage(data);sourceData=data;
+      pos={x:clamp(Number(crop?.x)||50,0,100),y:clamp(Number(crop?.y)||50,0,100),zoom:clamp(Number(crop?.zoom)||1,1,3)};
+      previewImg.src=data;paintEditorText();paintPreview();dlg.showModal();return true;
+    }catch(_){return false;}
   }
 
-  avatarBtn.addEventListener('click',e=>{ e.stopPropagation(); fileInput.click(); });
-  fileInput.addEventListener('change',()=>{
-    const file=fileInput.files?.[0];
-    fileInput.value='';
-    if(!file || !file.type.startsWith('image/')) return;
+  preview.addEventListener('pointerdown',e=>{
+    if(!sourceImage)return;
+    dragging=true;preview.classList.add('dragging');preview.setPointerCapture?.(e.pointerId);
+    startX=e.clientX;startY=e.clientY;startPosX=pos.x;startPosY=pos.y;e.preventDefault();
+  });
+  preview.addEventListener('pointermove',e=>{
+    if(!dragging)return;
+    const r=preview.getBoundingClientRect(),sensitivity=100/Math.max(1,pos.zoom);
+    pos.x=clamp(startPosX-(e.clientX-startX)/Math.max(1,r.width)*sensitivity,0,100);
+    pos.y=clamp(startPosY-(e.clientY-startY)/Math.max(1,r.height)*sensitivity,0,100);
+    paintPreview();e.preventDefault();
+  });
+  function stopDrag(){dragging=false;preview.classList.remove('dragging');}
+  preview.addEventListener('pointerup',stopDrag);preview.addEventListener('pointercancel',stopDrag);
+  zoomInput.addEventListener('input',()=>{pos.zoom=clamp(Number(zoomInput.value)||1,1,3);paintPreview();});
+
+  function cropAvatar(img,p){
+    const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,base=Math.min(w,h);
+    const side=base/clamp(Number(p.zoom)||1,1,3);
+    const sx=(w-side)*(clamp(Number(p.x)||50,0,100)/100),sy=(h-side)*(clamp(Number(p.y)||50,0,100)/100);
+    const canvas=document.createElement('canvas');canvas.width=320;canvas.height=320;
+    canvas.getContext('2d').drawImage(img,sx,sy,side,side,0,0,320,320);
+    return canvas.toDataURL('image/jpeg',0.90);
+  }
+
+  avatarBtn.addEventListener('click',e=>{e.stopPropagation();const profile=getProfile();if(profile.avatar)photoEditBtn.click();else fileInput.click();});
+  photoEditBtn.addEventListener('click',async e=>{e.stopPropagation();const profile=getProfile();await openEditor(profile.avatarSource||profile.avatar,profile.avatarCrop);});
+  photoReplaceBtn.addEventListener('click',e=>{e.stopPropagation();fileInput.click();});
+  photoDeleteBtn.addEventListener('click',e=>{
+    e.stopPropagation();const profile=getProfile();profile.avatar='';profile.avatarSource='';profile.avatarCrop={x:50,y:50,zoom:1};
+    if(persistProfile(profile,'specialist-profile-avatar-delete'))render();
+  });
+
+  fileInput.addEventListener('change',async()=>{
+    const file=fileInput.files?.[0];fileInput.value='';
+    if(!file||!file.type.startsWith('image/'))return;
     const reader=new FileReader();
-    reader.onload=()=>{
-      const img=new Image();
-      img.onload=()=>{
-        sourceImage=img;
-        pos={x:50,y:50};
-        previewImg.src=String(reader.result||'');
-        paintPreview();
-        paintEditorText();
-        dlg.showModal();
-      };
-      img.src=String(reader.result||'');
-    };
+    reader.onload=async()=>{try{const original=await loadImage(String(reader.result||''));const compressed=compressSource(original);await openEditor(compressed,{x:50,y:50,zoom:1});}catch(err){console.warn('Avatar load failed',err);}};
     reader.readAsDataURL(file);
   });
 
-  dlg.querySelector('.avatar-editor-cancel').addEventListener('click',()=>{ sourceImage=null; dlg.close(); });
+  dlg.querySelector('.avatar-editor-cancel').addEventListener('click',()=>{sourceImage=null;sourceData='';dlg.close();});
   dlg.querySelector('.avatar-editor-save').addEventListener('click',()=>{
-    if(!sourceImage){ dlg.close(); return; }
+    if(!sourceImage){dlg.close();return;}
     try{
-      const data=cropAvatar(sourceImage,pos);
-      localStorage.setItem(AVATAR_KEY,data);
-      paintAvatar();
-      window.dispatchEvent(new CustomEvent('diagnostika-specialist-profile-change',{detail:{name:getName(),avatar:data}}));
-    }catch(err){ console.warn('Avatar save failed',err); }
-    sourceImage=null;
-    dlg.close();
+      const profile=profileFromForm();
+      profile.avatar=cropAvatar(sourceImage,pos);
+      profile.avatarSource=sourceData||profile.avatarSource||profile.avatar;
+      profile.avatarCrop={x:pos.x,y:pos.y,zoom:pos.zoom};
+      if(persistProfile(profile,'specialist-profile-avatar-save'))render();
+    }catch(err){console.warn('Avatar save failed',err);}
+    sourceImage=null;sourceData='';dlg.close();
   });
 
   function moveFormsButton(){
