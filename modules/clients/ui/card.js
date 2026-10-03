@@ -42,6 +42,7 @@
 
           <div class="cc-top-actions">
             <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
+            <button id="ccDiagnosisBtn" type="button" class="cc-top-action-btn cc-diagnosis-btn">Диагностика</button>
             <button id="ccFreeConsultBtn" type="button" class="cc-top-action-btn cc-free-consult-btn">Бесплатная консультация</button>
           </div>
         </div>
@@ -872,6 +873,19 @@
   q('ccGender')?.addEventListener('change',()=>{dirty=true;});
   q('ccCloseBtn').onclick = closeDraftAware;
   q('ccSaveBtn').onclick = saveCard;
+  q('ccDiagnosisBtn').onclick=()=>{
+    if(draftMode){
+      if(window.AppDialog?.alert)window.AppDialog.alert('Сначала сохраните клиента, затем откройте диагностику.','Диагностика');
+      else alert('Сначала сохраните клиента, затем откройте диагностику.');
+      return;
+    }
+    dlg.close();
+    setTimeout(()=>{
+      if(window.DiagnostikaDiagnosis?.open){window.DiagnostikaDiagnosis.open();return;}
+      if(window.AppDialog?.alert)window.AppDialog.alert('Модуль диагностики не загрузился. Обновите страницу.','Диагностика');
+      else alert('Модуль диагностики не загрузился. Обновите страницу.');
+    },0);
+  };
   q('ccPhotoFrame').onclick=()=>{
     if(photoData)photoActionsDlg.showModal();
     else q('ccPhotoInput').click();
