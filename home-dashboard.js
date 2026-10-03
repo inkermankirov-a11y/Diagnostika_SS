@@ -87,6 +87,18 @@
     return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase();
   };
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  function formatRuDate(value,fallback='—'){
+    const raw=String(value||'').trim();
+    if(!raw)return fallback;
+    const iso=raw.slice(0,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+      const [year,month,day]=iso.split('-').map(Number);
+      return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
+    }
+    const date=new Date(raw);
+    if(Number.isNaN(date.getTime()))return raw;
+    return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(date);
+  }
   const clientsApi=()=>window.DiagnostikaClients||null;
   const requestsApi=()=>window.DiagnostikaRequests||null;
   const calendarApi=()=>window.DiagnostikaCalendar?.moduleAware===true
@@ -240,7 +252,7 @@
     let dateText=rawDate||'Дата не указана';
     if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
       const [year,month,day]=rawDate.split('-').map(Number);
-      dateText=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric'}).format(new Date(year,month-1,day,12,0,0,0));
+      dateText=formatRuDate(rawDate,'Дата не указана');
     }
     const rawTime=String(event.time||'').trim();
     const timeMatch=rawTime.match(/^(\d{1,2}):(\d{2})/);
@@ -253,7 +265,7 @@
     let dateText=rawDate||'Дата не указана';
     if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
       const [year,month,day]=rawDate.split('-').map(Number);
-      dateText=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long'}).format(new Date(year,month-1,day,12,0,0,0));
+      dateText=formatRuDate(rawDate,'Дата не указана');
     }
     const rawTime=String(event?.time||'').trim();
     const timeMatch=rawTime.match(/^(\d{1,2}):(\d{2})/);
@@ -602,7 +614,7 @@
     const items=[
       ['Текущий запрос',currentReq?.title||'Не указан','wide'],
       ['Сессии',String((c.sessions||[]).length),''],
-      ['Последняя сессия',lastSession?.date||'—',''],
+      ['Последняя сессия',formatRuDate(lastSession?.date),''],
       ['Желаемый итог',desiredResult,'wide']
     ];
     summary.innerHTML=items.map(([a,b,cls])=>`<div class="hd-summary-box ${cls==='wide'?'hd-summary-wide':''}"><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
