@@ -168,7 +168,13 @@ function openSessionEditor(c,s,number){
   const plannedType=String(s?.appointmentType||'Сессия');
   const plannedDate=String(s?.date||sessionToday());
   const plannedTime=String(s?.scheduledTime||'').trim();
-  plannedBanner.innerHTML=`<div class="session-planned-banner-top"><span class="session-planned-state">● ЗАПЛАНИРОВАНО</span><span class="session-planned-undone">НЕ ПРОВЕДЕНА</span></div><div class="session-planned-when">${plannedDate}${plannedTime?' • '+plannedTime:''} • ${plannedType}</div><div class="session-planned-hint">Дата и время этой записи управляются из календаря. Здесь можно заранее подготовить план работы.</div>`;
+  const plannedBannerTop=document.createElement('div');plannedBannerTop.className='session-planned-banner-top';
+  const plannedState=document.createElement('span');plannedState.className='session-planned-state';plannedState.textContent='● ЗАПЛАНИРОВАНО';
+  const plannedUndone=document.createElement('span');plannedUndone.className='session-planned-undone';plannedUndone.textContent='НЕ ПРОВЕДЕНА';
+  plannedBannerTop.append(plannedState,plannedUndone);
+  const plannedWhen=document.createElement('div');plannedWhen.className='session-planned-when';plannedWhen.textContent=`${plannedDate}${plannedTime?' • '+plannedTime:''} • ${plannedType}`;
+  const plannedHint=document.createElement('div');plannedHint.className='session-planned-hint';plannedHint.textContent='Дата и время этой записи управляются из календаря. Здесь можно заранее подготовить план работы.';
+  plannedBanner.append(plannedBannerTop,plannedWhen,plannedHint);
 
   const grid=document.createElement('div');grid.className='session-edit-grid';
   const dateInput=document.createElement('input');dateInput.type='date';dateInput.value=s.date||sessionToday();
