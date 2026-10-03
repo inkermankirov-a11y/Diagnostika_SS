@@ -159,14 +159,34 @@ function openSessionEditor(c,s,number){
   const dlg=document.createElement('dialog');
   dlg.className='session-edit-dialog';
   const wrap=document.createElement('div');wrap.className='session-edit-card';
+  const planned=s?.planned===true||String(s?.status||'')==='planned';
   const h=document.createElement('div');h.className='session-edit-title';h.textContent=`Сессия №${number}`;
+
+  const plannedBanner=document.createElement('div');
+  plannedBanner.className='session-planned-banner';
+  plannedBanner.hidden=!planned;
+  const plannedType=String(s?.appointmentType||'Сессия');
+  const plannedDate=String(s?.date||sessionToday());
+  const plannedTime=String(s?.scheduledTime||'').trim();
+  plannedBanner.innerHTML=`<div class="session-planned-banner-top"><span class="session-planned-state">● ЗАПЛАНИРОВАНО</span><span class="session-planned-undone">НЕ ПРОВЕДЕНА</span></div><div class="session-planned-when">${plannedDate}${plannedTime?' • '+plannedTime:''} • ${plannedType}</div><div class="session-planned-hint">Дата и время этой записи управляются из календаря. Здесь можно заранее подготовить план работы.</div>`;
+
   const grid=document.createElement('div');grid.className='session-edit-grid';
   const dateInput=document.createElement('input');dateInput.type='date';dateInput.value=s.date||sessionToday();
+  if(planned){dateInput.disabled=true;dateInput.title='Дата запланированной записи меняется в календаре';}
   const link=document.createElement('select');link.innerHTML='<option value="">— Без связи —</option>';
   c.requests.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.title||'Без названия';link.appendChild(o);});
   link.value=s.requestId||'';
   grid.append(dateInput,link);
 
+  const planBlock=document.createElement('section');
+  planBlock.className='session-plan-editor';
+  planBlock.hidden=!(planned||String(s?.plan||'').trim());
+  const planLabel=document.createElement('div');planLabel.className='session-plan-editor-title';planLabel.textContent='ПЛАН НА СЕССИЮ';
+  const planInput=document.createElement('textarea');planInput.className='session-plan-editor-text';planInput.value=s.plan||'';planInput.placeholder='Что важно разобрать, какие техники использовать, что проверить, к какому результату прийти…';
+  const planHint=document.createElement('div');planHint.className='session-plan-editor-hint';planHint.textContent='Заполни заранее — перед встречей будет видно, с чем работать.';
+  planBlock.append(planLabel,planInput,planHint);
+
+  const notesLabel=document.createElement('div');notesLabel.className='session-notes-editor-title';notesLabel.textContent=planned?'ЗАМЕТКИ / ПОСЛЕ СЕССИИ':'ЗАМЕТКИ ПО СЕССИИ';
   const ta=document.createElement('textarea');ta.className='session-edit-text';ta.value=s.notes||'';ta.placeholder='Что делали, результат, заметки';
 
   const youtubeBlock=document.createElement('div');youtubeBlock.className='session-youtube-editor';
@@ -210,7 +230,7 @@ function openSessionEditor(c,s,number){
 
   const actions=document.createElement('div');actions.className='session-edit-actions';
   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Отмена';
-  const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='primary';saveBtn.textContent='Сохранить';
+  const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='primary';saveBtn.textContent=planned?'Сохранить план':'Сохранить';
   cancel.onclick=()=>dlg.close();
   saveBtn.onclick=()=>{
     const youtube=normalizeYoutubeUrl(youtubeInput.value);
@@ -222,9 +242,10 @@ function openSessionEditor(c,s,number){
     const formatSelect=dlg.querySelector('.session-format-select');
     const formatOther=dlg.querySelector('.session-format-other');
     const changes={
-      date:dateInput.value||sessionToday(),
+      date:planned?(s.date||sessionToday()):(dateInput.value||sessionToday()),
       requestId:link.value,
       notes:ta.value,
+      plan:planInput.value,
       youtubeUrl:youtube
     };
     if(formatSelect){
@@ -241,7 +262,7 @@ function openSessionEditor(c,s,number){
     dlg.close();
   };
   actions.append(cancel,saveBtn);
-  wrap.append(h,grid,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
+  wrap.append(h,plannedBanner,grid,planBlock,notesLabel,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
   dlg.addEventListener('close',()=>dlg.remove());
   dlg.showModal();
   document.dispatchEvent(new CustomEvent('diagnostika:session-editor-opened',{
