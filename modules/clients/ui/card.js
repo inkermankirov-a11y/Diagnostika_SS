@@ -8,34 +8,41 @@
     <div class="client-card-window">
       <div class="client-card-window-title">РАБОТА С КЛИЕНТОМ</div>
       <div class="client-card-sheet">
-        <div class="cc-photo-wrap">
-          <button id="ccPhotoFrame" class="cc-photo-frame" type="button" title="Добавить или изменить фото">
-            <img id="ccPhotoPreview" alt="Фото клиента">
-            <span id="ccPhotoPlaceholder">Добавить фото</span>
-          </button>
-          <input id="ccPhotoInput" type="file" accept="image/*" hidden>
-          <div class="cc-photo-help">Нажмите на фото, чтобы добавить или заменить его</div>
-        </div>
-
-        <div class="client-card-top-grid">
-          <label class="cc-field cc-span-2">ФИО<input id="ccName" type="text"></label>
-          <label class="cc-field">Телефон<input id="ccPhone" type="text"></label>
-          <label class="cc-field">E-mail<input id="ccEmail" type="text"></label>
-          <label class="cc-field">Пол<select id="ccGender"><option value=""></option><option>Мужской</option><option>Женский</option></select></label>
-          <label class="cc-field cc-place-field">Страна<input id="ccCountry" type="text" autocomplete="off" spellcheck="false"><div id="ccCountrySuggestions" class="cc-place-suggestions" hidden></div></label>
-          <label class="cc-field cc-place-field">Город<input id="ccCity" type="text" autocomplete="off" spellcheck="false"><div id="ccCitySuggestions" class="cc-place-suggestions" hidden></div></label>
-          <label class="cc-field">Дата рождения<input id="ccBirth" type="date" lang="ru-RU"></label>
-          <label class="cc-field">Возраст<input id="ccAge" type="text" inputmode="numeric"></label>
-          <label class="cc-field cc-social-field"><span>VK</span><input id="ccVk" type="text"></label>
-          <label class="cc-field cc-social-field"><span>Telegram</span><input id="ccTelegram" type="text"></label>
-          <label class="cc-field cc-social-field"><span>MAX</span><input id="ccMax" type="text"></label>
-          <div class="cc-top-actions">
-            <button id="ccFreeConsultBtn" type="button" class="cc-top-action-btn cc-free-consult-btn">Бесплатная консультация</button>
-            <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
+        <div class="cc-profile-layout">
+          <div class="cc-photo-wrap">
+            <button id="ccPhotoFrame" class="cc-photo-frame" type="button" title="Изменить фотографию">
+              <img id="ccPhotoPreview" alt="Фото клиента">
+              <span id="ccPhotoPlaceholder">Добавить фото</span>
+            </button>
+            <input id="ccPhotoInput" type="file" accept="image/*" hidden>
+            <div class="cc-photo-help">Нажмите на фото: миниатюра, замена или удаление</div>
           </div>
-          <div id="ccClientTime" class="cc-client-time cc-client-time-idle" role="status" aria-live="polite">
-            <span class="cc-client-time-icon">🕒</span>
-            <span class="cc-client-time-copy"><strong>Время клиента</strong><span class="cc-client-time-value">Укажите город</span></span>
+
+          <div class="client-card-top-grid">
+            <label class="cc-field cc-span-2 cc-name-field">ФИО<input id="ccName" type="text"></label>
+            <label class="cc-field">Телефон<input id="ccPhone" type="text"></label>
+            <label class="cc-field">E-mail<input id="ccEmail" type="text"></label>
+            <label class="cc-field">Пол<select id="ccGender"><option value=""></option><option>Мужской</option><option>Женский</option></select></label>
+            <label class="cc-field cc-place-field">Страна<input id="ccCountry" type="text" autocomplete="off" spellcheck="false"><div id="ccCountrySuggestions" class="cc-place-suggestions" hidden></div></label>
+            <label class="cc-field cc-place-field">Город<input id="ccCity" type="text" autocomplete="off" spellcheck="false"><div id="ccCitySuggestions" class="cc-place-suggestions" hidden></div></label>
+            <label class="cc-field">Дата рождения<input id="ccBirth" type="date" lang="ru-RU"></label>
+            <label class="cc-field">Время рождения<input id="ccBirthTime" type="time"></label>
+            <div class="cc-field cc-age-field"><div class="cc-field-head"><span>Возраст</span><label class="cc-age-auto"><input id="ccAgeAuto" type="checkbox"> авто</label></div><input id="ccAge" type="number" inputmode="numeric" min="0" max="130"></div>
+            <div id="ccClientTime" class="cc-client-time cc-client-time-idle" role="status" aria-live="polite">
+              <span class="cc-client-time-icon">🕒</span>
+              <span class="cc-client-time-copy"><strong>Время клиента</strong><span class="cc-client-time-value">Укажите город</span></span>
+            </div>
+          </div>
+
+          <div class="cc-social-column">
+            <label class="cc-field cc-social-field"><span>VK</span><input id="ccVk" type="text"></label>
+            <label class="cc-field cc-social-field"><span>Telegram</span><input id="ccTelegram" type="text"></label>
+            <label class="cc-field cc-social-field"><span>MAX</span><input id="ccMax" type="text"></label>
+          </div>
+
+          <div class="cc-top-actions">
+            <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
+            <button id="ccFreeConsultBtn" type="button" class="cc-top-action-btn cc-free-consult-btn">Бесплатная консультация</button>
           </div>
         </div>
 
@@ -56,7 +63,7 @@
   document.body.appendChild(dlg);
 
   const q = id => document.getElementById(id);
-  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccClientNotes'];
+  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccBirthTime','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccClientNotes'];
   let draftMode=false;
   let draft=null;
   let dirty=false;
