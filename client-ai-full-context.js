@@ -203,7 +203,7 @@
 
     sessions.forEach(s=>{
       if(!s)return;
-      entries.push(timelineEntry(s.extra?.planned===true||String(s.extra?.status||'')==='planned'?'planned_session':'session',s.date||s.extra?.createdAt||s.extra?.updatedAt,{
+      entries.push(timelineEntry(s.planned===true||String(s.status||'')==='planned'?'planned_session':'session',s.date||s.createdAt||s.updatedAt,{
         requestId:s.requestId||'',
         requestTitle:s.requestTitle||'',
         sessionId:s.id||'',
