@@ -78,31 +78,41 @@
   const style = document.createElement('style');
   style.textContent = `
     #specialistSettings{display:none!important}
-    .settings-profile-summary{display:flex;align-items:center;gap:14px;padding:12px 8px 14px;border-bottom:1px solid rgba(255,255,255,.24);margin-bottom:2px}
+    .settings-profile-summary{display:grid;grid-template-columns:72px minmax(0,1fr);gap:14px;align-items:center;padding:12px 8px 14px;border-bottom:1px solid rgba(255,255,255,.24);margin-bottom:2px}
     .settings-profile-avatar{width:72px;height:72px;min-width:72px;min-height:72px;border-radius:50%;border:1px solid rgba(255,255,255,.58);background:rgba(255,255,255,.88);display:flex;align-items:center;justify-content:center;overflow:hidden;color:#405268;font-weight:900;font-size:20px;cursor:pointer;padding:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 4px 12px rgba(15,23,42,.18)}
     .settings-profile-avatar img{width:100%;height:100%;display:block;object-fit:cover;border-radius:50%}
-    .settings-profile-name{min-width:0;font-size:15px;font-weight:900;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.35)}
-    .settings-account-content{display:none;border:1px solid #d8e1ea;border-radius:11px;background:#f8fafc;padding:9px;gap:8px}
+    .settings-profile-meta{min-width:0}
+    .settings-profile-name{font-size:15px;font-weight:900;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+    .settings-profile-title{margin-top:4px;color:rgba(255,255,255,.88);font-size:11.5px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .settings-profile-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+    .settings-profile-tag{max-width:100%;padding:3px 6px;border-radius:999px;background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:9.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .settings-account-content{display:none;border:1px solid rgba(255,255,255,.70);border-radius:13px;background:rgba(255,255,255,.90);padding:10px;gap:10px;max-height:58vh;overflow-y:auto;overflow-x:hidden}
     .settings-account-content.open{display:grid}
+    .specialist-card-title{font-size:14px;font-weight:900;color:#173b63;padding-bottom:8px;border-bottom:1px solid #dbe5ef}
     .account-field{display:grid;gap:6px}
-    .account-label{font-size:12px;font-weight:900;color:#26384b}
-    .account-input{width:100%;box-sizing:border-box;height:36px;border:1px solid #b9c9d9;border-radius:8px;background:#fff;padding:0 10px;font-size:13px;color:#26384b;outline:none}
-    .account-input:focus{border-color:#4f8fd8;box-shadow:0 0 0 2px rgba(79,143,216,.13)}
-    .account-hint{font-size:10.5px;line-height:1.35;color:#728399}
-    .account-save{height:36px;border:0;border-radius:8px;background:linear-gradient(#47b47d,#24945f);color:#fff;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 3px 7px rgba(36,148,95,.22)}
+    .account-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .account-label{font-size:11.5px;font-weight:900;color:#26384b}
+    .account-input,.account-textarea{width:100%;box-sizing:border-box;border:1px solid #b9c9d9;border-radius:9px;background:#fff;padding:0 10px;font-size:12.5px;color:#26384b;outline:none}
+    .account-input{height:38px}.account-textarea{min-height:72px;padding:9px 10px;resize:vertical;line-height:1.4}
+    .account-input:focus,.account-textarea:focus{border-color:#4f8fd8;box-shadow:0 0 0 2px rgba(79,143,216,.13)}
+    .account-save{height:38px;border:0;border-radius:9px;background:linear-gradient(#47b47d,#24945f);color:#fff;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 3px 7px rgba(36,148,95,.22)}
+    .account-photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.account-photo-actions button{height:34px;border-radius:8px;font-size:11px;font-weight:850;cursor:pointer}
+    .account-photo-edit,.account-photo-replace{border:1px solid #b9c9d9;background:#f7fbff;color:#31506f}.account-photo-delete{grid-column:1/-1;border:1px solid #e1b4b4;background:#fff7f7;color:#a63c3c}
+    .account-reviews{display:grid;gap:8px;padding-top:2px}.account-review-editor{display:grid;gap:6px;padding:9px;border:1px solid #d8e2ec;border-radius:10px;background:#f8fbfd}
+    .account-review-add{height:34px;border:0;border-radius:8px;background:linear-gradient(#6f98df,#4d78c6);color:#fff;font-size:11.5px;font-weight:900;cursor:pointer}
+    .account-review-list{display:grid;gap:6px}.account-review-item{position:relative;padding:9px 32px 9px 10px;border:1px solid #dce5ee;border-radius:10px;background:#fff}
+    .account-review-author{font-size:11px;font-weight:900;color:#31506f;margin-bottom:4px}.account-review-text{font-size:11.5px;line-height:1.4;color:#455a70;white-space:pre-wrap;overflow-wrap:anywhere}
+    .account-review-delete{position:absolute;right:6px;top:6px;width:24px;height:24px;border:0;border-radius:7px;background:#fff1f1;color:#b33;font-weight:900;cursor:pointer}.account-review-empty{padding:8px;text-align:center;color:#8a9aad;font-size:11px}
     .settings-account-content #formIntegrationsBtn{width:100%!important;min-width:0!important;height:42px!important;margin:2px 0 0!important;box-sizing:border-box!important}
-    .avatar-editor-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}
-    .avatar-editor-dialog::backdrop{background:rgba(15,23,42,.56);backdrop-filter:blur(4px)}
-    .avatar-editor-card{width:min(360px,calc(100vw - 28px));background:#fff;border:1px solid #d7e0e9;border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.34);padding:18px;box-sizing:border-box;color:#26384b}
-    .avatar-editor-title{font-size:17px;font-weight:900;text-align:center;margin-bottom:6px}
-    .avatar-editor-hint{font-size:11.5px;line-height:1.4;color:#6e7f92;text-align:center;margin-bottom:14px}
-    .avatar-editor-preview{width:210px;height:210px;margin:0 auto;border-radius:50%;overflow:hidden;border:2px solid #bcc9d7;background:#eef3f8;touch-action:none;cursor:grab;box-shadow:0 5px 18px rgba(15,23,42,.16)}
-    .avatar-editor-preview.dragging{cursor:grabbing}
-    .avatar-editor-preview img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
-    .avatar-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
-    .avatar-editor-actions button{height:38px;border-radius:9px;font-weight:850;cursor:pointer}
-    .avatar-editor-cancel{border:1px solid #c7d2de;background:#f7f9fb;color:#4c6075}
-    .avatar-editor-save{border:0;background:linear-gradient(#47b47d,#24945f);color:#fff}
+    .avatar-editor-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}.avatar-editor-dialog::backdrop{background:rgba(15,23,42,.44);backdrop-filter:blur(4px)}
+    .avatar-editor-card{width:min(390px,calc(100vw - 28px));background:#fff;border:1px solid #d7e0e9;border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.34);padding:18px;box-sizing:border-box;color:#26384b}
+    .avatar-editor-title{font-size:17px;font-weight:900;text-align:center;margin-bottom:6px}.avatar-editor-hint{font-size:11.5px;line-height:1.4;color:#6e7f92;text-align:center;margin-bottom:14px}
+    .avatar-editor-preview{width:230px;height:230px;margin:0 auto;border-radius:50%;overflow:hidden;border:2px solid #bcc9d7;background:#eef3f8;touch-action:none;cursor:grab;box-shadow:0 5px 18px rgba(15,23,42,.16)}
+    .avatar-editor-preview.dragging{cursor:grabbing}.avatar-editor-preview img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none;will-change:transform}
+    .avatar-zoom-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-top:14px;font-size:11px;font-weight:850;color:#52677e}.avatar-zoom{width:100%}
+    .avatar-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}.avatar-editor-actions button{height:38px;border-radius:9px;font-weight:850;cursor:pointer}
+    .avatar-editor-cancel{border:1px solid #c7d2de;background:#f7f9fb;color:#4c6075}.avatar-editor-save{border:0;background:linear-gradient(#47b47d,#24945f);color:#fff}
+    @media(max-width:560px){.account-field-grid{grid-template-columns:1fr}.account-photo-actions{grid-template-columns:1fr}.account-photo-delete{grid-column:auto}}
   `;
   document.head.appendChild(style);
 
