@@ -17,7 +17,9 @@ assert(css.includes('height:190px!important'),'AI message area can still collaps
 assert(css.includes('min-height:395px!important'),'AI card can still cut off its footer/input controls');
 assert(css.includes('grid-template-rows:max-content max-content!important'),'Right column can still compress the AI card');
 assert(css.includes('min-width:760px'),'Very narrow desktop layout can still stack/collapse');
-assert(index.includes('client-ai-chat-view.js?v=20261003-no-persist-expand-5'),'AI view cache key missing');
+assert(index.includes('client-ai-chat-view.js?v=20261003-compact-expanded-6'),'AI view cache key missing');
+assert(view.includes('width:min(880px,calc(100vw - 56px))!important'),'Expanded AI dialog is not compact');
+assert(view.includes('max-width:880px!important'),'Expanded AI dialog can still stretch full-width');
 assert(!view.includes('diagnostika-client-ai-chat-expanded-v1'),'Expanded AI state is still persisted');
 assert(view.includes('setExpanded(false);'),'AI does not default to collapsed state');
 
