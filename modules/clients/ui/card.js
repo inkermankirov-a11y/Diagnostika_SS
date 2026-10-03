@@ -857,8 +857,10 @@
     setTimeout(()=>q('ccName')?.focus(),0);
   }
 
-  q('ccBirth').addEventListener('input', e => { q('ccAge').value = ageFromBirth(e.target.value); dirty=true; });
-  fieldIds.forEach(id=>q(id)?.addEventListener('input',()=>{dirty=true;}));
+  q('ccBirth').addEventListener('input',()=>{if(q('ccAgeAuto').checked)applyAgeMode();dirty=true;});
+  q('ccAgeAuto').addEventListener('change',()=>{applyAgeMode();dirty=true;});
+  q('ccAge').addEventListener('input',()=>{if(q('ccAgeAuto').checked)q('ccAgeAuto').checked=false;applyAgeMode();dirty=true;});
+  fieldIds.filter(id=>id!=='ccAge'&&id!=='ccBirth').forEach(id=>q(id)?.addEventListener('input',()=>{dirty=true;}));
   q('ccCountry')?.addEventListener('input',()=>{selectedLocationMeta=null;updateClientTime();renderLocationSuggestions('country');});
   q('ccCity')?.addEventListener('input',()=>{selectedLocationMeta=null;updateClientTime();renderLocationSuggestions('city');});
   q('ccCountry')?.addEventListener('focus',()=>renderLocationSuggestions('country'));
@@ -870,16 +872,24 @@
   q('ccGender')?.addEventListener('change',()=>{dirty=true;});
   q('ccCloseBtn').onclick = closeDraftAware;
   q('ccSaveBtn').onclick = saveCard;
-  q('ccPhotoFrame').onclick=()=>q('ccPhotoInput').click();
+  q('ccPhotoFrame').onclick=()=>{
+    if(photoData)photoActionsDlg.showModal();
+    else q('ccPhotoInput').click();
+  };
   q('ccPhotoInput').onchange=e=>{
-    const f=e.target.files?.[0];if(!f)return;
-    const r=new FileReader();
-    r.onload=()=>{setPhoto(r.result);dirty=true;};
-    r.readAsDataURL(f);
-    e.target.value='';
+    const file=e.target.files?.[0];e.target.value='';
+    if(!file||!file.type.startsWith('image/'))return;
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      try{
+        const original=await loadPhotoImage(String(reader.result||''));
+        const source=compressPhotoSource(original);
+        await openPhotoEditor(source,{x:50,y:50,zoom:1});
+      }catch(error){console.warn('[Diagnostika] client photo load failed',error);}
+    };
+    reader.readAsDataURL(file);
   };
 
-  dlg.addEventListener('click', e => { if(e.target === dlg) closeDraftAware(); });
   dlg.addEventListener('cancel',e=>{e.preventDefault();closeDraftAware();});
   dlg.addEventListener('close',stopClientClock);
 
