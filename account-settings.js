@@ -360,6 +360,6 @@
   else window.addEventListener('load',()=>setTimeout(retryMoveFormsButton,0),{once:true});
 
   window.addEventListener('diagnostika-language-changed',()=>setTimeout(render,0));
-  window.DiagnostikaSpecialistProfile={getName,getAvatar,nameKey:NAME_KEY,avatarKey:AVATAR_KEY};
+  window.DiagnostikaSpecialistProfile={getName,getAvatar,getProfile:()=>clone(getProfile()),saveProfile:profile=>persistProfile(profile,'specialist-profile-api-save'),nameKey:NAME_KEY,avatarKey:AVATAR_KEY};
   render();
 })();
