@@ -17,6 +17,6 @@ assert.ok(js.includes("state=hour>=0&&hour<6?'night':(hour>=22||hour<8?'caution'
 assert.ok(css.includes('.cc-client-time-night'),'night warning style missing');
 assert.ok(css.includes('.cc-client-time-caution'),'late/early warning style missing');
 assert.ok(index.includes('modules/clients/ui/card.css?v=20261002-client-time-1'),'client card CSS cache key missing');
-assert.ok(index.includes('modules/clients/ui/card.js?v=20261002-client-time-1'),'client card JS cache key missing');
+assert.ok(index.includes('modules/clients/ui/card.js?v=20261003-ru-date-1'),'client card JS cache key missing');
 
 console.log('CLIENT_LOCAL_TIME_AUDIT_OK');

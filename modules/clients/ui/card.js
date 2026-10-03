@@ -24,7 +24,7 @@
           <label class="cc-field">Пол<select id="ccGender"><option value=""></option><option>Мужской</option><option>Женский</option></select></label>
           <label class="cc-field cc-place-field">Страна<input id="ccCountry" type="text" autocomplete="off" spellcheck="false"><div id="ccCountrySuggestions" class="cc-place-suggestions" hidden></div></label>
           <label class="cc-field cc-place-field">Город<input id="ccCity" type="text" autocomplete="off" spellcheck="false"><div id="ccCitySuggestions" class="cc-place-suggestions" hidden></div></label>
-          <label class="cc-field">Дата рождения<input id="ccBirth" type="date"></label>
+          <label class="cc-field">Дата рождения<input id="ccBirth" type="date" lang="ru-RU"></label>
           <label class="cc-field">Возраст<input id="ccAge" type="text" inputmode="numeric"></label>
           <label class="cc-field cc-social-field"><span>VK</span><input id="ccVk" type="text"></label>
           <label class="cc-field cc-social-field"><span>Telegram</span><input id="ccTelegram" type="text"></label>

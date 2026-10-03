@@ -18,6 +18,6 @@ assert.ok(js.includes("autocorrectLocation('city')"),'city typo correction on bl
 assert.ok(css.includes('.cc-place-suggestions'),'location suggestion dropdown style missing');
 assert.ok(css.includes('.cc-place-suggestion.correction'),'correction highlight style missing');
 assert.ok(index.includes('modules/clients/ui/card.css?v=20261002-location-suggest-1'),'client card CSS cache key missing');
-assert.ok(index.includes('modules/clients/ui/card.js?v=20261002-location-suggest-1'),'client card JS cache key missing');
+assert.ok(index.includes('modules/clients/ui/card.js?v=20261003-ru-date-1'),'client card JS cache key missing');
 
 console.log('CLIENT_LOCATION_AUTOCOMPLETE_AUDIT_OK');
