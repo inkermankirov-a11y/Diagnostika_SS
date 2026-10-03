@@ -33,7 +33,7 @@
   const DOMAINS=Object.freeze([
     {
       id:'clients',
-      service:['modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23b','data-clients-service'],
+      service:['modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23b&profile=20261003-1','data-clients-service'],
       module:['modules/clients/index.js?v=20260918-clients2b2','data-clients-module'],
       api:['client-api.js?v=20260918-clients2b2&api=13d&pin=18a&cleanup=23b','data-client-api'],
       ready:()=>window.DiagnostikaClients?.moduleAware===true

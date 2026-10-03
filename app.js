@@ -10,7 +10,7 @@ let mode='card';
 function uid(){return crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2)}
 function lvl(v){return Math.max(1,Math.min(10,Number(v)||1))}
 function today(){return new Date().toISOString().slice(0,10)}
-function newClient(){return{id:uid(),name:'Новый клиент',city:'',age:'',birth:'',photoData:'',vk:'',telegram:'',max:'',sessions:[],requests:[]}}
+function newClient(){return{id:uid(),name:'Новый клиент',city:'',age:'',ageAuto:false,birth:'',birthTime:'',photoData:'',photoSourceData:'',photoCrop:{x:50,y:50,zoom:1},vk:'',telegram:'',max:'',sessions:[],requests:[]}}
 function newRequest(){return{id:uid(),title:'Новый запрос',situations:[]}}
 function newSituation(){return{id:uid(),name:'Новая ситуация',level:5,comment:'',result:'',beliefs:[]}}
 function newBelief(){return{id:uid(),text:'',level:5,comment:'',feelings:[]}}
@@ -21,7 +21,7 @@ function migrate(c){
  if(!Array.isArray(c.sessions))c.sessions=[];
  if(!Array.isArray(c.requests))c.requests=[];
  if(c.diagnosis&&(c.diagnosis.request||c.diagnosis.situations?.length)){c.requests.push({id:uid(),title:c.diagnosis.request||'Запрос',situations:c.diagnosis.situations||[]});delete c.diagnosis}
- c.photoData=c.photoData||''; c.age=c.age||'';
+ c.photoData=c.photoData||''; c.photoSourceData=c.photoSourceData||c.photoData||''; c.photoCrop=c.photoCrop||{x:50,y:50,zoom:1}; c.birthTime=c.birthTime||''; if(c.ageAuto===undefined)c.ageAuto=Boolean(c.birth); c.age=c.age||'';
  return c;
 }
 function loadState(){const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;if(!db?.readState)throw new Error('DiagnostikaDB is required before app state initialization');const x=db.readState({source:'app-load'});if(x?.clients){x.clients=x.clients.map(migrate);return x}return{version:4,clients:[]}}

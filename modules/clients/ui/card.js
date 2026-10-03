@@ -8,34 +8,41 @@
     <div class="client-card-window">
       <div class="client-card-window-title">РАБОТА С КЛИЕНТОМ</div>
       <div class="client-card-sheet">
-        <div class="cc-photo-wrap">
-          <button id="ccPhotoFrame" class="cc-photo-frame" type="button" title="Добавить или изменить фото">
-            <img id="ccPhotoPreview" alt="Фото клиента">
-            <span id="ccPhotoPlaceholder">Добавить фото</span>
-          </button>
-          <input id="ccPhotoInput" type="file" accept="image/*" hidden>
-          <div class="cc-photo-help">Нажмите на фото, чтобы добавить или заменить его</div>
-        </div>
-
-        <div class="client-card-top-grid">
-          <label class="cc-field cc-span-2">ФИО<input id="ccName" type="text"></label>
-          <label class="cc-field">Телефон<input id="ccPhone" type="text"></label>
-          <label class="cc-field">E-mail<input id="ccEmail" type="text"></label>
-          <label class="cc-field">Пол<select id="ccGender"><option value=""></option><option>Мужской</option><option>Женский</option></select></label>
-          <label class="cc-field cc-place-field">Страна<input id="ccCountry" type="text" autocomplete="off" spellcheck="false"><div id="ccCountrySuggestions" class="cc-place-suggestions" hidden></div></label>
-          <label class="cc-field cc-place-field">Город<input id="ccCity" type="text" autocomplete="off" spellcheck="false"><div id="ccCitySuggestions" class="cc-place-suggestions" hidden></div></label>
-          <label class="cc-field">Дата рождения<input id="ccBirth" type="date" lang="ru-RU"></label>
-          <label class="cc-field">Возраст<input id="ccAge" type="text" inputmode="numeric"></label>
-          <label class="cc-field cc-social-field"><span>VK</span><input id="ccVk" type="text"></label>
-          <label class="cc-field cc-social-field"><span>Telegram</span><input id="ccTelegram" type="text"></label>
-          <label class="cc-field cc-social-field"><span>MAX</span><input id="ccMax" type="text"></label>
-          <div class="cc-top-actions">
-            <button id="ccFreeConsultBtn" type="button" class="cc-top-action-btn cc-free-consult-btn">Бесплатная консультация</button>
-            <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
+        <div class="cc-profile-layout">
+          <div class="cc-photo-wrap">
+            <button id="ccPhotoFrame" class="cc-photo-frame" type="button" title="Изменить фотографию">
+              <img id="ccPhotoPreview" alt="Фото клиента">
+              <span id="ccPhotoPlaceholder">Добавить фото</span>
+            </button>
+            <input id="ccPhotoInput" type="file" accept="image/*" hidden>
+            <div class="cc-photo-help">Нажмите на фото: миниатюра, замена или удаление</div>
           </div>
-          <div id="ccClientTime" class="cc-client-time cc-client-time-idle" role="status" aria-live="polite">
-            <span class="cc-client-time-icon">🕒</span>
-            <span class="cc-client-time-copy"><strong>Время клиента</strong><span class="cc-client-time-value">Укажите город</span></span>
+
+          <div class="client-card-top-grid">
+            <label class="cc-field cc-span-2 cc-name-field">ФИО<input id="ccName" type="text"></label>
+            <label class="cc-field">Телефон<input id="ccPhone" type="text"></label>
+            <label class="cc-field">E-mail<input id="ccEmail" type="text"></label>
+            <label class="cc-field">Пол<select id="ccGender"><option value=""></option><option>Мужской</option><option>Женский</option></select></label>
+            <label class="cc-field cc-place-field">Страна<input id="ccCountry" type="text" autocomplete="off" spellcheck="false"><div id="ccCountrySuggestions" class="cc-place-suggestions" hidden></div></label>
+            <label class="cc-field cc-place-field">Город<input id="ccCity" type="text" autocomplete="off" spellcheck="false"><div id="ccCitySuggestions" class="cc-place-suggestions" hidden></div></label>
+            <label class="cc-field">Дата рождения<input id="ccBirth" type="date" lang="ru-RU"></label>
+            <label class="cc-field">Время рождения<input id="ccBirthTime" type="time"></label>
+            <div class="cc-field cc-age-field"><div class="cc-field-head"><span>Возраст</span><label class="cc-age-auto"><input id="ccAgeAuto" type="checkbox"> авто</label></div><input id="ccAge" type="number" inputmode="numeric" min="0" max="130"></div>
+            <div id="ccClientTime" class="cc-client-time cc-client-time-idle" role="status" aria-live="polite">
+              <span class="cc-client-time-icon">🕒</span>
+              <span class="cc-client-time-copy"><strong>Время клиента</strong><span class="cc-client-time-value">Укажите город</span></span>
+            </div>
+          </div>
+
+          <div class="cc-social-column">
+            <label class="cc-field cc-social-field"><span>VK</span><input id="ccVk" type="text"></label>
+            <label class="cc-field cc-social-field"><span>Telegram</span><input id="ccTelegram" type="text"></label>
+            <label class="cc-field cc-social-field"><span>MAX</span><input id="ccMax" type="text"></label>
+          </div>
+
+          <div class="cc-top-actions">
+            <button id="ccCalendarBtn" type="button" class="cc-top-action-btn cc-calendar-btn">Календарь</button>
+            <button id="ccFreeConsultBtn" type="button" class="cc-top-action-btn cc-free-consult-btn">Бесплатная консультация</button>
           </div>
         </div>
 
@@ -56,11 +63,13 @@
   document.body.appendChild(dlg);
 
   const q = id => document.getElementById(id);
-  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccClientNotes'];
+  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccBirthTime','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccClientNotes'];
   let draftMode=false;
   let draft=null;
   let dirty=false;
   let photoData='';
+  let photoSourceData='';
+  let photoCrop={x:50,y:50,zoom:1};
   let locationCatalogPromise=null;
   let clientClockTimer=null;
   let clientTimeRequest=0;
@@ -593,22 +602,132 @@
 
   function ageFromBirth(value){
     if(!value) return '';
-    const d = new Date(value);
-    if(Number.isNaN(d.getTime())) return '';
-    const n = new Date();
-    let a = n.getFullYear() - d.getFullYear();
-    const m = n.getMonth() - d.getMonth();
-    if(m < 0 || (m === 0 && n.getDate() < d.getDate())) a--;
-    return a >= 0 ? String(a) : '';
+    const parts=String(value).split('-').map(Number);
+    if(parts.length!==3||!parts[0]||!parts[1]||!parts[2])return '';
+    const n=new Date();
+    let a=n.getFullYear()-parts[0];
+    if(n.getMonth()+1<parts[1]||(n.getMonth()+1===parts[1]&&n.getDate()<parts[2]))a--;
+    return a>=0?String(a):'';
   }
 
-  function setPhoto(data){
+  function applyAgeMode(){
+    const auto=q('ccAgeAuto')?.checked===true;
+    const age=q('ccAge');
+    if(!age)return;
+    age.readOnly=auto;
+    age.classList.toggle('cc-age-readonly',auto);
+    if(auto)age.value=ageFromBirth(q('ccBirth')?.value||'');
+  }
+
+  function setPhoto(data,source=data,crop={x:50,y:50,zoom:1}){
     photoData=data||'';
+    photoSourceData=source||data||'';
+    photoCrop={
+      x:Math.max(0,Math.min(100,Number(crop?.x)||50)),
+      y:Math.max(0,Math.min(100,Number(crop?.y)||50)),
+      zoom:Math.max(1,Math.min(3,Number(crop?.zoom)||1))
+    };
     const img=q('ccPhotoPreview');
     const ph=q('ccPhotoPlaceholder');
     if(photoData){img.src=photoData;img.style.display='block';ph.style.display='none';}
     else{img.removeAttribute('src');img.style.display='none';ph.style.display='grid';}
   }
+
+  const photoActionsDlg=document.createElement('dialog');
+  photoActionsDlg.className='cc-photo-actions-dialog';
+  photoActionsDlg.innerHTML='<div class="cc-photo-actions-card"><div class="cc-photo-actions-title">Фотография клиента</div><button type="button" data-photo-action="edit">Изменить миниатюру</button><button type="button" data-photo-action="replace">Загрузить новую</button><button type="button" data-photo-action="delete" class="danger">Удалить фотографию</button><button type="button" data-photo-action="cancel" class="ghost">Отмена</button></div>';
+  document.body.appendChild(photoActionsDlg);
+
+  const photoEditorDlg=document.createElement('dialog');
+  photoEditorDlg.className='cc-photo-editor-dialog';
+  photoEditorDlg.innerHTML='<div class="cc-photo-editor-card"><div class="cc-photo-editor-title">Миниатюра фотографии</div><div class="cc-photo-editor-hint">Перетащи фото, чтобы выбрать область. Масштаб меняется ползунком.</div><div class="cc-photo-editor-preview"><img alt=""></div><div class="cc-photo-editor-zoom"><span>Масштаб</span><input type="range" min="1" max="3" step="0.05" value="1"><strong>100%</strong></div><div class="cc-photo-editor-buttons"><button type="button" class="ghost" data-editor-action="cancel">Отмена</button><button type="button" class="primary" data-editor-action="save">Сохранить миниатюру</button></div></div>';
+  document.body.appendChild(photoEditorDlg);
+
+  const photoEditorPreview=photoEditorDlg.querySelector('.cc-photo-editor-preview');
+  const photoEditorImg=photoEditorPreview.querySelector('img');
+  const photoZoom=photoEditorDlg.querySelector('input[type="range"]');
+  const photoZoomValue=photoEditorDlg.querySelector('.cc-photo-editor-zoom strong');
+  let photoEditorSource=null;
+  let photoEditorSourceData='';
+  let editorCrop={x:50,y:50,zoom:1};
+  let editorDragging=false,editorStartX=0,editorStartY=0,editorStartCropX=50,editorStartCropY=50;
+
+  function clampPhoto(n,min,max){return Math.max(min,Math.min(max,n));}
+  function loadPhotoImage(data){
+    return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=data;});
+  }
+  function compressPhotoSource(img){
+    const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,max=1800,scale=Math.min(1,max/Math.max(w,h));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',0.9);
+  }
+  function paintPhotoEditor(){
+    photoEditorImg.style.objectPosition=editorCrop.x+'% '+editorCrop.y+'%';
+    photoEditorImg.style.transform='scale('+editorCrop.zoom+')';
+    photoEditorImg.style.transformOrigin=editorCrop.x+'% '+editorCrop.y+'%';
+    photoZoom.value=String(editorCrop.zoom);
+    photoZoomValue.textContent=Math.round(editorCrop.zoom*100)+'%';
+  }
+  async function openPhotoEditor(data,crop=photoCrop){
+    if(!data)return;
+    try{
+      photoEditorSource=await loadPhotoImage(data);
+      photoEditorSourceData=data;
+      editorCrop={
+        x:clampPhoto(Number(crop?.x)||50,0,100),
+        y:clampPhoto(Number(crop?.y)||50,0,100),
+        zoom:clampPhoto(Number(crop?.zoom)||1,1,3)
+      };
+      photoEditorImg.src=data;
+      paintPhotoEditor();
+      photoEditorDlg.showModal();
+    }catch(error){console.warn('[Diagnostika] client photo editor failed',error);}
+  }
+  function cropClientPhoto(img,crop){
+    const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,targetRatio=190/220;
+    let baseW,baseH;
+    if(w/h>targetRatio){baseH=h;baseW=h*targetRatio;}else{baseW=w;baseH=w/targetRatio;}
+    const zoom=clampPhoto(Number(crop.zoom)||1,1,3);
+    const cropW=baseW/zoom,cropH=baseH/zoom;
+    const sx=(w-cropW)*(clampPhoto(Number(crop.x)||50,0,100)/100);
+    const sy=(h-cropH)*(clampPhoto(Number(crop.y)||50,0,100)/100);
+    const canvas=document.createElement('canvas');canvas.width=570;canvas.height=660;
+    canvas.getContext('2d').drawImage(img,sx,sy,cropW,cropH,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',0.9);
+  }
+
+  photoEditorPreview.addEventListener('pointerdown',e=>{
+    if(!photoEditorSource)return;
+    editorDragging=true;photoEditorPreview.classList.add('dragging');photoEditorPreview.setPointerCapture?.(e.pointerId);
+    editorStartX=e.clientX;editorStartY=e.clientY;editorStartCropX=editorCrop.x;editorStartCropY=editorCrop.y;e.preventDefault();
+  });
+  photoEditorPreview.addEventListener('pointermove',e=>{
+    if(!editorDragging)return;
+    const r=photoEditorPreview.getBoundingClientRect(),sensitivity=100/Math.max(1,editorCrop.zoom);
+    editorCrop.x=clampPhoto(editorStartCropX-(e.clientX-editorStartX)/Math.max(1,r.width)*sensitivity,0,100);
+    editorCrop.y=clampPhoto(editorStartCropY-(e.clientY-editorStartY)/Math.max(1,r.height)*sensitivity,0,100);
+    paintPhotoEditor();e.preventDefault();
+  });
+  function stopPhotoEditorDrag(){editorDragging=false;photoEditorPreview.classList.remove('dragging');}
+  photoEditorPreview.addEventListener('pointerup',stopPhotoEditorDrag);
+  photoEditorPreview.addEventListener('pointercancel',stopPhotoEditorDrag);
+  photoZoom.addEventListener('input',()=>{editorCrop.zoom=clampPhoto(Number(photoZoom.value)||1,1,3);paintPhotoEditor();});
+
+  photoActionsDlg.querySelector('[data-photo-action="edit"]').onclick=()=>{photoActionsDlg.close();openPhotoEditor(photoSourceData||photoData,photoCrop);};
+  photoActionsDlg.querySelector('[data-photo-action="replace"]').onclick=()=>{photoActionsDlg.close();q('ccPhotoInput').click();};
+  photoActionsDlg.querySelector('[data-photo-action="delete"]').onclick=()=>{setPhoto('','',{x:50,y:50,zoom:1});dirty=true;photoActionsDlg.close();};
+  photoActionsDlg.querySelector('[data-photo-action="cancel"]').onclick=()=>photoActionsDlg.close();
+  photoEditorDlg.querySelector('[data-editor-action="cancel"]').onclick=()=>{photoEditorSource=null;photoEditorSourceData='';photoEditorDlg.close();};
+  photoEditorDlg.querySelector('[data-editor-action="save"]').onclick=()=>{
+    if(!photoEditorSource){photoEditorDlg.close();return;}
+    const cropped=cropClientPhoto(photoEditorSource,editorCrop);
+    setPhoto(cropped,photoEditorSourceData,{...editorCrop});
+    dirty=true;photoEditorSource=null;photoEditorSourceData='';photoEditorDlg.close();
+  };
+  photoActionsDlg.addEventListener('cancel',e=>{e.preventDefault();photoActionsDlg.close();});
+  photoEditorDlg.addEventListener('cancel',e=>{e.preventDefault();photoEditorDlg.close();});
 
   function sourceClient(){
     if(draftMode) return draft;
@@ -632,7 +751,11 @@
       timezone:c.timezone||''
     }:null;
     q('ccBirth').value = c.birth || '';
-    q('ccAge').value = c.age || ageFromBirth(c.birth) || '';
+    q('ccBirthTime').value = c.birthTime || '';
+    const autoAge = c.ageAuto !== undefined ? c.ageAuto === true : Boolean(c.birth);
+    q('ccAgeAuto').checked = autoAge;
+    q('ccAge').value = autoAge ? (ageFromBirth(c.birth) || '') : (c.age || '');
+    applyAgeMode();
     q('ccVk').value = c.vk || '';
     q('ccTelegram').value = c.telegram || '';
     q('ccMax').value = c.max || '';
@@ -641,7 +764,7 @@
     q('ccTried').value = c.tried || '';
     q('ccDesiredOutcome').value = c.desiredOutcome || '';
     q('ccClientNotes').value = c.clientNotes || c.notes || '';
-    setPhoto(c.photoData||'');
+    setPhoto(c.photoData||'',c.photoSourceData||c.photoData||'',c.photoCrop||{x:50,y:50,zoom:1});
     dirty=false;
     updateClientTime();
   }
@@ -660,7 +783,9 @@
       latitude:selectedLocationMeta?.latitude??null,
       longitude:selectedLocationMeta?.longitude??null,
       birth,
-      age:q('ccAge').value.trim() || ageFromBirth(birth) || '',
+      birthTime:q('ccBirthTime').value,
+      ageAuto:q('ccAgeAuto').checked===true,
+      age:(q('ccAgeAuto').checked===true ? ageFromBirth(birth) : q('ccAge').value.trim()) || '',
       vk:q('ccVk').value.trim(),
       telegram:q('ccTelegram').value.trim(),
       max:q('ccMax').value.trim(),
@@ -669,7 +794,9 @@
       tried:q('ccTried').value,
       desiredOutcome:q('ccDesiredOutcome').value,
       clientNotes:q('ccClientNotes').value,
-      photoData:photoData || ''
+      photoData:photoData || '',
+      photoSourceData:photoSourceData || photoData || '',
+      photoCrop:{...photoCrop}
     };
   }
 
@@ -722,7 +849,7 @@
 
   function openNew(){
     draftMode=true;
-    draft=typeof newClient==='function' ? newClient() : {id:(crypto.randomUUID?crypto.randomUUID():Date.now()+''),name:'Новый клиент',city:'',age:'',birth:'',photoData:'',vk:'',telegram:'',max:'',sessions:[],requests:[]};
+    draft=typeof newClient==='function' ? newClient() : {id:(crypto.randomUUID?crypto.randomUUID():Date.now()+''),name:'Новый клиент',city:'',age:'',ageAuto:false,birth:'',birthTime:'',photoData:'',photoSourceData:'',photoCrop:{x:50,y:50,zoom:1},vk:'',telegram:'',max:'',sessions:[],requests:[]};
     q('ccSaveBtn').textContent='Сохранить клиента';
     fillFrom(draft);
     dlg.showModal();
@@ -730,8 +857,10 @@
     setTimeout(()=>q('ccName')?.focus(),0);
   }
 
-  q('ccBirth').addEventListener('input', e => { q('ccAge').value = ageFromBirth(e.target.value); dirty=true; });
-  fieldIds.forEach(id=>q(id)?.addEventListener('input',()=>{dirty=true;}));
+  q('ccBirth').addEventListener('input',()=>{if(q('ccAgeAuto').checked)applyAgeMode();dirty=true;});
+  q('ccAgeAuto').addEventListener('change',()=>{applyAgeMode();dirty=true;});
+  q('ccAge').addEventListener('input',()=>{if(q('ccAgeAuto').checked)q('ccAgeAuto').checked=false;applyAgeMode();dirty=true;});
+  fieldIds.filter(id=>id!=='ccAge'&&id!=='ccBirth').forEach(id=>q(id)?.addEventListener('input',()=>{dirty=true;}));
   q('ccCountry')?.addEventListener('input',()=>{selectedLocationMeta=null;updateClientTime();renderLocationSuggestions('country');});
   q('ccCity')?.addEventListener('input',()=>{selectedLocationMeta=null;updateClientTime();renderLocationSuggestions('city');});
   q('ccCountry')?.addEventListener('focus',()=>renderLocationSuggestions('country'));
@@ -743,16 +872,24 @@
   q('ccGender')?.addEventListener('change',()=>{dirty=true;});
   q('ccCloseBtn').onclick = closeDraftAware;
   q('ccSaveBtn').onclick = saveCard;
-  q('ccPhotoFrame').onclick=()=>q('ccPhotoInput').click();
+  q('ccPhotoFrame').onclick=()=>{
+    if(photoData)photoActionsDlg.showModal();
+    else q('ccPhotoInput').click();
+  };
   q('ccPhotoInput').onchange=e=>{
-    const f=e.target.files?.[0];if(!f)return;
-    const r=new FileReader();
-    r.onload=()=>{setPhoto(r.result);dirty=true;};
-    r.readAsDataURL(f);
-    e.target.value='';
+    const file=e.target.files?.[0];e.target.value='';
+    if(!file||!file.type.startsWith('image/'))return;
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      try{
+        const original=await loadPhotoImage(String(reader.result||''));
+        const source=compressPhotoSource(original);
+        await openPhotoEditor(source,{x:50,y:50,zoom:1});
+      }catch(error){console.warn('[Diagnostika] client photo load failed',error);}
+    };
+    reader.readAsDataURL(file);
   };
 
-  dlg.addEventListener('click', e => { if(e.target === dlg) closeDraftAware(); });
   dlg.addEventListener('cancel',e=>{e.preventDefault();closeDraftAware();});
   dlg.addEventListener('close',stopClientClock);
 
