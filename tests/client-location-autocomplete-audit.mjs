@@ -17,7 +17,7 @@ assert.ok(js.includes("autocorrectLocation('country')"),'country typo correction
 assert.ok(js.includes("autocorrectLocation('city')"),'city typo correction on blur missing');
 assert.ok(css.includes('.cc-place-suggestions'),'location suggestion dropdown style missing');
 assert.ok(css.includes('.cc-place-suggestion.correction'),'correction highlight style missing');
-assert.ok(index.includes('modules/clients/ui/card.css?v=20261003-compact-profile-1'),'client card CSS cache key missing');
-assert.ok(index.includes('modules/clients/ui/card.js?v=20261003-compact-profile-1'),'client card JS cache key missing');
+assert.ok(index.includes('modules/clients/ui/card.css?v=20261003-diagnosis-action-1'),'client card CSS cache key missing');
+assert.ok(index.includes('modules/clients/ui/card.js?v=20261003-diagnosis-action-1'),'client card JS cache key missing');
 
 console.log('CLIENT_LOCATION_AUTOCOMPLETE_AUDIT_OK');
