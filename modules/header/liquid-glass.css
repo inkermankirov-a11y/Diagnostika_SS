@@ -208,7 +208,7 @@
   padding-right:14px!important;
 }
 
-/* Animated iridescent rim: overlay only, no geometry changes. */
+/* Animated iridescent glints: the border stays fixed; light spots travel along it. */
 .header-flip-clock-wrap{position:relative;isolation:isolate}
 .header-flip-clock-wrap::before{
   content:"";
@@ -217,16 +217,39 @@
   inset:-2px;
   border-radius:17px;
   padding:2px;
-  background:conic-gradient(from 0deg,transparent 0 7%,#2f8cff 10%,#35e7ff 14%,#fff 17%,#ffd84a 20%,#ff633d 23%,#ff49d6 27%,#7657ff 31%,transparent 36% 55%,#31dfb4 61%,#fff 65%,#ffc642 68%,#ff4e8b 72%,#468cff 77%,transparent 83% 100%);
+  background:
+    linear-gradient(90deg,transparent 0 7%,#39a8ff 11%,#5ff3ff 13%,#fff 14.5%,#ffd85a 16%,#ff7550 18%,transparent 22% 100%),
+    linear-gradient(180deg,transparent 0 100%);
+  background-size:240% 100%,100% 100%;
+  background-position:140% 0,0 0;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;
   mask-composite:exclude;
   pointer-events:none;
-  animation:headerClockRimSpin 5.5s linear infinite;
-  filter:drop-shadow(0 0 4px rgba(73,177,255,.75));
+  animation:headerClockGlintSweep 4.8s ease-in-out infinite;
+  filter:drop-shadow(0 0 3px rgba(76,188,255,.55));
 }
-@keyframes headerClockRimSpin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.header-flip-clock-wrap::before{animation:none}}
+.header-flip-clock-wrap::after{
+  content:"";
+  position:absolute;
+  z-index:8;
+  inset:-2px;
+  border-radius:17px;
+  padding:2px;
+  background:linear-gradient(90deg,transparent 0 48%,#7a68ff 52%,#ff5fc8 54%,#fff 55.5%,#51e6d1 57%,transparent 62% 100%);
+  background-size:280% 100%;
+  background-position:-150% 0;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  pointer-events:none;
+  animation:headerClockGlintSweepBack 6.2s ease-in-out infinite;
+  opacity:.78;
+  filter:drop-shadow(0 0 3px rgba(140,101,255,.38));
+}
+@keyframes headerClockGlintSweep{0%,8%{background-position:140% 0,0 0}92%,100%{background-position:-140% 0,0 0}}
+@keyframes headerClockGlintSweepBack{0%,12%{background-position:-150% 0}88%,100%{background-position:150% 0}}
+@media(prefers-reduced-motion:reduce){.header-flip-clock-wrap::before,.header-flip-clock-wrap::after{animation:none}}
 
 /* Clock uses the same blue liquid-glass material while preserving flip mechanics. */
 .app-header .header-flip-clock{
