@@ -402,7 +402,7 @@ body{color:var(--pg-text)}
   inset:0;
   z-index:6400;
 }
-.settings-wrap.open .settings-modal-backdrop{display:block}
+.settings-modal-backdrop.settings-backdrop-open{display:block!important}
 html.settings-modal-open{overflow:hidden!important}
 .settings-panel{
   position:fixed!important;
@@ -428,7 +428,7 @@ html.settings-modal-open{overflow:hidden!important}
     0 0 28px rgba(56,165,255,.28),
     0 28px 72px rgba(48,106,164,.18)!important;
 }
-.settings-wrap.open .settings-panel{
+.settings-panel.settings-panel-open{
   display:grid!important;
   gap:10px!important;
   animation:settingsGlassIn .16s ease-out!important;
@@ -544,7 +544,12 @@ html.settings-modal-open{overflow:hidden!important}
     max-height:92dvh!important;
     border-radius:24px 24px 0 0!important;
   }
-  .settings-panel{
+  .settings-panel.settings-panel-open{
+    left:50%!important;
+    right:auto!important;
+    top:50%!important;
+    bottom:auto!important;
+    transform:translate(-50%,-50%)!important;
     width:calc(100vw - 18px)!important;
     max-height:88dvh!important;
     border-radius:22px!important;
