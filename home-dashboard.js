@@ -26,7 +26,10 @@
       <div id="hdClientView" class="hd-main-inner hd-client-view">
         <section class="hd-client-profile">
           <div class="hd-client-profile-head">
-            <div class="hd-hero-icon" aria-hidden="true"></div>
+            <div class="hd-client-photo-stack">
+              <div class="hd-hero-icon" aria-hidden="true"></div>
+              <div id="hdClientSocials" class="hd-client-socials" aria-label="Социальные сети клиента"></div>
+            </div>
             <div class="hd-client-profile-copy">
               <h2 id="hdHeroTitle">Выберите клиента</h2>
               <div id="hdHeroSub" class="hd-main-sub"></div>
@@ -79,6 +82,7 @@
   const heroIcon=$('.hd-hero-icon');
   const heroTitle=$('#hdHeroTitle');
   const heroSub=$('#hdHeroSub');
+  const heroSocials=$('#hdClientSocials');
   const heroReminder=$('#hdHeroReminder');
   const heroActions=$('#hdHeroActions');
   const summary=$('#hdSummary');
@@ -354,6 +358,45 @@
     heroIcon.innerHTML='<div class="hd-hero-cloud"></div><div class="hd-folder"></div><div class="hd-person"></div>';
   }
 
+  function socialHref(kind,value){
+    const raw=String(value||'').trim();
+    if(!raw)return'';
+    if(/^https?:\/\//i.test(raw))return raw;
+    const clean=raw.replace(/^@/,'').replace(/^\/+|\/+$/g,'');
+    if(kind==='vk')return 'https://vk.com/'+clean.replace(/^vk\.com\//i,'');
+    if(kind==='telegram')return 'https://t.me/'+clean.replace(/^(?:t\.me|telegram\.me)\//i,'');
+    if(kind==='max')return 'https://max.ru/'+clean.replace(/^max\.ru\//i,'');
+    return raw;
+  }
+
+  function socialIcon(kind){
+    if(kind==='vk')return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="1" width="22" height="22" rx="6" fill="#2787F5"/><text x="12" y="15.2" text-anchor="middle" font-size="8.7" font-weight="900" font-family="Arial,sans-serif" fill="#fff">VK</text></svg>';
+    if(kind==='telegram')return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#2AABEE"/><path d="M5.2 11.6 18.4 6.5c.61-.22 1.15.15.95.99l-2.25 10.6c-.17.75-.61.93-1.24.58l-3.43-2.53-1.65 1.59c-.18.18-.34.34-.69.34l.25-3.49 6.35-5.73c.28-.25-.06-.38-.43-.14l-7.85 4.94-3.38-1.06c-.73-.23-.75-.73.16-1.08Z" fill="#fff"/></svg>';
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="maxg" x1="3" y1="3" x2="21" y2="21"><stop stop-color="#24C7C8"/><stop offset=".55" stop-color="#3478F6"/><stop offset="1" stop-color="#7B61FF"/></linearGradient></defs><rect x="1" y="1" width="22" height="22" rx="7" fill="url(#maxg)"/><path d="M6.4 16.6V7.6l5.6 4.8 5.6-4.8v9" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  function renderHeroSocials(c){
+    if(!heroSocials)return;
+    heroSocials.innerHTML='';
+    const items=[
+      ['vk','VK',c?.vk],
+      ['max','MAX',c?.max],
+      ['telegram','Telegram',c?.telegram]
+    ];
+    items.forEach(([kind,label,value])=>{
+      const href=socialHref(kind,value);
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='hd-social-btn is-'+kind;
+      btn.innerHTML=socialIcon(kind);
+      btn.title=href?label+': открыть':' '+label+': не указан';
+      btn.setAttribute('aria-label',href?label+': открыть':label+': не указан');
+      btn.disabled=!href;
+      if(href)btn.onclick=()=>window.open(href,'_blank','noopener,noreferrer');
+      heroSocials.appendChild(btn);
+    });
+  }
+
   function clientMeta(c){
     const parts=[];
     if(c.city)parts.push(c.city);
@@ -611,6 +654,7 @@
     summary.hidden=true;
     renderHeroReminder(c);
     renderHeroVisual(c);
+    renderHeroSocials(c);
 
     if(!c){
       heroTitle.textContent='Начните работу: выберите клиента слева или создайте нового';
@@ -626,7 +670,7 @@
     }
 
     heroTitle.textContent=c.name;
-    heroSub.textContent=c.city||'Город не указан';
+    heroSub.textContent=clientMeta(c);
     const card=document.createElement('button');card.className='hd-secondary';card.type='button';card.textContent='Карточка клиента';card.onclick=openCard;
     heroActions.append(card);
 
@@ -635,12 +679,12 @@
     const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
     const desiredResult=desiredResults.length?desiredResults[desiredResults.length-1]:'Не указан';
     const items=[
-      ['Текущий запрос',currentReq?.title||'Не указан','wide'],
-      ['Сессии',String((c.sessions||[]).length),''],
-      ['Последняя сессия',formatRuDate(lastSession?.date),''],
-      ['Желаемый результат',desiredResult,'wide']
+      ['Текущий запрос',currentReq?.title||'Не указан','hd-summary-current'],
+      ['Сессии',String((c.sessions||[]).length),'hd-summary-sessions'],
+      ['Последняя сессия',formatRuDate(lastSession?.date),'hd-summary-last'],
+      ['Желаемый результат',desiredResult,'hd-summary-result']
     ];
-    summary.innerHTML=items.map(([a,b,cls])=>`<div class="hd-summary-box ${cls==='wide'?'hd-summary-wide':''}"><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
+    summary.innerHTML=items.map(([a,b,cls])=>`<div class="hd-summary-box ${cls}"><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
     summary.hidden=false;
   }
 

@@ -196,28 +196,18 @@
     section.hidden=false;
     const r=currentRequest(c);
     const all=numberedSessions(c);
-    const display=r?all.filter(item=>belongsTo(item.s,r)):[];
-    const archived=all.filter(item=>!r||!belongsTo(item.s,r));
-
+    const display=all;
     const plannedCount=display.filter(item=>isPlannedSession(item.s)).length;
     const conductedCount=display.length-plannedCount;
-    count.textContent=r
-      ?(display.length
-        ?(plannedCount?`Проведено: ${conductedCount} · Запланировано: ${plannedCount}`:`Всего: ${conductedCount}`)
-        :'Сессий по текущему запросу пока нет')
-      :'Нет текущего запроса';
-    archiveBtn.textContent=`Архив сессий${archived.length?` (${archived.length})`:''}`;
-    archiveBtn.hidden=!archived.length;
+    count.textContent=display.length
+      ?(plannedCount?`Всего: ${display.length} · Проведено: ${conductedCount} · Запланировано: ${plannedCount}`:`Всего: ${conductedCount}`)
+      :'Сессий пока нет';
+    archiveBtn.hidden=true;
     list.innerHTML='';
     updateDashboardSummary(c,r,display);
 
-    if(!r){
-      list.innerHTML='<div class="hd-sessions-empty">Сначала выберите текущий запрос.</div>';
-      emitSessionsRendered();
-      return;
-    }
     if(!display.length){
-      list.innerHTML='<div class="hd-sessions-empty">По текущему запросу сессий пока нет.</div>';
+      list.innerHTML='<div class="hd-sessions-empty">Сессий пока нет. Здесь будет вся история работы с клиентом.</div>';
       emitSessionsRendered();
       return;
     }
@@ -316,15 +306,15 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    .hd-sessions-section{width:min(760px,100%);margin-top:26px;text-align:left;border-top:1px solid #dbe7f4;padding-top:20px}
+    .hd-sessions-section{width:100%;max-width:none;margin-top:24px;text-align:left;border-top:2px solid #d4e3f2;padding-top:20px}
     .hd-sessions-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
-    .hd-sessions-title{font-size:20px;font-weight:800;color:#132747}
+    .hd-sessions-title{font-size:22px;font-weight:900;color:#132747}
     .hd-sessions-count{margin-top:3px;font-size:12px;color:#8a9bb4}
     .hd-sessions-actions{display:flex;align-items:center;gap:8px}
     .hd-add-session,.hd-session-archive-btn{height:40px;padding:0 16px;font-size:13px}
     .hd-session-archive-btn{background:linear-gradient(#fff,#edf2f7)!important;color:#31536f!important;border:1px solid #c8d5e3!important}
     .hd-sessions-list{display:grid;gap:11px;width:100%}
-    .hd-session-card{border:1px solid #d6e3f2;border-left:4px solid #6ea4ef;border-radius:11px;background:#fff;box-shadow:0 2px 8px rgba(31,71,122,.05);overflow:hidden;transition:.15s ease}
+    .hd-session-card{border:2px solid #d2e1f0;border-left:5px solid #6ea4ef;border-radius:12px;background:#fff;box-shadow:0 4px 12px rgba(31,71,122,.06);overflow:hidden;transition:.15s ease}
     .hd-session-card-openable{cursor:pointer}.hd-session-card-openable:hover{border-color:#9ec2f3;box-shadow:0 5px 14px rgba(31,71,122,.10);transform:translateY(-1px)}
     .hd-session-card.is-planned{border-color:#f0c96b;border-left-color:#f59e0b;background:#fffdf6;box-shadow:0 4px 14px rgba(180,119,10,.10)}
     .hd-session-card.is-planned:hover{border-color:#e9b840;box-shadow:0 7px 20px rgba(180,119,10,.16)}

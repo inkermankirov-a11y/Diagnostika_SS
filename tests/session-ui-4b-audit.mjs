@@ -85,12 +85,8 @@ async function lastEditor(){
   return dlg;
 }
 
-async function openArchiveSession(){
-  await page.locator('#hdSessionArchive').waitFor({state:'visible',timeout:5000});
-  await page.locator('#hdSessionArchive').click();
-  const archive=page.locator('#hdSessionArchiveDialog');
-  await archive.waitFor({state:'visible',timeout:5000});
-  const row=archive.locator('.hd-session-archive-row').first();
+async function openHistoricalSession(){
+  const row=page.locator('.hd-session-card').first();
   await row.waitFor({state:'visible',timeout:5000});
   await row.click();
   return lastEditor();
@@ -170,13 +166,13 @@ assert.deepEqual(restored.data,{
 });
 assert.equal(restored.activeRequestId,'sessions-4b-r1');
 
-dlg=await openArchiveSession();
+dlg=await openHistoricalSession();
 assert.equal(await page.evaluate(()=>window.DiagnostikaRequests.currentId()),'sessions-4b-r1','opening archive session activated its request');
 await page.evaluate(()=>document.querySelector('dialog.session-edit-dialog')?.close());
 await dlg.waitFor({state:'hidden',timeout:5000});
 
 await captureEvents();
-dlg=await openArchiveSession();
+dlg=await openHistoricalSession();
 await dlg.locator('.session-edit-text').fill('ЭТО НЕ СОХРАНЯТЬ');
 const cancel=dlg.locator('.session-edit-actions button').filter({hasText:'Отмена'}).first();
 await cancel.click();
@@ -186,7 +182,7 @@ await confirmDiscard.locator('.app-message-no').click();
 await dlg.waitFor({state:'hidden',timeout:5000});
 assert.equal(await page.evaluate(id=>window.DiagnostikaSessions.get(id)?.notes,sessionId),'Сохранённая заметка','unsaved discard changed session data');
 
-dlg=await openArchiveSession();
+dlg=await openHistoricalSession();
 await dlg.locator('.session-edit-text').fill('Сохранено через защиту');
 await dlg.locator('.session-edit-actions button').filter({hasText:'Отмена'}).first().click();
 const confirmSave=page.locator('dialog.app-message-dialog');
@@ -199,7 +195,7 @@ let guardEvents=await page.evaluate(()=>window.__sessionUi4bEvents);
 assert.equal(guardEvents.filter(x=>x.type==='session:updated'&&x.detail.source==='session-editor-save').length,1,'unsaved guard save emitted wrong event count');
 
 await page.evaluate(()=>{window.__sessionUi4bEvents=[];});
-dlg=await openArchiveSession();
+dlg=await openHistoricalSession();
 await dlg.locator('.session-delete-btn').click();
 await dlg.waitFor({state:'hidden',timeout:5000});
 await page.waitForTimeout(150);
