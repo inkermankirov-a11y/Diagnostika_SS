@@ -140,8 +140,8 @@
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261003-status-stack-1','data-home-dashboard-preload'],
-      ['home-dashboard-sessions.js?v=20261003-unpaid-jump-1','data-home-dashboard-sessions-preload']
+      ['home-dashboard.js?v=20261003-planned-session-1','data-home-dashboard-preload'],
+      ['home-dashboard-sessions.js?v=20261003-planned-session-1','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
       const preload=document.createElement('link');
@@ -170,12 +170,12 @@
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20261003-status-stack-1';
+      s.src='home-dashboard.js?v=20261003-planned-session-1';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
           const x=document.createElement('script');
-          x.src='home-dashboard-sessions.js?v=20261003-unpaid-jump-1';
+          x.src='home-dashboard-sessions.js?v=20261003-planned-session-1';
           x.setAttribute('data-home-dashboard-sessions','1');
           document.body.appendChild(x);
         }
@@ -183,7 +183,7 @@
       document.body.appendChild(s);
     }else if(!document.querySelector('script[data-home-dashboard-sessions]')){
       const x=document.createElement('script');
-      x.src='home-dashboard-sessions.js?v=20261003-unpaid-jump-1';
+      x.src='home-dashboard-sessions.js?v=20261003-planned-session-1';
       x.setAttribute('data-home-dashboard-sessions','1');
       document.body.appendChild(x);
     }
