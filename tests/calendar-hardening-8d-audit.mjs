@@ -17,10 +17,10 @@ assert(googleSource.includes("version:'8D'"),'Google Calendar bridge is not 8D')
 assert(googleSource.includes('calendarApi()?.get?.(id)'),'Google Calendar link does not resolve canonical event data');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade cache marker is stale');
 for(const marker of [
-  'modules/calendar/ui/calendar.js?v=20261003-planned-session-1',
+  'modules/calendar/ui/calendar.js?v=20261003-ru-date-1',
   'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
 ])assert(indexSource.includes(marker),'Calendar 8D marker missing '+marker);
-assert(indexSource.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1'),'Calendar global app-loader marker missing');
+assert(indexSource.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1&beacons=20261003-1&reminder=20261003-1&dates=20261003-1'),'Calendar global app-loader marker missing');
 
 const fixture={version:4,calendarEvents:[{
   id:'cal-8d-existing',
