@@ -6,6 +6,18 @@
 
   let loading = false;
   let loaded = false;
+  const TOKEN_KEY='diagnostika-google-drive-token-v2';
+
+  function hasGoogleSession() {
+    try {
+      const raw=sessionStorage.getItem(TOKEN_KEY);
+      if(!raw)return false;
+      const value=JSON.parse(raw);
+      return Boolean(value?.access_token && Date.now()<Number(value.expires_at||0)-30000);
+    } catch (_) {
+      return false;
+    }
+  }
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -61,6 +73,11 @@
     button.addEventListener('click', () => setTimeout(loadGoogleDriveModule, 0));
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
-  else bind();
+  function start(){
+    bind();
+    if(hasGoogleSession()) setTimeout(loadGoogleDriveModule,250);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
 })();
