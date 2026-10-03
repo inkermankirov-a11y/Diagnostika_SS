@@ -46,7 +46,9 @@ for(const viewport of [{width:1440,height:1000},{width:768,height:1024},{width:3
   assert.equal(await p.locator('#diagnosisWorkspace').isVisible(),false);
   assert.equal(await p.locator('#hdHeroTitle').textContent(),'Контроль сохранности');
   const baseline=await p.evaluate(()=>JSON.stringify(window.DiagnostikaClients.current()));
-  await p.getByRole('button',{name:'Диагностика',exact:true}).click();
+  await p.getByRole('button',{name:'Карточка клиента',exact:true}).click();
+  await p.locator('#clientCardDialog').waitFor({state:'visible'});
+  await p.locator('#ccDiagnosisBtn').click();
   await p.locator('#diagnosisWorkspace').waitFor({state:'visible'});
   await absent(p);
   await p.locator('#tree .tree-row.primary').first().click();
