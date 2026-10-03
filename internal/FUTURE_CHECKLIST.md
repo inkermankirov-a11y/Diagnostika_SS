@@ -1,16 +1,16 @@
-# Future checklist
+# Чек-лист будущих доработок
 
-Internal project checklist. This file is not connected to the site UI and is used only to remember future product ideas mentioned during development.
+Внутренний файл проекта. На сайте не отображается. Нужен только для фиксации идей, которые решено сделать позже.
 
-## Planned
+## В планах
 
-- [ ] Client personal account / portal.
-  - Client can open their own private account.
-  - Client can fill in requested information and questionnaires independently.
-  - Client can submit updates between sessions.
-  - Submitted information should become part of the same client history used by the specialist and the client AI assistant.
-  - Access, permissions, privacy, and data separation must be designed before implementation.
+- [ ] Личный кабинет клиента.
+  - У каждого клиента свой приватный кабинет.
+  - Клиент самостоятельно заполняет запрошенную информацию и анкеты.
+  - Клиент может отправлять обновления между сессиями.
+  - Новые данные попадают в общую историю клиента и учитываются ИИ-помощником по клиенту.
+  - До реализации отдельно спроектировать доступ, права, приватность и разделение данных клиентов.
 
-## Rule for adding items
+## Правило ведения
 
-When a future feature is explicitly described as “later”, “in the future”, “we will do this later”, or similar, add it to this checklist instead of relying on chat memory alone.
+Если во время разработки явно звучит «потом», «в будущем», «позже сделаем», «надо будет добавить» и аналогичная формулировка про будущую функцию — добавлять её сюда, а не оставлять только в истории чата.
