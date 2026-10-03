@@ -205,6 +205,23 @@
     return best;
   }
 
+  function upcomingBeaconKind(event){
+    const type=String(event?.type||'').trim().toLowerCase();
+    const title=String(event?.title||'').trim().toLowerCase();
+    if(type==='напоминание'||title==='напоминание')return 'reminder';
+    if(type==='бесплатная консультация'||title==='бесплатная консультация')return 'free-consultation';
+    if(type==='сессия'||/^сессия №\d+$/i.test(String(event?.title||'').trim()))return 'session';
+    return 'neutral';
+  }
+
+  function upcomingBeaconTypeLabel(event){
+    const kind=upcomingBeaconKind(event);
+    if(kind==='session')return 'Сессия';
+    if(kind==='reminder')return 'Напоминание';
+    if(kind==='free-consultation')return 'Бесплатная консультация';
+    return String(event?.type||event?.title||'Запись').trim()||'Запись';
+  }
+
   function nextInteractionTime(c){
     return nextUpcomingInteraction(c)?.time??Number.POSITIVE_INFINITY;
   }
@@ -226,7 +243,7 @@
     const rawTime=String(event.time||'').trim();
     const timeMatch=rawTime.match(/^(\d{1,2}):(\d{2})/);
     const timeText=timeMatch?`${pad2(timeMatch[1])}:${pad2(timeMatch[2])}`:'время не указано';
-    return `${dateText} • ${timeText}`;
+    return `${upcomingBeaconTypeLabel(event)} • ${dateText} • ${timeText}`;
   }
 
   function pad2(value){return String(value??'').padStart(2,'0');}
@@ -339,6 +356,8 @@
     const text=dot?.dataset?.tooltip||'';
     if(!text)return;
     const tooltip=ensureUpcomingTooltip();
+    const kind=dot?.dataset?.kind||'neutral';
+    tooltip.className=`hd-upcoming-tooltip is-${kind}`;
     tooltip.textContent=text;
     tooltip.hidden=false;
     const rect=dot.getBoundingClientRect();
@@ -488,7 +507,8 @@
       const upcomingInfo=nextUpcomingInteraction(c);
       const upcoming=!!upcomingInfo&&upcomingInfo.time<Date.now()+7*24*60*60*1000;
       const upcomingText=upcoming?upcomingInteractionLabel(upcomingInfo):'';
-      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-tooltip="${esc(upcomingText)}"></span>`:'';
+      const upcomingKind=upcoming?upcomingBeaconKind(upcomingInfo.event):'neutral';
+      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-tooltip="${esc(upcomingText)}"></span>`:'';
       const pinned=pinRank.has(String(c.id));
       const pin=pinned?`<span class="hd-client-pin" aria-label="Закреплённый клиент" title="Закреплён">📌</span>`:'';
       row.classList.toggle('pinned',pinned);
