@@ -1017,3 +1017,241 @@
     gap:20px;
   }
 }
+
+
+/* Dashboard v5 — approved frosted glass for the client AI/notes rail
+   + exact vertical alignment of social icons, Client card and specialist row. */
+
+/* Keep the right column spatially calm while the cards themselves carry color. */
+.dashboard-client-mode .hd-right{
+  gap:14px;
+}
+
+/* BLUE GLASS — AI assistant */
+.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  border:1px solid rgba(74,165,255,.58)!important;
+  border-radius:18px!important;
+  background:
+    radial-gradient(92% 76% at 12% -8%,rgba(255,255,255,.78) 0%,rgba(255,255,255,.20) 45%,rgba(255,255,255,0) 72%),
+    radial-gradient(76% 74% at 104% 22%,rgba(66,176,255,.34) 0%,rgba(66,176,255,.08) 54%,rgba(66,176,255,0) 78%),
+    linear-gradient(145deg,rgba(229,245,255,.88) 0%,rgba(199,229,255,.76) 48%,rgba(178,216,252,.72) 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.96),
+    inset 0 -1px 0 rgba(56,148,236,.16),
+    0 0 0 1px rgba(255,255,255,.42),
+    0 10px 30px rgba(35,126,215,.16),
+    0 0 24px rgba(64,167,255,.14)!important;
+  backdrop-filter:blur(22px) saturate(1.22)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.22)!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  left:10px;
+  right:10px;
+  top:1px;
+  height:42%;
+  border-radius:17px 17px 48% 48%;
+  background:linear-gradient(180deg,rgba(255,255,255,.58),rgba(255,255,255,.18) 46%,rgba(255,255,255,0));
+  pointer-events:none;
+}
+.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget::after{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  inset:-2px;
+  border-radius:20px;
+  background:linear-gradient(128deg,rgba(70,177,255,.50),rgba(106,196,255,.10) 55%,rgba(47,141,255,.34));
+  filter:blur(10px);
+  opacity:.78;
+  pointer-events:none;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-widget-title{
+  color:#113f78!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-widget-title > span:first-child{
+  background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(211,235,255,.62))!important;
+  border:1px solid rgba(255,255,255,.80)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 5px 13px rgba(45,126,208,.10)!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-client{
+  color:#315a86!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-messages{
+  border:1px solid rgba(255,255,255,.78)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.60),rgba(239,248,255,.44))!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 0 0 1px rgba(94,158,221,.11),
+    0 8px 20px rgba(43,112,180,.06)!important;
+  backdrop-filter:blur(14px) saturate(1.10)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(1.10)!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-msg.assistant{
+  background:rgba(255,255,255,.72)!important;
+  border-color:rgba(255,255,255,.82)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 3px 10px rgba(48,113,177,.06)!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-compose{
+  background:transparent!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-input{
+  border:1px solid rgba(255,255,255,.86)!important;
+  background:rgba(255,255,255,.68)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.96),0 0 0 1px rgba(72,143,211,.10)!important;
+  backdrop-filter:blur(12px)!important;
+  -webkit-backdrop-filter:blur(12px)!important;
+}
+.home-dashboard .hd-right > #hdClientAiWidget .hd-ai-send{
+  border:1px solid rgba(255,255,255,.56)!important;
+  background:linear-gradient(180deg,#4ca4ff,#2f7cf6)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.40),0 5px 14px rgba(38,112,218,.20)!important;
+}
+
+/* GREEN GLASS — client notes */
+.home-dashboard .hd-right > .hd-client-notes-widget{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  border:1px solid rgba(75,195,120,.52)!important;
+  border-radius:18px!important;
+  background:
+    radial-gradient(90% 78% at 14% -10%,rgba(255,255,255,.78) 0%,rgba(255,255,255,.20) 46%,rgba(255,255,255,0) 72%),
+    radial-gradient(74% 72% at 104% 20%,rgba(67,213,127,.30) 0%,rgba(67,213,127,.07) 55%,rgba(67,213,127,0) 80%),
+    linear-gradient(145deg,rgba(235,252,240,.90) 0%,rgba(210,245,221,.78) 50%,rgba(188,235,204,.72) 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.96),
+    inset 0 -1px 0 rgba(52,167,96,.15),
+    0 0 0 1px rgba(255,255,255,.42),
+    0 10px 30px rgba(43,151,83,.14),
+    0 0 24px rgba(55,198,106,.12)!important;
+  backdrop-filter:blur(22px) saturate(1.20)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.20)!important;
+}
+.home-dashboard .hd-right > .hd-client-notes-widget::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  left:10px;
+  right:10px;
+  top:1px;
+  height:44%;
+  border-radius:17px 17px 48% 48%;
+  background:linear-gradient(180deg,rgba(255,255,255,.58),rgba(255,255,255,.18) 46%,rgba(255,255,255,0));
+  pointer-events:none;
+}
+.home-dashboard .hd-right > .hd-client-notes-widget::after{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  inset:-2px;
+  border-radius:20px;
+  background:linear-gradient(128deg,rgba(71,201,120,.44),rgba(89,220,137,.10) 55%,rgba(48,177,99,.32));
+  filter:blur(10px);
+  opacity:.76;
+  pointer-events:none;
+}
+.home-dashboard .hd-right > .hd-client-notes-widget .hd-widget-title{
+  color:#155c31!important;
+}
+.home-dashboard .hd-right > .hd-client-notes-widget .hd-widget-title > span:first-child{
+  color:#2cab63!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.7);
+}
+.home-dashboard .hd-right > .hd-client-notes-widget .hd-note-box{
+  min-height:108px;
+  border:1px solid rgba(255,255,255,.78)!important;
+  border-radius:14px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.62),rgba(240,253,244,.44))!important;
+  color:#466b55!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 0 0 1px rgba(78,168,109,.10),
+    0 8px 20px rgba(45,126,75,.055)!important;
+  backdrop-filter:blur(14px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(1.08)!important;
+}
+.home-dashboard .hd-right > .hd-client-notes-widget .hd-note-box:hover{
+  border-color:rgba(255,255,255,.92)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.74),rgba(240,253,244,.52))!important;
+}
+.home-dashboard .hd-right > .hd-client-notes-widget .hd-note-preview-head{
+  color:#245f39!important;
+}
+
+/* Align social row and Client card on one visual baseline. */
+.hd-client-view.has-client .hd-client-photo-stack{
+  width:132px;
+  flex-basis:132px;
+}
+.hd-client-view.has-client .hd-client-socials{
+  height:40px;
+}
+.hd-client-view.has-client .hd-social-btn{
+  height:40px;
+  aspect-ratio:auto;
+  padding:4px;
+}
+.hd-client-view.has-client .hd-client-profile-copy{
+  min-height:182px;
+  padding-top:6px;
+}
+.hd-client-view.has-client .hd-client-actions{
+  margin-top:auto!important;
+  margin-bottom:0!important;
+}
+.hd-client-view.has-client .hd-client-actions .hd-secondary{
+  height:40px!important;
+  min-height:40px!important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Lift and vertically align the current-specialist card a few pixels. */
+.hd-client-right-rail{
+  gap:8px;
+}
+.hd-client-specialist-slot{
+  transform:translateY(-3px);
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-info{
+  min-height:44px!important;
+  padding:5px 8px!important;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-current{
+  grid-template-columns:134px minmax(0,1fr)!important;
+  column-gap:9px!important;
+  min-height:34px!important;
+  align-items:center!important;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-history-btn{
+  height:34px!important;
+  min-height:34px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-name{
+  min-height:34px!important;
+  display:flex!important;
+  align-items:center!important;
+  line-height:1.2!important;
+}
+
+@media(max-width:1180px){
+  .home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget,
+  .home-dashboard .hd-right > .hd-client-notes-widget{
+    min-height:0;
+  }
+}
+@media(max-width:560px){
+  .hd-client-view.has-client .hd-client-profile-copy{min-height:162px}
+  .hd-client-view.has-client .hd-client-socials{height:36px}
+  .hd-client-view.has-client .hd-social-btn{height:36px}
+  .hd-client-view.has-client .hd-client-actions .hd-secondary{height:36px!important;min-height:36px!important}
+}
