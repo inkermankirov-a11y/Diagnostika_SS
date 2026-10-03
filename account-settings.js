@@ -118,48 +118,94 @@
 
   const summary = document.createElement('div');
   summary.className = 'settings-profile-summary';
-  summary.innerHTML = `<button type="button" class="settings-profile-avatar" aria-label="Avatar"></button><div class="settings-profile-name"></div>`;
+  summary.innerHTML = '<button type="button" class="settings-profile-avatar" aria-label="Avatar"></button><div class="settings-profile-meta"><div class="settings-profile-name"></div><div class="settings-profile-title"></div><div class="settings-profile-tags"></div></div>';
   panel.insertBefore(summary,panel.firstChild);
 
   const content = document.createElement('div');
   content.className = 'settings-account-content';
-  content.innerHTML = `
-    <div class="account-field">
-      <div class="account-label"></div>
-      <input class="account-input" type="text" autocomplete="name">
-      <div class="account-hint"></div>
-      <button type="button" class="account-save"></button>
-    </div>
-    <input class="account-avatar-input" type="file" accept="image/*" hidden>`;
+  content.innerHTML = '<div class="specialist-card-title"></div>'
+    +'<div class="account-field"><div class="account-label account-name-label"></div><input class="account-input account-name" type="text" autocomplete="name"></div>'
+    +'<div class="account-field-grid"><div class="account-field"><div class="account-label account-title-label"></div><input class="account-input account-title" type="text"></div><div class="account-field"><div class="account-label account-experience-label"></div><input class="account-input account-experience" type="text"></div></div>'
+    +'<div class="account-field"><div class="account-label account-areas-label"></div><textarea class="account-textarea account-areas"></textarea></div>'
+    +'<div class="account-field"><div class="account-label account-about-label"></div><textarea class="account-textarea account-about"></textarea></div>'
+    +'<div class="account-field"><div class="account-label account-photo-label"></div><div class="account-photo-actions"><button type="button" class="account-photo-edit"></button><button type="button" class="account-photo-replace"></button><button type="button" class="account-photo-delete"></button></div></div>'
+    +'<div class="account-field account-reviews"><div class="account-label account-reviews-label"></div><div class="account-review-editor"><input class="account-input account-review-author-input" type="text"><textarea class="account-textarea account-review-text-input"></textarea><button type="button" class="account-review-add"></button></div><div class="account-review-list"></div></div>'
+    +'<button type="button" class="account-save"></button><input class="account-avatar-input" type="file" accept="image/*" hidden>';
   accountsBtn.insertAdjacentElement('afterend',content);
 
-  const avatarBtn = summary.querySelector('.settings-profile-avatar');
-  const nameEl = summary.querySelector('.settings-profile-name');
-  const input = content.querySelector('.account-input');
-  const saveBtn = content.querySelector('.account-save');
-  const fileInput = content.querySelector('.account-avatar-input');
+  const avatarBtn=summary.querySelector('.settings-profile-avatar');
+  const nameEl=summary.querySelector('.settings-profile-name');
+  const titleEl=summary.querySelector('.settings-profile-title');
+  const tagsEl=summary.querySelector('.settings-profile-tags');
+  const nameInput=content.querySelector('.account-name');
+  const titleInput=content.querySelector('.account-title');
+  const experienceInput=content.querySelector('.account-experience');
+  const areasInput=content.querySelector('.account-areas');
+  const aboutInput=content.querySelector('.account-about');
+  const saveBtn=content.querySelector('.account-save');
+  const fileInput=content.querySelector('.account-avatar-input');
+  const photoEditBtn=content.querySelector('.account-photo-edit');
+  const photoReplaceBtn=content.querySelector('.account-photo-replace');
+  const photoDeleteBtn=content.querySelector('.account-photo-delete');
+  const reviewAuthorInput=content.querySelector('.account-review-author-input');
+  const reviewTextInput=content.querySelector('.account-review-text-input');
+  const reviewAddBtn=content.querySelector('.account-review-add');
+  const reviewList=content.querySelector('.account-review-list');
 
-  function paintAvatar(){
-    avatarBtn.innerHTML = '';
-    const avatar = getAvatar();
-    if (avatar){
-      const img = document.createElement('img');
-      img.src = avatar;
-      img.alt = '';
-      avatarBtn.appendChild(img);
-    }else{
-      avatarBtn.textContent = initials(getName());
-    }
+  function paintAvatar(profile=getProfile()){
+    avatarBtn.innerHTML='';
+    if(profile.avatar){
+      const img=document.createElement('img');img.src=profile.avatar;img.alt='';avatarBtn.appendChild(img);
+    }else avatarBtn.textContent=initials(profile.name);
+  }
+  function paintSummary(profile=getProfile()){
+    const tr=t();
+    nameEl.textContent=profile.name||tr.empty;
+    titleEl.textContent=[profile.title,profile.experience].filter(Boolean).join(' • ');
+    tagsEl.innerHTML='';
+    profile.areas.slice(0,4).forEach(area=>{
+      const tag=document.createElement('span');tag.className='settings-profile-tag';tag.textContent=area;tagsEl.appendChild(tag);
+    });
+    paintAvatar(profile);
+  }
+  function renderReviews(profile=getProfile()){
+    const tr=t();reviewList.innerHTML='';
+    if(!profile.reviews.length){reviewList.innerHTML='<div class="account-review-empty">'+tr.reviewEmpty+'</div>';return;}
+    profile.reviews.forEach(review=>{
+      const item=document.createElement('div');item.className='account-review-item';
+      const author=document.createElement('div');author.className='account-review-author';author.textContent=review.author||'Отзыв';
+      const text=document.createElement('div');text.className='account-review-text';text.textContent=review.text;
+      const del=document.createElement('button');del.type='button';del.className='account-review-delete';del.textContent='×';del.title=tr.reviewDelete;
+      del.onclick=e=>{e.stopPropagation();const next=getProfile();next.reviews=next.reviews.filter(x=>x.id!==review.id);if(persistProfile(next,'specialist-profile-review-delete'))render();};
+      item.append(author,text,del);reviewList.appendChild(item);
+    });
   }
   function render(){
-    const tr = t();
-    const name = getName();
-    nameEl.textContent = name || tr.empty;
-    content.querySelector('.account-label').textContent = tr.name;
-    content.querySelector('.account-hint').textContent = tr.hint;
-    saveBtn.textContent = tr.save;
-    if (document.activeElement !== input) input.value = name;
-    paintAvatar();
+    const tr=t(),profile=getProfile();
+    paintSummary(profile);
+    content.querySelector('.specialist-card-title').textContent=tr.profile;
+    content.querySelector('.account-name-label').textContent=tr.name;
+    content.querySelector('.account-title-label').textContent=tr.title;
+    content.querySelector('.account-experience-label').textContent=tr.experience;
+    content.querySelector('.account-areas-label').textContent=tr.areas;
+    content.querySelector('.account-about-label').textContent=tr.about;
+    content.querySelector('.account-photo-label').textContent=tr.photo;
+    content.querySelector('.account-reviews-label').textContent=tr.reviews;
+    nameInput.placeholder=tr.name;titleInput.placeholder=tr.titlePlaceholder;experienceInput.placeholder=tr.experiencePlaceholder;areasInput.placeholder=tr.areasPlaceholder;aboutInput.placeholder=tr.aboutPlaceholder;
+    reviewAuthorInput.placeholder=tr.reviewAuthor;reviewTextInput.placeholder=tr.reviewText;
+    photoEditBtn.textContent=tr.photoEdit;photoReplaceBtn.textContent=tr.photoReplace;photoDeleteBtn.textContent=tr.photoDelete;reviewAddBtn.textContent=tr.reviewAdd;saveBtn.textContent=tr.save;
+    if(document.activeElement!==nameInput)nameInput.value=profile.name;
+    if(document.activeElement!==titleInput)titleInput.value=profile.title;
+    if(document.activeElement!==experienceInput)experienceInput.value=profile.experience;
+    if(document.activeElement!==areasInput)areasInput.value=profile.areas.join(', ');
+    if(document.activeElement!==aboutInput)aboutInput.value=profile.about;
+    photoEditBtn.disabled=!profile.avatar;photoDeleteBtn.disabled=!profile.avatar;
+    renderReviews(profile);
+  }
+  function profileFromForm(){
+    const profile=getProfile();
+    profile.name=nameInput.value.trim();profile.title=titleInput.value.trim();profile.experience=experienceInput.value.trim();profile.areas=normalizeAreas(areasInput.value);profile.about=aboutInput.value.trim();
+    return profile;
   }
 
   accountsBtn.addEventListener('click',e=>{
