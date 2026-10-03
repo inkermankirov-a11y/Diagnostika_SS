@@ -90,6 +90,7 @@
   function isPlannableType(value){return PLANNABLE_TYPES.has(String(value||'').trim());}
   function isPlannableEvent(e){
     if(!e?.clientId)return false;
+    if(e.plannedSessionSkeleton!==true&&!e.sessionId)return false;
     if(isSessionEvent(e))return true;
     return isPlannableType(e?.type||e?.title);
   }
