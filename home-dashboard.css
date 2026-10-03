@@ -174,10 +174,10 @@
 .hd-client-filter:active{transform:translateY(1px) scale(.99);box-shadow:inset 0 1px 0 rgba(255,255,255,.30),inset 0 2px 5px rgba(3,10,20,.22),0 2px 5px rgba(15,23,42,.16)!important}
 .hd-client-filter:focus-visible{outline:2px solid rgba(var(--hdf-a),.88);outline-offset:2px}
 .hd-client-list{overflow:auto;min-height:100px;padding-right:10px;flex:1}
-.hd-client-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:7px;align-items:center;padding:7px 6px 7px 16px;border-radius:10px;cursor:pointer;border-left:4px solid transparent;transition:.15s ease;margin-bottom:3px;position:relative}
+.hd-client-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:7px;align-items:center;padding:7px 6px 7px 10px;border-radius:10px;cursor:pointer;border-left:4px solid transparent;transition:.15s ease;margin-bottom:3px;position:relative}
 .hd-client-row:hover{background:#f4f8fd}
 .hd-client-row.active{background:#eaf4ff;border-left-color:transparent}
-.hd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#e8eef6;color:#304661;font-size:15px;font-weight:800;overflow:hidden}
+.hd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#e8eef6;color:#304661;font-size:15px;font-weight:800;overflow:hidden;transition:box-shadow .16s ease}
 .hd-avatar img{width:100%;height:100%;object-fit:cover}
 .hd-client-info{min-width:0}
 .hd-client-name{font-weight:800;color:#152746;font-size:14px;line-height:1.18;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:normal}
@@ -200,9 +200,9 @@
 .hd-client-menu-icon{width:18px;text-align:center;flex:0 0 auto}
 .hd-unpaid-flag{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;color:#dc2626;background:#fff1f1;border:1px solid #f0aaaa;font-size:16px;line-height:1;pointer-events:none;box-shadow:0 2px 6px rgba(220,38,38,.18);animation:hdUnpaidPulse 1.15s ease-in-out infinite;transform-origin:center}
 @keyframes hdUnpaidPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,.08)}50%{transform:scale(1.08);box-shadow:0 0 0 5px rgba(220,38,38,.14)}}
-.hd-client-row.active::before,.hd-client-row.new-client::after{content:'';position:absolute;z-index:2;top:50%;display:block;background-position:center;background-repeat:no-repeat;background-size:100% 100%;pointer-events:none;transform:translateY(-50%);filter:drop-shadow(0 1px 1px rgba(15,23,42,.08))}
-.hd-client-row.active::before{left:0;width:18px;height:48px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 50'%3E%3Cpath d='M15.5 2.5 C7.4 7.4 3.5 15.3 3.2 24.8 C3.0 34.6 7.2 42.7 16 47.5' fill='none' stroke='%233b82f6' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
-.hd-client-row.new-client::after{left:7px;width:14px;height:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 36'%3E%3Cpath d='M11.5 2.5 C5.8 6.3 3.1 11.8 3 18 C2.9 24.4 5.7 29.6 11.8 33.5' fill='none' stroke='%2335b86b' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.hd-client-row.active::before{content:'';position:absolute;z-index:2;left:0;top:0;bottom:0;width:6px;border-radius:10px 0 0 10px;background:linear-gradient(180deg,#36a0ff 0%,#2f7cf6 48%,#276fe7 100%);box-shadow:inset -1px 0 0 rgba(255,255,255,.28),0 0 10px rgba(47,124,246,.14);pointer-events:none}
+.hd-client-row.new-client .hd-avatar{box-shadow:0 0 0 2px #fff,0 0 0 5px #35b86b,0 2px 8px rgba(53,184,107,.16)}
+.hd-client-row.active.new-client .hd-avatar{box-shadow:0 0 0 2px #eaf4ff,0 0 0 5px #35b86b,0 2px 8px rgba(53,184,107,.16)}
 .hd-upcoming-session-dot{width:10px;height:10px;border-radius:50%;display:block;background:#f4b72a;border:2px solid #fff;box-shadow:0 0 0 1px #e4bd59,0 0 0 0 rgba(244,183,42,.20);cursor:help;animation:hdUpcomingSessionPulse 1.25s ease-in-out infinite;outline:none}
 .hd-upcoming-session-dot:focus-visible{box-shadow:0 0 0 2px #fff,0 0 0 4px #e4bd59}
 .hd-upcoming-tooltip{position:fixed;z-index:22000;max-width:260px;padding:8px 10px;border:1px solid #d7b84d;border-radius:8px;background:#fffaf0;color:#5b4613;font:700 12px/1.3 'Segoe UI',Arial,sans-serif;box-shadow:0 8px 24px rgba(44,35,9,.22);pointer-events:none;white-space:nowrap}
