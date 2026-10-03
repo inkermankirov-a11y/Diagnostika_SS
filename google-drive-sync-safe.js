@@ -14,10 +14,19 @@
   const MAX_BACKUPS=20;
   const FETCH_TIMEOUT=45000;
   const MERGE_TIMEOUT=45000;
+  const AUTO_SYNC_DEBOUNCE=20000;
+  const AUTO_SYNC_MIN_INTERVAL=120000;
+  const AUTO_SYNC_POLL_INTERVAL=300000;
   let active=false;
+  let autoSyncTimer=null;
+  let autoSyncPollTimer=null;
+  let autoSyncPending=false;
+  let autoSyncBound=false;
+  let lastAutoSyncAt=0;
 
   const stamp=()=>new Date().toISOString().replace(/[:.]/g,'-');
   const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
+  const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
   const clone=value=>{
     if(value==null)return value;
     if(typeof structuredClone==='function')return structuredClone(value);
@@ -251,6 +260,18 @@
     const base=await getBase();
     await pause();
 
+    if(remote.data&&equal(local,remote.data)){
+      await setBase(local);
+      setStatus(`Актуально: ${local.clients?.length||0} клиент(ов)`);
+      return {
+        merged:local,
+        conflicts:[],
+        localCount:local.clients?.length||0,
+        remoteCount:remote.data?.clients?.length||0,
+        unchanged:true
+      };
+    }
+
     setStatus('Создаю страховочные копии…');
     const backupFolder=await ensureBackupFolder(remote.folder.id);
     const jobs=[backupSnapshot(remote.folder.id,'local-before-sync',local,backupFolder)];
@@ -277,7 +298,8 @@
       merged,
       conflicts,
       localCount:local.clients?.length||0,
-      remoteCount:remote.data?.clients?.length||0
+      remoteCount:remote.data?.clients?.length||0,
+      unchanged:false
     };
   }
 
@@ -299,6 +321,79 @@
     applyDatabaseToRuntime(remote.data);
     cleanupBackups(remote.folder.id);
     return remote.data;
+  }
+
+  function autoStatus(text){
+    const status=document.querySelector('.gdrive-card .gdrive-status');
+    if(status)status.textContent=text;
+  }
+
+  function scheduleAutoSync(delay=AUTO_SYNC_DEBOUNCE){
+    if(!token())return;
+    autoSyncPending=true;
+    clearTimeout(autoSyncTimer);
+    const sinceLast=Date.now()-lastAutoSyncAt;
+    const wait=Math.max(delay,AUTO_SYNC_MIN_INTERVAL-Math.max(0,sinceLast));
+    autoSyncTimer=setTimeout(runAutoSync,Math.max(0,wait));
+  }
+
+  async function runAutoSync(){
+    clearTimeout(autoSyncTimer);
+    autoSyncTimer=null;
+    if(!token())return;
+    if(document.hidden){
+      autoSyncPending=true;
+      return;
+    }
+    if(active){
+      scheduleAutoSync(15000);
+      return;
+    }
+
+    active=true;
+    autoSyncPending=false;
+    autoStatus('Google Drive: автосинхронизация…');
+    try{
+      const result=await safeSync(text=>autoStatus('Google Drive: '+text));
+      lastAutoSyncAt=Date.now();
+      autoStatus(result.unchanged
+        ? 'Google Drive: синхронизировано · изменений нет'
+        : 'Google Drive: автосинхронизация завершена');
+    }catch(error){
+      console.warn('[Google Drive auto sync]',error);
+      autoStatus('Google Drive: автосинхронизация не выполнена · '+(error?.message||String(error)));
+    }finally{
+      active=false;
+      if(autoSyncPending)scheduleAutoSync(15000);
+    }
+  }
+
+  function bindAutoSync(){
+    if(autoSyncBound)return true;
+    const bus=window.DiagnostikaPlatform?.events;
+    if(!bus?.on)return false;
+    autoSyncBound=true;
+
+    bus.on('db:written',detail=>{
+      const db=databaseApi();
+      if(detail?.key!==db?.stateKey)return;
+      const source=String(detail?.source||'');
+      if(source.startsWith('google-drive-'))return;
+      scheduleAutoSync();
+    });
+
+    document.addEventListener('visibilitychange',()=>{
+      if(!document.hidden&&autoSyncPending)scheduleAutoSync(500);
+    });
+    window.addEventListener('online',()=>scheduleAutoSync(1500));
+
+    clearInterval(autoSyncPollTimer);
+    autoSyncPollTimer=setInterval(()=>{
+      if(!document.hidden&&token())scheduleAutoSync(0);
+    },AUTO_SYNC_POLL_INTERVAL);
+
+    if(token())scheduleAutoSync(5000);
+    return true;
   }
 
   function install(){
@@ -339,7 +434,9 @@
       try{
         const result=await safeSync(setStatus);
         await notify(
-          `Готово.\nНа этом ПК было: ${result.localCount}.\nВ Google было: ${result.remoteCount}.\nПосле объединения: ${result.merged.clients?.length||0}.\nРезервные копии находятся в Diagnostika/Backups.${result.conflicts.length?`\nКонфликтов: ${result.conflicts.length}.`:''}\n\nПерезагрузка страницы не требуется.`,
+          result.unchanged
+            ? `Локальная база и Google Drive уже совпадают. Клиентов: ${result.merged.clients?.length||0}.`
+            : `Готово.\nНа этом ПК было: ${result.localCount}.\nВ Google было: ${result.remoteCount}.\nПосле объединения: ${result.merged.clients?.length||0}.\nРезервные копии находятся в Diagnostika/Backups.${result.conflicts.length?`\nКонфликтов: ${result.conflicts.length}.`:''}\n\nПерезагрузка страницы не требуется.`,
           'Синхронизация завершена'
         );
       }catch(error){
@@ -376,9 +473,13 @@
     });
 
     const note=card.querySelector('.gdrive-note');
-    if(note)note.textContent='Безопасная синхронизация: резервные копии создаются до записи, объединение выполняется в отдельном потоке, запросы Google имеют таймаут. После синхронизации страница не перезагружается.';
+    if(note)note.textContent='Автосинхронизация включена: после изменений — примерно через 20 секунд, не чаще одного раза в 2 минуты; проверка Google Drive — каждые 5 минут. При реальных изменениях создаются резервные копии.';
+    bindAutoSync();
     return true;
   }
+
+  bindAutoSync();
+  Promise.resolve(window.DiagnostikaPlatform?.ready).then(bindAutoSync).catch(()=>{});
 
   if(!install()){
     let tries=0;
