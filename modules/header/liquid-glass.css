@@ -208,6 +208,26 @@
   padding-right:14px!important;
 }
 
+/* Animated iridescent rim: overlay only, no geometry changes. */
+.header-flip-clock-wrap{position:relative;isolation:isolate}
+.header-flip-clock-wrap::before{
+  content:"";
+  position:absolute;
+  z-index:9;
+  inset:-2px;
+  border-radius:17px;
+  padding:2px;
+  background:conic-gradient(from 0deg,transparent 0 7%,#2f8cff 10%,#35e7ff 14%,#fff 17%,#ffd84a 20%,#ff633d 23%,#ff49d6 27%,#7657ff 31%,transparent 36% 55%,#31dfb4 61%,#fff 65%,#ffc642 68%,#ff4e8b 72%,#468cff 77%,transparent 83% 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  pointer-events:none;
+  animation:headerClockRimSpin 5.5s linear infinite;
+  filter:drop-shadow(0 0 4px rgba(73,177,255,.75));
+}
+@keyframes headerClockRimSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.header-flip-clock-wrap::before{animation:none}}
+
 /* Clock uses the same blue liquid-glass material while preserving flip mechanics. */
 .app-header .header-flip-clock{
   position:relative!important;
