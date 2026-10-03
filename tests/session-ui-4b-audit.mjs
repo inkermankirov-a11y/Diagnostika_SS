@@ -195,7 +195,7 @@ let guardEvents=await page.evaluate(()=>window.__sessionUi4bEvents);
 assert.equal(guardEvents.filter(x=>x.type==='session:updated'&&x.detail.source==='session-editor-save').length,1,'unsaved guard save emitted wrong event count');
 
 await page.evaluate(()=>{window.__sessionUi4bEvents=[];});
-dlg=await openArchiveSession();
+dlg=await openHistoricalSession();
 await dlg.locator('.session-delete-btn').click();
 await dlg.waitFor({state:'hidden',timeout:5000});
 await page.waitForTimeout(150);
