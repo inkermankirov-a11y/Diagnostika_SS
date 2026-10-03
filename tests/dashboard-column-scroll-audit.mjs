@@ -27,8 +27,8 @@ assert.ok(css.includes('grid-auto-rows:max-content!important'),'right rail impli
 assert.ok(css.includes('.home-dashboard:not([hidden]) .hd-client-list{overflow-y:auto!important;overscroll-behavior:contain;scrollbar-gutter:stable}'),'left column independent scrolling is not enforced');
 assert.ok(css.includes('.hd-hero-icon{width:150px;height:118px;position:relative;margin-bottom:24px;display:grid;place-items:center;flex:0 0 auto}'),'client avatar shrink protection missing');
 assert.ok(css.includes('height:84px!important;min-height:84px!important;padding:12px 24px!important;align-items:center!important'),'header vertical spacing is not enforced');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-layout-regression-10'),'dashboard CSS cache key not bumped');
-assert.ok(index.includes('aicolumn=20261003-10'),'app-loader AI-column cache key not bumped');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-left-width-11'),'dashboard CSS cache key not bumped');
+assert.ok(index.includes('aicolumn=20261003-11'),'app-loader AI-column cache key not bumped');
 
 const baseMain=css.indexOf('.hd-main{min-height:calc(100vh - 108px);display:flex;flex-direction:column;overflow:hidden}');
 const desktopMain=css.lastIndexOf('.home-dashboard:not([hidden]) > .hd-main{overflow-y:auto!important');

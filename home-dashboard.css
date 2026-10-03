@@ -1612,7 +1612,7 @@
 
 /* Left client list: keep names readable, never break Cyrillic names letter-by-letter. */
 .home-dashboard:not([hidden]){
-  grid-template-columns:260px minmax(0,1fr) 350px!important;
+  grid-template-columns:320px minmax(0,1fr) 350px!important;
 }
 .hd-client-name{
   display:-webkit-box!important;
@@ -1674,12 +1674,12 @@
 @media(max-width:1180px){
   .home-dashboard:not([hidden]){
     min-width:920px;
-    grid-template-columns:230px minmax(0,1fr) 350px!important;
+    grid-template-columns:300px minmax(0,1fr) 350px!important;
   }
 }
 @media(max-width:980px){
   .home-dashboard:not([hidden]){
     min-width:860px;
-    grid-template-columns:220px minmax(0,1fr) 350px!important;
+    grid-template-columns:280px minmax(0,1fr) 350px!important;
   }
 }
