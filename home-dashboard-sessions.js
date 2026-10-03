@@ -102,12 +102,7 @@
   }
 
   function scheduledLabel(s){
-    const raw=String(s?.date||'').trim();
-    let date=raw||'Дата не указана';
-    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){
-      const [year,month,day]=raw.split('-').map(Number);
-      date=formatRuDate(raw,'Дата не указана');
-    }
+    const date=formatRuDate(s?.date,'Дата не указана');
     const time=String(s?.scheduledTime||'').trim();
     return time?`${date} • ${time}`:date;
   }
