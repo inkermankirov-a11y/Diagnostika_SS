@@ -700,7 +700,8 @@
     const note=noteInput.value.trim();
     const api=calendarApi();
     if(typeof api?.create!=='function')return;
-    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note};
+    const plannedSessionSkeleton=['Сессия','Диагностика','Бесплатная консультация','Созвон','Другое'].includes(type);
+    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,plannedSessionSkeleton};
     if(!api.create(item,{source:'calendar-ui-create'}))return;
     noteInput.value='';
     selected=date;
