@@ -30,6 +30,9 @@ assert.ok(css.includes('.hd-client-status-cell'),'fixed status alignment cell mi
 assert.ok(css.includes('padding-right:10px'),'client list is still too close to its scrollbar');
 assert.ok(debtFlags.includes("flag.title=hasSessionTarget?'Не оплачена сессия':'Есть задолженность'"),'unpaid session flag hover label missing');
 assert.ok(debtFlags.includes('focusUnpaidSession(c,target)'),'unpaid client flag does not navigate to the unpaid session');
+assert.ok(debtFlags.includes('let highlightedCard=null'),'every flag click does not own a fresh highlight cycle');
+assert.ok(debtFlags.includes('clearTimeout(card.__unpaidHighlightTimer)'),'repeated flag clicks can be cancelled by an old highlight timer');
+assert.ok(debtFlags.includes('setTimeout(focusCard,180)'),'unpaid highlight does not survive client/session rerender timing');
 assert.ok(debtFlags.includes("window.DiagnostikaHomeDashboard?.openClient?.(c.id)"),'unpaid flag does not open the client workspace');
 assert.ok(sessionsUi.includes("card.dataset.sessionId=String(s.id||'')"),'session cards do not expose stable session ids for navigation');
 assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpaid session focus highlight missing');
@@ -40,6 +43,6 @@ assert.ok(loader.includes('home-dashboard.css?v=20261003-upcoming-tooltip-1'),'d
 assert.ok(loader.includes('home-dashboard.js?v=20261003-upcoming-tooltip-1'),'dashboard JS cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-unpaid-jump-1'),'dashboard sessions cache key missing');
 assert.ok(index.includes('app-loader.js?v=20261003-unpaid-jump-1'),'app-loader cache key missing');
-assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-unpaid-jump-1'),'client debt flags cache key missing');
+assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-unpaid-click-repeat-1'),'client debt flags cache key missing');
 
 console.log('DASHBOARD_CLIENT_MARKERS_AUDIT_OK');

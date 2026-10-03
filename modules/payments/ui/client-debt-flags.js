@@ -105,30 +105,37 @@
     if(!c?.id||!session?.id)return false;
     const targetId=String(session.id);
     let tries=0;
-    let done=false;
+    let highlightedCard=null;
 
     const focusCard=()=>{
-      if(done)return true;
       const card=Array.from(document.querySelectorAll('.hd-session-card[data-session-id]'))
         .find(node=>String(node.dataset.sessionId||'')===targetId);
       if(!card){
-        if(tries++<24)setTimeout(focusCard,80);
+        if(tries++<30)setTimeout(focusCard,80);
         return false;
       }
-      done=true;
+      if(card===highlightedCard)return true;
+      highlightedCard=card;
       card.scrollIntoView({behavior:'smooth',block:'center'});
+      if(card.__unpaidHighlightTimer){
+        clearTimeout(card.__unpaidHighlightTimer);
+        card.__unpaidHighlightTimer=null;
+      }
       card.classList.remove('hd-session-focus-unpaid');
       void card.offsetWidth;
       card.classList.add('hd-session-focus-unpaid');
-      setTimeout(()=>card.classList.remove('hd-session-focus-unpaid'),2600);
+      card.__unpaidHighlightTimer=setTimeout(()=>{
+        card.classList.remove('hd-session-focus-unpaid');
+        card.__unpaidHighlightTimer=null;
+      },2600);
       try{card.focus({preventScroll:true});}catch(_){}
       return true;
     };
 
-    const onRendered=()=>setTimeout(focusCard,0);
-    document.addEventListener('diagnostika:dashboard-sessions-rendered',onRendered,{once:true});
+    document.addEventListener('diagnostika:dashboard-sessions-rendered',()=>setTimeout(focusCard,0),{once:true});
     const opened=window.DiagnostikaHomeDashboard?.openClient?.(c.id);
     setTimeout(focusCard,60);
+    setTimeout(focusCard,180);
     return opened!==false;
   }
 
