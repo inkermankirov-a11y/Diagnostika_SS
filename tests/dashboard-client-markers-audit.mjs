@@ -21,11 +21,12 @@ assert.ok(js.includes('return !sessions.some(session=>'),'new-client marker must
 assert.equal(js.includes('hd-new-client-dot'),false,'old blinking green new-client dot returned');
 assert.ok(js.includes('hd-upcoming-session-dot'),'yellow upcoming-session indicator missing');
 assert.ok(js.includes("'calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced'"),'calendar lifecycle does not refresh client markers');
-assert.ok(css.includes("background-image:url(\"data:image/svg+xml")&&css.includes("stroke-linecap='round'"),'client markers are not smooth SVG crescents');
-assert.ok(css.includes('padding:7px 6px 7px 16px'),'client row does not reserve visible space for state crescents');
-assert.ok(css.includes('.hd-client-row.active::before{left:0;width:18px;height:48px'),'blue designer crescent position/shape missing');
-assert.ok(css.includes('.hd-client-row.new-client::after{left:7px;width:14px;height:34px'),'green designer crescent spacing/position missing');
-assert.equal(css.includes('.hd-client-row.active.new-client::after'),false,'green crescent still changes position when blue is present');
+assert.ok(css.includes('.hd-client-row.active::before{content:\'\';position:absolute;z-index:2;left:0;top:0;bottom:0;width:6px'),'selected client blue edge accent missing');
+assert.ok(css.includes('border-radius:10px 0 0 10px'),'selected client edge accent is not integrated into card radius');
+assert.ok(css.includes('.hd-client-row.new-client .hd-avatar{box-shadow:0 0 0 2px #fff,0 0 0 5px #35b86b'),'new client green avatar ring missing');
+assert.ok(css.includes('.hd-client-row.active.new-client .hd-avatar{box-shadow:0 0 0 2px #eaf4ff,0 0 0 5px #35b86b'),'green avatar ring is not adapted for selected row background');
+assert.equal(css.includes("stroke='%233b82f6'"),false,'old blue crescent marker asset still present');
+assert.equal(css.includes("stroke='%2335b86b'"),false,'old green crescent marker asset still present');
 assert.equal(css.includes('hdNewClientPulse'),false,'green new-client marker must not blink');
 assert.ok(css.includes('@keyframes hdUpcomingSessionPulse'),'yellow upcoming-session pulse missing');
 assert.ok(css.includes('.hd-upcoming-tooltip'),'upcoming appointment tooltip style missing');
@@ -47,10 +48,10 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-designer-crescents-2'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-avatar-ring-selected-strip-1'),'dashboard CSS cache key missing');
 assert.ok(loader.includes('home-dashboard.js?v=20261003-status-stack-1'),'dashboard JS cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-unpaid-jump-1'),'dashboard sessions cache key missing');
-assert.ok(index.includes('app-loader.js?v=20261003-designer-crescents-2'),'app-loader cache key missing');
+assert.ok(index.includes('app-loader.js?v=20261003-avatar-ring-selected-strip-1'),'app-loader cache key missing');
 assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-status-stack-1'),'client debt flags cache key missing');
 
 console.log('DASHBOARD_CLIENT_MARKERS_AUDIT_OK');
