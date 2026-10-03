@@ -51,6 +51,14 @@ assert.ok(css.includes('border-left:4px solid #8b5cf6'),'client hero reminder is
 assert.ok(css.includes('@keyframes hdHeroReminderHeartbeat'),'slow heartbeat reminder animation missing');
 assert.ok(css.includes('animation:hdHeroReminderHeartbeat 4.8s'),'reminder pulse is not using the slow heartbeat cadence');
 assert.ok(css.includes('.hd-client-pin-cell'),'fixed pin alignment cell missing');
+assert.ok(js.includes('class="hd-client-profile"'),'compact client profile wrapper missing');
+assert.ok(js.includes("heroSub.textContent=c.city||'Город не указан'"),'client main subtitle is not reduced to city');
+assert.ok(js.includes("payment.textContent='Оплата'"),'payment button is missing from client main profile');
+assert.ok(css.includes('.hd-client-view.has-client .hd-hero-icon.has-photo'),'rectangular main client photo style missing');
+assert.ok(css.includes('border-radius:15px'),'main client photo is not rounded-rectangle');
+assert.ok(css.includes('.hd-client-view.has-client .hd-client-profile'),'left-aligned compact client profile style missing');
+assert.ok(css.includes('.hd-client-view.has-client .hd-features{\n  display:none;'),'client view still wastes space on generic feature cards');
+assert.ok(css.includes('.hd-client-view.has-client .hd-hero-reminder{'),'right-side client reminder override missing');
 assert.ok(css.includes('.hd-client-status-stack'),'vertical client status stack missing');
 assert.ok(css.includes('.hd-client-status-top')&&css.includes('.hd-client-status-middle')&&css.includes('.hd-client-status-bottom'),'reserved top/middle/bottom status slots missing');
 assert.ok(js.includes('hd-client-status-middle'),'future green status slot is not reserved');
@@ -69,8 +77,8 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-hero-reminder-1'),'dashboard CSS cache key missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261003-ru-date-1&reminders=20261003-2&workactions=20261003-2'),'dashboard reminder cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-client-main-left-1'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261003-client-main-left-1'),'dashboard client-main cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-ru-date-1'),'dashboard sessions cache key missing');
 assert.ok(index.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1&beacons=20261003-1&reminder=20261003-1&dates=20261003-1'),'app-loader cache key missing');
 assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-planned-session-1'),'client debt flags cache key missing');
