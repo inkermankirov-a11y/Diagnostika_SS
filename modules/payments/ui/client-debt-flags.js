@@ -176,9 +176,10 @@
       const c=clients.find(x=>String(x.id)===String(row.dataset.id));
       if(!c)return;
       const tools=row.querySelector('.hd-client-tools');
-      if(!tools)return;
+      const bottomSlot=row.querySelector('.hd-client-status-bottom');
+      if(!tools||!bottomSlot)return;
 
-      const flags=Array.from(tools.querySelectorAll('.hd-unpaid-flag'));
+      const flags=Array.from(row.querySelectorAll('.hd-unpaid-flag'));
       const hasDebt=clientHasDebt(c);
 
       if(!hasDebt){
@@ -186,21 +187,18 @@
         return;
       }
 
-      const moreButton=tools.querySelector('.hd-client-more');
-
       if(flags.length){
         flags.slice(1).forEach(flag=>flag.remove());
         const flag=flags[0];
         configureDebtFlag(flag,c);
-        if(moreButton&&flag.nextElementSibling!==moreButton)tools.insertBefore(flag,moreButton);
+        if(flag.parentElement!==bottomSlot)bottomSlot.appendChild(flag);
         return;
       }
 
       const flag=document.createElement('span');
       flag.className='hd-unpaid-flag';
       configureDebtFlag(flag,c);
-      if(moreButton)tools.insertBefore(flag,moreButton);
-      else tools.appendChild(flag);
+      bottomSlot.appendChild(flag);
     });
   }
 
