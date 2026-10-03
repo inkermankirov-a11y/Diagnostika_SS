@@ -88,12 +88,25 @@
     return !!s&&(s.planned===true||String(s.status||'')==='planned');
   }
 
+  function formatRuDate(value,fallback='—'){
+    const raw=String(value||'').trim();
+    if(!raw)return fallback;
+    const iso=raw.slice(0,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+      const [year,month,day]=iso.split('-').map(Number);
+      return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
+    }
+    const d=new Date(raw);
+    if(Number.isNaN(d.getTime()))return raw;
+    return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+  }
+
   function scheduledLabel(s){
     const raw=String(s?.date||'').trim();
     let date=raw||'Дата не указана';
     if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){
       const [year,month,day]=raw.split('-').map(Number);
-      date=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
+      date=formatRuDate(raw,'Дата не указана');
     }
     const time=String(s?.scheduledTime||'').trim();
     return time?`${date} • ${time}`:date;
@@ -125,7 +138,7 @@
     const lastBox=byLabel('Последняя сессия');
     if(lastBox){
       const v=lastBox.querySelector('.hd-summary-value');
-      if(v)v.textContent=conducted[0]?.s?.date||'—';
+      if(v)v.textContent=formatRuDate(conducted[0]?.s?.date);
     }
     const reqBox=byLabel('Текущий запрос');
     if(reqBox&&r){const v=reqBox.querySelector('.hd-summary-value');if(v)v.textContent=r.title||'Не указан';}
@@ -169,7 +182,7 @@
       row.innerHTML=`
         <div class="hd-session-archive-main">
           <strong>Сессия №${number}</strong>
-          <span>${esc(s.date||'—')}</span>
+          <span>${esc(formatRuDate(s.date))}</span>
         </div>
         <div class="hd-session-archive-request">${esc(req?.title||'Без связи с запросом')}</div>
         <span class="hd-session-pay ${paid?'paid':'unpaid'}"><span class="hd-session-flag">⚑</span>${paid?'Оплачено':'Не оплачено'}</span>`;
@@ -239,7 +252,7 @@
         <div class="hd-session-top">
           <strong>Сессия №${number}</strong>
           ${plannedHtml}
-          <span class="hd-session-date">${planned?'Назначено:':'◷'} ${esc(planned?scheduledLabel(s):(s.date||'—'))}</span>
+          <span class="hd-session-date">${planned?'Назначено:':'◷'} ${esc(planned?scheduledLabel(s):formatRuDate(s.date))}</span>
           ${typeHtml}
           <span class="hd-session-request">• ${esc(requestName(c,s))}</span>
           ${paymentHtml}
