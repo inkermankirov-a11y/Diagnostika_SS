@@ -18,6 +18,10 @@ assert.ok(cal.includes('const TIME_GRID_START=0'),'time grid does not start at m
 assert.ok(cal.includes('const TIME_GRID_END=24'),'time grid does not cover the full 24-hour day');
 assert.ok(cal.includes('for(let hour=TIME_GRID_START;hour<TIME_GRID_END;hour++)'),'time labels do not cover 00:00–23:00');
 assert.ok(cal.includes("scroll.scrollTop=0"),'week/day views do not open at midnight');
+assert.ok(cal.includes("head.style.paddingRight=scrollbarWidth+'px'"),'time-grid header is not aligned with scrollbar width');
+assert.ok(cal.includes("font-size:13px;font-weight:700"),'time labels are not readable enough');
+assert.ok(cal.includes("height:58px!important"),'time-grid day headers are not normalized');
+assert.ok(cal.includes("gridTemplateColumns=`64px repeat(${days.length},minmax(0,1fr))`"),'time axis is not wide enough for readable labels');
 assert.ok(cal.includes("viewMode='day';selected=todayIso()"),'Today button does not enter day view');
 assert.ok(cal.includes("d.setDate(d.getDate()-1)"),'day previous navigation missing');
 assert.ok(cal.includes("d.setDate(d.getDate()+1)"),'day next navigation missing');
@@ -25,6 +29,6 @@ assert.ok(cal.includes("classList.toggle('active',viewMode==='day'&&selected===t
 assert.ok(cal.includes("height:min(690px,calc(100dvh - 36px))"),'calendar dialog height is not fixed across views');
 assert.ok(cal.includes("width:min(1040px,calc(100vw - 28px))"),'calendar dialog width is not fixed across views');
 assert.ok(cal.includes("height:94dvh;min-height:94dvh"),'mobile calendar dialog height is not fixed');
-assert.ok(index.includes('modules/calendar/ui/calendar.js?v=20261003-midnight-timegrid-1'),'calendar cache key missing');
+assert.ok(index.includes('modules/calendar/ui/calendar.js?v=20261003-timegrid-readable-1'),'calendar cache key missing');
 
 console.log('CALENDAR_TODAY_DAY_VIEW_AUDIT_OK');
