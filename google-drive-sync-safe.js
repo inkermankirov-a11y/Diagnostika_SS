@@ -40,7 +40,12 @@
     try{return databaseApi()?.writeState?.(value,{source})===true;}catch{return false;}
   }
 
-  function getSession(key){try{return JSON.parse(sessionStorage.getItem(key)||'null');}catch{return null;}}
+  function getSession(key){
+    try{
+      const raw=localStorage.getItem(key)||sessionStorage.getItem(key);
+      return JSON.parse(raw||'null');
+    }catch{return null;}
+  }
   function token(){
     const t=getSession(TOKEN_KEY);
     return t?.access_token&&Date.now()<Number(t.expires_at||0)-30000?t:null;
