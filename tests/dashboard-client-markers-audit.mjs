@@ -7,6 +7,7 @@ const loader=fs.readFileSync('app-loader.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const debtFlags=fs.readFileSync('modules/payments/ui/client-debt-flags.js','utf8');
 const sessionsUi=fs.readFileSync('home-dashboard-sessions.js','utf8');
+const clientAi=fs.readFileSync('modules/ai/ui/client-chat.js','utf8');
 
 assert.ok(js.includes('function nextUpcomingInteraction(c)'),'next planned calendar interaction calculation missing');
 assert.ok(js.includes('function nextUpcomingReminder(c)'),'future client reminder calculation missing');
@@ -93,8 +94,8 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-ai-column-scroll-6'),'dashboard CSS cache key missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261003-glass-rail-5'),'dashboard client-main cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-client-ai-binding-7'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261003-client-ai-binding-7'),'dashboard client-main cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-capsule-4'),'dashboard sessions cache key missing');
 assert.ok(sessionsUi.includes('border:2px solid #b9d3ea'),'sessions capsule border is not visible enough');
 assert.ok(sessionsUi.includes('font-size:13px;line-height:1.35;color:#536b89;font-weight:750'),'sessions empty count is not readable enough');
@@ -105,8 +106,16 @@ assert.ok(css.includes('.home-dashboard .hd-right > .hd-client-notes-widget'),'g
 assert.ok(css.includes('/* Dashboard v6 — compact intact AI screen + independent third-column scroll. */'),'compact AI/third-column v6 override missing');
 assert.ok(css.includes('height:clamp(150px,22dvh,190px)!important'),'AI message viewport is not compact');
 assert.ok(css.includes('direction:rtl'),'third-column scrollbar is not moved to the left');
-assert.ok(css.includes('@media(min-width:1021px) and (max-width:1180px)'),'third column is not preserved while browser narrows');
+assert.ok(css.includes('@media(min-width:821px) and (max-width:1180px)'),'third column is not preserved while browser narrows');
 assert.ok(index.includes('client-ai-chat-view.js?v=20261003-compact-screen-3'),'compact AI view cache key missing');
+assert.ok(index.includes('modules/ai/ui/client-chat.js?v=20261003-client-binding-2'),'AI client-binding cache key missing');
+assert.ok(css.includes('.home-dashboard.dashboard-home-mode .hd-right > #hdClientAiWidget'),'AI widget is not force-hidden on dashboard home');
+assert.ok(css.includes('.home-dashboard.dashboard-home-mode .hd-right > .hd-client-notes-widget'),'client notes are not force-hidden on dashboard home');
+assert.ok(clientAi.includes('function dashboardClientMode()'),'AI chat does not check client dashboard mode');
+assert.ok(clientAi.includes("const c=dashboardClientMode()?currentClient():null"),'AI chat is not bound to the selected client view');
+assert.ok(clientAi.includes("clientEl.textContent=c?String(c.name||'Клиент'):''"),'AI chat does not show the selected client name');
+assert.ok(clientAi.includes("if(type==='client:selected')setTimeout(refresh,80)"),'AI chat does not retry refresh after client selection');
+assert.ok(js.includes('DiagnostikaClientAIChat?.refresh?.()'),'dashboard selection does not explicitly refresh the AI client context');
 assert.ok(css.includes('backdrop-filter:blur(22px) saturate(1.22)'),'AI frosted-glass blur missing');
 assert.ok(css.includes('backdrop-filter:blur(22px) saturate(1.20)'),'notes frosted-glass blur missing');
 assert.ok(css.includes('.hd-client-view.has-client .hd-client-profile-copy{\n  min-height:182px'),'Client card button baseline alignment missing');
