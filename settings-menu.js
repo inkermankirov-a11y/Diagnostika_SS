@@ -66,6 +66,7 @@
       <span class="settings-label">Настройки</span>
     </button>
     <div class="settings-panel" id="settingsPanel">
+      <div class="settings-panel-title"><span class="settings-panel-title-icon" aria-hidden="true">⚙</span><span class="settings-panel-title-text">Настройки</span></div>
       <button type="button" class="settings-section-btn settings-accounts-btn"><span>Учетные записи</span><span>›</span></button>
       <button type="button" class="settings-section-btn settings-interface-btn"><span>Настройки интерфейса</span><span class="settings-section-chevron">⌄</span></button>
       <div class="settings-interface-content"></div>
@@ -117,7 +118,9 @@
   function updateLabel(){
     const t=LABELS[currentLang()];
     const label=btn.querySelector('.settings-label');
+    const panelTitle=panel.querySelector('.settings-panel-title-text');
     if(label) label.textContent=t.settings;
+    if(panelTitle) panelTitle.textContent=t.settings;
     btn.title=t.settings;
     btn.setAttribute('aria-label',wrap.classList.contains('open')?t.close:t.settings);
     if(clientBase){clientBase.textContent=t.clients;clientBase.title=t.clients;}

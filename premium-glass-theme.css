@@ -1,0 +1,437 @@
+/* White-site + module glass design.
+   Visual-only layer based on the approved reference: the page stays white,
+   while each utility keeps its own restrained translucent material and accent. */
+
+:root{
+  --pg-text:#10234a;
+  --pg-muted:#667b99;
+  --pg-line:rgba(121,154,198,.30);
+  --pg-white:rgba(255,255,255,.74);
+  --pg-white-strong:rgba(255,255,255,.88);
+  --pg-shadow:0 24px 64px rgba(33,67,110,.16),0 7px 20px rgba(33,67,110,.08);
+}
+
+/* Keep the application canvas deliberately neutral. */
+html,
+body,
+.desktop-app,
+.home-dashboard{
+  background:#fff!important;
+}
+body{
+  color:var(--pg-text);
+}
+.home-dashboard{
+  --hd-bg:#fff!important;
+  --hd-card:rgba(255,255,255,.82)!important;
+  --hd-border:rgba(139,169,207,.28)!important;
+}
+.app-header{
+  background:rgba(255,255,255,.94)!important;
+  border-bottom:1px solid rgba(141,170,207,.24)!important;
+  box-shadow:0 8px 28px rgba(41,73,115,.07)!important;
+  backdrop-filter:blur(22px) saturate(1.15);
+  -webkit-backdrop-filter:blur(22px) saturate(1.15);
+}
+.hd-card,
+.hd-sidebar,
+.hd-main{
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.93),rgba(248,251,255,.78))!important;
+  border-color:rgba(132,164,204,.28)!important;
+  box-shadow:0 12px 34px rgba(48,82,126,.07),inset 0 1px 0 rgba(255,255,255,.96)!important;
+  backdrop-filter:blur(18px) saturate(1.12);
+  -webkit-backdrop-filter:blur(18px) saturate(1.12);
+}
+.hd-home-view{
+  background:transparent!important;
+}
+.hd-search input,
+.hd-summary-box,
+#hdClientAiWidget .hd-ai-messages,
+#hdClientAiWidget .hd-ai-compose,
+.hd-note-box{
+  background:rgba(255,255,255,.72)!important;
+  border-color:rgba(134,165,204,.30)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 6px 18px rgba(54,86,128,.05)!important;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+
+/* Shared modal atmosphere: blur the page but do not recolor the page itself. */
+.utility-overlay,
+.quick-notes-overlay{
+  background:rgba(235,243,252,.40)!important;
+  backdrop-filter:blur(16px) saturate(1.10)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(1.10)!important;
+}
+.cal-overlay::backdrop{
+  background:rgba(235,243,252,.42)!important;
+  backdrop-filter:blur(16px) saturate(1.10)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(1.10)!important;
+}
+
+/* Shared glass material. */
+.utility-panel,
+.quick-notes-panel,
+.cal-panel,
+.settings-panel{
+  color:var(--pg-text)!important;
+  border:1px solid rgba(117,154,204,.36)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    inset 0 -1px 0 rgba(112,150,201,.12),
+    var(--pg-shadow)!important;
+  backdrop-filter:blur(30px) saturate(1.30)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(1.30)!important;
+}
+.utility-panel,
+.quick-notes-panel,
+.cal-panel{
+  border-radius:24px!important;
+}
+.utility-head,
+.quick-notes-head,
+.cal-head{
+  position:relative;
+  z-index:1;
+}
+.utility-head h2,
+.quick-notes-head h2,
+.cal-head strong{
+  color:#10234a!important;
+  letter-spacing:-.02em;
+}
+.utility-close,
+.quick-notes-close,
+.cal-close{
+  border:1px solid rgba(113,151,203,.34)!important;
+  border-radius:13px!important;
+  background:rgba(255,255,255,.58)!important;
+  color:#17335a!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 5px 14px rgba(42,72,110,.09)!important;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.utility-close:hover,
+.quick-notes-close:hover,
+.cal-close:hover{
+  background:rgba(255,255,255,.84)!important;
+  transform:translateY(-1px);
+}
+
+/* WEATHER — airy sky glass, blue with a small warm sun accent. */
+.utility-panel-weather{
+  width:min(650px,calc(100vw - 24px))!important;
+  background:
+    radial-gradient(78% 54% at 7% 6%,rgba(80,183,255,.34) 0%,rgba(80,183,255,.13) 44%,rgba(80,183,255,0) 72%),
+    radial-gradient(58% 48% at 94% 8%,rgba(255,194,92,.30) 0%,rgba(255,194,92,.10) 42%,rgba(255,194,92,0) 72%),
+    linear-gradient(145deg,rgba(255,255,255,.83),rgba(237,247,255,.64))!important;
+  border-color:rgba(72,168,238,.48)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    0 26px 72px rgba(45,122,183,.18),
+    0 0 34px rgba(77,175,244,.10)!important;
+}
+.utility-panel-weather .utility-location-title{
+  color:#143d6c!important;
+}
+.utility-panel-weather .weather-current-card{
+  background:
+    radial-gradient(85% 150% at 92% 0%,rgba(255,213,129,.44) 0%,rgba(255,213,129,.08) 42%,rgba(255,213,129,0) 67%),
+    linear-gradient(135deg,rgba(221,243,255,.82),rgba(255,255,255,.63))!important;
+  border:1px solid rgba(86,170,229,.38)!important;
+  border-radius:18px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 9px 24px rgba(62,129,181,.09)!important;
+  backdrop-filter:blur(18px);
+}
+.utility-panel-weather .weather-current-icon{
+  filter:drop-shadow(0 5px 9px rgba(28,88,137,.14));
+}
+.utility-panel-weather .weather-current-temp{
+  color:#124d86!important;
+  font-size:34px!important;
+  letter-spacing:-.04em;
+}
+.utility-panel-weather .weather-day{
+  background:rgba(255,255,255,.58)!important;
+  border:1px solid rgba(94,161,211,.28)!important;
+  border-radius:12px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.90),0 4px 14px rgba(56,110,153,.05)!important;
+  backdrop-filter:blur(14px);
+}
+.utility-panel-weather .weather-day:hover{
+  background:rgba(255,255,255,.78)!important;
+  border-color:rgba(69,151,212,.42)!important;
+}
+.utility-panel-weather .weather-settings{
+  background:rgba(255,255,255,.54)!important;
+  border:1px solid rgba(91,160,215,.28)!important;
+  border-radius:16px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.88)!important;
+}
+.utility-panel-weather .weather-setting-row select,
+.utility-panel-weather .weather-city-row input{
+  background:rgba(255,255,255,.70)!important;
+  border-color:rgba(91,151,201,.35)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94)!important;
+}
+
+/* CALENDAR — warm coral + lilac glass, still mostly white. */
+.cal-panel{
+  background:
+    radial-gradient(72% 45% at 8% 2%,rgba(255,174,112,.24) 0%,rgba(255,174,112,.08) 43%,rgba(255,174,112,0) 70%),
+    radial-gradient(72% 52% at 94% 5%,rgba(155,113,255,.23) 0%,rgba(155,113,255,.08) 45%,rgba(155,113,255,0) 72%),
+    linear-gradient(145deg,rgba(255,255,255,.86),rgba(249,247,255,.68))!important;
+  border-color:rgba(170,133,236,.40)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    0 26px 74px rgba(92,71,145,.16),
+    0 0 34px rgba(255,169,100,.08)!important;
+}
+.cal-panel .cal-card{
+  background:rgba(255,255,255,.62)!important;
+  border:1px solid rgba(150,151,202,.25)!important;
+  border-radius:17px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 8px 24px rgba(83,78,130,.06)!important;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.cal-panel .cal-view-switch{
+  background:rgba(255,255,255,.48)!important;
+  border-color:rgba(132,143,193,.25)!important;
+}
+.cal-panel .cal-day{
+  background:rgba(255,255,255,.58)!important;
+  border-color:rgba(148,157,198,.22)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85);
+}
+.cal-panel .cal-day:hover{
+  background:rgba(255,255,255,.78)!important;
+}
+.cal-panel .cal-day.selected{
+  background:rgba(237,242,255,.82)!important;
+}
+.cal-panel .cal-day.has-events.is-reminder{
+  background:linear-gradient(145deg,rgba(251,247,255,.88),rgba(245,238,255,.66))!important;
+}
+.cal-panel .cal-events .cal-event{
+  background:rgba(255,255,255,.60)!important;
+  backdrop-filter:blur(12px);
+}
+.cal-panel .cal-form input,
+.cal-panel .cal-form select,
+.cal-panel .cal-form textarea{
+  background:rgba(255,255,255,.72)!important;
+  border-color:rgba(131,147,190,.28)!important;
+}
+
+/* CURRENCY — mint/teal finance glass. */
+.utility-panel-currency{
+  background:
+    radial-gradient(75% 52% at 96% 2%,rgba(54,222,190,.30) 0%,rgba(54,222,190,.10) 45%,rgba(54,222,190,0) 72%),
+    radial-gradient(68% 50% at 2% 12%,rgba(61,184,234,.18) 0%,rgba(61,184,234,.06) 48%,rgba(61,184,234,0) 72%),
+    linear-gradient(145deg,rgba(255,255,255,.86),rgba(238,252,249,.66))!important;
+  border-color:rgba(51,190,163,.45)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    0 26px 72px rgba(31,137,118,.15),
+    0 0 34px rgba(53,208,181,.10)!important;
+}
+.utility-panel-currency .currency-card{
+  background:rgba(255,255,255,.58)!important;
+  border:1px solid rgba(54,176,153,.28)!important;
+  border-radius:18px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 9px 24px rgba(34,127,111,.07)!important;
+  backdrop-filter:blur(18px);
+}
+.utility-panel-currency .currency-field select,
+.utility-panel-currency .currency-field input{
+  background:rgba(255,255,255,.73)!important;
+  border-color:rgba(65,161,145,.30)!important;
+}
+.utility-panel-currency .currency-result{
+  background:
+    linear-gradient(145deg,rgba(219,249,239,.76),rgba(244,255,251,.64))!important;
+  border-color:rgba(53,184,151,.32)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 8px 22px rgba(38,137,111,.08)!important;
+}
+.utility-panel-currency .currency-result-main{
+  color:#157a60!important;
+}
+.utility-panel-currency .currency-swap{
+  color:#157a60!important;
+  background:rgba(255,255,255,.68)!important;
+  border:1px solid rgba(54,172,147,.30)!important;
+}
+.utility-panel-currency .currency-calculator-direct{
+  border-top-color:rgba(54,172,147,.22)!important;
+}
+.utility-panel-currency .ccd-shell{
+  background:
+    radial-gradient(95% 110% at 0 0,rgba(59,213,185,.18),rgba(59,213,185,0) 58%),
+    linear-gradient(145deg,rgba(236,250,248,.76),rgba(217,239,237,.66))!important;
+  border:1px solid rgba(54,165,147,.28)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 12px 28px rgba(38,115,103,.12)!important;
+}
+.utility-panel-currency .ccd-screen{
+  background:rgba(255,255,255,.72)!important;
+  border-color:rgba(66,147,135,.30)!important;
+  box-shadow:inset 0 2px 6px rgba(25,89,80,.08)!important;
+}
+.utility-panel-currency .ccd-memory button,
+.utility-panel-currency .ccd-functions button{
+  background:linear-gradient(180deg,rgba(56,145,132,.92),rgba(31,111,101,.94))!important;
+}
+.utility-panel-currency .ccd-key{
+  background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(239,249,247,.90))!important;
+  border-color:rgba(74,151,140,.24)!important;
+  box-shadow:0 2px 0 rgba(71,132,123,.32),0 4px 9px rgba(35,100,91,.10)!important;
+}
+.utility-panel-currency .ccd-key.eq{
+  background:linear-gradient(180deg,#47d9af,#22b88f)!important;
+  border-color:#1aa47f!important;
+  color:#083f33!important;
+  box-shadow:0 2px 0 #158a6c,0 5px 12px rgba(29,154,120,.20)!important;
+}
+
+/* NOTES — violet/lilac, softer than the header button. */
+.quick-notes-panel{
+  background:
+    radial-gradient(74% 52% at 7% 2%,rgba(137,95,255,.29) 0%,rgba(137,95,255,.09) 46%,rgba(137,95,255,0) 72%),
+    radial-gradient(64% 44% at 96% 10%,rgba(75,151,255,.18) 0%,rgba(75,151,255,.06) 46%,rgba(75,151,255,0) 72%),
+    linear-gradient(145deg,rgba(255,255,255,.86),rgba(247,242,255,.68))!important;
+  border-color:rgba(137,95,231,.43)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    0 26px 72px rgba(94,65,150,.15),
+    0 0 34px rgba(133,91,234,.10)!important;
+}
+.quick-notes-panel .quick-notes-editor{
+  background:rgba(255,255,255,.56)!important;
+  border:1px solid rgba(137,112,195,.25)!important;
+  border-radius:17px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92)!important;
+  backdrop-filter:blur(16px);
+}
+.quick-notes-panel .quick-notes-text{
+  background:rgba(255,255,255,.68)!important;
+  border-color:rgba(124,104,176,.28)!important;
+  border-radius:13px!important;
+  color:#2c2450!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 7px 18px rgba(84,61,132,.05)!important;
+}
+.quick-notes-panel .quick-note-item{
+  background:rgba(255,255,255,.58)!important;
+  border:1px solid rgba(132,109,193,.23)!important;
+  border-radius:13px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 5px 16px rgba(88,64,139,.05)!important;
+  backdrop-filter:blur(14px);
+}
+.quick-notes-panel .quick-note-item:hover{
+  background:rgba(255,255,255,.78)!important;
+  border-color:rgba(128,92,211,.34)!important;
+}
+.quick-notes-panel .quick-notes-save{
+  color:#fff!important;
+  border:1px solid rgba(112,69,213,.58)!important;
+  background:linear-gradient(180deg,#9b6cff,#7450e8)!important;
+  box-shadow:0 7px 18px rgba(112,80,220,.18)!important;
+}
+
+/* SETTINGS — clean blue technical glass. */
+.settings-panel{
+  width:min(390px,calc(100vw - 18px))!important;
+  padding:13px!important;
+  border-radius:18px!important;
+  background:
+    radial-gradient(85% 76% at 98% 0%,rgba(61,166,255,.24) 0%,rgba(61,166,255,.07) 48%,rgba(61,166,255,0) 72%),
+    linear-gradient(145deg,rgba(255,255,255,.91),rgba(240,248,255,.78))!important;
+  border-color:rgba(70,150,226,.38)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    0 22px 55px rgba(45,99,156,.17),
+    0 0 28px rgba(59,156,242,.08)!important;
+  backdrop-filter:blur(28px) saturate(1.22)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(1.22)!important;
+}
+.settings-panel-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:1px 1px 10px;
+  padding:4px 3px 10px;
+  border-bottom:1px solid rgba(72,143,210,.18);
+  color:#173b63;
+  font-size:16px;
+  font-weight:900;
+}
+.settings-panel-title-icon{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(64,156,255,.34);
+  border-radius:11px;
+  background:linear-gradient(145deg,rgba(228,243,255,.88),rgba(255,255,255,.64));
+  color:#2477d8;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 5px 14px rgba(41,115,186,.08);
+}
+.settings-panel .settings-section-btn{
+  min-height:48px!important;
+  border:1px solid rgba(100,151,204,.27)!important;
+  border-radius:12px!important;
+  background:rgba(255,255,255,.58)!important;
+  color:#234566!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.90)!important;
+}
+.settings-panel .settings-section-btn:hover{
+  background:rgba(255,255,255,.80)!important;
+  border-color:rgba(69,140,211,.38)!important;
+}
+.settings-panel .settings-section-btn.active{
+  background:linear-gradient(145deg,rgba(226,242,255,.88),rgba(240,247,255,.72))!important;
+  border-color:rgba(58,135,215,.42)!important;
+  color:#1766b5!important;
+}
+.settings-panel .language-menu{
+  background:rgba(255,255,255,.62)!important;
+  border-radius:12px!important;
+  backdrop-filter:blur(14px);
+}
+
+/* Inputs and action buttons inside glass utilities inherit the same tactile material. */
+.utility-panel .tk-btn,
+.quick-notes-panel .tk-btn,
+.cal-panel .tk-btn,
+.settings-panel button{
+  transition:transform .14s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease;
+}
+.utility-panel .tk-btn:hover,
+.quick-notes-panel .tk-btn:hover,
+.cal-panel .tk-btn:hover,
+.settings-panel button:hover{
+  transform:translateY(-1px);
+}
+
+/* Accessibility: keep the material but remove motion for users who request it. */
+@media(prefers-reduced-motion:reduce){
+  .utility-panel *,
+  .quick-notes-panel *,
+  .cal-panel *,
+  .settings-panel *{
+    transition:none!important;
+    animation:none!important;
+  }
+}
+
+@media(max-width:760px){
+  .utility-panel,
+  .quick-notes-panel,
+  .cal-panel{
+    border-radius:20px 20px 0 0!important;
+  }
+  .settings-panel{
+    border-radius:18px!important;
+  }
+}
