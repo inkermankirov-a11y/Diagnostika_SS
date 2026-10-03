@@ -21,7 +21,7 @@
     .header-client-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 14px rgba(30,41,59,.24)}
     .header-client-btn:active{transform:translateY(1px)}
     .header-buttons.settings-only{position:relative;display:flex!important;justify-content:flex-end!important;align-items:center!important;flex-wrap:nowrap!important;flex:0 0 auto;margin-left:auto}
-    .settings-wrap{position:relative;display:flex;align-items:center}
+    .settings-wrap{position:relative;z-index:30010;display:flex;align-items:center}
     .settings-main-btn{height:42px;min-width:132px;padding:0 15px;border:1px solid #3d4f66;border-radius:10px;background:linear-gradient(#5d7188,#405268);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;box-shadow:0 3px 9px rgba(30,41,59,.24);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease}
     .settings-main-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 14px rgba(30,41,59,.25)}
     .settings-main-btn:active{transform:translateY(1px)}
@@ -29,7 +29,7 @@
     .settings-main-btn:hover .settings-gear{transform:rotate(90deg)}
     .settings-wrap.open .settings-gear{animation:settingsGearSpin 3.2s linear infinite}
     @keyframes settingsGearSpin{to{transform:rotate(360deg)}}
-    .settings-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:6500;width:min(330px,calc(100vw - 18px));padding:9px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;box-shadow:0 18px 45px rgba(15,23,42,.25);display:none}
+    .settings-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30020;width:min(330px,calc(100vw - 18px));padding:9px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;box-shadow:0 18px 45px rgba(15,23,42,.25);display:none}
     .settings-wrap.open .settings-panel{display:grid;gap:7px;animation:settingsPanelIn .14s ease-out}
     @keyframes settingsPanelIn{from{opacity:0;transform:translateY(-5px) scale(.98)}to{opacity:1;transform:none}}
     .settings-section-btn{width:100%;height:44px;border:1px solid #ccd7e2;border-radius:10px;background:#f8fafc;color:#33465a;font-size:13px;font-weight:850;text-align:left;padding:0 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
