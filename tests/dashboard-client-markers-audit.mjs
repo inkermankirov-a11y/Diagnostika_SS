@@ -123,7 +123,8 @@ assert.ok(clientAiView.includes('hd-ai-hints-menu-portal'),'AI hints are not ren
 assert.ok(clientAiView.includes('document.body.appendChild(menu)'),'AI hints menu is still trapped inside the glass card');
 assert.ok(clientAiView.includes('function positionHintsMenu(btn,menu)'),'AI hints menu has no viewport positioning');
 assert.ok(clientAiView.includes('window.addEventListener(\'resize\''),'AI hints menu does not reposition on resize');
-assert.ok(index.includes('client-ai-chat-view.js?v=20261003-hints-portal-4'),'AI view cache key missing');
+assert.ok(index.includes('client-ai-chat-view.js?v=20261003-no-persist-expand-5'),'AI view cache key missing');
+assert.ok(!clientAiView.includes('diagnostika-client-ai-chat-expanded-v1'),'AI fullscreen state is still persisted');
 assert.ok(index.includes('modules/ai/ui/client-chat.js?v=20261003-client-binding-2'),'AI client-binding cache key missing');
 assert.ok(css.includes('/* Dashboard v8 — hard viewport height for the right client column.'),'hard right-column viewport rule missing');
 assert.ok(css.includes('height:calc(100dvh - 104px)!important'),'right client column is not explicitly viewport-bounded');
