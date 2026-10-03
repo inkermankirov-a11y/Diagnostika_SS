@@ -137,7 +137,7 @@
     let dlg=document.querySelector('#allPaymentRecordEditor');
     if(dlg)return dlg;
     dlg=document.createElement('dialog');dlg.id='allPaymentRecordEditor';dlg.className='payment-dialog';
-    dlg.innerHTML=`<div class="payment-window" style="width:min(500px,calc(100vw - 24px))"><div class="payment-head"><strong>РЕДАКТИРОВАТЬ ПЛАТЁЖ</strong><button type="button" class="payment-x">×</button></div><div class="payment-grid" style="grid-template-columns:1fr"><label class="payment-field">Дата<input id="aprDate" type="date"></label><label class="payment-field">Сумма<input id="aprAmount" type="number" min="0" step="1"></label><label class="payment-field">Комментарий<input id="aprNote" type="text"></label></div><div class="payment-footer"><button type="button" class="tk-btn apr-cancel">Отмена</button><button type="button" class="tk-btn apr-save">Сохранить</button></div></div>`;
+    dlg.innerHTML=`<div class="payment-window" style="width:min(500px,calc(100vw - 24px))"><div class="payment-head"><strong>РЕДАКТИРОВАТЬ ПЛАТЁЖ</strong><button type="button" class="payment-x">×</button></div><div class="payment-grid" style="grid-template-columns:1fr"><label class="payment-field">Дата<input id="aprDate" type="date" lang="ru-RU"></label><label class="payment-field">Сумма<input id="aprAmount" type="number" min="0" step="1"></label><label class="payment-field">Комментарий<input id="aprNote" type="text"></label></div><div class="payment-footer"><button type="button" class="tk-btn apr-cancel">Отмена</button><button type="button" class="tk-btn apr-save">Сохранить</button></div></div>`;
     document.body.appendChild(dlg);
     dlg.querySelector('.payment-x').onclick=()=>dlg.close();
     dlg.querySelector('.apr-cancel').onclick=()=>dlg.close();
