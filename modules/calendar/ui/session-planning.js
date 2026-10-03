@@ -12,6 +12,8 @@
   const saveButton=overlay.querySelector('.cal-save');
   if(!clientSelect||!typeSelect||!noteInput||!saveButton) return;
 
+  const PLANNABLE_TYPES=new Set(['Сессия','Диагностика','Бесплатная консультация','Созвон','Другое']);
+
   const style=document.createElement('style');
   style.textContent=`
     .cal-session-preview{grid-column:1/-1;border:1px solid #cfe0f4;border-radius:8px;background:#f3f8ff;padding:8px 10px;font-size:11px;font-weight:800;color:#285a91;line-height:1.35}
@@ -72,15 +74,25 @@
     return (c?.requests||[]).find(r=>String(r.id)===String(id))||null;
   }
 
+  function isPlannedSkeleton(s){
+    return !!s&&(s.planned===true||String(s.status||'')==='planned')&&!!s.calendarEventId;
+  }
+
   function actualSessionsFor(c,r){
     if(!c||!r)return[];
     try{
       const rows=sessionsApi()?.forRequest?.(r.id,c);
-      return Array.isArray(rows)?rows:[];
+      return Array.isArray(rows)?rows.filter(s=>!isPlannedSkeleton(s)):[];
     }catch(_){return[];}
   }
 
   function isSessionEvent(e){return String(e?.type||'').trim()==='Сессия'||/^Сессия №\d+$/i.test(String(e?.title||'').trim());}
+  function isPlannableType(value){return PLANNABLE_TYPES.has(String(value||'').trim());}
+  function isPlannableEvent(e){
+    if(!e?.clientId)return false;
+    if(isSessionEvent(e))return true;
+    return isPlannableType(e?.type||e?.title);
+  }
 
   function requestForEvent(c,e){
     return requestById(c,e?.requestId)||activeRequest(c);
@@ -115,6 +127,7 @@
 
   function updateForm(){
     const sessionMode=typeSelect.value==='Сессия';
+    const plannable=isPlannableType(typeSelect.value);
     const c=clients().find(x=>String(x.id)===String(clientSelect.value||''));
     const r=c?activeRequest(c):null;
     const sessionOption=[...typeSelect.options].find(o=>o.value==='Сессия'||o.dataset.sessionOption==='1');
@@ -124,7 +137,7 @@
       sessionOption.value='Сессия';
     }
 
-    if(!sessionMode||!c){
+    if(!plannable||!c){
       preview.hidden=true;
       if(sessionOption)sessionOption.textContent='Сессия';
       const previous=noteInput.dataset.autoRequestText||'';
@@ -133,12 +146,19 @@
       return;
     }
 
-    const n=nextSessionNumber(c,r);
-    if(sessionOption)sessionOption.textContent=`Сессия №${n}`;
     preview.hidden=false;
-    preview.textContent=r
-      ?`Будет запланирована: Сессия №${n} • ${r.title||'Запрос без названия'}`
-      :`Будет запланирована: Сессия №${n} • у клиента не выбран текущий запрос`;
+    if(sessionMode){
+      const n=nextSessionNumber(c,r);
+      if(sessionOption)sessionOption.textContent=`Сессия №${n}`;
+      preview.textContent=r
+        ?`Будет создана запланированная карточка: Сессия №${n} • ${r.title||'Запрос без названия'}`
+        :`Будет создана запланированная карточка: Сессия №${n} • у клиента не выбран текущий запрос`;
+    }else{
+      if(sessionOption)sessionOption.textContent='Сессия';
+      preview.textContent=r
+        ?`Будет создана запланированная карточка: ${typeSelect.value} • ${r.title||'Запрос без названия'}`
+        :`Будет создана запланированная карточка: ${typeSelect.value} • у клиента не выбран текущий запрос`;
+    }
     ensureCommentForRequest(r);
   }
 
@@ -187,20 +207,114 @@
     return changed;
   }
 
+  function sessionForEvent(c,e){
+    const api=sessionsApi();
+    if(!api||!c||!e?.id)return null;
+    if(e.sessionId){
+      const byId=api.get?.(e.sessionId,c);
+      if(byId)return byId;
+    }
+    const rows=api.list?.(c)||[];
+    return rows.find(s=>String(s?.calendarEventId||'')===String(e.id))||null;
+  }
+
+  function syncPlannedSkeletons(){
+    const cal=calendarApi();
+    const sessions=sessionsApi();
+    if(!cal?.list||!cal?.update||!sessions?.create||!sessions?.update||!sessions?.remove)return false;
+
+    let changed=false;
+    const allEvents=cal.list();
+    const activeEventIds=new Set(allEvents.filter(isPlannableEvent).map(e=>String(e.id)));
+
+    clients().forEach(c=>{
+      const clientEvents=allEvents.filter(e=>String(e?.clientId||'')===String(c.id)&&isPlannableEvent(e));
+
+      clientEvents.forEach(e=>{
+        const r=requestForEvent(c,e);
+        if(!r)return;
+        const appointmentType=isSessionEvent(e)?'Сессия':String(e.type||e.title||'Запись');
+        let session=sessionForEvent(c,e);
+
+        if(!session){
+          session=sessions.create({
+            date:e.date||'',
+            scheduledTime:e.time||'',
+            requestId:r.id,
+            notes:'',
+            plan:'',
+            status:'planned',
+            planned:true,
+            calendarEventId:e.id,
+            appointmentType,
+            calendarTitle:e.title||appointmentType
+          },{
+            client:c,
+            requestId:r.id,
+            source:'calendar-planned-session-create',
+            render:false
+          });
+          if(session)changed=true;
+        }else if(isPlannedSkeleton(session)){
+          const patch={};
+          if(String(session.date||'')!==String(e.date||''))patch.date=e.date||session.date;
+          if(String(session.scheduledTime||'')!==String(e.time||''))patch.scheduledTime=e.time||'';
+          if(String(session.requestId||'')!==String(r.id))patch.requestId=r.id;
+          if(String(session.appointmentType||'')!==appointmentType)patch.appointmentType=appointmentType;
+          if(String(session.calendarTitle||'')!==String(e.title||appointmentType))patch.calendarTitle=e.title||appointmentType;
+          if(session.planned!==true)patch.planned=true;
+          if(String(session.status||'')!=='planned')patch.status='planned';
+          if(Object.keys(patch).length){
+            session=sessions.update(session.id,patch,{client:c,source:'calendar-planned-session-sync',render:false})||session;
+            changed=true;
+          }
+        }
+
+        if(session){
+          const eventPatch={};
+          if(String(e.sessionId||'')!==String(session.id))eventPatch.sessionId=session.id;
+          if(String(e.requestId||'')!==String(r.id))eventPatch.requestId=r.id;
+          if(String(e.requestTitle||'')!==String(r.title||''))eventPatch.requestTitle=r.title||'';
+          if(Object.keys(eventPatch).length){
+            if(cal.update(e.id,eventPatch,{source:'calendar-planned-session-link'}))changed=true;
+          }
+        }
+      });
+
+      const sessionRows=sessions.list?.(c)||[];
+      sessionRows.filter(isPlannedSkeleton).forEach(s=>{
+        if(activeEventIds.has(String(s.calendarEventId)))return;
+        if(sessions.remove(s.id,{client:c,source:'calendar-planned-session-orphan-remove',render:false}))changed=true;
+      });
+    });
+
+    if(changed){
+      try{sessions.refresh?.();}catch(_){}
+    }
+    return changed;
+  }
+
   clientSelect.addEventListener('change',updateForm);
   typeSelect.addEventListener('change',updateForm);
   overlay.addEventListener('close',()=>{noteInput.dataset.autoRequestText='';});
 
+  let syncing=false;
   function refreshLinkage(){
-    const changed=normalizePlannedSessions();
-    if(changed)window.DiagnostikaCalendar?.refresh?.();
-    updateForm();
-    return changed;
+    if(syncing)return false;
+    syncing=true;
+    try{
+      const normalized=normalizePlannedSessions();
+      const skeletons=syncPlannedSkeletons();
+      if(normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
+      updateForm();
+      return normalized||skeletons;
+    }finally{
+      syncing=false;
+    }
   }
 
   saveButton.addEventListener('click',()=>{
-    const wasSession=typeSelect.value==='Сессия';
-    if(!wasSession)return;
+    if(!isPlannableType(typeSelect.value))return;
     setTimeout(refreshLinkage,0);
   });
 
@@ -213,7 +327,8 @@
     if(serviceEventsBound)return true;
     const bus=window.DiagnostikaPlatform?.events;
     if(!bus?.on)return false;
-    ['calendar:ready','sessions:ready','session:created','session:updated','session:deleted'].forEach(type=>{
+    ['calendar:ready','sessions:ready','session:created','session:updated','session:deleted',
+      'calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced'].forEach(type=>{
       bus.on(type,()=>setTimeout(refreshLinkage,0));
     });
     serviceEventsBound=true;
@@ -228,7 +343,7 @@
   setTimeout(refreshLinkage,0);
 
   window.DiagnostikaCalendarSessionPlanning=Object.freeze({
-    version:'8C',
+    version:'8E',
     moduleAware:true,
     refresh:refreshLinkage,
     nextSessionNumber,
