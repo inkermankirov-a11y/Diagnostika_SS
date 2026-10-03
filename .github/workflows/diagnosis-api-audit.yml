@@ -101,12 +101,14 @@ jobs:
           if owners != ['diagnosis-api.js']:
               raise SystemExit(f'DiagnostikaDiagnosis must have one owner, got {owners}')
 
-          order={name:html.find(name) for name in ['modules/requests/ui/selection.js','diagnosis-api.js','modules/requests/ui/title.js']}
-          print('Diagnosis load order:',order)
+          order={name:html.find(name) for name in ['modules/requests/ui/selection.js','modules/requests/ui/title.js']}
+          print('Diagnosis UI load order:',order)
           if any(v < 0 for v in order.values()):
-              raise SystemExit('Required diagnosis scripts missing from index.html')
-          if not (order['modules/requests/ui/selection.js'] < order['diagnosis-api.js'] < order['modules/requests/ui/title.js']):
-              raise SystemExit('Diagnosis API load order is unsafe')
+              raise SystemExit('Required diagnosis UI scripts missing from index.html')
+          if not (order['modules/requests/ui/selection.js'] < order['modules/requests/ui/title.js']):
+              raise SystemExit('Diagnosis request UI load order is unsafe')
+          if 'diagnosis-api.js?v=20260919-diagnosis7d' not in loader:
+              raise SystemExit('Diagnosis API is missing from modular app-loader chain')
 
           if not re.search(r"version:'7[ABCD]'",api) or 'moduleAware:true' not in api:
               raise SystemExit('Diagnosis API is outside supported module-aware 7A-7D range')

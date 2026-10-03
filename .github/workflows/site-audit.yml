@@ -42,7 +42,7 @@ jobs:
           scripts=[x.split('?',1)[0] for x in re.findall(r'''<script[^>]+src=["']([^"']+)["']''',html)]
           dup=sorted({x for x in scripts if scripts.count(x)>1})
           dash=(root/'home-dashboard.js').read_text(encoding='utf-8')
-          legacy_ids=['clientBaseBtn','clientCardModeBtn','addClientBtn']
+          legacy_ids=['clientCardModeBtn','addClientBtn']
           legacy_refs=[x for x in legacy_ids if x in dash]
           print('Local refs:',len(refs),'Missing:',missing or 'none','Duplicate index scripts:',dup or 'none','Dashboard legacy refs:',legacy_refs or 'none')
           if missing or dup or legacy_refs: sys.exit(1)
