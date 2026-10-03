@@ -37,6 +37,9 @@ assert.match(testData,/sessionApi\.create/);
 
 assert.equal(editor.includes("dlg.addEventListener('close',()=>{dlg.remove();renderSessions();}"),false,'editor close still fires legacy renderSessions');
 assert.match(editor,/dlg\.addEventListener\('close',\(\)=>dlg\.remove\(\)/);
+assert(editor.includes("plannedBanner.className='session-planned-banner'"),'planned session banner missing from editor');
+assert(editor.includes("planInput.className='session-plan-editor-text'"),'session preparation plan editor missing');
+assert(editor.includes('plan:planInput.value'),'session plan is not persisted through SessionService update');
 
 const directRequestAssignment=/(?:\bs|\bsession|\bsessionNow|item\.session)\.requestId\s*=(?!=)/;
 for(const path of paymentFiles){
