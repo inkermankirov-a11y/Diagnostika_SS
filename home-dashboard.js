@@ -27,6 +27,7 @@
         <div class="hd-hero-icon" aria-hidden="true"></div>
         <h2 id="hdHeroTitle">Выберите клиента</h2>
         <div id="hdHeroSub" class="hd-main-sub"></div>
+        <aside id="hdHeroReminder" class="hd-hero-reminder" hidden aria-live="polite"></aside>
         <div id="hdHeroActions" class="hd-client-actions"></div>
         <div id="hdSummary" class="hd-selected-summary" hidden></div>
         <div class="hd-features">
@@ -72,6 +73,7 @@
   const heroIcon=$('.hd-hero-icon');
   const heroTitle=$('#hdHeroTitle');
   const heroSub=$('#hdHeroSub');
+  const heroReminder=$('#hdHeroReminder');
   const heroActions=$('#hdHeroActions');
   const summary=$('#hdSummary');
 
@@ -244,6 +246,44 @@
     const timeMatch=rawTime.match(/^(\d{1,2}):(\d{2})/);
     const timeText=timeMatch?`${pad2(timeMatch[1])}:${pad2(timeMatch[2])}`:'время не указано';
     return `${upcomingBeaconTypeLabel(event)} • ${dateText} • ${timeText}`;
+  }
+
+  function calendarEventDateLabel(event){
+    const rawDate=String(event?.date||'').trim();
+    let dateText=rawDate||'Дата не указана';
+    if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
+      const [year,month,day]=rawDate.split('-').map(Number);
+      dateText=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long'}).format(new Date(year,month-1,day,12,0,0,0));
+    }
+    const rawTime=String(event?.time||'').trim();
+    const timeMatch=rawTime.match(/^(\d{1,2}):(\d{2})/);
+    const timeText=timeMatch?`${pad2(timeMatch[1])}:${pad2(timeMatch[2])}`:'время не указано';
+    return `${dateText} • ${timeText}`;
+  }
+
+  function renderHeroReminder(c){
+    if(!heroReminder)return;
+    heroReminder.hidden=true;
+    heroReminder.replaceChildren();
+    if(!c)return;
+
+    const upcoming=nextUpcomingInteraction(c);
+    if(!upcoming||upcoming.time>=Date.now()+7*24*60*60*1000)return;
+    if(upcomingBeaconKind(upcoming.event)!=='reminder')return;
+
+    const event=upcoming.event;
+    const note=String(event?.note||'').trim()||'Напомнить клиенту связаться и согласовать следующую запись.';
+
+    const head=document.createElement('div');head.className='hd-hero-reminder-head';
+    const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent='● НАПОМИНАНИЕ';
+    const source=document.createElement('span');source.className='hd-hero-reminder-source';source.textContent='из календаря';
+    head.append(badge,source);
+
+    const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=calendarEventDateLabel(event);
+    const text=document.createElement('div');text.className='hd-hero-reminder-text';text.textContent=note;
+
+    heroReminder.append(head,when,text);
+    heroReminder.hidden=false;
   }
 
   function pad2(value){return String(value??'').padStart(2,'0');}
@@ -532,6 +572,7 @@
     heroActions.innerHTML='';
     summary.innerHTML='';
     summary.hidden=true;
+    renderHeroReminder(c);
     renderHeroVisual(c);
 
     if(!c){
