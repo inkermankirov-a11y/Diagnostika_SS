@@ -15,6 +15,7 @@ on:
       - 'tests/ai-module-6b-audit.mjs'
       - 'tests/ai-module-6c-audit.mjs'
       - 'tests/ai-module-6d-audit.mjs'
+      - 'tests/ai-longitudinal-context-audit.mjs'
       - '.github/workflows/ai-api-audit.yml'
       - 'index.html'
   workflow_dispatch:
@@ -43,6 +44,7 @@ jobs:
           node --check tests/ai-module-6b-audit.mjs
           node --check tests/ai-module-6c-audit.mjs
           node --check tests/ai-module-6d-audit.mjs
+          node --check tests/ai-longitudinal-context-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -130,3 +132,4 @@ jobs:
           node tests/ai-module-6b-audit.mjs
           node tests/ai-module-6c-audit.mjs
           node tests/ai-module-6d-audit.mjs
+          node tests/ai-longitudinal-context-audit.mjs
