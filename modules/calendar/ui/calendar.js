@@ -5,8 +5,8 @@
 
   const MONTHS=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
   const WEEK=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-  const TIME_GRID_START=7;
-  const TIME_GRID_END=23;
+  const TIME_GRID_START=0;
+  const TIME_GRID_END=24;
   const TIME_GRID_HOUR_PX=56;
   const pad=n=>String(n).padStart(2,'0');
   const iso=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
@@ -537,16 +537,16 @@
     const axis=document.createElement('div');
     axis.className='cal-time-axis';
     axis.style.height=totalHeight+'px';
-    for(let hour=TIME_GRID_START;hour<=TIME_GRID_END;hour++){
+    for(let hour=TIME_GRID_START;hour<TIME_GRID_END;hour++){
       const label=document.createElement('span');
       label.className='cal-time-label';
-      label.style.top=((hour-TIME_GRID_START)*TIME_GRID_HOUR_PX)+'px';
+      label.style.top=(hour===TIME_GRID_START?'4px':((hour-TIME_GRID_START)*TIME_GRID_HOUR_PX)+'px');
+      if(hour===TIME_GRID_START)label.style.transform='none';
       label.textContent=pad(hour)+':00';
       axis.appendChild(label);
     }
     body.appendChild(axis);
 
-    let earliest=null;
     days.forEach(d=>{
       const ds=iso(d.getFullYear(),d.getMonth(),d.getDate());
       const col=document.createElement('div');
@@ -564,7 +564,6 @@
 
       dayEvents.forEach(e=>{
         const mins=eventMinutes(e);
-        earliest=earliest===null?mins:Math.min(earliest,mins);
         const clamped=Math.max(TIME_GRID_START*60,Math.min(TIME_GRID_END*60-15,mins));
         const top=((clamped-TIME_GRID_START*60)/60)*TIME_GRID_HOUR_PX;
         const item=document.createElement('button');
@@ -625,15 +624,8 @@
     wrap.append(head,scroll);
     grid.appendChild(wrap);
 
-    const now=new Date();
-    const todayVisible=days.some(d=>iso(d.getFullYear(),d.getMonth(),d.getDate())===today);
-    const targetMinutes=earliest!==null
-      ? Math.max(TIME_GRID_START*60,earliest-60)
-      : todayVisible
-        ? Math.max(TIME_GRID_START*60,now.getHours()*60+now.getMinutes()-60)
-        : 9*60;
     requestAnimationFrame(()=>{
-      scroll.scrollTop=Math.max(0,((targetMinutes-TIME_GRID_START*60)/60)*TIME_GRID_HOUR_PX);
+      scroll.scrollTop=0;
     });
   }
 
