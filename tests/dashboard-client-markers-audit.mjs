@@ -93,9 +93,16 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-specialist-rail-4'),'dashboard CSS cache key missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261003-specialist-rail-4'),'dashboard client-main cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-glass-rail-5'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261003-glass-rail-5'),'dashboard client-main cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-full-history-3'),'dashboard sessions cache key missing');
+assert.ok(css.includes('.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget'),'blue glass AI widget style missing');
+assert.ok(css.includes('.home-dashboard .hd-right > .hd-client-notes-widget'),'green glass client notes style missing');
+assert.ok(css.includes('backdrop-filter:blur(22px) saturate(1.22)'),'AI frosted-glass blur missing');
+assert.ok(css.includes('backdrop-filter:blur(22px) saturate(1.20)'),'notes frosted-glass blur missing');
+assert.ok(css.includes('.hd-client-view.has-client .hd-client-profile-copy{\n  min-height:182px'),'Client card button baseline alignment missing');
+assert.ok(css.includes('.hd-client-view.has-client .hd-social-btn{\n  height:40px'),'social icon height alignment missing');
+assert.ok(css.includes('.hd-client-specialist-slot{\n  transform:translateY(-3px)'),'current specialist lift missing');
 assert.ok(index.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1&beacons=20261003-1&reminder=20261003-1&dates=20261003-1'),'app-loader cache key missing');
 assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-planned-session-1'),'client debt flags cache key missing');
 
