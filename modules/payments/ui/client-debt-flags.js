@@ -99,8 +99,12 @@
         return;
       }
 
+      const moreButton=tools.querySelector('.hd-client-more');
+
       if(flags.length){
         flags.slice(1).forEach(flag=>flag.remove());
+        const flag=flags[0];
+        if(moreButton&&flag.nextElementSibling!==moreButton)tools.insertBefore(flag,moreButton);
         return;
       }
 
@@ -109,7 +113,8 @@
       flag.textContent='⚑';
       flag.setAttribute('aria-label','Есть непогашенный долг по текущему запросу');
       flag.title='Есть непогашенный долг по текущему запросу';
-      tools.appendChild(flag);
+      if(moreButton)tools.insertBefore(flag,moreButton);
+      else tools.appendChild(flag);
     });
   }
 
