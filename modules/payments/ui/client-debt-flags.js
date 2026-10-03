@@ -132,9 +132,9 @@
 
   function focusUnpaidSession(c,session){
     if(!c?.id||!session?.id)return false;
-    const opened=window.DiagnostikaHomeDashboard?.openClient?.(c.id);
-    highlightUnpaidSessionCard(session,{scroll:true});
-    return opened!==false;
+    const openClient=window.DiagnostikaHomeDashboard?.openClient;
+    if(typeof openClient==='function')return openClient(c.id)!==false;
+    return highlightUnpaidSessionCard(session,{scroll:true});
   }
 
   function highlightUnpaidSessionForClient(clientId){
