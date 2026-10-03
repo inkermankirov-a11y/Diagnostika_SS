@@ -602,17 +602,31 @@
 
   function ageFromBirth(value){
     if(!value) return '';
-    const d = new Date(value);
-    if(Number.isNaN(d.getTime())) return '';
-    const n = new Date();
-    let a = n.getFullYear() - d.getFullYear();
-    const m = n.getMonth() - d.getMonth();
-    if(m < 0 || (m === 0 && n.getDate() < d.getDate())) a--;
-    return a >= 0 ? String(a) : '';
+    const parts=String(value).split('-').map(Number);
+    if(parts.length!==3||!parts[0]||!parts[1]||!parts[2])return '';
+    const n=new Date();
+    let a=n.getFullYear()-parts[0];
+    if(n.getMonth()+1<parts[1]||(n.getMonth()+1===parts[1]&&n.getDate()<parts[2]))a--;
+    return a>=0?String(a):'';
   }
 
-  function setPhoto(data){
+  function applyAgeMode(){
+    const auto=q('ccAgeAuto')?.checked===true;
+    const age=q('ccAge');
+    if(!age)return;
+    age.readOnly=auto;
+    age.classList.toggle('cc-age-readonly',auto);
+    if(auto)age.value=ageFromBirth(q('ccBirth')?.value||'');
+  }
+
+  function setPhoto(data,source=data,crop={x:50,y:50,zoom:1}){
     photoData=data||'';
+    photoSourceData=source||data||'';
+    photoCrop={
+      x:Math.max(0,Math.min(100,Number(crop?.x)||50)),
+      y:Math.max(0,Math.min(100,Number(crop?.y)||50)),
+      zoom:Math.max(1,Math.min(3,Number(crop?.zoom)||1))
+    };
     const img=q('ccPhotoPreview');
     const ph=q('ccPhotoPlaceholder');
     if(photoData){img.src=photoData;img.style.display='block';ph.style.display='none';}
