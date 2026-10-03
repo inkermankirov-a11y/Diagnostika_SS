@@ -5,6 +5,8 @@ const js=fs.readFileSync('home-dashboard.js','utf8');
 const css=fs.readFileSync('home-dashboard.css','utf8');
 const loader=fs.readFileSync('app-loader.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
+const debtFlags=fs.readFileSync('modules/payments/ui/client-debt-flags.js','utf8');
+const sessionsUi=fs.readFileSync('home-dashboard-sessions.js','utf8');
 
 assert.ok(js.includes('function nextUpcomingInteraction(c)'),'next planned calendar interaction calculation missing');
 assert.ok(js.includes('function nextInteractionTime(c)'),'client ordering calculation missing');
@@ -26,11 +28,18 @@ assert.ok(css.includes('.hd-upcoming-tooltip'),'upcoming appointment tooltip sty
 assert.ok(css.includes('.hd-client-pin-cell'),'fixed pin alignment cell missing');
 assert.ok(css.includes('.hd-client-status-cell'),'fixed status alignment cell missing');
 assert.ok(css.includes('padding-right:10px'),'client list is still too close to its scrollbar');
+assert.ok(debtFlags.includes("flag.title=hasSessionTarget?'Не оплачена сессия':'Есть задолженность'"),'unpaid session flag hover label missing');
+assert.ok(debtFlags.includes('focusUnpaidSession(c,target)'),'unpaid client flag does not navigate to the unpaid session');
+assert.ok(debtFlags.includes("window.DiagnostikaHomeDashboard?.openClient?.(c.id)"),'unpaid flag does not open the client workspace');
+assert.ok(sessionsUi.includes("card.dataset.sessionId=String(s.id||'')"),'session cards do not expose stable session ids for navigation');
+assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpaid session focus highlight missing');
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
 assert.ok(loader.includes('home-dashboard.css?v=20261003-upcoming-tooltip-1'),'dashboard CSS cache key missing');
 assert.ok(loader.includes('home-dashboard.js?v=20261003-upcoming-tooltip-1'),'dashboard JS cache key missing');
-assert.ok(index.includes('app-loader.js?v=20261003-upcoming-tooltip-1'),'app-loader cache key missing');
+assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-unpaid-jump-1'),'dashboard sessions cache key missing');
+assert.ok(index.includes('app-loader.js?v=20261003-unpaid-jump-1'),'app-loader cache key missing');
+assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-unpaid-jump-1'),'client debt flags cache key missing');
 
 console.log('DASHBOARD_CLIENT_MARKERS_AUDIT_OK');

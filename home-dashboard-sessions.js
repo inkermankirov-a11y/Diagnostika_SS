@@ -195,6 +195,7 @@
     display.forEach(({s,number})=>{
       const card=document.createElement('article');
       card.className='hd-session-card hd-session-card-openable';
+      card.dataset.sessionId=String(s.id||'');
       card.tabIndex=0;
       card.title='Открыть и редактировать сессию';
       const notes=String(s.notes||'').trim();
@@ -284,6 +285,8 @@
     .hd-session-card{border:1px solid #d6e3f2;border-left:4px solid #6ea4ef;border-radius:11px;background:#fff;box-shadow:0 2px 8px rgba(31,71,122,.05);overflow:hidden;transition:.15s ease}
     .hd-session-card-openable{cursor:pointer}.hd-session-card-openable:hover{border-color:#9ec2f3;box-shadow:0 5px 14px rgba(31,71,122,.10);transform:translateY(-1px)}
     .hd-session-card-openable:focus{outline:3px solid rgba(47,124,246,.16);outline-offset:2px}
+    .hd-session-card.hd-session-focus-unpaid{border-color:#ef7777;border-left-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.16),0 8px 22px rgba(185,28,28,.14);animation:hdSessionUnpaidFocus 1.1s ease-in-out 2}
+    @keyframes hdSessionUnpaidFocus{0%,100%{box-shadow:0 0 0 3px rgba(220,38,38,.12),0 8px 22px rgba(185,28,28,.10)}50%{box-shadow:0 0 0 5px rgba(220,38,38,.22),0 10px 28px rgba(185,28,28,.18)}}
     .hd-session-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;background:#f5f9fe;color:#173154;font-size:13px}.hd-session-top strong{font-size:14px}
     .hd-session-date,.hd-session-request{padding:4px 9px;border:1px solid #dce8f5;border-radius:999px;background:#fff;color:#647b99;font-size:12px}
     .hd-session-pay{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid transparent;white-space:nowrap}.hd-session-pay.paid{background:#e9f8ef;color:#247a49;border-color:#bfe7ce}.hd-session-pay.unpaid{background:#fdecec;color:#b33a3a;border-color:#f1c3c3}.hd-session-flag{font-size:13px;line-height:1}

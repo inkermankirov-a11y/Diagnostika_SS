@@ -17,6 +17,9 @@
       .payment-dialog .payment-row{grid-template-columns:1fr 1fr!important}
       .payment-dialog .payment-row-actions{grid-column:1/-1!important;width:100%!important;min-width:0!important;justify-content:flex-end!important}
     }
+    .hd-unpaid-flag.is-clickable{pointer-events:auto!important;cursor:pointer!important}
+    .hd-unpaid-flag.is-clickable:hover{filter:brightness(1.05)}
+    .hd-unpaid-flag.is-clickable:focus-visible{outline:2px solid #ef4444;outline-offset:2px}
   `;
   document.head.appendChild(style);
 
@@ -82,6 +85,83 @@
     return !!(r&&requestHasDebt(c,r));
   }
 
+  function sessionSortTime(session,index=0){
+    const raw=session?.date||session?.createdAt||'';
+    const time=raw?new Date(raw).getTime():NaN;
+    return Number.isFinite(time)?time:index;
+  }
+
+  function unpaidSessionTarget(c){
+    const r=activeRequest(c);
+    if(!r||r?.payment?.mode!=='session')return null;
+    const sessions=sessionsFor(c,r)
+      .map((session,index)=>({session,index,time:sessionSortTime(session,index)}))
+      .filter(item=>item.session?.payment?.paid!==true)
+      .sort((a,b)=>b.time-a.time||b.index-a.index);
+    return sessions[0]?.session||null;
+  }
+
+  function focusUnpaidSession(c,session){
+    if(!c?.id||!session?.id)return false;
+    const targetId=String(session.id);
+    let tries=0;
+    let done=false;
+
+    const focusCard=()=>{
+      if(done)return true;
+      const card=Array.from(document.querySelectorAll('.hd-session-card[data-session-id]'))
+        .find(node=>String(node.dataset.sessionId||'')===targetId);
+      if(!card){
+        if(tries++<24)setTimeout(focusCard,80);
+        return false;
+      }
+      done=true;
+      card.scrollIntoView({behavior:'smooth',block:'center'});
+      card.classList.remove('hd-session-focus-unpaid');
+      void card.offsetWidth;
+      card.classList.add('hd-session-focus-unpaid');
+      setTimeout(()=>card.classList.remove('hd-session-focus-unpaid'),2600);
+      try{card.focus({preventScroll:true});}catch(_){}
+      return true;
+    };
+
+    const onRendered=()=>setTimeout(focusCard,0);
+    document.addEventListener('diagnostika:dashboard-sessions-rendered',onRendered,{once:true});
+    const opened=window.DiagnostikaHomeDashboard?.openClient?.(c.id);
+    setTimeout(focusCard,60);
+    return opened!==false;
+  }
+
+  function configureDebtFlag(flag,c){
+    const target=unpaidSessionTarget(c);
+    const hasSessionTarget=!!target;
+    flag.textContent='⚑';
+    flag.title=hasSessionTarget?'Не оплачена сессия':'Есть задолженность';
+    flag.setAttribute('aria-label',flag.title);
+    flag.setAttribute('role',hasSessionTarget?'button':'img');
+    if(hasSessionTarget){
+      flag.tabIndex=0;
+      flag.classList.add('is-clickable');
+      flag.onclick=e=>{
+        e.preventDefault();
+        e.stopPropagation();
+        focusUnpaidSession(c,target);
+      };
+      flag.onkeydown=e=>{
+        if(e.key==='Enter'||e.key===' '){
+          e.preventDefault();
+          e.stopPropagation();
+          focusUnpaidSession(c,target);
+        }
+      };
+    }else{
+      flag.removeAttribute('tabindex');
+      flag.classList.remove('is-clickable');
+      flag.onclick=null;
+      flag.onkeydown=null;
+    }
+  }
+
   function syncFlags(){
     const clients=ui()?.clientList?.()||[];
 
@@ -104,15 +184,14 @@
       if(flags.length){
         flags.slice(1).forEach(flag=>flag.remove());
         const flag=flags[0];
+        configureDebtFlag(flag,c);
         if(moreButton&&flag.nextElementSibling!==moreButton)tools.insertBefore(flag,moreButton);
         return;
       }
 
       const flag=document.createElement('span');
       flag.className='hd-unpaid-flag';
-      flag.textContent='⚑';
-      flag.setAttribute('aria-label','Есть непогашенный долг по текущему запросу');
-      flag.title='Есть непогашенный долг по текущему запросу';
+      configureDebtFlag(flag,c);
       if(moreButton)tools.insertBefore(flag,moreButton);
       else tools.appendChild(flag);
     });
