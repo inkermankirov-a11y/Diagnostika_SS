@@ -422,6 +422,8 @@
   display:none;
 }
 .hd-client-view.has-client .hd-hero-reminder{
+  position:absolute;
+  margin:0;
   top:30px;
   right:30px;
   width:min(300px,39%);
