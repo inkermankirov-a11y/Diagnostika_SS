@@ -38,6 +38,15 @@
   const archiveBtn=section.querySelector('#hdSessionArchive');
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const displayDate=value=>{
+    try{
+      const formatted=window.DiagnostikaDate?.date?.(value,'');
+      if(formatted)return formatted;
+    }catch(_){}
+    const raw=String(value||'').trim();
+    const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m?`${m[3]}.${m[2]}.${m[1]}`:(raw||'—');
+  };
   const getClient=()=>window.DiagnostikaClients?.current?.()||null;
   const sessionRequestId=s=>String(s?.requestId||s?.payment?.requestId||'');
 
@@ -125,7 +134,7 @@
     const lastBox=byLabel('Последняя сессия');
     if(lastBox){
       const v=lastBox.querySelector('.hd-summary-value');
-      if(v)v.textContent=conducted[0]?.s?.date||'—';
+      if(v)v.textContent=conducted[0]?.s?displayDate(conducted[0].s.date||conducted[0].s.createdAt):'—';
     }
     const reqBox=byLabel('Текущий запрос');
     if(reqBox&&r){const v=reqBox.querySelector('.hd-summary-value');if(v)v.textContent=r.title||'Не указан';}
@@ -169,7 +178,7 @@
       row.innerHTML=`
         <div class="hd-session-archive-main">
           <strong>Сессия №${number}</strong>
-          <span>${esc(s.date||'—')}</span>
+          <span>${esc(displayDate(s.date||s.createdAt))}</span>
         </div>
         <div class="hd-session-archive-request">${esc(req?.title||'Без связи с запросом')}</div>
         <span class="hd-session-pay ${paid?'paid':'unpaid'}"><span class="hd-session-flag">⚑</span>${paid?'Оплачено':'Не оплачено'}</span>`;
@@ -239,7 +248,7 @@
         <div class="hd-session-top">
           <strong>Сессия №${number}</strong>
           ${plannedHtml}
-          <span class="hd-session-date">${planned?'Назначено:':'◷'} ${esc(planned?scheduledLabel(s):(s.date||'—'))}</span>
+          <span class="hd-session-date">${planned?'Назначено:':'◷'} ${esc(planned?scheduledLabel(s):displayDate(s.date||s.createdAt))}</span>
           ${typeHtml}
           <span class="hd-session-request">• ${esc(requestName(c,s))}</span>
           ${paymentHtml}
