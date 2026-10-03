@@ -85,8 +85,8 @@ jobs:
           ]:
               if token not in loader:
                   errors.append('calendar loader missing/stale: '+token)
-          if 'loadCalendarApi()' not in loader:
-              errors.append('calendar API is not in application loader chain')
+          if "id:'calendar'" not in loader or 'calendar-api.js?v=20260919-calendar8d' not in loader:
+              errors.append('calendar domain/API is not in application loader chain')
           build_match=re.search(r'name="diagnostika-build" content="([^"]+)"',index)
           loader_match=re.search(r'app-loader[.]js[?]v=([^"&]+)',index)
           if not build_match or not loader_match:
