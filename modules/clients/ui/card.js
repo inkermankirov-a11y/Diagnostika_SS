@@ -68,6 +68,8 @@
   let draft=null;
   let dirty=false;
   let photoData='';
+  let photoSourceData='';
+  let photoCrop={x:50,y:50,zoom:1};
   let locationCatalogPromise=null;
   let clientClockTimer=null;
   let clientTimeRequest=0;
