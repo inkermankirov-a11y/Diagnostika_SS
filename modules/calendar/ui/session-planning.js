@@ -95,13 +95,33 @@
     return isPlannableType(e?.type||e?.title);
   }
 
+  function eventStartTime(e){
+    const rawDate=String(e?.date||'').trim();
+    if(!rawDate)return NaN;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
+      const [year,month,day]=rawDate.split('-').map(Number);
+      const rawTime=String(e?.time||'').trim();
+      const match=rawTime.match(/^(\d{1,2}):(\d{2})/);
+      const hour=match?Number(match[1]):23;
+      const minute=match?Number(match[2]):59;
+      return new Date(year,month-1,day,hour,minute,59,999).getTime();
+    }
+    const parsed=Date.parse(rawDate);
+    return Number.isFinite(parsed)?parsed:NaN;
+  }
+
+  function isFutureAppointment(e){
+    const time=eventStartTime(e);
+    return Number.isFinite(time)&&time>=Date.now();
+  }
+
   function requestForEvent(c,e){
     return requestById(c,e?.requestId)||activeRequest(c);
   }
 
   function plannedSessionsFor(c,r){
     if(!c||!r)return[];
-    return events().filter(e=>String(e?.clientId||'')===String(c.id)&&isSessionEvent(e)&&String((e?.requestId||requestForEvent(c,e)?.id)||'')===String(r.id));
+    return events().filter(e=>String(e?.clientId||'')===String(c.id)&&isPlannableEvent(e)&&isSessionEvent(e)&&String((e?.requestId||requestForEvent(c,e)?.id)||'')===String(r.id));
   }
 
   function nextSessionNumber(c,r){
@@ -161,6 +181,29 @@
         :`Будет создана запланированная карточка: ${typeSelect.value} • у клиента не выбран текущий запрос`;
     }
     ensureCommentForRequest(r);
+  }
+
+  function migrateExistingFutureAppointments(){
+    const api=calendarApi();
+    if(!api?.list||!api?.update)return false;
+
+    let changed=false;
+    const clientMap=new Map(clients().map(c=>[String(c?.id||''),c]));
+    api.list().forEach(e=>{
+      if(!e?.id||!e?.clientId||e.plannedSessionSkeleton===true||e.sessionId)return;
+      if(!isFutureAppointment(e))return;
+      if(!isSessionEvent(e)&&!isPlannableType(e?.type||e?.title))return;
+
+      const c=clientMap.get(String(e.clientId));
+      if(!c||!requestForEvent(c,e))return;
+
+      const updated=api.update(e.id,{
+        plannedSessionSkeleton:true,
+        plannedSessionMigrated:true
+      },{source:'calendar-planned-session-migrate-existing'});
+      if(updated)changed=true;
+    });
+    return changed;
   }
 
   function normalizePlannedSessions(){
@@ -304,11 +347,12 @@
     if(syncing)return false;
     syncing=true;
     try{
+      const migrated=migrateExistingFutureAppointments();
       const normalized=normalizePlannedSessions();
       const skeletons=syncPlannedSkeletons();
-      if(normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
+      if(migrated||normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
       updateForm();
-      return normalized||skeletons;
+      return migrated||normalized||skeletons;
     }finally{
       syncing=false;
     }
@@ -344,7 +388,7 @@
   setTimeout(refreshLinkage,0);
 
   window.DiagnostikaCalendarSessionPlanning=Object.freeze({
-    version:'8E',
+    version:'8F',
     moduleAware:true,
     refresh:refreshLinkage,
     nextSessionNumber,

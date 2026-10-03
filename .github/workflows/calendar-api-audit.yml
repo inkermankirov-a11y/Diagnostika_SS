@@ -102,8 +102,8 @@ jobs:
                   errors.append('calendar 8B UI service boundary missing '+token)
           if 'normalizePlannedSessions' not in planning:
               errors.append('calendar session planning baseline missing')
-          if "version:'8E'" not in planning:
-              errors.append('calendar session planning is not 8E')
+          if "version:'8F'" not in planning:
+              errors.append('calendar session planning is not 8F')
           for token in [
               "sessionsApi()?.forRequest?.(r.id,c)",
               "api.list({clientId:c.id})",
@@ -112,15 +112,16 @@ jobs:
               "source:'calendar-planned-session-create'",
               "source:'calendar-planned-session-sync'",
               "source:'calendar-planned-session-orphan-remove'",
+              "source:'calendar-planned-session-migrate-existing'",
               "'calendar:event-created'","'calendar:event-updated'","'calendar:event-deleted'",
               "'session:created'","'session:updated'","'session:deleted'"
           ]:
               if token not in planning:
-                  errors.append('calendar 8E session linkage missing '+token)
+                  errors.append('calendar 8F session linkage missing '+token)
           for forbidden in ["typeof save==='function'", 'st.calendarEvents', 'e.sessionNumber=', 'e.requestId=']:
               if forbidden in planning:
-                  errors.append('calendar 8E legacy mutation remains: '+forbidden)
-          if 'modules/calendar/ui/session-planning.js?v=20261003-planned-session-2' not in index:
+                  errors.append('calendar 8F legacy mutation remains: '+forbidden)
+          if 'modules/calendar/ui/session-planning.js?v=20261003-planned-session-3' not in index:
               errors.append('calendar session planning module marker is stale')
 
           for token in ["version:'8D'", 'window.DiagnostikaCalendarUI=ui', "if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui", 'row.dataset.calendarEventId']:

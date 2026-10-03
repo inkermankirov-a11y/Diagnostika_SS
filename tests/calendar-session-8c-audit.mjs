@@ -5,8 +5,8 @@ import fs from 'node:fs';
 const planningSource=fs.readFileSync('modules/calendar/ui/session-planning.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(planningSource.includes("version:'8E'"),'Calendar session planning version is not 8E');
-assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261003-planned-session-2'),'Calendar session planner module marker is stale');
+assert(planningSource.includes("version:'8F'"),'Calendar session planning version is not 8F');
+assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261003-planned-session-3'),'Calendar session planner module marker is stale');
 
 for(const forbidden of [
   "typeof save==='function'",
@@ -23,6 +23,7 @@ for(const token of [
   "source:'calendar-planned-session-create'",
   "source:'calendar-planned-session-sync'",
   "source:'calendar-planned-session-orphan-remove'",
+  "source:'calendar-planned-session-migrate-existing'",
   "'calendar:event-created'",
   "'calendar:event-updated'",
   "'calendar:event-deleted'",
@@ -33,7 +34,18 @@ for(const token of [
 
 const fixture={
   version:4,
-  calendarEvents:[],
+  calendarEvents:[{
+    id:'cal-8c-existing-future',
+    date:'2099-01-02',
+    time:'17:45',
+    clientId:'cal-8c-client',
+    clientName:'Calendar 8C Client',
+    requestId:'cal-8c-r1',
+    type:'Диагностика',
+    title:'Диагностика',
+    note:'Старая запись должна сохраниться',
+    createdAt:'2026-09-01T10:00:00.000Z'
+  }],
   clients:[{
     id:'cal-8c-client',
     name:'Calendar 8C Client',
@@ -73,8 +85,30 @@ await page.goto('http://127.0.0.1:8000/index.html?calendar-8c=1',{waitUntil:'com
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
 await page.waitForFunction(()=>window.DiagnostikaCalendar?.moduleAware===true
   && window.DiagnostikaSessions?.moduleAware===true
-  && window.DiagnostikaCalendarSessionPlanning?.version==='8E',
+  && window.DiagnostikaCalendarSessionPlanning?.version==='8F',
   null,{timeout:15000});
+
+await page.waitForFunction(()=>window.DiagnostikaSessions.list('cal-8c-client').some(s=>
+  s.calendarEventId==='cal-8c-existing-future'
+  && s.date==='2099-01-02'
+  && s.scheduledTime==='17:45'
+  && s.appointmentType==='Диагностика'
+  && s.status==='planned'
+  && s.planned===true
+),null,{timeout:5000});
+
+const migratedExisting=await page.evaluate(()=>{
+  const item=window.DiagnostikaCalendar.get('cal-8c-existing-future');
+  const skeleton=window.DiagnostikaSessions.list('cal-8c-client').find(s=>s.calendarEventId==='cal-8c-existing-future')||null;
+  return {item,skeleton};
+});
+assert.equal(migratedExisting.item?.plannedSessionSkeleton,true);
+assert.equal(migratedExisting.item?.plannedSessionMigrated,true);
+assert(migratedExisting.item?.sessionId,'Existing future calendar record was not linked to its skeleton');
+assert.equal(migratedExisting.item?.title,'Диагностика');
+assert.equal(migratedExisting.item?.note,'Старая запись должна сохраниться');
+assert.equal(migratedExisting.skeleton?.appointmentType,'Диагностика');
+assert.equal(migratedExisting.skeleton?.plan,'');
 
 await page.evaluate(()=>{
   window.__calendar8cEvents=[];
