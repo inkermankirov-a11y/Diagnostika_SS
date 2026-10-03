@@ -36,10 +36,10 @@
   const style = document.createElement('style');
   style.textContent = `
     #specialistSettings{display:none!important}
-    .settings-profile-summary{display:flex;align-items:center;gap:14px;padding:12px 8px 14px;border-bottom:1px solid #e4eaf0;margin-bottom:2px}
-    .settings-profile-avatar{width:72px;height:72px;min-width:72px;min-height:72px;border-radius:50%;border:1px solid #cbd5e1;background:#eef3f8;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#405268;font-weight:900;font-size:20px;cursor:pointer;padding:0;box-shadow:0 2px 8px rgba(15,23,42,.14)}
+    .settings-profile-summary{display:flex;align-items:center;gap:14px;padding:12px 8px 14px;border-bottom:1px solid rgba(255,255,255,.24);margin-bottom:2px}
+    .settings-profile-avatar{width:72px;height:72px;min-width:72px;min-height:72px;border-radius:50%;border:1px solid rgba(255,255,255,.58);background:rgba(255,255,255,.88);display:flex;align-items:center;justify-content:center;overflow:hidden;color:#405268;font-weight:900;font-size:20px;cursor:pointer;padding:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 4px 12px rgba(15,23,42,.18)}
     .settings-profile-avatar img{width:100%;height:100%;display:block;object-fit:cover;border-radius:50%}
-    .settings-profile-name{min-width:0;font-size:14px;font-weight:900;color:#2f4154;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .settings-profile-name{min-width:0;font-size:15px;font-weight:900;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.35)}
     .settings-account-content{display:none;border:1px solid #d8e1ea;border-radius:11px;background:#f8fafc;padding:9px;gap:8px}
     .settings-account-content.open{display:grid}
     .account-field{display:grid;gap:6px}
