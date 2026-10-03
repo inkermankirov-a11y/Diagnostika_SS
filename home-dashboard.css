@@ -200,7 +200,9 @@
 .hd-client-menu-icon{width:18px;text-align:center;flex:0 0 auto}
 .hd-unpaid-flag{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;color:#dc2626;background:#fff1f1;border:1px solid #f0aaaa;font-size:16px;line-height:1;pointer-events:none;box-shadow:0 2px 6px rgba(220,38,38,.18);animation:hdUnpaidPulse 1.15s ease-in-out infinite;transform-origin:center}
 @keyframes hdUnpaidPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,.08)}50%{transform:scale(1.08);box-shadow:0 0 0 5px rgba(220,38,38,.14)}}
-.hd-client-row.new-client::after{content:'';position:absolute;left:5px;top:50%;width:3px;height:34px;transform:translateY(-50%);border-radius:999px;background:#35b86b;box-shadow:0 0 0 1px rgba(53,184,107,.08)}
+.hd-client-row.new-client::after{content:'';position:absolute;z-index:2;left:-4px;top:0;bottom:0;width:4px;height:auto;transform:none;border-radius:10px 0 0 10px;background:#35b86b;box-shadow:none;pointer-events:none}
+.hd-client-row.active.new-client{border-left-color:transparent}
+.hd-client-row.active.new-client::after{background:linear-gradient(180deg,#3b82f6 0%,#3b82f6 50%,#35b86b 50%,#35b86b 100%)}
 .hd-upcoming-session-dot{width:10px;height:10px;border-radius:50%;display:block;background:#f4b72a;border:2px solid #fff;box-shadow:0 0 0 1px #e4bd59,0 0 0 0 rgba(244,183,42,.20);cursor:help;animation:hdUpcomingSessionPulse 1.25s ease-in-out infinite;outline:none}
 .hd-upcoming-session-dot:focus-visible{box-shadow:0 0 0 2px #fff,0 0 0 4px #e4bd59}
 .hd-upcoming-tooltip{position:fixed;z-index:22000;max-width:260px;padding:8px 10px;border:1px solid #d7b84d;border-radius:8px;background:#fffaf0;color:#5b4613;font:700 12px/1.3 'Segoe UI',Arial,sans-serif;box-shadow:0 8px 24px rgba(44,35,9,.22);pointer-events:none;white-space:nowrap}
