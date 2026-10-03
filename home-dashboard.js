@@ -183,34 +183,51 @@
     return Number.isFinite(parsed)?parsed:NaN;
   }
 
-  function nextInteractionTime(c){
-    if(!c?.id)return Number.POSITIVE_INFINITY;
-    const now=Date.now();
-    let next=Number.POSITIVE_INFINITY;
-
-    let calendarEvents=[];
+  function calendarEventsForClient(c){
+    if(!c?.id)return [];
     try{
       const api=calendarApi();
-      calendarEvents=api?.forClient?.(c.id)||api?.list?.({clientId:c.id})||[];
-    }catch(_){calendarEvents=[];}
+      const rows=api?.forClient?.(c.id)||api?.list?.({clientId:c.id})||[];
+      return Array.isArray(rows)?rows:[];
+    }catch(_){return [];}
+  }
 
-    for(const event of Array.isArray(calendarEvents)?calendarEvents:[]){
+  function nextUpcomingInteraction(c){
+    const now=Date.now();
+    let best=null;
+    for(const event of calendarEventsForClient(c)){
       const time=calendarEventStartTime(event);
-      if(Number.isFinite(time)&&time>=now&&time<next)next=time;
+      if(!Number.isFinite(time)||time<now)continue;
+      if(!best||time<best.time)best={event,time};
     }
+    return best;
+  }
 
-    for(const session of Array.isArray(c.sessions)?c.sessions:[]){
-      const time=sessionStartTime(session);
-      if(Number.isFinite(time)&&time>=now&&time<next)next=time;
-    }
-
-    return next;
+  function nextInteractionTime(c){
+    return nextUpcomingInteraction(c)?.time??Number.POSITIVE_INFINITY;
   }
 
   function hasUpcomingInteraction(c,days=7){
-    const next=nextInteractionTime(c);
-    return Number.isFinite(next)&&next<Date.now()+days*24*60*60*1000;
+    const next=nextUpcomingInteraction(c);
+    return !!next&&next.time<Date.now()+days*24*60*60*1000;
   }
+
+  function upcomingInteractionLabel(upcoming){
+    if(!upcoming?.event)return '';
+    const event=upcoming.event;
+    const rawDate=String(event.date||'').trim();
+    let dateText=rawDate||'Дата не указана';
+    if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
+      const [year,month,day]=rawDate.split('-').map(Number);
+      dateText=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric'}).format(new Date(year,month-1,day,12,0,0,0));
+    }
+    const rawTime=String(event.time||'').trim();
+    const timeMatch=rawTime.match(/^(\d{1,2}):(\d{2})/);
+    const timeText=timeMatch?`${pad2(timeMatch[1])}:${pad2(timeMatch[2])}`:'время не указано';
+    return `${dateText} • ${timeText}`;
+  }
+
+  function pad2(value){return String(value??'').padStart(2,'0');}
 
   function syncDashboardView(){
     const homeMode=dashboardView==='home';
@@ -300,6 +317,46 @@
 
   let clientMenu=null;
   let clientMenuButton=null;
+  let upcomingTooltip=null;
+
+  function ensureUpcomingTooltip(){
+    if(upcomingTooltip)return upcomingTooltip;
+    upcomingTooltip=document.createElement('div');
+    upcomingTooltip.className='hd-upcoming-tooltip';
+    upcomingTooltip.hidden=true;
+    upcomingTooltip.setAttribute('role','tooltip');
+    document.body.appendChild(upcomingTooltip);
+    return upcomingTooltip;
+  }
+
+  function hideUpcomingTooltip(){
+    if(upcomingTooltip)upcomingTooltip.hidden=true;
+  }
+
+  function showUpcomingTooltip(dot){
+    const text=dot?.dataset?.tooltip||'';
+    if(!text)return;
+    const tooltip=ensureUpcomingTooltip();
+    tooltip.textContent=text;
+    tooltip.hidden=false;
+    const rect=dot.getBoundingClientRect();
+    const box=tooltip.getBoundingClientRect();
+    let left=rect.left-box.width-10;
+    if(left<8)left=rect.right+10;
+    left=Math.max(8,Math.min(window.innerWidth-box.width-8,left));
+    let top=rect.top+(rect.height-box.height)/2;
+    top=Math.max(8,Math.min(window.innerHeight-box.height-8,top));
+    tooltip.style.left=Math.round(left)+'px';
+    tooltip.style.top=Math.round(top)+'px';
+  }
+
+  function bindUpcomingTooltip(dot){
+    if(!dot)return;
+    dot.addEventListener('mouseenter',()=>showUpcomingTooltip(dot));
+    dot.addEventListener('mouseleave',hideUpcomingTooltip);
+    dot.addEventListener('focus',()=>showUpcomingTooltip(dot));
+    dot.addEventListener('blur',hideUpcomingTooltip);
+  }
 
   function closeClientMenu(){
     if(clientMenu)clientMenu.hidden=true;
@@ -426,8 +483,10 @@
       const unpaid=unpaidSessionCount(c);
       const flag=unpaid?`<span class="hd-unpaid-flag" aria-label="Есть неоплаченные сессии" title="Есть неоплаченные сессии">⚑</span>`:'';
       const newClient=isNewClient(c);
-      const upcoming=hasUpcomingInteraction(c,7);
-      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot" aria-label="Запись с клиентом в ближайшие 7 дней" title="Запись с клиентом в ближайшие 7 дней"></span>`:'';
+      const upcomingInfo=nextUpcomingInteraction(c);
+      const upcoming=!!upcomingInfo&&upcomingInfo.time<Date.now()+7*24*60*60*1000;
+      const upcomingText=upcoming?upcomingInteractionLabel(upcomingInfo):'';
+      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-tooltip="${esc(upcomingText)}"></span>`:'';
       const pinned=pinRank.has(String(c.id));
       const pin=pinned?`<span class="hd-client-pin" aria-label="Закреплённый клиент" title="Закреплён">📌</span>`:'';
       row.classList.toggle('pinned',pinned);
@@ -435,6 +494,7 @@
       row.innerHTML=`${avatar}<div><div class="hd-client-name">${esc(c.name||'Без имени')}</div><div class="hd-client-meta">${esc(clientMeta(c))}</div></div><div class="hd-client-tools"><span class="hd-client-pin-cell">${pin}</span><span class="hd-client-status-cell">${upcomingDot}</span>${flag}<button class="hd-client-more" type="button" title="Действия с клиентом" aria-haspopup="menu" aria-expanded="false">⋮</button></div>`;
       row.onclick=e=>{if(e.target.closest('.hd-client-more'))return;selectClient(c.id);};
       row.querySelector('.hd-client-more').onclick=e=>{e.stopPropagation();openClientMenu(c,e.currentTarget);};
+      bindUpcomingTooltip(row.querySelector('.hd-upcoming-session-dot'));
       list.appendChild(row);
     });
     count.textContent=clientFilter==='all'
@@ -522,8 +582,8 @@
     closeClientMenu();
   });
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeClientMenu();});
-  list.addEventListener('scroll',closeClientMenu,{passive:true});
-  window.addEventListener('resize',closeClientMenu,{passive:true});
+  list.addEventListener('scroll',()=>{closeClientMenu();hideUpcomingTooltip();},{passive:true});
+  window.addEventListener('resize',()=>{closeClientMenu();hideUpcomingTooltip();},{passive:true});
 
   const dashboardEvents=[
     'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged',
