@@ -383,7 +383,10 @@
     });
 
     document.addEventListener('visibilitychange',()=>{
-      if(!document.hidden&&autoSyncPending)scheduleAutoSync(500);
+      if(!document.hidden&&token())scheduleAutoSync(autoSyncPending?500:2000);
+    });
+    window.addEventListener('focus',()=>{
+      if(token())scheduleAutoSync(2000);
     });
     window.addEventListener('online',()=>scheduleAutoSync(1500));
 
