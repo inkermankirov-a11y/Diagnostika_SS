@@ -120,7 +120,7 @@ jobs:
           for forbidden in ["typeof save==='function'", 'st.calendarEvents', 'e.sessionNumber=', 'e.requestId=']:
               if forbidden in planning:
                   errors.append('calendar 8E legacy mutation remains: '+forbidden)
-          if 'modules/calendar/ui/session-planning.js?v=20261003-planned-session-1' not in index:
+          if 'modules/calendar/ui/session-planning.js?v=20261003-planned-session-2' not in index:
               errors.append('calendar session planning module marker is stale')
 
           for token in ["version:'8D'", 'window.DiagnostikaCalendarUI=ui', "if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui", 'row.dataset.calendarEventId']:

@@ -169,7 +169,7 @@
 
     let changed=false;
     clients().forEach(c=>{
-      const sessionEvents=api.list({clientId:c.id}).filter(isSessionEvent);
+      const sessionEvents=api.list({clientId:c.id}).filter(e=>isSessionEvent(e)&&(e.plannedSessionSkeleton===true||!!e.sessionId));
       const groups=new Map();
       sessionEvents.forEach(e=>{
         const r=requestForEvent(c,e);
