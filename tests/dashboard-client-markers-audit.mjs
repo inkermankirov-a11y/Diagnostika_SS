@@ -95,7 +95,7 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261003-fixed-right-ai-9'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261003-layout-regression-10'),'dashboard CSS cache key missing');
 assert.ok(loader.includes('home-dashboard.js?v=20261003-client-ai-binding-7'),'dashboard client-main cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-capsule-4'),'dashboard sessions cache key missing');
 assert.ok(sessionsUi.includes('border:2px solid #b9d3ea'),'sessions capsule border is not visible enough');
@@ -110,6 +110,11 @@ assert.ok(css.includes('direction:rtl'),'third-column scrollbar is not moved to 
 assert.ok(css.includes('@media(min-width:821px) and (max-width:1180px)'),'third column is not preserved while browser narrows');
 assert.ok(css.includes('/* Dashboard v9 — fixed third column width; never collapse the client AI panel. */'),'fixed third-column v9 override missing');
 assert.ok(css.includes('width:350px!important')&&css.includes('min-width:350px!important')&&css.includes('max-width:350px!important'),'third column width is not locked at 350px');
+assert.ok(css.includes('grid-template-rows:max-content max-content!important'),'right-column rows can still compress AI/notes');
+assert.ok(css.includes('min-height:395px!important'),'AI card can still clip its footer controls');
+assert.ok(css.includes('-webkit-line-clamp:2'),'client names are not constrained to two readable lines');
+assert.ok(css.includes('word-break:keep-all!important'),'client names can still break letter-by-letter');
+assert.ok(css.includes('grid-template-columns:260px minmax(0,1fr) 350px!important'),'desktop sidebar width regression is not fixed');
 assert.ok(css.includes('height:190px!important')&&css.includes('min-height:190px!important')&&css.includes('max-height:190px!important'),'AI message viewport is still being collapsed');
 assert.ok(css.includes('min-width:760px'),'narrow desktop layout can still collapse the third column');
 assert.ok(clientAiView.includes('hd-ai-hints-menu-portal'),'AI hints are not rendered as a portal menu');
