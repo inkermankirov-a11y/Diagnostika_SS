@@ -101,8 +101,8 @@
     return sessions[0]?.session||null;
   }
 
-  function focusUnpaidSession(c,session){
-    if(!c?.id||!session?.id)return false;
+  function highlightUnpaidSessionCard(session,{scroll=true}={}){
+    if(!session?.id)return false;
     const targetId=String(session.id);
     let tries=0;
     let done=false;
@@ -116,7 +116,7 @@
         return false;
       }
       done=true;
-      card.scrollIntoView({behavior:'smooth',block:'center'});
+      if(scroll)card.scrollIntoView({behavior:'smooth',block:'center'});
       card.classList.remove('hd-session-focus-unpaid');
       void card.offsetWidth;
       card.classList.add('hd-session-focus-unpaid');
@@ -125,11 +125,25 @@
       return true;
     };
 
-    const onRendered=()=>setTimeout(focusCard,0);
-    document.addEventListener('diagnostika:dashboard-sessions-rendered',onRendered,{once:true});
-    const opened=window.DiagnostikaHomeDashboard?.openClient?.(c.id);
+    document.addEventListener('diagnostika:dashboard-sessions-rendered',()=>setTimeout(focusCard,0),{once:true});
     setTimeout(focusCard,60);
+    return true;
+  }
+
+  function focusUnpaidSession(c,session){
+    if(!c?.id||!session?.id)return false;
+    const opened=window.DiagnostikaHomeDashboard?.openClient?.(c.id);
+    highlightUnpaidSessionCard(session,{scroll:true});
     return opened!==false;
+  }
+
+  function highlightUnpaidSessionForClient(clientId){
+    if(clientId===undefined||clientId===null||clientId==='')return false;
+    const c=(ui()?.clientList?.()||[]).find(x=>String(x?.id)===String(clientId));
+    if(!c)return false;
+    const target=unpaidSessionTarget(c);
+    if(!target)return false;
+    return highlightUnpaidSessionCard(target,{scroll:true});
   }
 
   function configureDebtFlag(flag,c){
@@ -207,11 +221,16 @@
   document.addEventListener('diagnostika:dashboard-clients-rendered',queue);
   window.addEventListener('diagnostika:payment-dialog-opened',queue);
   document.addEventListener('diagnostika:dashboard-sessions-rendered',queue);
+  document.addEventListener('diagnostika:dashboard-client-opened',event=>{
+    const clientId=event?.detail?.clientId;
+    if(clientId===undefined||clientId===null||clientId==='')return;
+    setTimeout(()=>highlightUnpaidSessionForClient(clientId),0);
+  });
   const events=window.DiagnostikaPlatform?.events;
   for(const type of ['client:selected','client:updated','request:selected','request:updated','payment:updated','payment:added','payment:deleted','session-payment:updated','session:created','session:updated','session:deleted'])events?.on?.(type,queue);
   document.addEventListener('click',e=>{
     if(e.target?.closest?.('#paymentSaveSettings,.session-payment-toggle-stable,.session-editor-payment-state,.payment-edit-save,.payment-edit-delete'))setTimeout(queue,0);
   },true);
   setTimeout(queue,0);
-  window.DiagnostikaClientPaymentFlags=Object.freeze({refresh:syncFlags,hasDebt:clientHasDebt,activeRequest,requestHasDebt,paidTotal});
+  window.DiagnostikaClientPaymentFlags=Object.freeze({refresh:syncFlags,hasDebt:clientHasDebt,activeRequest,requestHasDebt,paidTotal,unpaidSessionTarget,highlightUnpaidSessionForClient});
 })();
