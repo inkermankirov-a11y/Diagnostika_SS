@@ -8,8 +8,8 @@
   const AVATAR_KEY = 'diagnostika-specialist-avatar';
 
   const LABELS = {
-    ru:{accounts:'Учетные записи',name:'Имя специалиста',hint:'Укажи своё имя. Оно будет записываться при передаче клиентов.',save:'Сохранить',saved:'Сохранено',empty:'Имя специалиста',avatarTitle:'Настройка аватара',avatarHint:'Перетащи фотографию внутри круга, чтобы выставить лицо как нужно.',cancel:'Отмена',avatarSave:'Сохранить'},
-    en:{accounts:'Accounts',name:'Specialist name',hint:'Enter your name. It will be recorded when clients are transferred.',save:'Save',saved:'Saved',empty:'Specialist name',avatarTitle:'Avatar setup',avatarHint:'Drag the photo inside the circle to position it.',cancel:'Cancel',avatarSave:'Save'},
+    ru:{accounts:'Учетные записи',name:'Имя специалиста',hint:'Данные карточки сохраняются вместе с базой.',save:'Сохранить карточку',saved:'Сохранено',empty:'Имя специалиста',profile:'Карточка специалиста',title:'Специализация / должность',titlePlaceholder:'Например: гипнотерапевт, психолог-консультант',experience:'Опыт работы',experiencePlaceholder:'Например: 8 лет',areas:'Направления работы',areasPlaceholder:'Отношения, деньги, карьера, самореализация',about:'О специалисте',aboutPlaceholder:'Коротко о подходе, опыте и формате работы',reviews:'Отзывы',reviewAuthor:'Автор / подпись',reviewText:'Текст отзыва',reviewAdd:'Добавить отзыв',reviewEmpty:'Отзывов пока нет',reviewDelete:'Удалить',photo:'Фотография',photoEdit:'Изменить миниатюру',photoReplace:'Заменить фото',photoDelete:'Удалить фото',avatarTitle:'Редактор фотографии',avatarHint:'Перетаскивай фотографию, меняй масштаб и положение внутри круга.',zoom:'Масштаб',cancel:'Отмена',avatarSave:'Сохранить миниатюру'},
+    en:{accounts:'Accounts',name:'Specialist name',hint:'Profile data is stored with the database.',save:'Save profile',saved:'Saved',empty:'Specialist name',profile:'Specialist profile',title:'Role / specialty',titlePlaceholder:'For example: therapist, counselor',experience:'Experience',experiencePlaceholder:'For example: 8 years',areas:'Areas of work',areasPlaceholder:'Relationships, money, career, self-realization',about:'About specialist',aboutPlaceholder:'Short description of approach and experience',reviews:'Reviews',reviewAuthor:'Author / signature',reviewText:'Review text',reviewAdd:'Add review',reviewEmpty:'No reviews yet',reviewDelete:'Delete',photo:'Photo',photoEdit:'Edit thumbnail',photoReplace:'Replace photo',photoDelete:'Delete photo',avatarTitle:'Photo editor',avatarHint:'Drag the photo, change zoom and position inside the circle.',zoom:'Zoom',cancel:'Cancel',avatarSave:'Save thumbnail'},
     fr:{accounts:'Comptes',name:'Nom du spécialiste',hint:'Indiquez votre nom. Il sera enregistré lors du transfert des clients.',save:'Enregistrer',saved:'Enregistré',empty:'Nom du spécialiste',avatarTitle:'Réglage de l’avatar',avatarHint:'Faites glisser la photo dans le cercle pour la positionner.',cancel:'Annuler',avatarSave:'Enregistrer'},
     de:{accounts:'Konten',name:'Name des Spezialisten',hint:'Gib deinen Namen an. Er wird bei der Übertragung von Klienten gespeichert.',save:'Speichern',saved:'Gespeichert',empty:'Name des Spezialisten',avatarTitle:'Avatar einstellen',avatarHint:'Ziehe das Foto im Kreis an die gewünschte Position.',cancel:'Abbrechen',avatarSave:'Speichern'},
     it:{accounts:'Account',name:'Nome dello specialista',hint:'Inserisci il tuo nome. Verrà registrato durante il trasferimento dei clienti.',save:'Salva',saved:'Salvato',empty:'Nome dello specialista',avatarTitle:'Imposta avatar',avatarHint:'Trascina la foto nel cerchio per posizionarla.',cancel:'Annulla',avatarSave:'Salva'}
@@ -23,9 +23,51 @@
     const l = window.DiagnostikaI18n?.language || localStorage.getItem('diagnostika-ui-language') || 'ru';
     return LABELS[l] ? l : 'ru';
   }
-  function t(){ return LABELS[lang()]; }
-  function getName(){ return String(localStorage.getItem(NAME_KEY) || '').trim(); }
-  function getAvatar(){ return String(localStorage.getItem(AVATAR_KEY) || ''); }
+  function t(){ return {...LABELS.en,...(LABELS[lang()]||LABELS.ru)}; }
+  const clone=value=>{try{return typeof structuredClone==='function'?structuredClone(value):JSON.parse(JSON.stringify(value));}catch(_){return value&&typeof value==='object'?{...value}:value;}};
+  const uid=()=>crypto.randomUUID?crypto.randomUUID():'review_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  function appState(){try{return typeof state!=='undefined'&&state&&typeof state==='object'?state:null;}catch(_){return null;}}
+  function normalizeAreas(value){if(Array.isArray(value))return value.map(x=>String(x||'').trim()).filter(Boolean);return String(value||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean);}
+  function normalizeReviews(value){return(Array.isArray(value)?value:[]).map(item=>({id:String(item?.id||uid()),author:String(item?.author||'').trim(),text:String(item?.text||'').trim(),createdAt:Number(item?.createdAt)||Date.now()})).filter(item=>item.text);}
+  function normalizeProfile(value={}){
+    return{
+      name:String(value?.name||'').trim(),title:String(value?.title||'').trim(),experience:String(value?.experience||'').trim(),
+      areas:normalizeAreas(value?.areas),about:String(value?.about||'').trim(),reviews:normalizeReviews(value?.reviews),
+      avatar:String(value?.avatar||''),avatarSource:String(value?.avatarSource||''),
+      avatarCrop:{x:clamp(Number(value?.avatarCrop?.x)||50,0,100),y:clamp(Number(value?.avatarCrop?.y)||50,0,100),zoom:clamp(Number(value?.avatarCrop?.zoom)||1,1,3)},
+      updatedAt:Number(value?.updatedAt)||Date.now()
+    };
+  }
+  function ensureProfile(){
+    const st=appState();
+    if(st){
+      const had=st.specialistProfile&&typeof st.specialistProfile==='object';
+      const profile=normalizeProfile(had?st.specialistProfile:{});
+      let changed=!had;
+      const legacyName=String(localStorage.getItem(NAME_KEY)||'').trim(),legacyAvatar=String(localStorage.getItem(AVATAR_KEY)||'');
+      if(!profile.name&&legacyName){profile.name=legacyName;changed=true;}
+      if(!profile.avatar&&legacyAvatar){profile.avatar=legacyAvatar;changed=true;}
+      if(!profile.avatarSource&&profile.avatar){profile.avatarSource=profile.avatar;changed=true;}
+      st.specialistProfile=profile;
+      if(changed&&typeof save==='function'){try{save({source:'specialist-profile-migration'});}catch(_){}}
+      return profile;
+    }
+    return normalizeProfile({name:localStorage.getItem(NAME_KEY)||'',avatar:localStorage.getItem(AVATAR_KEY)||''});
+  }
+  function getProfile(){return normalizeProfile(ensureProfile());}
+  function getName(){return getProfile().name;}
+  function getAvatar(){return getProfile().avatar;}
+  function persistProfile(next,source='specialist-profile-save'){
+    const profile=normalizeProfile({...next,updatedAt:Date.now()}),st=appState();
+    if(st){
+      const before=clone(st.specialistProfile);st.specialistProfile=profile;
+      let ok=true;if(typeof save==='function'){try{ok=save({source})!==false;}catch(_){ok=false;}}
+      if(!ok){st.specialistProfile=before;return false;}
+    }
+    try{localStorage.setItem(NAME_KEY,profile.name);if(profile.avatar)localStorage.setItem(AVATAR_KEY,profile.avatar);else localStorage.removeItem(AVATAR_KEY);}catch(_){}
+    window.dispatchEvent(new CustomEvent('diagnostika-specialist-profile-change',{detail:clone(profile)}));
+    return true;
+  }
   function initials(name){
     const p = String(name || '').trim().split(/\s+/).filter(Boolean);
     if (!p.length) return '👤';
