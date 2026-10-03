@@ -84,6 +84,16 @@
     return !!r&&sessionRequestId(s)===String(r.id);
   }
 
+  function isPlannedSession(s){
+    return !!s&&(s.planned===true||String(s.status||'')==='planned');
+  }
+
+  function scheduledLabel(s){
+    const date=String(s?.date||'').trim()||'Дата не указана';
+    const time=String(s?.scheduledTime||'').trim();
+    return time?`${date} • ${time}`:date;
+  }
+
   function numberedSessions(c){
     const sessions=Array.isArray(c?.sessions)?c.sessions:[];
     const chronological=sessions
@@ -198,20 +208,32 @@
       card.dataset.sessionId=String(s.id||'');
       card.tabIndex=0;
       card.title='Открыть и редактировать сессию';
+      const planned=isPlannedSession(s);
+      card.classList.toggle('is-planned',planned);
       const notes=String(s.notes||'').trim();
+      const plan=String(s.plan||'').trim();
       const req=requestForSession(c,s);
-      const showPayment=req?.payment?.mode==='session';
+      const showPayment=!planned&&req?.payment?.mode==='session';
       const paid=Boolean(s?.payment?.paid);
       const paymentHtml=showPayment?`<span class="hd-session-pay ${paid?'paid':'unpaid'}"><span class="hd-session-flag">⚑</span>${paid?'Оплачено':'Не оплачено'}</span>`:'';
+      const plannedHtml=planned
+        ?`<span class="hd-session-planned-badge">● ЗАПЛАНИРОВАНО</span><span class="hd-session-not-done">НЕ ПРОВЕДЕНА</span>`
+        :'';
+      const typeHtml=planned&&s.appointmentType?`<span class="hd-session-type">${esc(s.appointmentType)}</span>`:'';
+      const bodyHtml=planned
+        ?`<div class="hd-session-plan-label">ПЛАН НА СЕССИЮ</div><div class="hd-session-plan ${plan?'':'empty'}">${plan?esc(plan):'План пока не заполнен — откройте карточку и подготовьте его заранее.'}</div>`
+        :(notes?`<div class="hd-session-note-label">ЗАМЕТКА</div><div class="hd-session-note">${esc(notes)}</div>`:'<div class="hd-session-note hd-session-note-empty">Заметка не добавлена</div>');
       card.innerHTML=`
         <div class="hd-session-top">
           <strong>Сессия №${number}</strong>
-          <span class="hd-session-date">◷ ${esc(s.date||'—')}</span>
+          ${plannedHtml}
+          <span class="hd-session-date">◷ ${esc(planned?scheduledLabel(s):(s.date||'—'))}</span>
+          ${typeHtml}
           <span class="hd-session-request">• ${esc(requestName(c,s))}</span>
           ${paymentHtml}
-          <span class="hd-session-edit-hint">Редактировать</span>
+          <span class="hd-session-edit-hint">${planned?'Открыть план':'Редактировать'}</span>
         </div>
-        ${notes?`<div class="hd-session-note-label">ЗАМЕТКА</div><div class="hd-session-note">${esc(notes)}</div>`:'<div class="hd-session-note hd-session-note-empty">Заметка не добавлена</div>'}
+        ${bodyHtml}
       `;
       card.addEventListener('click',e=>{
         if(e.target.closest('button,a,input,select,textarea,label')) return;
@@ -284,13 +306,20 @@
     .hd-sessions-list{display:grid;gap:11px;width:100%}
     .hd-session-card{border:1px solid #d6e3f2;border-left:4px solid #6ea4ef;border-radius:11px;background:#fff;box-shadow:0 2px 8px rgba(31,71,122,.05);overflow:hidden;transition:.15s ease}
     .hd-session-card-openable{cursor:pointer}.hd-session-card-openable:hover{border-color:#9ec2f3;box-shadow:0 5px 14px rgba(31,71,122,.10);transform:translateY(-1px)}
+    .hd-session-card.is-planned{border-color:#f0c96b;border-left-color:#f59e0b;background:#fffdf6;box-shadow:0 4px 14px rgba(180,119,10,.10)}
+    .hd-session-card.is-planned:hover{border-color:#e9b840;box-shadow:0 7px 20px rgba(180,119,10,.16)}
     .hd-session-card-openable:focus{outline:3px solid rgba(47,124,246,.16);outline-offset:2px}
     .hd-session-card.hd-session-focus-unpaid{border-color:#ef7777;border-left-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.16),0 8px 22px rgba(185,28,28,.14);animation:hdSessionUnpaidFocus 1.1s ease-in-out 2}
     @keyframes hdSessionUnpaidFocus{0%,100%{box-shadow:0 0 0 3px rgba(220,38,38,.12),0 8px 22px rgba(185,28,28,.10)}50%{box-shadow:0 0 0 5px rgba(220,38,38,.22),0 10px 28px rgba(185,28,28,.18)}}
     .hd-session-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;background:#f5f9fe;color:#173154;font-size:13px}.hd-session-top strong{font-size:14px}
-    .hd-session-date,.hd-session-request{padding:4px 9px;border:1px solid #dce8f5;border-radius:999px;background:#fff;color:#647b99;font-size:12px}
+    .hd-session-card.is-planned .hd-session-top{background:linear-gradient(180deg,#fff8dd,#fff3c4)}
+    .hd-session-date,.hd-session-request,.hd-session-type{padding:4px 9px;border:1px solid #dce8f5;border-radius:999px;background:#fff;color:#647b99;font-size:12px}
+    .hd-session-card.is-planned .hd-session-date{border-color:#edc86f;background:#fffdf5;color:#7c5a12;font-weight:800}
+    .hd-session-planned-badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#f59e0b;color:#fff;font-size:10px;font-weight:900;letter-spacing:.04em;box-shadow:0 2px 6px rgba(180,119,10,.18)}
+    .hd-session-not-done{padding:4px 8px;border:1px solid #e4b95c;border-radius:999px;background:#fff7db;color:#8a6212;font-size:10px;font-weight:900;letter-spacing:.04em}
+    .hd-session-type{border-color:#d7c8f4;background:#f6f0ff;color:#6d49a3;font-weight:800}
     .hd-session-pay{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid transparent;white-space:nowrap}.hd-session-pay.paid{background:#e9f8ef;color:#247a49;border-color:#bfe7ce}.hd-session-pay.unpaid{background:#fdecec;color:#b33a3a;border-color:#f1c3c3}.hd-session-flag{font-size:13px;line-height:1}
-    .hd-session-edit-hint{margin-left:auto;color:#2f70d4;font-size:12px;font-weight:800}.hd-session-note-label{padding:11px 14px 0;color:#a17b55;font-size:10px;font-weight:800;letter-spacing:.08em}.hd-session-note{padding:7px 14px 14px;color:#243a58;font-size:13px;line-height:1.45;white-space:pre-wrap}.hd-session-note-empty{color:#9aa9bc;font-style:italic;padding-top:13px}.hd-sessions-empty{padding:22px;border:1px dashed #cfddec;border-radius:10px;text-align:center;color:#8a9ab3;background:#fbfdff;font-size:13px}
+    .hd-session-edit-hint{margin-left:auto;color:#2f70d4;font-size:12px;font-weight:800}.hd-session-note-label,.hd-session-plan-label{padding:11px 14px 0;color:#a17b55;font-size:10px;font-weight:800;letter-spacing:.08em}.hd-session-note,.hd-session-plan{padding:7px 14px 14px;color:#243a58;font-size:13px;line-height:1.45;white-space:pre-wrap}.hd-session-note-empty{color:#9aa9bc;font-style:italic;padding-top:13px}.hd-session-plan-label{color:#976a0a}.hd-session-plan{color:#654c17;font-weight:700}.hd-session-plan.empty{color:#a2854a;font-weight:600;font-style:italic}.hd-sessions-empty{padding:22px;border:1px dashed #cfddec;border-radius:10px;text-align:center;color:#8a9ab3;background:#fbfdff;font-size:13px}
     .hd-session-archive-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}.hd-session-archive-dialog::backdrop{background:rgba(15,23,42,.44);backdrop-filter:blur(5px)}.hd-session-archive-window{width:min(720px,calc(100vw - 24px));max-height:86vh;overflow:auto;background:#f8fafc;border:1px solid #d5dee8;border-radius:14px;box-shadow:0 24px 65px rgba(15,23,42,.28);padding:18px;box-sizing:border-box}.hd-session-archive-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.hd-session-archive-head strong{font-size:19px;color:#26384b}.hd-session-archive-sub{margin-top:3px;font-size:12px;color:#7b8ba0}.hd-session-archive-close{width:36px;height:36px;border-radius:8px!important;padding:0!important}.hd-session-archive-list{display:grid;gap:8px}.hd-session-archive-row{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;padding:11px 12px;border:1px solid #dbe4ed;border-radius:9px;background:#fff;cursor:pointer}.hd-session-archive-row:hover{background:#f8fbff}.hd-session-archive-main{display:grid;gap:3px}.hd-session-archive-main span{font-size:12px;color:#718198}.hd-session-archive-request{font-size:13px;color:#334155}
     @media(max-width:820px){.hd-sessions-head{align-items:stretch;flex-direction:column}.hd-sessions-actions{width:100%}.hd-sessions-actions button{flex:1}.hd-session-edit-hint{width:100%;margin-left:0}.hd-session-archive-row{grid-template-columns:1fr}.hd-session-pay{justify-self:start}}
   `;
