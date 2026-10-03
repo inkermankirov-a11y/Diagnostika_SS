@@ -4,7 +4,6 @@
   if (window.__diagnostikaClientAiChatViewReady) return;
   window.__diagnostikaClientAiChatViewReady = true;
 
-  const EXPANDED_KEY='diagnostika-client-ai-chat-expanded-v1';
   const MODE_KEY='diagnostika-client-ai-answer-mode-v1';
   let attempts=0;
   let widget=null;
@@ -248,7 +247,6 @@
     if(backdrop)backdrop.hidden=!expanded;
     const btn=widget.querySelector('.hd-ai-expand-btn');
     if(btn){btn.textContent=expanded?'↙':'⛶';btn.title=expanded?'Свернуть чат':'Развернуть чат';btn.setAttribute('aria-label',btn.title);}
-    try{localStorage.setItem(EXPANDED_KEY,expanded?'1':'0');}catch(_){ }
     if(expanded){const input=widget.querySelector('.hd-ai-input');setTimeout(()=>input?.focus(),0);}
   }
 
@@ -298,9 +296,7 @@
     normalizeHeader();
     installFooterControls();
 
-    let shouldExpand=false;
-    try{shouldExpand=localStorage.getItem(EXPANDED_KEY)==='1';}catch(_){ }
-    setExpanded(shouldExpand);
+    setExpanded(false);
     hookPlatformEvents();
     return true;
   }
@@ -324,6 +320,7 @@
   window.addEventListener('scroll',()=>{if(activeHintsMenu&&!activeHintsMenu.hidden)positionHintsMenu(activeHintsButton,activeHintsMenu);},true);
   window.addEventListener('diagnostika:client-ai-widget-ready',()=>setTimeout(()=>{install();normalizeHeader();},0));
   document.addEventListener('diagnostika:dashboard-clients-rendered',()=>setTimeout(normalizeHeader,0));
+  document.addEventListener('diagnostika:dashboard-home-opened',()=>setExpanded(false));
   window.addEventListener('diagnostika:platform-core-ready',()=>hookPlatformEvents(),{once:true});
   window.addEventListener('diagnostika-client-ai-chat-changed',()=>setTimeout(()=>{install();normalizeHeader();scrollAssistantToStart();},0));
 
