@@ -135,12 +135,12 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const css=document.createElement('link');
       css.rel='stylesheet';
-      css.href='home-dashboard.css?v=20261003-balanced-main-3';
+      css.href='home-dashboard.css?v=20261003-specialist-rail-4';
       css.setAttribute('data-home-dashboard','1');
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261003-balanced-main-3','data-home-dashboard-preload'],
+      ['home-dashboard.js?v=20261003-specialist-rail-4','data-home-dashboard-preload'],
       ['home-dashboard-sessions.js?v=20261003-full-history-3','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
