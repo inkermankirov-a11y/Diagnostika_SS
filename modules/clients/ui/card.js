@@ -633,6 +633,102 @@
     else{img.removeAttribute('src');img.style.display='none';ph.style.display='grid';}
   }
 
+  const photoActionsDlg=document.createElement('dialog');
+  photoActionsDlg.className='cc-photo-actions-dialog';
+  photoActionsDlg.innerHTML='<div class="cc-photo-actions-card"><div class="cc-photo-actions-title">Фотография клиента</div><button type="button" data-photo-action="edit">Изменить миниатюру</button><button type="button" data-photo-action="replace">Загрузить новую</button><button type="button" data-photo-action="delete" class="danger">Удалить фотографию</button><button type="button" data-photo-action="cancel" class="ghost">Отмена</button></div>';
+  document.body.appendChild(photoActionsDlg);
+
+  const photoEditorDlg=document.createElement('dialog');
+  photoEditorDlg.className='cc-photo-editor-dialog';
+  photoEditorDlg.innerHTML='<div class="cc-photo-editor-card"><div class="cc-photo-editor-title">Миниатюра фотографии</div><div class="cc-photo-editor-hint">Перетащи фото, чтобы выбрать область. Масштаб меняется ползунком.</div><div class="cc-photo-editor-preview"><img alt=""></div><div class="cc-photo-editor-zoom"><span>Масштаб</span><input type="range" min="1" max="3" step="0.05" value="1"><strong>100%</strong></div><div class="cc-photo-editor-buttons"><button type="button" class="ghost" data-editor-action="cancel">Отмена</button><button type="button" class="primary" data-editor-action="save">Сохранить миниатюру</button></div></div>';
+  document.body.appendChild(photoEditorDlg);
+
+  const photoEditorPreview=photoEditorDlg.querySelector('.cc-photo-editor-preview');
+  const photoEditorImg=photoEditorPreview.querySelector('img');
+  const photoZoom=photoEditorDlg.querySelector('input[type="range"]');
+  const photoZoomValue=photoEditorDlg.querySelector('.cc-photo-editor-zoom strong');
+  let photoEditorSource=null;
+  let photoEditorSourceData='';
+  let editorCrop={x:50,y:50,zoom:1};
+  let editorDragging=false,editorStartX=0,editorStartY=0,editorStartCropX=50,editorStartCropY=50;
+
+  function clampPhoto(n,min,max){return Math.max(min,Math.min(max,n));}
+  function loadPhotoImage(data){
+    return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=data;});
+  }
+  function compressPhotoSource(img){
+    const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,max=1800,scale=Math.min(1,max/Math.max(w,h));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',0.9);
+  }
+  function paintPhotoEditor(){
+    photoEditorImg.style.objectPosition=editorCrop.x+'% '+editorCrop.y+'%';
+    photoEditorImg.style.transform='scale('+editorCrop.zoom+')';
+    photoEditorImg.style.transformOrigin=editorCrop.x+'% '+editorCrop.y+'%';
+    photoZoom.value=String(editorCrop.zoom);
+    photoZoomValue.textContent=Math.round(editorCrop.zoom*100)+'%';
+  }
+  async function openPhotoEditor(data,crop=photoCrop){
+    if(!data)return;
+    try{
+      photoEditorSource=await loadPhotoImage(data);
+      photoEditorSourceData=data;
+      editorCrop={
+        x:clampPhoto(Number(crop?.x)||50,0,100),
+        y:clampPhoto(Number(crop?.y)||50,0,100),
+        zoom:clampPhoto(Number(crop?.zoom)||1,1,3)
+      };
+      photoEditorImg.src=data;
+      paintPhotoEditor();
+      photoEditorDlg.showModal();
+    }catch(error){console.warn('[Diagnostika] client photo editor failed',error);}
+  }
+  function cropClientPhoto(img,crop){
+    const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,targetRatio=190/220;
+    let baseW,baseH;
+    if(w/h>targetRatio){baseH=h;baseW=h*targetRatio;}else{baseW=w;baseH=w/targetRatio;}
+    const zoom=clampPhoto(Number(crop.zoom)||1,1,3);
+    const cropW=baseW/zoom,cropH=baseH/zoom;
+    const sx=(w-cropW)*(clampPhoto(Number(crop.x)||50,0,100)/100);
+    const sy=(h-cropH)*(clampPhoto(Number(crop.y)||50,0,100)/100);
+    const canvas=document.createElement('canvas');canvas.width=570;canvas.height=660;
+    canvas.getContext('2d').drawImage(img,sx,sy,cropW,cropH,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',0.9);
+  }
+
+  photoEditorPreview.addEventListener('pointerdown',e=>{
+    if(!photoEditorSource)return;
+    editorDragging=true;photoEditorPreview.classList.add('dragging');photoEditorPreview.setPointerCapture?.(e.pointerId);
+    editorStartX=e.clientX;editorStartY=e.clientY;editorStartCropX=editorCrop.x;editorStartCropY=editorCrop.y;e.preventDefault();
+  });
+  photoEditorPreview.addEventListener('pointermove',e=>{
+    if(!editorDragging)return;
+    const r=photoEditorPreview.getBoundingClientRect(),sensitivity=100/Math.max(1,editorCrop.zoom);
+    editorCrop.x=clampPhoto(editorStartCropX-(e.clientX-editorStartX)/Math.max(1,r.width)*sensitivity,0,100);
+    editorCrop.y=clampPhoto(editorStartCropY-(e.clientY-editorStartY)/Math.max(1,r.height)*sensitivity,0,100);
+    paintPhotoEditor();e.preventDefault();
+  });
+  function stopPhotoEditorDrag(){editorDragging=false;photoEditorPreview.classList.remove('dragging');}
+  photoEditorPreview.addEventListener('pointerup',stopPhotoEditorDrag);
+  photoEditorPreview.addEventListener('pointercancel',stopPhotoEditorDrag);
+  photoZoom.addEventListener('input',()=>{editorCrop.zoom=clampPhoto(Number(photoZoom.value)||1,1,3);paintPhotoEditor();});
+
+  photoActionsDlg.querySelector('[data-photo-action="edit"]').onclick=()=>{photoActionsDlg.close();openPhotoEditor(photoSourceData||photoData,photoCrop);};
+  photoActionsDlg.querySelector('[data-photo-action="replace"]').onclick=()=>{photoActionsDlg.close();q('ccPhotoInput').click();};
+  photoActionsDlg.querySelector('[data-photo-action="delete"]').onclick=()=>{setPhoto('','',{x:50,y:50,zoom:1});dirty=true;photoActionsDlg.close();};
+  photoActionsDlg.querySelector('[data-photo-action="cancel"]').onclick=()=>photoActionsDlg.close();
+  photoEditorDlg.querySelector('[data-editor-action="cancel"]').onclick=()=>{photoEditorSource=null;photoEditorSourceData='';photoEditorDlg.close();};
+  photoEditorDlg.querySelector('[data-editor-action="save"]').onclick=()=>{
+    if(!photoEditorSource){photoEditorDlg.close();return;}
+    const cropped=cropClientPhoto(photoEditorSource,editorCrop);
+    setPhoto(cropped,photoEditorSourceData,{...editorCrop});
+    dirty=true;photoEditorSource=null;photoEditorSourceData='';photoEditorDlg.close();
+  };
+  photoActionsDlg.addEventListener('cancel',e=>{e.preventDefault();photoActionsDlg.close();});
+  photoEditorDlg.addEventListener('cancel',e=>{e.preventDefault();photoEditorDlg.close();});
+
   function sourceClient(){
     if(draftMode) return draft;
     return currentClient();
