@@ -80,6 +80,9 @@
   const interfaceBtn=wrap.querySelector('.settings-interface-btn');
   const interfaceContent=wrap.querySelector('.settings-interface-content');
 
+  // Portal the modal surface to body so header glass/backdrop filters cannot clip it.
+  if(backdrop&&panel)document.body.append(backdrop,panel);
+
   const saveHistory=document.getElementById('saveHistoryBtn');
   if(saveHistory) saveHistory.remove();
 
@@ -131,6 +134,8 @@
   }
   function setOpen(open){
     wrap.classList.toggle('open',open);
+    panel.classList.toggle('settings-panel-open',open);
+    backdrop?.classList.toggle('settings-backdrop-open',open);
     btn.setAttribute('aria-expanded',String(open));
     document.documentElement.classList.toggle('settings-modal-open',open);
     updateLabel();
