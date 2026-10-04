@@ -1,6 +1,6 @@
 /* Three independent primary sections in the diagnosis left column. */
 #diagnosisWorkspace .diagnostics-left{
-  gap:10px;
+  gap:0!important;
 }
 
 #diagnosisWorkspace .diagnostics-left>.separator{
@@ -25,13 +25,13 @@
 }
 
 #diagnosisWorkspace .diagnosis-request-card{
-  border:1px solid #c3d4ee;
-  background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%);
-  box-shadow:0 4px 12px rgba(57,92,151,.09);
+  border:1px solid #b9d6ee;
+  background:linear-gradient(180deg,#f3faff 0%,#e8f4fb 100%);
+  box-shadow:0 4px 12px rgba(48,108,154,.10);
 }
 
 #diagnosisWorkspace .diagnosis-request-card .diagnosis-request-title{
-  color:#294f8d;
+  color:#23638e;
 }
 
 #diagnosisWorkspace .diagnosis-request-card .diagnosis-subsection-title{
@@ -50,19 +50,19 @@
 }
 
 #diagnosisWorkspace .diagnosis-situations-card{
-  margin-top:0;
-  border:1px solid #d2c6ec;
-  background:linear-gradient(180deg,#faf8ff 0%,#f2edff 100%);
-  box-shadow:0 4px 12px rgba(91,75,163,.09);
+  margin-top:18px!important;
+  border:1px solid #e6bfd0;
+  background:linear-gradient(180deg,#fff6fa 0%,#fbeaf1 100%);
+  box-shadow:0 4px 12px rgba(154,74,110,.10);
 }
 
 #diagnosisWorkspace .diagnosis-situations-card .diagnosis-situations-title{
-  color:#5b4ba3;
+  color:#9a416b;
 }
 
 #diagnosisWorkspace .diagnosis-situations-card .situation-list{
   height:88px;
-  border-color:#8f7abf;
+  border-color:#d39ab4;
   background:#fff;
 }
 
@@ -76,7 +76,7 @@
 }
 
 #diagnosisWorkspace .diagnosis-result-card{
-  margin:0 8px 4px;
+  margin:18px 8px 4px!important;
   border:1px solid #b9d8c4;
   background:linear-gradient(180deg,#f6fcf8 0%,#edf8f1 100%);
   box-shadow:0 4px 12px rgba(35,96,58,.08);
