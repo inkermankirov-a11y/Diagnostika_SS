@@ -217,7 +217,8 @@ for(const event of events){
 for(const [key,count] of uiPairs)assert.equal(count,1,'Duplicate UI event '+key);
 assert.equal(events.filter(x=>x.type==='request:selected'&&x.detail.source==='request-ui-view').length,1);
 assert.equal(events.filter(x=>x.type==='request:activated'&&x.detail.source==='request-ui-view').length,0);
-assert.equal(events.filter(x=>x.type==='request:updated'&&x.detail.source==='request-title-display').length,1);
+assert.equal(events.filter(x=>x.type==='request:updated'&&x.detail.source==='request-title-modal').length,2);
+assert.equal(events.filter(x=>x.type==='request:updated'&&x.detail.source==='request-title-display').length,0);
 
 const observers=await page.evaluate(()=>(window.__requests3bObservers||[]).map(x=>({stack:x.stack,count:x.count,records:x.records})));
 const requestSelectObservers=observers.filter(x=>x.stack.includes('modules/requests/ui/selection.js'));
