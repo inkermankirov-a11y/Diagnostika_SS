@@ -56,6 +56,41 @@ assert(actionLayout.deleteElementBtn.scrollWidth<=actionLayout.deleteElementBtn.
 assert.equal(actionLayout.deleteElementBtn.whiteSpace,'nowrap','Delete text can wrap');
 assert.match(actionLayout.deleteElementBtn.writingMode,/horizontal/i,'Delete button is not horizontal');
 assert(actionLayout.bar.scrollWidth<=actionLayout.bar.clientWidth+1,'Diagnosis action bar overflows');
+
+const leftSections=await page.evaluate(()=>{
+  const request=document.querySelector('.diagnosis-request-card');
+  const situations=document.querySelector('.diagnosis-situations-card');
+  const result=document.querySelector('.diagnosis-result-card');
+  const footer=document.querySelector('.left-footer-actions');
+  const styleOf=el=>{
+    const s=getComputedStyle(el);
+    const r=el.getBoundingClientRect();
+    return {
+      top:r.top,
+      bottom:r.bottom,
+      borderTopStyle:s.borderTopStyle,
+      borderTopColor:s.borderTopColor,
+      borderRadius:s.borderRadius,
+      backgroundImage:s.backgroundImage
+    };
+  };
+  return {
+    request:styleOf(request),
+    situations:styleOf(situations),
+    result:styleOf(result),
+    footerInsideSituations:footer?.parentElement===situations,
+    mainBlockCount:document.querySelectorAll('#diagnosticsLeft>.diagnosis-main-block').length
+  };
+});
+assert.equal(leftSections.mainBlockCount,3,'Diagnosis left column must contain exactly three primary blocks');
+assert.equal(leftSections.footerInsideSituations,true,'Situation actions must stay inside the Situations block');
+for(const name of ['request','situations','result']){
+  assert.equal(leftSections[name].borderTopStyle,'solid',name+' block has no independent border');
+  assert.notEqual(leftSections[name].backgroundImage,'none',name+' block has no independent background');
+  assert.match(leftSections[name].borderRadius,/10px/,name+' block is not visually card-like');
+}
+assert.notEqual(leftSections.request.borderTopColor,leftSections.situations.borderTopColor,'Request and Situations blocks are not visually distinguished');
+assert.notEqual(leftSections.situations.borderTopColor,leftSections.result.borderTopColor,'Situations and Result blocks are not visually distinguished');
 assert(Math.abs(actionLayout.actionTop-actionLayout.clientHeaderTop)<=1.5,'Diagnosis action buttons are not aligned to the client header top edge');
 
 async function expectHelpIcon(id,fragment){
