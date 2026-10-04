@@ -57,6 +57,24 @@ assert.equal(actionLayout.deleteElementBtn.whiteSpace,'nowrap','Delete text can 
 assert.match(actionLayout.deleteElementBtn.writingMode,/horizontal/i,'Delete button is not horizontal');
 assert(actionLayout.bar.scrollWidth<=actionLayout.bar.clientWidth+1,'Diagnosis action bar overflows');
 
+// Diagnosis buttons must keep a stationary hit box on hover.
+// The old global translateY(-2px) made the pointer repeatedly enter/leave at button edges.
+for(const id of ['addBeliefBtn','addFeelingBtn','addDeepBtn','deleteElementBtn','addRequestBtn','deleteRequestBtn','addSituationBtn','editSituationBtn','deleteSituationBtn','hintBtn']){
+  const button=page.locator('#'+id);
+  if(!(await button.isVisible())) continue;
+  const before=await button.boundingBox();
+  assert(before,id+' has no pre-hover geometry');
+  await button.hover();
+  await page.waitForTimeout(180);
+  const after=await button.boundingBox();
+  assert(after,id+' has no post-hover geometry');
+  assert(Math.abs(after.x-before.x)<0.1,id+' moves horizontally on hover');
+  assert(Math.abs(after.y-before.y)<0.1,id+' moves vertically on hover');
+  const transform=await button.evaluate(el=>getComputedStyle(el).transform);
+  assert.equal(transform,'none',id+' still applies a hover transform');
+}
+
+
 const leftSections=await page.evaluate(()=>{
   const request=document.querySelector('.diagnosis-request-card');
   const situations=document.querySelector('.diagnosis-situations-card');
