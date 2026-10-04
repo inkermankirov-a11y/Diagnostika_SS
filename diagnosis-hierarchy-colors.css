@@ -1,0 +1,30 @@
+/* Diagnosis hierarchy colors. Loaded last on purpose to win over legacy button themes. */
+#diagnosisWorkspace .center-actions #addBeliefBtn.tk-btn{
+  background:linear-gradient(180deg,#244FAF 0%,#12357F 100%)!important;
+  color:#fff!important;
+  border:1px solid #0E2B68!important;
+  box-shadow:0 3px 9px rgba(18,53,127,.34)!important;
+}
+#diagnosisWorkspace .center-actions #addBeliefBtn.tk-btn:hover{
+  background:linear-gradient(180deg,#2D5CC2 0%,#183E90 100%)!important;
+}
+
+#diagnosisWorkspace .center-actions #addFeelingBtn.tk-btn{
+  background:linear-gradient(180deg,#FFD85A 0%,#E7AD16 100%)!important;
+  color:#4A3500!important;
+  border:1px solid #C58E08!important;
+  box-shadow:0 3px 9px rgba(197,142,8,.28)!important;
+}
+#diagnosisWorkspace .center-actions #addFeelingBtn.tk-btn:hover{
+  background:linear-gradient(180deg,#FFE47A 0%,#F0B91F 100%)!important;
+}
+
+#diagnosisWorkspace .center-actions #addDeepBtn.tk-btn{
+  background:linear-gradient(180deg,#8B63D8 0%,#653DB3 100%)!important;
+  color:#fff!important;
+  border:1px solid #54319D!important;
+  box-shadow:0 3px 9px rgba(101,61,179,.32)!important;
+}
+#diagnosisWorkspace .center-actions #addDeepBtn.tk-btn:hover{
+  background:linear-gradient(180deg,#9B74E5 0%,#7249C3 100%)!important;
+}
