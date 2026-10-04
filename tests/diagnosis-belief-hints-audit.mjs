@@ -77,12 +77,18 @@ const leftSections=await page.evaluate(()=>{
   const requestStyle=styleOf(request);
   const situationsStyle=styleOf(situations);
   const resultStyle=styleOf(result);
+  const clientHeader=document.getElementById('diagnosisClientHeader');
+  const leftPanel=document.querySelector('.left-panel');
+  const lavenderToolbar=document.querySelector('.diagnosis-request-card .query-toolbar');
   return {
     request:requestStyle,
     situations:situationsStyle,
     result:resultStyle,
+    headerToRequestGap:requestStyle.top-clientHeader.getBoundingClientRect().bottom,
     requestToSituationsGap:situationsStyle.top-requestStyle.bottom,
     situationsToResultGap:resultStyle.top-situationsStyle.bottom,
+    leftPanelBackground:getComputedStyle(leftPanel).backgroundColor,
+    lavenderToolbarBackground:getComputedStyle(lavenderToolbar).backgroundImage,
     footerInsideSituations:footer?.parentElement===situations,
     mainBlockCount:document.querySelectorAll('#diagnosticsLeft>.diagnosis-main-block').length
   };
@@ -97,11 +103,14 @@ for(const name of ['request','situations','result']){
 }
 assert.notEqual(leftSections.request.borderTopColor,leftSections.situations.borderTopColor,'Request and Situations blocks are not visually distinguished');
 assert.notEqual(leftSections.situations.borderTopColor,leftSections.result.borderTopColor,'Situations and Result blocks are not visually distinguished');
+assert(leftSections.headerToRequestGap>=17&&leftSections.headerToRequestGap<=19.5,'Header-to-Request gap is not about 5 mm');
 assert(leftSections.requestToSituationsGap>=17&&leftSections.requestToSituationsGap<=19.5,'Request-to-Situations gap is not about 5 mm');
 assert(leftSections.situationsToResultGap>=17&&leftSections.situationsToResultGap<=19.5,'Situations-to-Result gap is not about 5 mm');
-assert.match(leftSections.request.backgroundImage,/rgb\(243, 250, 255\)|rgb\(232, 244, 251\)/,'Request block is not blue-toned');
-assert.match(leftSections.situations.backgroundImage,/rgb\(255, 246, 250\)|rgb\(251, 234, 241\)/,'Situations block is not pink-toned');
-assert.match(leftSections.result.backgroundImage,/rgb\(246, 252, 248\)|rgb\(237, 248, 241\)/,'Result block is not green-toned');
+assert.equal(leftSections.leftPanelBackground,'rgb(237, 243, 248)','Left diagnosis column is not on the light background');
+assert.match(leftSections.request.backgroundImage,/rgb\(189, 220, 248\)|rgb\(147, 195, 239\)/,'Request block is not the richer blue palette');
+assert.match(leftSections.lavenderToolbarBackground,/rgba?\(235, 222, 249|rgba?\(220, 200, 242/,'Client requests accent is not lavender');
+assert.match(leftSections.situations.backgroundImage,/rgb\(175, 231, 215\)|rgb\(132, 214, 191\)/,'Situations block is not the richer mint palette');
+assert.match(leftSections.result.backgroundImage,/rgb\(255, 200, 179\)|rgb\(243, 162, 132\)/,'Result block is not the richer peach palette');
 assert(Math.abs(actionLayout.actionTop-actionLayout.clientHeaderTop)<=1.5,'Diagnosis action buttons are not aligned to the client header top edge');
 
 async function expectHelpIcon(id,fragment){
