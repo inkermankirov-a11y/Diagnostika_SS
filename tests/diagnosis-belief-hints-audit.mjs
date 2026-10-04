@@ -74,10 +74,15 @@ const leftSections=await page.evaluate(()=>{
       backgroundImage:s.backgroundImage
     };
   };
+  const requestStyle=styleOf(request);
+  const situationsStyle=styleOf(situations);
+  const resultStyle=styleOf(result);
   return {
-    request:styleOf(request),
-    situations:styleOf(situations),
-    result:styleOf(result),
+    request:requestStyle,
+    situations:situationsStyle,
+    result:resultStyle,
+    requestToSituationsGap:situationsStyle.top-requestStyle.bottom,
+    situationsToResultGap:resultStyle.top-situationsStyle.bottom,
     footerInsideSituations:footer?.parentElement===situations,
     mainBlockCount:document.querySelectorAll('#diagnosticsLeft>.diagnosis-main-block').length
   };
@@ -91,6 +96,11 @@ for(const name of ['request','situations','result']){
 }
 assert.notEqual(leftSections.request.borderTopColor,leftSections.situations.borderTopColor,'Request and Situations blocks are not visually distinguished');
 assert.notEqual(leftSections.situations.borderTopColor,leftSections.result.borderTopColor,'Situations and Result blocks are not visually distinguished');
+assert(leftSections.requestToSituationsGap>=17&&leftSections.requestToSituationsGap<=19.5,'Request-to-Situations gap is not about 5 mm');
+assert(leftSections.situationsToResultGap>=17&&leftSections.situationsToResultGap<=19.5,'Situations-to-Result gap is not about 5 mm');
+assert.match(leftSections.request.backgroundImage,/rgb\(243, 250, 255\)|rgb\(232, 244, 251\)/,'Request block is not blue-toned');
+assert.match(leftSections.situations.backgroundImage,/rgb\(255, 246, 250\)|rgb\(251, 234, 241\)/,'Situations block is not pink-toned');
+assert.match(leftSections.result.backgroundImage,/rgb\(246, 252, 248\)|rgb\(237, 248, 241\)/,'Result block is not green-toned');
 assert(Math.abs(actionLayout.actionTop-actionLayout.clientHeaderTop)<=1.5,'Diagnosis action buttons are not aligned to the client header top edge');
 
 async function expectHelpIcon(id,fragment){
