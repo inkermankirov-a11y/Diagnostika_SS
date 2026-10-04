@@ -16,7 +16,7 @@ for(const forbidden of [
   assert.equal(header.includes(forbidden),false,'Browser weather still calls external service: '+forbidden);
 }
 assert.ok(header.includes("./weather-data.json"),'Local weather-data.json source missing');
-assert.ok(header.includes("weather-data.json?t="),'Weather JSON cache bust missing');
+assert.ok(header.includes("${WEATHER_FEED_URL}?t=${Date.now()}"),'Weather JSON cache bust missing');
 assert.ok(header.includes("navigator.geolocation"),'Automatic browser geolocation missing');
 assert.ok(header.includes("nearestWeatherCity"),'Nearest local weather city selection missing');
 assert.ok(header.includes("diagnostika-weather-mode')||'geo'"),'Geolocation must be the default weather mode');
