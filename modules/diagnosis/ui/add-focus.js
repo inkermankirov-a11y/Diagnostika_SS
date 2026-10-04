@@ -37,7 +37,7 @@
   if(addFeeling){
     addFeeling.onclick=()=>{
       const selected=selection();
-      if(selected?.type!=='belief') return alert('Сначала выбери Убеждение 1.');
+      if(selected?.type!=='belief') return alert('Сначала выбери первичное убеждение.');
       const c=currentClient();
       const r=currentRequest();
       const api=window.DiagnostikaDiagnosis;

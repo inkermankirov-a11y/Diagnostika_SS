@@ -193,7 +193,7 @@
   }
 
   function openBuilder(belief){
-    if(!belief)return alert('Сначала выберите «Убеждение 1».');
+    if(!belief)return alert('Сначала выберите первичное убеждение.');
     editingBelief=belief;
     rows=buildRows(belief);
     renderRows();
