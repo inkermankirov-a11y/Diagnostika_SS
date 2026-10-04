@@ -78,6 +78,7 @@
   const WEATHER_FORECAST_KEY='diagnostika-weather-forecast-local';
   const WEATHER_LAST_CITY_KEY='diagnostika-weather-last-city';
   const WEATHER_REFRESH_MS=5*60*1000;
+  const WEATHER_LIVE_TIMEOUT_MS=12000;
   let weatherFeed=null,weatherData=null,weatherLabel='',weatherError='',weatherFromCache=false,weatherUpdatedAt='';
 
   function normalizeWeatherEntry(entry){
@@ -92,6 +93,38 @@
     const cities=feed.cities.map(normalizeWeatherEntry);
     if(!cities.length)throw Error('weather-feed-empty');
     return {...feed,cities};
+  }
+
+  async function fetchLiveWeatherEntry(entry){
+    if(!entry||!finite(entry.latitude)||!finite(entry.longitude))throw Error('weather-coordinates');
+    const params=new URLSearchParams({
+      latitude:String(entry.latitude),
+      longitude:String(entry.longitude),
+      current:'temperature_2m,apparent_temperature,weather_code,is_day',
+      daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max',
+      forecast_days:'7',
+      temperature_unit:'celsius',
+      wind_speed_unit:'kmh',
+      timezone:entry.timezone||'auto'
+    });
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),WEATHER_LIVE_TIMEOUT_MS);
+    try{
+      const response=await fetch('https://api.open-meteo.com/v1/forecast?'+params.toString(),{
+        cache:'no-store',
+        signal:controller.signal
+      });
+      if(!response.ok)throw Error('weather-live-'+response.status);
+      const data=await response.json();
+      return normalizeWeatherEntry({
+        ...entry,
+        timezone:data.timezone||entry.timezone||'auto',
+        current:data.current,
+        daily:data.daily
+      });
+    }finally{
+      clearTimeout(timer);
+    }
   }
 
   function readFeedCache(){
@@ -168,12 +201,13 @@
     return findWeatherCity(feed,id)||findWeatherCity(feed,savedCity());
   }
 
-  function applyWeatherEntry(entry,{cached=weatherFromCache}={}){
+  function applyWeatherEntry(entry,{cached=weatherFromCache,updatedAt=''}={}){
     entry=normalizeWeatherEntry(entry);
     weatherData={current:entry.current,daily:entry.daily};
     weatherLabel=cityOnly(entry.name);
     weatherError='';
     weatherFromCache=Boolean(cached);
+    if(updatedAt)weatherUpdatedAt=updatedAt;
     const current=entry.current||{};
     weatherBtn.querySelector('.hu-icon').textContent=weatherIcon(Number(current.weather_code),current.is_day!==0);
     weatherBtn.querySelector('.hu-main').textContent=signed(current.temperature_2m);
@@ -194,17 +228,20 @@
 
   function geolocationWeather(feed){
     return new Promise(resolve=>{
-      const fallback=()=>{
-        const last=lastWeatherCity(feed);
-        if(last){resolve(applyWeatherEntry(last));return;}
-        showWeatherUnavailable();
-        resolve(null);
+      const applyLiveOrFallback=async city=>{
+        if(!city){showWeatherUnavailable();resolve(null);return;}
+        try{
+          const live=await fetchLiveWeatherEntry(city);
+          resolve(applyWeatherEntry(live,{cached:false,updatedAt:new Date().toISOString()}));
+        }catch(_){
+          resolve(applyWeatherEntry(city,{cached:weatherFromCache}));
+        }
       };
+      const fallback=()=>applyLiveOrFallback(lastWeatherCity(feed));
       if(!navigator.geolocation){fallback();return;}
       navigator.geolocation.getCurrentPosition(position=>{
         const city=nearestWeatherCity(feed.cities,position.coords.latitude,position.coords.longitude);
-        if(city){resolve(applyWeatherEntry(city));return;}
-        fallback();
+        applyLiveOrFallback(city||lastWeatherCity(feed));
       },fallback,{enableHighAccuracy:false,timeout:6000,maximumAge:30*60*1000});
     });
   }
@@ -214,7 +251,14 @@
       const feed=await loadWeatherFeed({force});
       if(weatherMode()==='city'){
         const selected=findWeatherCity(feed,savedCity());
-        if(selected)return applyWeatherEntry(selected);
+        if(selected){
+          try{
+            const live=await fetchLiveWeatherEntry(selected);
+            return applyWeatherEntry(live,{cached:false,updatedAt:new Date().toISOString()});
+          }catch(_){
+            return applyWeatherEntry(selected,{cached:weatherFromCache});
+          }
+        }
       }
       return await geolocationWeather(feed);
     }catch(error){
