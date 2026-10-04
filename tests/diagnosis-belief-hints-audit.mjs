@@ -16,9 +16,9 @@ await page.waitForFunction(()=>!!window.DiagnostikaClients?.current?.());
 await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
 await page.locator('#diagnosisWorkspace').waitFor({state:'visible',timeout:5000});
 
-assert.equal((await page.locator('#addBeliefBtn').textContent()).trim(),'+ Первичное убеждение');
-assert.equal((await page.locator('#addFeelingBtn').textContent()).trim(),'+ Вторичные чувства');
-assert.equal((await page.locator('#addDeepBtn').textContent()).trim(),'+ Вторичное убеждение');
+assert.equal(await page.locator('#addBeliefBtn').evaluate(el=>el.firstChild?.textContent?.trim()),'+ Первичное убеждение');
+assert.equal(await page.locator('#addFeelingBtn').evaluate(el=>el.firstChild?.textContent?.trim()),'+ Вторичные чувства');
+assert.equal(await page.locator('#addDeepBtn').evaluate(el=>el.firstChild?.textContent?.trim()),'+ Вторичное убеждение');
 
 const colors=await page.evaluate(()=>Object.fromEntries(
   ['addBeliefBtn','addFeelingBtn','addDeepBtn'].map(id=>{
@@ -30,18 +30,37 @@ assert.match(colors.addBeliefBtn.backgroundImage,/rgb\(36, 79, 175\)|rgb\(18, 53
 assert.match(colors.addFeelingBtn.backgroundImage,/rgb\(255, 216, 90\)|rgb\(231, 173, 22\)/,'Secondary feelings button is not yellow');
 assert.match(colors.addDeepBtn.backgroundImage,/rgb\(139, 99, 216\)|rgb\(101, 61, 179\)/,'Secondary belief button is not purple');
 
-async function expectHoverHelp(id,fragment){
+async function expectHelpIcon(id,fragment){
   const button=page.locator('#'+id);
-  await button.hover();
-  const tip=page.locator('.diagnosis-help-tooltip');
+  const icon=button.locator('.diagnosis-help-trigger');
+  await icon.waitFor({state:'visible',timeout:2000});
+
+  const buttonBox=await button.boundingBox();
+  const iconBox=await icon.boundingBox();
+  assert(buttonBox&&iconBox,id+' geometry unavailable');
+  assert(iconBox.x>buttonBox.x+buttonBox.width-35,id+' help icon is not in the top-right corner');
+  assert(iconBox.y<buttonBox.y+25,id+' help icon is not in the top-right corner');
+
+  await page.mouse.move(buttonBox.x+12,buttonBox.y+buttonBox.height/2);
+  await page.waitForTimeout(80);
+  assert.equal(await page.locator('#diagnosisHelpIconTooltip').isVisible(),false,id+' tooltip opens from the whole button');
+
+  await icon.hover();
+  const tip=page.locator('#diagnosisHelpIconTooltip');
   await tip.waitFor({state:'visible',timeout:2000});
   const text=(await tip.textContent()).trim();
-  assert(text.includes(fragment),id+' hover help missing: '+text);
+  assert(text.includes(fragment),id+' icon help missing: '+text);
   await page.mouse.move(10,10);
+  await tip.waitFor({state:'hidden',timeout:2000});
 }
-await expectHoverHelp('addBeliefBtn','клиент говорит о себе в первую очередь');
-await expectHoverHelp('addFeelingBtn','клиент чувствует');
-await expectHoverHelp('addDeepBtn','скрытое, глубокое, конечное убеждение');
+await expectHelpIcon('addBeliefBtn','То, что клиент говорит о себе в первую очередь.');
+await expectHelpIcon('addFeelingBtn','То, что клиент чувствует, когда активируется первичное убеждение.');
+await expectHelpIcon('addDeepBtn','Скрытое, глубокое убеждение о себе');
+
+await page.evaluate(()=>window.DiagnostikaHelpHints?.setEnabled(false));
+await page.waitForFunction(()=>[...document.querySelectorAll('.diagnosis-help-trigger')].every(el=>el.hidden));
+await page.evaluate(()=>window.DiagnostikaHelpHints?.setEnabled(true));
+await page.waitForFunction(()=>[...document.querySelectorAll('#addBeliefBtn .diagnosis-help-trigger,#addFeelingBtn .diagnosis-help-trigger,#addDeepBtn .diagnosis-help-trigger')].every(el=>!el.hidden));
 
 const primary=page.locator('#tree .tree-row.primary').first();
 await primary.waitFor({state:'visible',timeout:5000});
