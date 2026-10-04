@@ -20,6 +20,16 @@ assert.equal((await page.locator('#addBeliefBtn').textContent()).trim(),'+ Пе�
 assert.equal((await page.locator('#addFeelingBtn').textContent()).trim(),'+ Вторичные чувства');
 assert.equal((await page.locator('#addDeepBtn').textContent()).trim(),'+ Вторичное убеждение');
 
+const colors=await page.evaluate(()=>Object.fromEntries(
+  ['addBeliefBtn','addFeelingBtn','addDeepBtn'].map(id=>{
+    const s=getComputedStyle(document.getElementById(id));
+    return [id,{backgroundImage:s.backgroundImage,color:s.color,borderColor:s.borderColor}];
+  })
+));
+assert.match(colors.addBeliefBtn.backgroundImage,/rgb\(36, 79, 175\)|rgb\(18, 53, 127\)/,'Primary belief button is not deep blue');
+assert.match(colors.addFeelingBtn.backgroundImage,/rgb\(255, 216, 90\)|rgb\(231, 173, 22\)/,'Secondary feelings button is not yellow');
+assert.match(colors.addDeepBtn.backgroundImage,/rgb\(139, 99, 216\)|rgb\(101, 61, 179\)/,'Secondary belief button is not purple');
+
 const primary=page.locator('#tree .tree-row.primary').first();
 await primary.waitFor({state:'visible',timeout:5000});
 await primary.click();
