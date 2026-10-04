@@ -9,6 +9,12 @@
   <meta name="diagnostika-build" content="20260919-db14d">
   <meta name="diagnostika-release" content="v1.0.0">
   <title>Психологическая диагностика</title>
+  <script>
+    try{
+      const theme=localStorage.getItem('diagnostika-dashboard-theme')||'theme-1';
+      document.documentElement.setAttribute('data-dashboard-theme',/^theme-[1-4]$/.test(theme)?theme:'theme-1');
+    }catch(_){document.documentElement.setAttribute('data-dashboard-theme','theme-1');}
+  </script>
   <style>
     [hidden],#diagnosisWorkspace[hidden],.home-dashboard[hidden]{display:none!important}
     html:not(.diagnostika-dashboard-ready) #diagnosisWorkspace,html:not(.diagnostika-dashboard-ready) .home-dashboard{display:none!important}
@@ -80,7 +86,7 @@
 <script defer src="app.js?v=20260919-export10d&db=14d&cleanup=24a&clientprofile=20261003-1"></script>
 <script defer src="core/bootstrap.js?v=20260919-db14d&api=13d&cleanup=24a"></script>
 <script defer src="core/shell-bridge.js?v=20260929-modular24a" data-diagnostika-core-part="shell"></script>
-<script defer src="app-loader.js?v=20261004-dark-navy-1"></script>
+<script defer src="app-loader.js?v=20261004-theme-switcher-1"></script>
 <script defer src="modules/clients/ui/delete.js?v=20260930-modular-stage5-21"></script>
 <script defer src="dev-tools-loader.js?v=20260921-hardening19a"></script>
 <script defer src="modules/diagnosis/ui/navigation.js?v=20260929-modular24a"></script>
@@ -123,7 +129,7 @@
 <script defer src="language-flags-fix.js?v=20260911-8"></script>
 <script defer src="secondary-feelings-i18n.js?v=20260911-8"></script>
 <script defer src="beliefs-i18n.js?v=20260911-8"></script>
-<script defer src="settings-menu.js?v=20261003-settings-layer-2"></script>
+<script defer src="settings-menu.js?v=20261004-theme-switcher-1"></script>
 <script defer src="account-settings.js?v=20261003-specialist-card-1"></script>
 <script defer src="about-program.js?v=20260912-19"></script>
 <script defer src="modules/header/flip-clock.js?v=20261002-modular-clock-1"></script>

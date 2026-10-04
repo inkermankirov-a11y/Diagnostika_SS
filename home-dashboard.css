@@ -1707,3 +1707,80 @@ body:has(.home-dashboard:not([hidden])) .app-header h1{
   color:#f5f9ff!important;
   text-shadow:0 1px 2px rgba(0,0,0,.35);
 }
+
+
+/* Dashboard column themes selectable from Settings → Interface settings → Themes. */
+html[data-dashboard-theme] .home-dashboard{
+  --hd-left-bg:#e9f2fb;
+  --hd-main-bg:#fbfdff;
+  --hd-right-bg:#dce9f7;
+  --hd-column-border:rgba(145,177,212,.58);
+  --hd-column-shadow:0 8px 24px rgba(15,35,58,.10);
+}
+html[data-dashboard-theme] .home-dashboard > .hd-sidebar,
+html[data-dashboard-theme] .home-dashboard > .hd-main,
+html[data-dashboard-theme] .home-dashboard > .hd-right{
+  border:1px solid var(--hd-column-border)!important;
+  border-radius:14px!important;
+  box-shadow:var(--hd-column-shadow)!important;
+}
+html[data-dashboard-theme] .home-dashboard > .hd-sidebar{background:var(--hd-left-bg)!important}
+html[data-dashboard-theme] .home-dashboard > .hd-main,
+html[data-dashboard-theme] .home-dashboard > .hd-main .hd-home-view{background:var(--hd-main-bg)!important}
+html[data-dashboard-theme] .home-dashboard > .hd-right{background:var(--hd-right-bg)!important}
+
+/* Theme 1 — light icy. */
+html[data-dashboard-theme="theme-1"] .home-dashboard{
+  --hd-left-bg:linear-gradient(160deg,#f2f7fc 0%,#e6f0fa 100%);
+  --hd-main-bg:linear-gradient(145deg,#ffffff 0%,#f6faff 100%);
+  --hd-right-bg:linear-gradient(160deg,#e7f0fb 0%,#d7e6f6 100%);
+  --hd-column-border:rgba(149,181,216,.56);
+  --hd-column-shadow:0 7px 22px rgba(16,45,76,.09);
+}
+
+/* Theme 2 — contrast: dark client rail + light workspaces. */
+html[data-dashboard-theme="theme-2"] .home-dashboard{
+  --hd-left-bg:linear-gradient(180deg,#29445f 0%,#1c344d 48%,#142a42 100%);
+  --hd-main-bg:linear-gradient(145deg,#ffffff 0%,#f5f9fe 100%);
+  --hd-right-bg:linear-gradient(160deg,#e2ecf8 0%,#d2e0ef 100%);
+  --hd-column-border:rgba(120,160,198,.54);
+  --hd-column-shadow:0 8px 26px rgba(4,17,31,.16);
+}
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-side-title,
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-client-name{color:#f7fbff!important}
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-client-meta,
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-client-count,
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-empty-list{color:#afc4da!important}
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-client-row:hover{background:rgba(255,255,255,.08)!important}
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-client-row.active{background:rgba(77,155,236,.16)!important}
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-search input{
+  color:#f5f9ff!important;
+  background:rgba(17,38,59,.70)!important;
+  border-color:rgba(145,184,221,.44)!important;
+}
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-search input::placeholder{color:#a9bdd2!important}
+html[data-dashboard-theme="theme-2"] .hd-sidebar .hd-search:before{color:#b6c9dc!important}
+
+/* Theme 3 — blue frosted glass. */
+html[data-dashboard-theme="theme-3"] .home-dashboard{
+  --hd-left-bg:linear-gradient(145deg,rgba(233,246,255,.94),rgba(208,232,253,.88));
+  --hd-main-bg:linear-gradient(145deg,rgba(248,252,255,.96),rgba(226,242,255,.92));
+  --hd-right-bg:linear-gradient(145deg,rgba(216,238,255,.92),rgba(192,224,252,.86));
+  --hd-column-border:rgba(122,183,232,.62);
+  --hd-column-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 10px 28px rgba(31,107,170,.14);
+}
+html[data-dashboard-theme="theme-3"] .home-dashboard > .hd-sidebar,
+html[data-dashboard-theme="theme-3"] .home-dashboard > .hd-main,
+html[data-dashboard-theme="theme-3"] .home-dashboard > .hd-right{
+  backdrop-filter:blur(18px) saturate(1.18);
+  -webkit-backdrop-filter:blur(18px) saturate(1.18);
+}
+
+/* Theme 4 — neutral steel. */
+html[data-dashboard-theme="theme-4"] .home-dashboard{
+  --hd-left-bg:linear-gradient(160deg,#f3f6f9 0%,#e7edf3 100%);
+  --hd-main-bg:linear-gradient(145deg,#fffefd 0%,#f7f6f3 100%);
+  --hd-right-bg:linear-gradient(160deg,#b8c7d6 0%,#9fb2c7 56%,#8da3ba 100%);
+  --hd-column-border:rgba(111,140,168,.58);
+  --hd-column-shadow:0 8px 24px rgba(11,28,46,.13);
+}
