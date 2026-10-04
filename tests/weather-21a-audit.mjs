@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const src=fs.readFileSync('header-utilities.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 
-assert(index.includes('header-utilities.js?v=20261004-weather-local-5min-2'),'Weather cache marker missing');
+assert(index.includes('header-utilities.js?v=20261004-weather-modal-offset-1'),'Weather cache marker missing');
 assert(src.includes("const WEATHER_FEED_URL='./weather-data.json'"),'Local weather feed missing');
 assert(src.includes("const WEATHER_REFRESH_MS=5*60*1000"),'Weather must refresh every 5 minutes');
 assert(src.includes("weather-data.json"),'weather-data.json usage missing');
@@ -79,6 +79,8 @@ async function makePage({feed=payload(),failFeed=false,cache=null}={}){
   await page.waitForFunction(()=>window.DiagnostikaWeather.state().ready===true,null,{timeout:10000});
   await page.click('#headerWeatherBtn');
   await page.waitForSelector('.weather-current-temp');
+  const geometry=await page.evaluate(()=>{const h=document.querySelector('.app-header')?.getBoundingClientRect();const p=document.querySelector('.utility-panel')?.getBoundingClientRect();return {headerBottom:h?.bottom||0,panelTop:p?.top||0};});
+  assert(geometry.panelTop>=geometry.headerBottom,'Weather panel is clipped under persistent header');
   assert.equal(await page.locator('.weather-current-temp').textContent(),'+5°');
   assert((await page.locator('.utility-source').textContent()).includes('11:55'));
 
