@@ -53,14 +53,13 @@ async function expectHelpIcon(id,fragment){
   await page.mouse.move(10,10);
   await tip.waitFor({state:'hidden',timeout:2000});
 }
+await page.evaluate(()=>window.DiagnostikaHelpHints?.setEnabled(false));
 await expectHelpIcon('addBeliefBtn','То, что клиент говорит о себе в первую очередь.');
 await expectHelpIcon('addFeelingBtn','То, что клиент чувствует, когда активируется первичное убеждение.');
 await expectHelpIcon('addDeepBtn','Скрытое, глубокое убеждение о себе');
 
-await page.evaluate(()=>window.DiagnostikaHelpHints?.setEnabled(false));
-await page.waitForFunction(()=>[...document.querySelectorAll('.diagnosis-help-trigger')].every(el=>el.hidden));
-await page.evaluate(()=>window.DiagnostikaHelpHints?.setEnabled(true));
 await page.waitForFunction(()=>[...document.querySelectorAll('#addBeliefBtn .diagnosis-help-trigger,#addFeelingBtn .diagnosis-help-trigger,#addDeepBtn .diagnosis-help-trigger')].every(el=>!el.hidden));
+await page.evaluate(()=>window.DiagnostikaHelpHints?.setEnabled(true));
 
 const primary=page.locator('#tree .tree-row.primary').first();
 await primary.waitFor({state:'visible',timeout:5000});
