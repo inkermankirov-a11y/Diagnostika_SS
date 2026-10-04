@@ -38,6 +38,7 @@
   <link rel="stylesheet" href="mobile-responsive.css?v=20260921-hardening19a">
   <link rel="stylesheet" href="premium-glass-theme.css?v=20261003-dark-gradients-3">
   <link rel="stylesheet" href="diagnosis-hierarchy-colors.css?v=20261004-actions-align-1">
+  <link rel="stylesheet" href="diagnosis-left-sections.css?v=20261004-three-blocks-1">
 </head>
 <body>
 <div class="desktop-app">
@@ -63,18 +64,27 @@
       <section id="diagnosisClientHeader" class="inner-frame"></section>
       <section id="diagnosticsLeft" class="diagnostics-left hidden">
         <div class="separator"></div>
-        <div class="queries-block">
-          <div class="small-section-title">ЗАПРОСЫ КЛИЕНТА</div>
+
+        <section class="queries-block diagnosis-main-block diagnosis-request-card" aria-label="Основной запрос">
+          <div class="small-section-title diagnosis-subsection-title">ЗАПРОСЫ КЛИЕНТА</div>
           <div class="query-toolbar"><select id="requestSelect"></select><button id="addRequestBtn" class="tk-btn">+ Добавить запрос</button><button id="deleteRequestBtn" class="tk-btn">Удалить запрос</button></div>
-          <div class="small-section-title spacer-top">ОСНОВНОЙ ЗАПРОС</div><textarea id="requestTitle" class="text-area compact"></textarea>
-        </div>
-        <div class="situations-block"><div class="small-section-title">СИТУАЦИИ</div><div id="situationList" class="situation-list"></div></div>
-        <div class="left-footer-actions"><div class="situation-buttons"><button id="addSituationBtn" class="tk-btn">+ Добавить</button><button id="editSituationBtn" class="tk-btn">Изменить</button><button id="deleteSituationBtn" class="tk-btn">Удалить</button></div><button id="hintBtn" class="tk-btn hint-btn">Подсказки — первичные убеждения</button></div>
-        <div id="resultBlock" class="result-block diagnosis-left-result hidden">
-          <div class="result-title">★ ЖЕЛАЕМЫЙ РЕЗУЛЬТАТ СИТУАЦИИ</div>
+          <div class="small-section-title spacer-top diagnosis-block-title diagnosis-request-title">ОСНОВНОЙ ЗАПРОС</div><textarea id="requestTitle" class="text-area compact"></textarea>
+        </section>
+
+        <section class="situations-block diagnosis-main-block diagnosis-situations-card" aria-label="Ситуации">
+          <div class="small-section-title diagnosis-block-title diagnosis-situations-title">СИТУАЦИИ</div>
+          <div id="situationList" class="situation-list"></div>
+          <div class="left-footer-actions">
+            <div class="situation-buttons"><button id="addSituationBtn" class="tk-btn">+ Добавить</button><button id="editSituationBtn" class="tk-btn">Изменить</button><button id="deleteSituationBtn" class="tk-btn">Удалить</button></div>
+            <button id="hintBtn" class="tk-btn hint-btn">Подсказки — первичные убеждения</button>
+          </div>
+        </section>
+
+        <section id="resultBlock" class="result-block diagnosis-left-result diagnosis-main-block diagnosis-result-card hidden" aria-label="Желаемый результат ситуации">
+          <div class="result-title diagnosis-block-title diagnosis-result-title">★ ЖЕЛАЕМЫЙ РЕЗУЛЬТАТ СИТУАЦИИ</div>
           <textarea id="situationResult" class="text-area result-text"></textarea>
           <button id="saveResultBtn" class="tk-btn">Сохранить результат</button>
-        </div>
+        </section>
       </section>
     </aside>
     <section id="centerPanel" class="center-panel panel-frame hidden"><div class="center-actions"><button id="addBeliefBtn" class="tk-btn">+ Первичное убеждение</button><button id="addFeelingBtn" class="tk-btn">+ Вторичные чувства</button><button id="addDeepBtn" class="tk-btn">+ Вторичное убеждение</button><button id="deleteElementBtn" class="tk-btn push-right">Удалить</button></div><div id="situationTitle" class="situation-title">Выберите ситуацию</div><div id="situationInfo" class="situation-info"></div><div id="tree" class="tree-view"></div></section>
