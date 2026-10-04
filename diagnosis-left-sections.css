@@ -1,0 +1,103 @@
+/* Three independent primary sections in the diagnosis left column. */
+#diagnosisWorkspace .diagnostics-left{
+  gap:10px;
+}
+
+#diagnosisWorkspace .diagnostics-left>.separator{
+  display:none;
+}
+
+#diagnosisWorkspace .diagnosis-main-block{
+  margin:0 8px;
+  padding:12px;
+  border-radius:10px;
+  box-shadow:0 4px 12px rgba(33,48,67,.08);
+}
+
+#diagnosisWorkspace .diagnosis-block-title{
+  display:block;
+  margin:0 0 8px;
+  padding:0;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.025em;
+  line-height:1.2;
+}
+
+#diagnosisWorkspace .diagnosis-request-card{
+  border:1px solid #c3d4ee;
+  background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%);
+  box-shadow:0 4px 12px rgba(57,92,151,.09);
+}
+
+#diagnosisWorkspace .diagnosis-request-card .diagnosis-request-title{
+  color:#294f8d;
+}
+
+#diagnosisWorkspace .diagnosis-request-card .diagnosis-subsection-title{
+  margin:10px 0 5px;
+  color:#5d6f87;
+  font-size:10px;
+  letter-spacing:.02em;
+}
+
+#diagnosisWorkspace .diagnosis-request-card .request-title-display-wrap{
+  margin:5px 0 10px;
+}
+
+#diagnosisWorkspace .diagnosis-request-card .query-toolbar{
+  margin-bottom:0;
+}
+
+#diagnosisWorkspace .diagnosis-situations-card{
+  margin-top:0;
+  border:1px solid #d2c6ec;
+  background:linear-gradient(180deg,#faf8ff 0%,#f2edff 100%);
+  box-shadow:0 4px 12px rgba(91,75,163,.09);
+}
+
+#diagnosisWorkspace .diagnosis-situations-card .diagnosis-situations-title{
+  color:#5b4ba3;
+}
+
+#diagnosisWorkspace .diagnosis-situations-card .situation-list{
+  height:88px;
+  border-color:#8f7abf;
+  background:#fff;
+}
+
+#diagnosisWorkspace .diagnosis-situations-card .left-footer-actions{
+  margin:8px 0 0;
+  padding:0;
+}
+
+#diagnosisWorkspace .diagnosis-situations-card .situation-buttons{
+  margin-bottom:7px;
+}
+
+#diagnosisWorkspace .diagnosis-result-card{
+  margin:0 8px 4px;
+  border:1px solid #b9d8c4;
+  background:linear-gradient(180deg,#f6fcf8 0%,#edf8f1 100%);
+  box-shadow:0 4px 12px rgba(35,96,58,.08);
+}
+
+#diagnosisWorkspace .diagnosis-result-card .diagnosis-result-title{
+  color:#28613a;
+}
+
+#diagnosisWorkspace .diagnosis-result-card .result-text{
+  min-height:74px;
+  height:74px;
+  margin:0 0 8px;
+  border:1px solid #afcdb8;
+  border-radius:7px;
+  background:#fff;
+  padding:8px;
+  line-height:1.4;
+}
+
+#diagnosisWorkspace .diagnosis-result-card #saveResultBtn{
+  min-height:34px;
+  padding:7px 11px;
+}
