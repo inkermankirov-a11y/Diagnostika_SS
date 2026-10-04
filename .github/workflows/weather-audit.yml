@@ -21,6 +21,7 @@ jobs:
         run: |
           node --check header-utilities.js
           node --check tests/weather-21a-audit.mjs
+          node --check tests/weather-local-data-audit.mjs
 
       - name: Install browser
         run: |
@@ -34,4 +35,5 @@ jobs:
           set -euo pipefail
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/weather21a-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/weather-local-data-audit.mjs
           node tests/weather-21a-audit.mjs
