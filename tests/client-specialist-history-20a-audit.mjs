@@ -71,6 +71,9 @@ page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('Failed to fetch
 await page.goto('http://127.0.0.1:8000/index.html?specialist20a='+Date.now(),{waitUntil:'commit',timeout:15000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:30000});
 await page.waitForFunction(()=>window.DiagnostikaClientTransfer?.buildSpecialistPeriods,null,{timeout:10000});
+await page.waitForFunction(()=>window.DiagnostikaHomeDashboard?.openClient,null,{timeout:10000});
+await page.evaluate(()=>window.DiagnostikaHomeDashboard.openClient('specialist20a-client'));
+await page.waitForSelector('#hdClientView',{state:'visible',timeout:10000});
 await page.waitForSelector('#clientSpecialistInfo .client-specialist-history-btn',{state:'visible',timeout:10000});
 
 const hero=await page.evaluate(()=>{
