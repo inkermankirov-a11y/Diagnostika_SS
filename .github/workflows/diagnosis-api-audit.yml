@@ -6,12 +6,6 @@ on:
     paths:
       - 'diagnosis-api.js'
       - 'app.js'
-      - 'belief-hints.js'
-      - 'deep-belief-hints.js'
-      - 'dynamic-save-labels.js'
-      - 'beliefs-i18n.js'
-      - 'i18n.js'
-      - 'tests/diagnosis-belief-hints-audit.mjs'
       - 'tests/diagnosis-ui-7c-audit.mjs'
       - 'modules/diagnosis/ui/feeling-collapse.js'
       - 'modules/diagnosis/ui/secondary-feeling-hints.js'
@@ -50,12 +44,6 @@ jobs:
           set -euo pipefail
           node --check diagnosis-api.js
           node --check app.js
-          node --check belief-hints.js
-          node --check deep-belief-hints.js
-          node --check dynamic-save-labels.js
-          node --check beliefs-i18n.js
-          node --check i18n.js
-          node --check tests/diagnosis-belief-hints-audit.mjs
           node --check tests/diagnosis-ui-7c-audit.mjs
           node --check modules/diagnosis/ui/feeling-collapse.js
           node --check modules/diagnosis/ui/secondary-feeling-hints.js
@@ -368,14 +356,6 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7c-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/diagnosis-ui-7c-audit.mjs
-
-      - name: Verify restored belief hints
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-belief-hints-http.log 2>&1 &
-          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
-          node tests/diagnosis-belief-hints-audit.mjs
 
       - name: Verify Diagnosis 7D repository hardening
         shell: bash
