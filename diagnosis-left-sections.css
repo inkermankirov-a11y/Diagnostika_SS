@@ -70,7 +70,7 @@
   grid-template-columns:minmax(0,1fr) 124px 124px;
   gap:6px;
   align-items:center;
-  margin:6px 6px 10px;
+  margin:6px 7px 10px;
 }
 
 #diagnosisWorkspace .diagnosis-request-card .request-status-badge{
