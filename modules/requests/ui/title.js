@@ -52,6 +52,8 @@
   const dialogSave=dialog.querySelector('.request-title-dialog-save');
   const dialogCancel=dialog.querySelector('.request-title-dialog-cancel');
   const dialogClose=dialog.querySelector('.request-title-dialog-close');
+  const dialogTitle=dialog.querySelector('.request-title-dialog-title');
+  let editingRequestId=null;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -102,23 +104,44 @@
 
   function closeDialog(){
     dialogError.textContent='';
+    editingRequestId=null;
     if(dialog.open)dialog.close();
   }
 
-  function openDialog(){
-    const r=getViewedRequest();
-    if(!r)return;
+  function openDialog(options={}){
+    const a=api(),c=cclient();
+    const requestedId=options?.requestId??null;
+    const r=requestedId!==null&&requestedId!==undefined&&requestedId!==''
+      ? a?.get?.(requestedId,c)||null
+      : getViewedRequest();
+    if(!r)return false;
+
+    const isNew=options?.newRequest===true;
+    editingRequestId=r.id;
     dialogError.textContent='';
-    dialogInput.value=r.title||'';
+    if(dialogTitle)dialogTitle.textContent=isNew?'Новый запрос':'Редактировать запрос';
+    dialogInput.value=isNew&&String(r.title||'').trim()==='Новый запрос'?'':(r.title||'');
     dialog.showModal();
     requestAnimationFrame(()=>{
       dialogInput.focus();
-      dialogInput.setSelectionRange(dialogInput.value.length,dialogInput.value.length);
+      if(dialogInput.value){
+        dialogInput.setSelectionRange(0,dialogInput.value.length);
+      }else{
+        dialogInput.setSelectionRange(0,0);
+      }
     });
+    return true;
+  }
+
+  function openNewEditor(requestId){
+    return openDialog({requestId,newRequest:true});
   }
 
   function saveDialog(){
-    const a=api(),c=cclient(),r=getViewedRequest();
+    const a=api(),c=cclient();
+    const r=editingRequestId!==null&&editingRequestId!==undefined
+      ? a?.get?.(editingRequestId,c)||null
+      : getViewedRequest();
     if(!a||!r)return;
     const value=dialogInput.value.trim();
     if(!value){
@@ -160,7 +183,7 @@
     }
   }
 
-  window.DiagnostikaRequestTitleDisplay=Object.freeze({refresh:sync,openEditor:openDialog});
+  window.DiagnostikaRequestTitleDisplay=Object.freeze({refresh:sync,openEditor:openDialog,openNewEditor});
   bindEvents().catch(()=>{});
   sync();
 })();
