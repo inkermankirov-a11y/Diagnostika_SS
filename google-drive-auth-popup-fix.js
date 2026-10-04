@@ -29,6 +29,7 @@
           raw = legacy;
           sessionStorage.setItem(TOKEN_KEY, legacy);
           localStorage.removeItem(TOKEN_KEY);
+          localStorage.setItem(CONNECTED_KEY, '1');
         }
       } catch {}
     }
@@ -75,8 +76,10 @@
   }
 
   function rememberedConnection() {
-    try { return localStorage.getItem(CONNECTED_KEY) === '1'; }
-    catch { return false; }
+    try {
+      if (localStorage.getItem(CONNECTED_KEY) === '1') return true;
+      return Boolean(getStored(USER_KEY)?.email);
+    } catch { return false; }
   }
 
   function token() {
