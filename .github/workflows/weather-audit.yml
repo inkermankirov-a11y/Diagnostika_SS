@@ -7,6 +7,7 @@ on:
       - 'header-utilities.js'
       - 'index.html'
       - 'tests/weather-21a-audit.mjs'
+      - 'tests/weather-local-data-audit.mjs'
       - '.github/workflows/weather-audit.yml'
   workflow_dispatch:
 
