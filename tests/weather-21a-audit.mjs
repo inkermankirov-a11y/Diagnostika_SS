@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const src=fs.readFileSync('header-utilities.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 
-assert(index.includes('header-utilities.js?v=20261004-weather-local-5min-1'),'Weather cache marker missing');
+assert(index.includes('header-utilities.js?v=20261004-weather-local-5min-2'),'Weather cache marker missing');
 assert(src.includes("const WEATHER_FEED_URL='./weather-data.json'"),'Local weather feed missing');
 assert(src.includes("const WEATHER_REFRESH_MS=5*60*1000"),'Weather must refresh every 5 minutes');
 assert(src.includes("weather-data.json"),'weather-data.json usage missing');
