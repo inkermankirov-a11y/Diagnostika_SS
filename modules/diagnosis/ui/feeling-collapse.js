@@ -171,7 +171,7 @@
         arrow.type='button';
         arrow.className='feeling-child-toggle'+(deepItems.length?'':' no-children');
         arrow.textContent=isExpanded?'▼':'▶';
-        arrow.title=isExpanded?'Свернуть убеждения 2':'Развернуть убеждения 2';
+        arrow.title=isExpanded?'Свернуть вторичные убеждения':'Развернуть вторичные убеждения';
         arrow.setAttribute('aria-label',arrow.title);
         arrow.onclick=e=>{
           e.preventDefault();
