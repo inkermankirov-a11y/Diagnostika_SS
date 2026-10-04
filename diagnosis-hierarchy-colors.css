@@ -28,3 +28,34 @@
 #diagnosisWorkspace .center-actions #addDeepBtn.tk-btn:hover{
   background:linear-gradient(180deg,#9B74E5 0%,#7249C3 100%)!important;
 }
+
+
+/* Diagnosis action bar: keep Delete horizontal and use a more legible UI typeface. */
+#diagnosisWorkspace .center-actions{
+  align-items:stretch;
+}
+#diagnosisWorkspace .center-actions #addBeliefBtn.tk-btn,
+#diagnosisWorkspace .center-actions #addFeelingBtn.tk-btn,
+#diagnosisWorkspace .center-actions #addDeepBtn.tk-btn{
+  flex:1 1 0;
+  min-width:0;
+  font-family:Tahoma,Verdana,Arial,sans-serif!important;
+  line-height:1.2;
+}
+#diagnosisWorkspace .center-actions #deleteElementBtn.tk-btn{
+  flex:0 0 78px;
+  min-width:78px;
+  width:78px;
+  padding-left:8px;
+  padding-right:8px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  word-break:normal;
+  overflow-wrap:normal;
+  writing-mode:horizontal-tb;
+  text-orientation:mixed;
+  font-family:Tahoma,Verdana,Arial,sans-serif!important;
+  line-height:1.2;
+}
