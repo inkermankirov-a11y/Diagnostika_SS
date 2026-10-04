@@ -7,13 +7,16 @@
   let loading = false;
   let loaded = false;
   const TOKEN_KEY='diagnostika-google-drive-token-v2';
+  const CONNECTED_KEY='diagnostika-google-drive-connected-v1';
+  const USER_KEY='diagnostika-google-drive-user-v2';
 
   function hasGoogleSession() {
     try {
-      const raw=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY);
+      if(localStorage.getItem(CONNECTED_KEY)==='1'||localStorage.getItem(USER_KEY))return true;
+      const raw=sessionStorage.getItem(TOKEN_KEY)||localStorage.getItem(TOKEN_KEY);
       if(!raw)return false;
       const value=JSON.parse(raw);
-      return Boolean(value?.access_token && Date.now()<Number(value.expires_at||0)-30000);
+      return Boolean(value?.access_token);
     } catch (_) {
       return false;
     }
@@ -55,9 +58,9 @@
       if (!storageDialogReady()) return;
 
       await loadScript('google-oauth-config.js?v=20260914-2');
-      await loadScript('google-drive-storage.js?v=20261003-persist-session-1&db=14d');
-      await loadScript('google-drive-auth-popup-fix.js?v=20261003-persist-session-1');
-      await loadScript('google-drive-sync-safe.js?v=20261003-persist-session-1&db=14d');
+      await loadScript('google-drive-storage.js?v=20261004-silent-reauth-2&db=14d');
+      await loadScript('google-drive-auth-popup-fix.js?v=20261004-silent-reauth-2');
+      await loadScript('google-drive-sync-safe.js?v=20261004-silent-reauth-2&db=14d');
       loaded = true;
     } catch (error) {
       console.error('[Google Drive lazy loader]', error);
