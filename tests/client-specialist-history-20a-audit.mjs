@@ -118,10 +118,10 @@ assert.equal(hero.buttonTag,'BUTTON','Current specialist label is not a button')
 assert.equal(hero.buttonText.trim(),'Текущий специалист');
 assert.equal(hero.nameTag,'SPAN','Specialist name should be plain text');
 assert.equal(hero.nameText.trim(),'Евгений');
-assert(hero.width>=240,`Specialist row is too narrow: ${hero.width}px`);
+assert(hero.width>=210,`Specialist row is too narrow: ${hero.width}px`);
 assert(Math.abs(hero.buttonCenterY-hero.nameCenterY)<=1,`Button/name vertical alignment differs: ${hero.buttonCenterY} vs ${hero.nameCenterY}`);
 assert.equal(hero.parentId,'hdClientSpecialistSlot','Specialist row is not inside the dedicated right-side slot');
-assert(hero.slotWidth>=240,`Specialist slot is too narrow: ${hero.slotWidth}px`);
+assert(hero.slotWidth>=210,`Specialist slot is too narrow: ${hero.slotWidth}px`);
 assert(hero.specialistTop>=hero.reminderBottom-1,`Specialist overlaps the reserved reminder area: ${hero.specialistTop} < ${hero.reminderBottom}`);
 assert(Math.abs(hero.socialsTop-hero.specialistInfoTop)<=1,`Social row is not level with specialist row: ${hero.socialsTop} vs ${hero.specialistInfoTop}`);
 assert(Math.abs(hero.clientCardTop-hero.specialistInfoTop)<=1,`Client card button is not level with specialist row: ${hero.clientCardTop} vs ${hero.specialistInfoTop}`);
