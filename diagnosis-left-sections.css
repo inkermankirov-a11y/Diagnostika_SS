@@ -1,4 +1,8 @@
-/* Three independent primary sections in the diagnosis left column. */
+/* Final diagnosis left-column palette: light canvas with three darker pastel blocks. */
+#diagnosisWorkspace .left-panel{
+  background:#edf3f8;
+}
+
 #diagnosisWorkspace .diagnostics-left{
   gap:0!important;
 }
@@ -8,10 +12,11 @@
 }
 
 #diagnosisWorkspace .diagnosis-main-block{
-  margin:0 8px;
+  margin-left:8px;
+  margin-right:8px;
   padding:12px;
   border-radius:10px;
-  box-shadow:0 4px 12px rgba(33,48,67,.08);
+  box-shadow:0 5px 14px rgba(33,48,67,.10);
 }
 
 #diagnosisWorkspace .diagnosis-block-title{
@@ -24,19 +29,22 @@
   line-height:1.2;
 }
 
+/* Main request — richer sky blue. */
 #diagnosisWorkspace .diagnosis-request-card{
-  border:1px solid #b9d6ee;
-  background:linear-gradient(180deg,#f3faff 0%,#e8f4fb 100%);
-  box-shadow:0 4px 12px rgba(48,108,154,.10);
+  margin-top:18px!important;
+  border:1px solid #6faee9;
+  background:linear-gradient(180deg,#bddcf8 0%,#93c3ef 100%);
+  box-shadow:0 5px 14px rgba(40,104,164,.16);
 }
 
 #diagnosisWorkspace .diagnosis-request-card .diagnosis-request-title{
-  color:#23638e;
+  color:#135b9b;
 }
 
+/* The client-requests controls stay inside the main-request block, with a lavender accent. */
 #diagnosisWorkspace .diagnosis-request-card .diagnosis-subsection-title{
   margin:10px 0 5px;
-  color:#5d6f87;
+  color:#7045aa;
   font-size:10px;
   letter-spacing:.02em;
 }
@@ -47,22 +55,27 @@
 
 #diagnosisWorkspace .diagnosis-request-card .query-toolbar{
   margin-bottom:0;
+  padding:6px;
+  border:1px solid rgba(139,92,196,.30);
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(235,222,249,.86),rgba(220,200,242,.86));
 }
 
+/* Situations — richer mint/aqua, clearly separate from the result block. */
 #diagnosisWorkspace .diagnosis-situations-card{
   margin-top:18px!important;
-  border:1px solid #e6bfd0;
-  background:linear-gradient(180deg,#fff6fa 0%,#fbeaf1 100%);
-  box-shadow:0 4px 12px rgba(154,74,110,.10);
+  border:1px solid #58c8aa;
+  background:linear-gradient(180deg,#afe7d7 0%,#84d6bf 100%);
+  box-shadow:0 5px 14px rgba(29,135,108,.15);
 }
 
 #diagnosisWorkspace .diagnosis-situations-card .diagnosis-situations-title{
-  color:#9a416b;
+  color:#087b68;
 }
 
 #diagnosisWorkspace .diagnosis-situations-card .situation-list{
   height:88px;
-  border-color:#d39ab4;
+  border-color:#58ad99;
   background:#fff;
 }
 
@@ -75,22 +88,23 @@
   margin-bottom:7px;
 }
 
+/* Desired result — warm peach/coral instead of green/olive. */
 #diagnosisWorkspace .diagnosis-result-card{
   margin:18px 8px 4px!important;
-  border:1px solid #b9d8c4;
-  background:linear-gradient(180deg,#f6fcf8 0%,#edf8f1 100%);
-  box-shadow:0 4px 12px rgba(35,96,58,.08);
+  border:1px solid #ee8f70;
+  background:linear-gradient(180deg,#ffc8b3 0%,#f3a284 100%);
+  box-shadow:0 5px 14px rgba(177,77,47,.14);
 }
 
 #diagnosisWorkspace .diagnosis-result-card .diagnosis-result-title{
-  color:#28613a;
+  color:#ba4525;
 }
 
 #diagnosisWorkspace .diagnosis-result-card .result-text{
   min-height:74px;
   height:74px;
   margin:0 0 8px;
-  border:1px solid #afcdb8;
+  border:1px solid #e59b83;
   border-radius:7px;
   background:#fff;
   padding:8px;
