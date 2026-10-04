@@ -8,10 +8,11 @@
   let loaded = false;
   const TOKEN_KEY='diagnostika-google-drive-token-v2';
   const CONNECTED_KEY='diagnostika-google-drive-connected-v1';
+  const USER_KEY='diagnostika-google-drive-user-v2';
 
   function hasGoogleSession() {
     try {
-      if(localStorage.getItem(CONNECTED_KEY)==='1')return true;
+      if(localStorage.getItem(CONNECTED_KEY)==='1'||localStorage.getItem(USER_KEY))return true;
       const raw=sessionStorage.getItem(TOKEN_KEY)||localStorage.getItem(TOKEN_KEY);
       if(!raw)return false;
       const value=JSON.parse(raw);
