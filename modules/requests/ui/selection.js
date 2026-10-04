@@ -119,10 +119,23 @@
     const resumeBtn=row.querySelector('.request-resume-btn');
     const finishBtn=row.querySelector('.request-finish-btn');
     const status=statusOf(r);
-    badge.textContent=statusLabel(r);
-    badge.className='request-status-badge '+status;
     const completed=status==='completed';
     const isCurrent=String(activeId(c)??'')===String(r.id);
+
+    if(completed){
+      badge.style.display='';
+      badge.textContent=statusLabel(r);
+      badge.className='request-status-badge completed';
+    }else if(isCurrent){
+      badge.style.display='';
+      badge.textContent=tx('active');
+      badge.className='request-status-badge active';
+    }else{
+      badge.style.display='none';
+      badge.textContent='';
+      badge.className='request-status-badge';
+    }
+
     currentBtn.style.display=completed?'none':'';
     currentBtn.textContent=isCurrent?tx('currentMark'):tx('makeCurrent');
     currentBtn.disabled=isCurrent;
@@ -152,7 +165,18 @@
 
     const addRequest=document.querySelector('#addRequestBtn');
     if(addRequest)addRequest.onclick=()=>{
-      requestsApi()?.create?.({title:'Новый запрос'},{source:'request-ui-create'});
+      const api=requestsApi();
+      const created=api?.create?.({title:'Новый запрос'},{source:'request-ui-create'});
+      if(!created)return;
+
+      setTimeout(()=>{
+        const titleUi=window.DiagnostikaRequestTitleDisplay;
+        if(titleUi?.openNewEditor){
+          titleUi.openNewEditor(created.id);
+          return;
+        }
+        document.querySelector('#requestTitleEditBtn')?.click();
+      },0);
     };
 
     const deleteRequest=document.querySelector('#deleteRequestBtn');
