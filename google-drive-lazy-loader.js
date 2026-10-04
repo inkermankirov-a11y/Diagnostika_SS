@@ -7,13 +7,15 @@
   let loading = false;
   let loaded = false;
   const TOKEN_KEY='diagnostika-google-drive-token-v2';
+  const CONNECTED_KEY='diagnostika-google-drive-connected-v1';
 
   function hasGoogleSession() {
     try {
-      const raw=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY);
+      if(localStorage.getItem(CONNECTED_KEY)==='1')return true;
+      const raw=sessionStorage.getItem(TOKEN_KEY)||localStorage.getItem(TOKEN_KEY);
       if(!raw)return false;
       const value=JSON.parse(raw);
-      return Boolean(value?.access_token && Date.now()<Number(value.expires_at||0)-30000);
+      return Boolean(value?.access_token);
     } catch (_) {
       return false;
     }
