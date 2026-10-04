@@ -39,7 +39,13 @@ const actionLayout=await page.evaluate(()=>{
     return [id,{fontFamily:s.fontFamily,width:r.width,height:r.height,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,whiteSpace:s.whiteSpace,writingMode:s.writingMode}];
   }));
   const bar=document.querySelector('.center-actions');
-  return {...data,bar:{scrollWidth:bar.scrollWidth,clientWidth:bar.clientWidth}};
+  const clientHeader=document.getElementById('diagnosisClientHeader');
+  return {
+    ...data,
+    bar:{scrollWidth:bar.scrollWidth,clientWidth:bar.clientWidth},
+    clientHeaderTop:clientHeader.getBoundingClientRect().top,
+    actionTop:document.getElementById('addBeliefBtn').getBoundingClientRect().top
+  };
 });
 for(const id of ['addBeliefBtn','addFeelingBtn','addDeepBtn','deleteElementBtn']){
   assert.match(actionLayout[id].fontFamily,/Tahoma/i,id+' did not switch to Tahoma');
@@ -49,6 +55,7 @@ assert(actionLayout.deleteElementBtn.scrollWidth<=actionLayout.deleteElementBtn.
 assert.equal(actionLayout.deleteElementBtn.whiteSpace,'nowrap','Delete text can wrap');
 assert.match(actionLayout.deleteElementBtn.writingMode,/horizontal/i,'Delete button is not horizontal');
 assert(actionLayout.bar.scrollWidth<=actionLayout.bar.clientWidth+1,'Diagnosis action bar overflows');
+assert(Math.abs(actionLayout.actionTop-actionLayout.clientHeaderTop)<=1.5,'Diagnosis action buttons are not aligned to the client header top edge');
 
 async function expectHelpIcon(id,fragment){
   const button=page.locator('#'+id);
