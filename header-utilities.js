@@ -72,91 +72,136 @@
   function weatherIcon(code,isDay=true){if(code===0)return isDay?'☀️':'🌙';if(code<=2)return'🌤️';if(code===3)return'☁️';if(code===45||code===48)return'🌫️';if(code>=51&&code<=67)return'🌧️';if(code>=71&&code<=77)return'🌨️';if(code>=80&&code<=82)return'🌦️';if(code>=85&&code<=86)return'🌨️';if(code>=95)return'⛈️';return'🌡️';}
   const finite=n=>Number.isFinite(Number(n));
   const signed=n=>finite(n)?`${Number(n)>0?'+':''}${Math.round(Number(n))}°`:'—°';
-  const DEFAULT_CITY=Object.freeze({name:'Киров',latitude:58.6036,longitude:49.6680,timezone:'Europe/Kirov'});
-  const WEATHER_CACHE_KEY='diagnostika-weather-cache-v3';
-  const WEATHER_CACHE_MAX_AGE=30*60*1000;
-  const WEATHER_TIMEOUT=10000;
+  const WEATHER_FEED_URL='./weather-data.json';
+  const WEATHER_FEED_CACHE_KEY='diagnostika-weather-feed-local-v2';
+  const WEATHER_CURRENT_KEY='diagnostika-weather-current-local';
+  const WEATHER_FORECAST_KEY='diagnostika-weather-forecast-local';
+  const WEATHER_LAST_CITY_KEY='diagnostika-weather-last-city';
   const WEATHER_REFRESH_MS=5*60*1000;
-  let weatherData=null,weatherLabel='',weatherError='',weatherFromCache=false,weatherUpdatedAt='',weatherRefreshActive=false;
+  const WEATHER_STALE_MS=25*60*1000;
+  let weatherFeed=null,weatherData=null,weatherLabel='',weatherError='',weatherFromCache=false,weatherUpdatedAt='',weatherRefreshActive=false;
 
-  function normalizedWeather(data){
-    if(!data||typeof data!=='object')throw Error('weather-data');
-    if(!data.current&&data.current_weather){
-      const cw=data.current_weather||{};
-      data.current={
-        temperature_2m:cw.temperature,
-        apparent_temperature:cw.temperature,
-        weather_code:cw.weathercode,
-        is_day:cw.is_day
-      };
-    }
-    if(!finite(data.current?.temperature_2m))throw Error('weather-temperature');
-    if(!Array.isArray(data.daily?.time)||data.daily.time.length<7)throw Error('weather-forecast');
-    return data;
+  function normalizeWeatherEntry(entry){
+    if(!entry||typeof entry!=='object')throw Error('weather-entry');
+    if(!finite(entry.current?.temperature_2m))throw Error('weather-temperature');
+    if(!Array.isArray(entry.daily?.time)||entry.daily.time.length<7)throw Error('weather-forecast');
+    return entry;
   }
 
-  function sameWeatherLocation(cache,lat,lon,label){
-    if(!cache)return false;
-    if(finite(cache.latitude)&&finite(cache.longitude)&&finite(lat)&&finite(lon)){
-      return Math.abs(Number(cache.latitude)-Number(lat))<0.15&&Math.abs(Number(cache.longitude)-Number(lon))<0.15;
-    }
-    return cityOnly(cache.label).toLowerCase()===cityOnly(label).toLowerCase();
+  function normalizeWeatherFeed(feed){
+    if(!feed||typeof feed!=='object'||!Array.isArray(feed.cities))throw Error('weather-feed');
+    const cities=feed.cities.map(normalizeWeatherEntry);
+    if(!cities.length)throw Error('weather-feed-empty');
+    return {...feed,cities};
   }
 
-  function readWeatherCache(){
+  function readFeedCache(){
     try{
-      const cache=JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY)||'null');
-      if(!cache?.data||!cache.savedAt)return null;
-      if(Date.now()-Number(cache.savedAt)>WEATHER_CACHE_MAX_AGE)return null;
-      return cache;
+      const cached=JSON.parse(localStorage.getItem(WEATHER_FEED_CACHE_KEY)||'null');
+      return cached?.feed?normalizeWeatherFeed(cached.feed):null;
     }catch(_){return null;}
   }
 
-  function saveWeatherCache(data,label,lat,lon){
+  function saveFeedCache(feed){
+    try{localStorage.setItem(WEATHER_FEED_CACHE_KEY,JSON.stringify({savedAt:Date.now(),feed}));}catch(_){}
+  }
+
+  function saveWeatherLocal(entry){
     try{
-      localStorage.setItem(WEATHER_CACHE_KEY,JSON.stringify({
-        savedAt:Date.now(),
-        label:cityOnly(label),
-        latitude:Number(lat),
-        longitude:Number(lon),
-        data
-      }));
+      const city={id:entry.id,name:entry.name,country:entry.country||'',admin:entry.admin||'',latitude:entry.latitude,longitude:entry.longitude,timezone:entry.timezone||''};
+      localStorage.setItem(WEATHER_CURRENT_KEY,JSON.stringify({savedAt:Date.now(),city,current:entry.current}));
+      localStorage.setItem(WEATHER_FORECAST_KEY,JSON.stringify({savedAt:Date.now(),city,daily:entry.daily}));
+      localStorage.setItem(WEATHER_LAST_CITY_KEY,String(entry.id||entry.name||''));
     }catch(_){}
   }
 
-  function applyWeather(data,label,{cached=false,lat=null,lon=null,updatedAt=''}={}){
-    data=normalizedWeather(data);
-    weatherData=data;
-    weatherLabel=cityOnly(label);
+  function feedIsStale(feed){
+    const stamp=Date.parse(feed?._updated_utc||'');
+    return Number.isFinite(stamp)&&Date.now()-stamp>WEATHER_STALE_MS;
+  }
+
+  async function loadWeatherFeed({force=false}={}){
+    if(weatherFeed&&!force)return weatherFeed;
+    try{
+      const response=await fetch(`${WEATHER_FEED_URL}?t=${Date.now()}`,{cache:'no-store',credentials:'same-origin'});
+      if(!response.ok)throw Error(`weather-json-${response.status}`);
+      const feed=normalizeWeatherFeed(await response.json());
+      weatherFeed=feed;
+      weatherFromCache=feedIsStale(feed);
+      weatherUpdatedAt=feed._updated_utc||'';
+      saveFeedCache(feed);
+      return feed;
+    }catch(error){
+      const cached=readFeedCache();
+      if(cached){
+        weatherFeed=cached;
+        weatherFromCache=true;
+        weatherUpdatedAt=cached._updated_utc||'';
+        return cached;
+      }
+      throw error;
+    }
+  }
+
+  function haversineKm(aLat,aLon,bLat,bLon){
+    const rad=x=>Number(x)*Math.PI/180;
+    const dLat=rad(Number(bLat)-Number(aLat)),dLon=rad(Number(bLon)-Number(aLon));
+    const a=Math.sin(dLat/2)**2+Math.cos(rad(aLat))*Math.cos(rad(bLat))*Math.sin(dLon/2)**2;
+    return 6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+
+  function nearestWeatherCity(cities,lat,lon){
+    let best=null,bestDistance=Infinity;
+    for(const city of cities||[]){
+      if(!finite(city.latitude)||!finite(city.longitude))continue;
+      const distance=haversineKm(lat,lon,city.latitude,city.longitude);
+      if(distance<bestDistance){best=city;bestDistance=distance;}
+    }
+    return best;
+  }
+
+  function findWeatherCity(feed,ref){
+    if(!feed?.cities?.length||!ref)return null;
+    const id=String(ref.id||ref||'').toLowerCase();
+    const name=String(ref.name||'').toLowerCase();
+    return feed.cities.find(city=>String(city.id||'').toLowerCase()===id)
+      ||feed.cities.find(city=>String(city.name||'').toLowerCase()===name)
+      ||null;
+  }
+
+  function defaultWeatherCity(feed){
+    return findWeatherCity(feed,'kirov')||feed?.cities?.[0]||null;
+  }
+
+  function lastWeatherCity(feed){
+    const id=localStorage.getItem(WEATHER_LAST_CITY_KEY)||'';
+    return findWeatherCity(feed,id)||findWeatherCity(feed,savedCity())||defaultWeatherCity(feed);
+  }
+
+  function observationText(entry){
+    const value=String(entry?.current?.time||'').trim();
+    const m=value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if(!m)return '';
+    return `${m[3]}.${m[2]}.${m[1]}, ${m[4]}:${m[5]}`;
+  }
+
+  function applyWeatherEntry(entry,{cached=weatherFromCache}={}){
+    entry=normalizeWeatherEntry(entry);
+    weatherData={current:entry.current,daily:entry.daily};
+    weatherLabel=cityOnly(entry.name);
     weatherError='';
     weatherFromCache=Boolean(cached);
-    weatherUpdatedAt=updatedAt||new Date().toISOString();
-    const current=data.current||{};
+    const current=entry.current||{};
     weatherBtn.querySelector('.hu-icon').textContent=weatherIcon(Number(current.weather_code),current.is_day!==0);
     weatherBtn.querySelector('.hu-main').textContent=signed(current.temperature_2m);
     weatherBtn.querySelector('.hu-sub').textContent=weatherLabel;
-    weatherBtn.title=cached?`${tr().cached}: ${weatherLabel}`:weatherLabel;
-    if(!cached&&finite(lat)&&finite(lon))saveWeatherCache(data,weatherLabel,lat,lon);
-    return data;
-  }
-
-  function restoreWeatherCache(lat,lon,label){
-    const cache=readWeatherCache();
-    if(!sameWeatherLocation(cache,lat,lon,label))return false;
-    try{
-      applyWeather(cache.data,cache.label||label,{
-        cached:true,
-        lat,
-        lon,
-        updatedAt:new Date(Number(cache.savedAt)).toISOString()
-      });
-      return true;
-    }catch(_){return false;}
+    weatherBtn.title=weatherFromCache?`${tr().cached}: ${weatherLabel}`:weatherLabel;
+    saveWeatherLocal(entry);
+    return entry;
   }
 
   function showWeatherUnavailable(label=''){
     weatherData=null;
-    weatherFromCache=false;
     weatherLabel=cityOnly(label||tr().weather);
     weatherBtn.querySelector('.hu-icon').textContent='⚠️';
     weatherBtn.querySelector('.hu-main').textContent='—°';
@@ -164,106 +209,54 @@
     weatherBtn.title=tr().weatherUnavailable;
   }
 
-  async function fetchJson(url,timeout=WEATHER_TIMEOUT){
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),timeout);
-    try{
-      const response=await fetch(url,{cache:'no-store',signal:controller.signal,credentials:'omit'});
-      if(!response.ok)throw Error(`http-${response.status}`);
-      return await response.json();
-    }finally{
-      clearTimeout(timer);
-    }
-  }
-
-  async function resolveCity(lat,lon){
-    try{
-      const url=`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=${encodeURIComponent(lang())}`;
-      const data=await fetchJson(url,4500);
-      return cityOnly(data.city||data.locality||data.principalSubdivision||tr().local);
-    }catch(_){
-      return tr().local;
-    }
-  }
-
-  async function fetchWeatherPayload(lat,lon,timezone='auto'){
-    const common=`latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=${encodeURIComponent(timezone||'auto')}&forecast_days=7&temperature_unit=celsius&wind_speed_unit=kmh`;
-    const modern=`https://api.open-meteo.com/v1/forecast?${common}&current=temperature_2m,apparent_temperature,weather_code,is_day`;
-    const legacy=`https://api.open-meteo.com/v1/forecast?${common}&current_weather=true`;
-    let firstError=null;
-    for(const url of [modern,modern,legacy]){
-      try{return normalizedWeather(await fetchJson(url));}
-      catch(error){
-        if(!firstError)firstError=error;
-        await new Promise(resolve=>setTimeout(resolve,300));
-      }
-    }
-    throw firstError||new Error('weather-fetch');
-  }
-
-  async function fetchWeather(lat,lon,label,timezone='auto'){
-    const targetLabel=cityOnly(label);
-    if(!weatherData)restoreWeatherCache(lat,lon,targetLabel);
-    try{
-      const data=await fetchWeatherPayload(lat,lon,timezone);
-      return applyWeather(data,targetLabel,{cached:false,lat,lon,updatedAt:new Date().toISOString()});
-    }catch(error){
-      weatherError=String(error?.message||error||'weather');
-      if(restoreWeatherCache(lat,lon,targetLabel))return weatherData;
-      showWeatherUnavailable(targetLabel);
-      throw error;
-    }
-  }
-
-  function loadGeoWeather(){
+  function geolocationWeather(feed){
     return new Promise(resolve=>{
       const fallback=()=>{
-        fetchWeather(DEFAULT_CITY.latitude,DEFAULT_CITY.longitude,DEFAULT_CITY.name,DEFAULT_CITY.timezone)
-          .then(resolve)
-          .catch(()=>resolve(null));
+        const city=lastWeatherCity(feed);
+        if(city){resolve(applyWeatherEntry(city));return;}
+        showWeatherUnavailable();
+        resolve(null);
       };
       if(!navigator.geolocation){fallback();return;}
-      navigator.geolocation.getCurrentPosition(async position=>{
-        const lat=position.coords.latitude,lon=position.coords.longitude;
-        const labelPromise=resolveCity(lat,lon);
-        try{
-          const data=await fetchWeather(lat,lon,tr().local,'auto');
-          const label=await labelPromise;
-          if(data&&label){
-            weatherLabel=cityOnly(label);
-            weatherBtn.querySelector('.hu-sub').textContent=weatherLabel;
-            weatherBtn.title=weatherFromCache?`${tr().cached}: ${weatherLabel}`:weatherLabel;
-            if(!weatherFromCache)saveWeatherCache(weatherData,weatherLabel,lat,lon);
-          }
-          resolve(data);
-        }catch(_){
-          fallback();
-        }
-      },fallback,{enableHighAccuracy:false,timeout:6000,maximumAge:15*60*1000});
+      navigator.geolocation.getCurrentPosition(position=>{
+        const city=nearestWeatherCity(feed.cities,position.coords.latitude,position.coords.longitude);
+        if(city){resolve(applyWeatherEntry(city));return;}
+        fallback();
+      },fallback,{enableHighAccuracy:false,timeout:5000,maximumAge:15*60*1000});
     });
   }
 
-  function initWeather(){
-    const city=savedCity();
-    if(weatherMode()==='city'&&city?.latitude!=null&&city?.longitude!=null){
-      return fetchWeather(city.latitude,city.longitude,cityOnly(city.name),city.timezone||'auto').catch(()=>null);
+  async function initWeather({force=false}={}){
+    try{
+      const feed=await loadWeatherFeed({force});
+      if(weatherMode()==='city'){
+        const selected=findWeatherCity(feed,savedCity())||defaultWeatherCity(feed);
+        if(selected)return applyWeatherEntry(selected);
+      }
+      return await geolocationWeather(feed);
+    }catch(error){
+      weatherError=String(error?.message||error||'weather');
+      showWeatherUnavailable(weatherLabel);
+      return null;
     }
-    return loadGeoWeather();
   }
 
-  async function searchCities(q){
-    const needle=String(q||'').trim();
-    if(!needle)return [];
-    const url=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(needle)}&count=10&language=${encodeURIComponent(lang())}&format=json`;
-    const data=await fetchJson(url,7000);
-    return Array.isArray(data?.results)?data.results:[];
+  function searchCities(q){
+    const needle=String(q||'').trim().toLowerCase();
+    if(!needle||!weatherFeed?.cities?.length)return [];
+    return weatherFeed.cities
+      .filter(city=>{
+        const values=[city.name,city.admin,city.country,...(Array.isArray(city.aliases)?city.aliases:[])];
+        return values.some(value=>String(value||'').toLowerCase().includes(needle));
+      })
+      .slice(0,12);
   }
 
   async function refreshWeather({rerender=true}={}){
     if(weatherRefreshActive)return weatherData;
     weatherRefreshActive=true;
     try{
-      await initWeather();
+      await initWeather({force:true});
       if(rerender&&!overlay.hidden&&overlay.dataset.theme==='weather')showWeather();
       return weatherData;
     }finally{
@@ -301,8 +294,10 @@
     }).join('');
 
     const selected=savedCity();
-    const updatedText=weatherUpdatedAt?new Date(weatherUpdatedAt).toLocaleString(lang()==='ru'?'ru-RU':lang()):'';
-    openPanel(`<div class="utility-head"><div><h2>${t.forecast}</h2><div class="utility-location-title">📍 ${weatherLabel}</div></div><button class="utility-close">×</button></div><div class="weather-current-card"><div class="weather-current-icon">${weatherIcon(Number(current.weather_code),current.is_day!==0)}</div><div class="weather-current-temp">${signed(current.temperature_2m)}</div><div class="weather-current-meta">${weatherFromCache?t.cached:t.sourceWeather}<br><strong>${signed(current.apparent_temperature)}</strong></div></div><div class="weather-days">${rows}</div><div class="weather-settings"><div class="weather-settings-title">⚙ ${t.weatherSettings}</div><div class="weather-setting-row"><label>${t.locationMode}<select id="weatherModeSelect"><option value="geo" ${weatherMode()==='geo'?'selected':''}>${t.myLocation}</option><option value="city" ${weatherMode()==='city'?'selected':''}>${t.chosenCity}</option></select></label><label>${t.city}<div class="weather-city-row"><input id="weatherCityInput" value="${String(selected?.name||'').replace(/"/g,'&quot;')}" autocomplete="off"><button id="weatherCityFind" type="button" class="tk-btn">${t.findCity}</button></div></label></div><div id="weatherCityResults" class="weather-city-results"></div></div><div class="utility-source">${weatherFromCache?t.cached:t.sourceWeather}${updatedText?' · '+updatedText:''}</div>`,'weather');
+    const currentCity=findWeatherCity(weatherFeed,selected)||lastWeatherCity(weatherFeed);
+    const observation=observationText(currentCity);
+    const sourceLabel=weatherFromCache?t.cached:t.sourceWeather;
+    openPanel(`<div class="utility-head"><div><h2>${t.forecast}</h2><div class="utility-location-title">📍 ${weatherLabel}</div></div><button class="utility-close">×</button></div><div class="weather-current-card"><div class="weather-current-icon">${weatherIcon(Number(current.weather_code),current.is_day!==0)}</div><div class="weather-current-temp">${signed(current.temperature_2m)}</div><div class="weather-current-meta">${sourceLabel}<br><strong>${signed(current.apparent_temperature)}</strong></div></div><div class="weather-days">${rows}</div><div class="weather-settings"><div class="weather-settings-title">⚙ ${t.weatherSettings}</div><div class="weather-setting-row"><label>${t.locationMode}<select id="weatherModeSelect"><option value="geo" ${weatherMode()==='geo'?'selected':''}>${t.myLocation}</option><option value="city" ${weatherMode()==='city'?'selected':''}>${t.chosenCity}</option></select></label><label>${t.city}<div class="weather-city-row"><input id="weatherCityInput" value="${String(selected?.name||weatherLabel||'').replace(/"/g,'&quot;')}" autocomplete="off"><button id="weatherCityFind" type="button" class="tk-btn">${t.findCity}</button></div></label></div><div id="weatherCityResults" class="weather-city-results"></div></div><div class="utility-source">${sourceLabel}${observation?' · данные на '+observation:''}</div>`,'weather');
 
     const modeSelect=overlay.querySelector('#weatherModeSelect');
     const input=overlay.querySelector('#weatherCityInput');
@@ -315,24 +310,18 @@
       showWeather();
     };
 
-    const runSearch=async()=>{
-      const q=input?.value||'';
-      results.textContent=t.loading;
-      try{
-        const found=await searchCities(q);
-        if(!found.length){results.textContent=t.cityNotFound;return;}
-        results.innerHTML=found.map((city,i)=>`<div class="weather-city-option" data-i="${i}"><strong>${city.name}</strong>${city.admin1?', '+city.admin1:''}${city.country?', '+city.country:''}</div>`).join('');
-        results.querySelectorAll('.weather-city-option').forEach(el=>el.onclick=async()=>{
-          const city=found[Number(el.dataset.i)];
-          const cityObj={id:city.id,name:city.name,latitude:city.latitude,longitude:city.longitude,timezone:city.timezone||'auto'};
-          localStorage.setItem('diagnostika-weather-city',JSON.stringify(cityObj));
-          localStorage.setItem('diagnostika-weather-mode','city');
-          await fetchWeather(cityObj.latitude,cityObj.longitude,cityObj.name,cityObj.timezone).catch(()=>null);
-          showWeather();
-        });
-      }catch(_){
-        results.textContent=t.cityNotFound;
-      }
+    const runSearch=()=>{
+      const found=searchCities(input?.value);
+      if(!found.length){results.textContent=t.cityNotFound;return;}
+      results.innerHTML=found.map((city,i)=>`<div class="weather-city-option" data-i="${i}"><strong>${city.name}</strong>${city.admin?', '+city.admin:''}${city.country?', '+city.country:''}</div>`).join('');
+      results.querySelectorAll('.weather-city-option').forEach(el=>el.onclick=()=>{
+        const city=found[Number(el.dataset.i)];
+        const cityObj={id:city.id,name:city.name,latitude:city.latitude,longitude:city.longitude,timezone:city.timezone||''};
+        localStorage.setItem('diagnostika-weather-city',JSON.stringify(cityObj));
+        localStorage.setItem('diagnostika-weather-mode','city');
+        applyWeatherEntry(city);
+        showWeather();
+      });
     };
     find.onclick=runSearch;
     input.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();runSearch();}};
@@ -381,5 +370,5 @@
     })
   });
 
-  refreshWeather({rerender:false});loadRates();setTimeout(refreshLanguage,0);setInterval(()=>refreshWeather({rerender:true}),WEATHER_REFRESH_MS);
+  initWeather({force:true});loadRates();setTimeout(refreshLanguage,0);setInterval(()=>refreshWeather({rerender:true}),WEATHER_REFRESH_MS);
 })();

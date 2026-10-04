@@ -2,7 +2,7 @@ name: Update weather data
 
 on:
   schedule:
-    - cron: '7,37 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
   push:
     branches: [ main ]
@@ -99,7 +99,7 @@ jobs:
                   existing=None
 
           if existing and existing.get('cities')==rows:
-              print('Weather payload unchanged.')
+              print('Weather values unchanged.')
           else:
               reference=next((city for city in rows if city.get('id')=='kirov'),rows[0])
               payload={

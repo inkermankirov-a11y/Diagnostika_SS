@@ -16,15 +16,15 @@ for(const forbidden of [
   assert.equal(header.includes(forbidden),false,'Browser weather still calls external service: '+forbidden);
 }
 assert.ok(header.includes("./weather-data.json"),'Local weather-data.json source missing');
-assert.ok(header.includes("weather-data.json?t="),'Weather JSON cache bust missing');
+assert.ok(header.includes("${WEATHER_FEED_URL}?t=${Date.now()}"),'Weather JSON cache bust missing');
 assert.ok(header.includes("navigator.geolocation"),'Automatic browser geolocation missing');
 assert.ok(header.includes("nearestWeatherCity"),'Nearest local weather city selection missing');
 assert.ok(header.includes("diagnostika-weather-mode')||'geo'"),'Geolocation must be the default weather mode');
 assert.ok(header.includes('diagnostika-weather-current-local'),'Current weather local fallback missing');
 assert.ok(header.includes('diagnostika-weather-forecast-local'),'Forecast local fallback missing');
-assert.ok(header.includes('WEATHER_REFRESH_MS=15*60*1000'),'15-minute local refresh missing');
-assert.ok(index.includes('header-utilities.js?v=20261002-weather-local1'),'Weather cache key not bumped');
-assert.ok(workflow.includes("cron: '7,37 * * * *'"),'30-minute weather schedule missing');
+assert.ok(header.includes('WEATHER_REFRESH_MS=5*60*1000'),'5-minute local refresh missing');
+assert.ok(index.includes('header-utilities.js?v=20261004-weather-local-5min-2'),'Weather cache key not bumped');
+assert.ok(workflow.includes("cron: '*/5 * * * *'"),'5-minute weather schedule missing');
 assert.ok(workflow.includes('contents: write'),'Weather workflow write permission missing');
 assert.ok(workflow.includes('workflow_dispatch:'),'Manual weather workflow dispatch missing');
 assert.ok(locations.cities.some(city=>city.id==='kirov'&&city.latitude===58.6036&&city.longitude===49.668),'Kirov reference city missing');
