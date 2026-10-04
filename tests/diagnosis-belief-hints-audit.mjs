@@ -30,6 +30,26 @@ assert.match(colors.addBeliefBtn.backgroundImage,/rgb\(36, 79, 175\)|rgb\(18, 53
 assert.match(colors.addFeelingBtn.backgroundImage,/rgb\(255, 216, 90\)|rgb\(231, 173, 22\)/,'Secondary feelings button is not yellow');
 assert.match(colors.addDeepBtn.backgroundImage,/rgb\(139, 99, 216\)|rgb\(101, 61, 179\)/,'Secondary belief button is not purple');
 
+const actionLayout=await page.evaluate(()=>{
+  const ids=['addBeliefBtn','addFeelingBtn','addDeepBtn','deleteElementBtn'];
+  const data=Object.fromEntries(ids.map(id=>{
+    const el=document.getElementById(id);
+    const s=getComputedStyle(el);
+    const r=el.getBoundingClientRect();
+    return [id,{fontFamily:s.fontFamily,width:r.width,height:r.height,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,whiteSpace:s.whiteSpace,writingMode:s.writingMode}];
+  }));
+  const bar=document.querySelector('.center-actions');
+  return {...data,bar:{scrollWidth:bar.scrollWidth,clientWidth:bar.clientWidth}};
+});
+for(const id of ['addBeliefBtn','addFeelingBtn','addDeepBtn','deleteElementBtn']){
+  assert.match(actionLayout[id].fontFamily,/Tahoma/i,id+' did not switch to Tahoma');
+}
+assert(actionLayout.deleteElementBtn.width>=77,'Delete button is still squeezed');
+assert(actionLayout.deleteElementBtn.scrollWidth<=actionLayout.deleteElementBtn.clientWidth+1,'Delete text is clipped');
+assert.equal(actionLayout.deleteElementBtn.whiteSpace,'nowrap','Delete text can wrap');
+assert.match(actionLayout.deleteElementBtn.writingMode,/horizontal/i,'Delete button is not horizontal');
+assert(actionLayout.bar.scrollWidth<=actionLayout.bar.clientWidth+1,'Diagnosis action bar overflows');
+
 async function expectHelpIcon(id,fragment){
   const button=page.locator('#'+id);
   const icon=button.locator('.diagnosis-help-trigger');
