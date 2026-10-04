@@ -77,7 +77,7 @@
   const WEATHER_CURRENT_KEY='diagnostika-weather-current-local';
   const WEATHER_FORECAST_KEY='diagnostika-weather-forecast-local';
   const WEATHER_LAST_CITY_KEY='diagnostika-weather-last-city';
-  const WEATHER_REFRESH_MS=15*60*1000;
+  const WEATHER_REFRESH_MS=5*60*1000;
   let weatherFeed=null,weatherData=null,weatherLabel='',weatherError='',weatherFromCache=false,weatherUpdatedAt='';
 
   function normalizeWeatherEntry(entry){
