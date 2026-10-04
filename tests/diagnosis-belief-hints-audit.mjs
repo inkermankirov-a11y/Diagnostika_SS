@@ -20,6 +20,47 @@ assert.equal(await page.locator('#addBeliefBtn').evaluate(el=>el.firstChild?.tex
 assert.equal(await page.locator('#addFeelingBtn').evaluate(el=>el.firstChild?.textContent?.trim()),'+ Вторичные чувства');
 assert.equal(await page.locator('#addDeepBtn').evaluate(el=>el.firstChild?.textContent?.trim()),'+ Вторичное убеждение');
 
+const compactHeader=await page.evaluate(()=>{
+  const back=document.querySelector('.diagnosis-compact-back');
+  const name=document.querySelector('.diagnosis-compact-name');
+  const hypothesis=document.querySelector('.diagnosis-hypothesis-btn');
+  const currency=document.querySelector('#headerCurrencyBtn');
+  const header=document.querySelector('#diagnosisClientHeader');
+  if(!back||!name||!hypothesis||!currency||!header)return null;
+  const read=el=>{
+    const r=el.getBoundingClientRect();
+    const s=getComputedStyle(el);
+    return {
+      x:r.x,y:r.y,right:r.right,width:r.width,height:r.height,
+      backgroundImage:s.backgroundImage,
+      borderColor:s.borderColor,
+      borderRadius:s.borderRadius,
+      color:s.color,
+      boxShadow:s.boxShadow
+    };
+  };
+  return {
+    back:read(back),
+    name:read(name),
+    hypothesis:read(hypothesis),
+    currency:read(currency),
+    header:read(header),
+    text:hypothesis.textContent.trim()
+  };
+});
+assert(compactHeader,'Diagnosis compact header controls are missing');
+assert.equal(compactHeader.text,'Гипотеза','Hypothesis button label is wrong');
+assert(Math.abs(compactHeader.hypothesis.width-compactHeader.currency.width)<=0.5,'Hypothesis button width does not match currency button');
+assert(Math.abs(compactHeader.hypothesis.height-compactHeader.currency.height)<=0.5,'Hypothesis button height does not match currency button');
+assert.equal(compactHeader.hypothesis.borderRadius,compactHeader.currency.borderRadius,'Hypothesis button radius does not match currency button');
+assert.equal(compactHeader.hypothesis.backgroundImage,compactHeader.currency.backgroundImage,'Hypothesis button glass texture does not match currency button');
+assert.equal(compactHeader.hypothesis.borderColor,compactHeader.currency.borderColor,'Hypothesis button border color does not match currency button');
+assert.equal(compactHeader.hypothesis.boxShadow,compactHeader.currency.boxShadow,'Hypothesis button glass shadow does not match currency button');
+assert(compactHeader.hypothesis.x>compactHeader.name.x,'Hypothesis button is not to the right of client name');
+assert(compactHeader.header.right-compactHeader.hypothesis.right<=14,'Hypothesis button is not aligned to the far right of the client header');
+assert.equal(compactHeader.back.color,'rgb(255, 255, 255)','Back-to-client button is not visually emphasized');
+assert.match(compactHeader.back.backgroundImage,/rgb\(79, 134, 255\)|rgb\(36, 87, 214\)/,'Back-to-client button did not receive the vivid blue treatment');
+
 const colors=await page.evaluate(()=>Object.fromEntries(
   ['addBeliefBtn','addFeelingBtn','addDeepBtn'].map(id=>{
     const s=getComputedStyle(document.getElementById(id));
