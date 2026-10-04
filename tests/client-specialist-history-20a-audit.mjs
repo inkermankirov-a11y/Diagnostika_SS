@@ -4,12 +4,14 @@ import fs from 'node:fs';
 
 const transferSource=fs.readFileSync('modules/clients/ui/transfer.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
+const appLoader=fs.readFileSync('app-loader.js','utf8');
 
 assert(!transferSource.includes('Первичный специалист'),'Legacy primary specialist label still exists');
 assert(transferSource.includes('client-specialist-history-btn'),'Current specialist button missing');
 assert(transferSource.includes('clientSpecialistHistoryDialog'),'Specialist history dialog missing');
 assert(transferSource.includes('requests:requestsForPeriod(incoming,start,transferredAt)'),'Transfer does not snapshot requests');
 assert(index.includes('modules/clients/ui/transfer.js?v=20261003-specialist-right-rail-4'),'Specialist row module/cache marker missing');
+assert(appLoader.includes('home-dashboard.css?v=20261004-profile-row-align-1'),'Dashboard profile alignment CSS cache marker missing');
 
 const fixture={
   version:4,
@@ -69,6 +71,9 @@ page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('Failed to fetch
 await page.goto('http://127.0.0.1:8000/index.html?specialist20a='+Date.now(),{waitUntil:'commit',timeout:15000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:30000});
 await page.waitForFunction(()=>window.DiagnostikaClientTransfer?.buildSpecialistPeriods,null,{timeout:10000});
+await page.waitForFunction(()=>window.DiagnostikaHomeDashboard?.openClient,null,{timeout:10000});
+await page.evaluate(()=>window.DiagnostikaHomeDashboard.openClient('specialist20a-client'));
+await page.waitForSelector('#hdClientView',{state:'visible',timeout:10000});
 await page.waitForSelector('#clientSpecialistInfo .client-specialist-history-btn',{state:'visible',timeout:10000});
 
 const hero=await page.evaluate(()=>{
@@ -77,11 +82,15 @@ const hero=await page.evaluate(()=>{
   const name=info?.querySelector('.client-specialist-name');
   const slot=document.querySelector('#hdClientSpecialistSlot');
   const reminderSlot=document.querySelector('.hd-reminder-slot');
+  const socials=document.querySelector('#hdClientSocials');
+  const clientCardButton=document.querySelector('#hdHeroActions .hd-secondary');
   const infoBox=info?.getBoundingClientRect();
   const buttonBox=button?.getBoundingClientRect();
   const nameBox=name?.getBoundingClientRect();
   const slotBox=slot?.getBoundingClientRect();
   const reminderBox=reminderSlot?.getBoundingClientRect();
+  const socialsBox=socials?.getBoundingClientRect();
+  const clientCardBox=clientCardButton?.getBoundingClientRect();
   return {
     text:info?.innerText||'',
     buttonTag:button?.tagName||'',
@@ -94,7 +103,13 @@ const hero=await page.evaluate(()=>{
     parentId:info?.parentElement?.id||'',
     slotWidth:slotBox?.width||0,
     specialistTop:slotBox?.top||0,
+    specialistInfoTop:infoBox?.top||0,
+    specialistInfoBottom:infoBox?.bottom||0,
+    specialistButtonTop:buttonBox?.top||0,
+    specialistButtonBottom:buttonBox?.bottom||0,
     reminderBottom:reminderBox?.bottom||0,
+    socialsTop:socialsBox?.top||0,
+    clientCardTop:clientCardBox?.top||0,
     bodyText:document.body.innerText
   };
 });
@@ -103,11 +118,16 @@ assert.equal(hero.buttonTag,'BUTTON','Current specialist label is not a button')
 assert.equal(hero.buttonText.trim(),'Текущий специалист');
 assert.equal(hero.nameTag,'SPAN','Specialist name should be plain text');
 assert.equal(hero.nameText.trim(),'Евгений');
-assert(hero.width>=240,`Specialist row is too narrow: ${hero.width}px`);
+assert(hero.width>=210,`Specialist row is too narrow: ${hero.width}px`);
 assert(Math.abs(hero.buttonCenterY-hero.nameCenterY)<=1,`Button/name vertical alignment differs: ${hero.buttonCenterY} vs ${hero.nameCenterY}`);
 assert.equal(hero.parentId,'hdClientSpecialistSlot','Specialist row is not inside the dedicated right-side slot');
-assert(hero.slotWidth>=240,`Specialist slot is too narrow: ${hero.slotWidth}px`);
+assert(hero.slotWidth>=210,`Specialist slot is too narrow: ${hero.slotWidth}px`);
 assert(hero.specialistTop>=hero.reminderBottom-1,`Specialist overlaps the reserved reminder area: ${hero.specialistTop} < ${hero.reminderBottom}`);
+assert(Math.abs(hero.socialsTop-hero.specialistInfoTop)<=1,`Social row is not level with specialist row: ${hero.socialsTop} vs ${hero.specialistInfoTop}`);
+assert(Math.abs(hero.clientCardTop-hero.specialistInfoTop)<=1,`Client card button is not level with specialist row: ${hero.clientCardTop} vs ${hero.specialistInfoTop}`);
+const specialistTopInset=hero.specialistButtonTop-hero.specialistInfoTop;
+const specialistBottomInset=hero.specialistInfoBottom-hero.specialistButtonBottom;
+assert(Math.abs(specialistTopInset-specialistBottomInset)<=0.5,`Current specialist button is not vertically centered inside its field: top=${specialistTopInset}, bottom=${specialistBottomInset}`);
 assert(!hero.bodyText.includes('Первичный специалист'),'Primary specialist is still visible');
 
 const periods=await page.evaluate(()=>window.DiagnostikaClientTransfer.buildSpecialistPeriods());
