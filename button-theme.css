@@ -43,8 +43,37 @@ button:disabled{opacity:.58;cursor:not-allowed;box-shadow:none!important}
 #saveClientBtn,#backToProgressBtn,#saveResultBtn,.cc-save-btn,.storage-primary,#requestOpenBtn,.session-edit-actions .primary,.editor-save-btn{
   background:linear-gradient(#34A96F,#248455)!important;color:#fff!important;border-color:#1E7048!important
 }
-#addSessionBtn,#addRequestBtn,#addSituationBtn,#addBeliefBtn,#addFeelingBtn,#addDeepBtn,#addInstinctBtn,#dialogAddClientBtn,.session-media-add{
+#addSessionBtn,#addRequestBtn,#addSituationBtn,#addInstinctBtn,#dialogAddClientBtn,.session-media-add{
   background:linear-gradient(#5A82EE,#3E65D7)!important;color:#fff!important;border-color:#3458C1!important
+}
+
+/* Diagnosis hierarchy colors */
+#addBeliefBtn{
+  background:linear-gradient(#315FC8,#183F9E)!important;
+  color:#fff!important;
+  border-color:#12347F!important;
+  box-shadow:0 3px 8px rgba(24,63,158,.28)!important;
+}
+#addBeliefBtn:hover{
+  background:linear-gradient(#3A6BD8,#214BAD)!important;
+}
+#addFeelingBtn{
+  background:linear-gradient(#FFD95A,#E7AD16)!important;
+  color:#4A3500!important;
+  border-color:#C48E08!important;
+  box-shadow:0 3px 8px rgba(196,142,8,.24)!important;
+}
+#addFeelingBtn:hover{
+  background:linear-gradient(#FFE26E,#F0B91F)!important;
+}
+#addDeepBtn{
+  background:linear-gradient(#8A63D8,#6840B8)!important;
+  color:#fff!important;
+  border-color:#5632A2!important;
+  box-shadow:0 3px 8px rgba(104,64,184,.26)!important;
+}
+#addDeepBtn:hover{
+  background:linear-gradient(#9872E4,#754CC5)!important;
 }
 
 /* Secondary/edit actions */
