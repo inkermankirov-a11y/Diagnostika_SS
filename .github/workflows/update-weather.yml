@@ -98,19 +98,18 @@ jobs:
               except Exception:
                   existing=None
 
-          reference=next((city for city in rows if city.get('id')=='kirov'),rows[0])
-          payload={
-              '_updated_utc':dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),
-              'current':reference['current'],
-              'daily':reference['daily'],
-              'cities':rows
-          }
-
           if existing and existing.get('cities')==rows:
-              print('Weather values unchanged; refresh timestamp only.')
+              print('Weather values unchanged.')
           else:
+              reference=next((city for city in rows if city.get('id')=='kirov'),rows[0])
+              payload={
+                  '_updated_utc':dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),
+                  'current':reference['current'],
+                  'daily':reference['daily'],
+                  'cities':rows
+              }
+              target.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
               print(f"Updated {len(rows)} cities in {(len(rows)+batch_size-1)//batch_size} API batches.")
-          target.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           PY
 
       - name: Validate weather-data.json
