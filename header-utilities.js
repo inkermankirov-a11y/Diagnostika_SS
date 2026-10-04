@@ -367,18 +367,19 @@
     calendarBtn.title=tr().calendar;
     calendarBtn.setAttribute('aria-label',tr().calendar);
   }
-  const oldSet=window.DiagnostikaI18n?.setLanguage;if(oldSet){window.DiagnostikaI18n.setLanguage=function(l){const r=oldSet.call(this,l);setTimeout(()=>{refreshLanguage();initWeather();},0);return r;};}
+  const oldSet=window.DiagnostikaI18n?.setLanguage;if(oldSet){window.DiagnostikaI18n.setLanguage=function(l){const r=oldSet.call(this,l);setTimeout(()=>{refreshLanguage();refreshWeather({rerender:true});},0);return r;};}
   window.DiagnostikaWeather=Object.freeze({
-    refresh:()=>initWeather(),
+    refresh:()=>refreshWeather({rerender:true}),
     state:()=>Object.freeze({
       ready:Boolean(weatherData),
       label:weatherLabel,
       temperature:weatherData?.current?.temperature_2m??null,
       cached:weatherFromCache,
       error:weatherError,
-      mode:weatherMode()
+      mode:weatherMode(),
+      updatedAt:weatherUpdatedAt
     })
   });
 
-  initWeather();loadRates();setTimeout(refreshLanguage,0);setInterval(()=>initWeather({force:true}),WEATHER_REFRESH_MS);
+  refreshWeather({rerender:false});loadRates();setTimeout(refreshLanguage,0);setInterval(()=>refreshWeather({rerender:true}),WEATHER_REFRESH_MS);
 })();
