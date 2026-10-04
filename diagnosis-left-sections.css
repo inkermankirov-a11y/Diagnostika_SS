@@ -1,6 +1,6 @@
 /* Three independent primary sections in the diagnosis left column. */
 #diagnosisWorkspace .diagnostics-left{
-  gap:18px;
+  gap:0!important;
 }
 
 #diagnosisWorkspace .diagnostics-left>.separator{
@@ -50,7 +50,7 @@
 }
 
 #diagnosisWorkspace .diagnosis-situations-card{
-  margin-top:0;
+  margin-top:18px!important;
   border:1px solid #e6bfd0;
   background:linear-gradient(180deg,#fff6fa 0%,#fbeaf1 100%);
   box-shadow:0 4px 12px rgba(154,74,110,.10);
@@ -76,7 +76,7 @@
 }
 
 #diagnosisWorkspace .diagnosis-result-card{
-  margin:0 8px 4px;
+  margin:18px 8px 4px!important;
   border:1px solid #b9d8c4;
   background:linear-gradient(180deg,#f6fcf8 0%,#edf8f1 100%);
   box-shadow:0 4px 12px rgba(35,96,58,.08);
