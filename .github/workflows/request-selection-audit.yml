@@ -82,6 +82,8 @@ jobs:
               select:document.querySelector('#requestSelect')?.value||'',
               disabled:!!btn?.disabled,
               text:btn?.textContent?.trim()||'',
+              badgeText:document.querySelector('.request-status-badge')?.textContent?.trim()||'',
+              badgeDisplay:getComputedStyle(document.querySelector('.request-status-badge')).display,
               writes:window.__requestCurrentWrites||[]
             };
           });
@@ -90,17 +92,48 @@ jobs:
           if(String(viewed.lastDiagnosis)!==String(ids.first))throw new Error(`Selecting request changed last diagnosis authority: ${JSON.stringify(viewed)}`);
           if(String(viewed.viewed)!==String(ids.second)||String(viewed.select)!==String(ids.second))throw new Error(`Second request was not opened for viewing: ${JSON.stringify(viewed)}`);
           if(viewed.disabled||viewed.text.includes('✓'))throw new Error(`Activate button is not available for viewed inactive request: ${JSON.stringify(viewed)}`);
+          if(viewed.badgeText==='В работе'||viewed.badgeDisplay!=='none')throw new Error(`Inactive viewed request incorrectly shows "В работе": ${JSON.stringify(viewed)}`);
 
           await page.locator('.request-current-btn').click();
           await page.waitForTimeout(50);
           const activated=await page.evaluate(()=>{
             const c=client();
             const btn=document.querySelector('.request-current-btn');
-            return {current:c.currentRequestId,lastDiagnosis:c.lastDiagnosisRequestId,disabled:!!btn?.disabled,text:btn?.textContent?.trim()||''};
+            const badge=document.querySelector('.request-status-badge');
+            return {
+              current:c.currentRequestId,
+              lastDiagnosis:c.lastDiagnosisRequestId,
+              disabled:!!btn?.disabled,
+              text:btn?.textContent?.trim()||'',
+              badgeText:badge?.textContent?.trim()||'',
+              badgeDisplay:getComputedStyle(badge).display
+            };
           });
           console.log('ACTIVATED_STATE:',JSON.stringify(activated));
           if(String(activated.current)!==String(ids.second)||String(activated.lastDiagnosis)!==String(ids.second))throw new Error(`Activate button did not switch active request: ${JSON.stringify(activated)}`);
           if(!activated.disabled||!activated.text.includes('✓'))throw new Error(`Activated request button state is wrong: ${JSON.stringify(activated)}`);
+          if(activated.badgeText!=='В работе'||activated.badgeDisplay==='none')throw new Error(`Active request does not show "В работе": ${JSON.stringify(activated)}`);
+
+          const beforeCount=await page.evaluate(()=>window.DiagnostikaRequests.list().length);
+          await page.locator('#addRequestBtn').click();
+          await page.locator('.request-title-dialog').waitFor({state:'visible',timeout:3000});
+          const created=await page.evaluate(()=>({
+            count:window.DiagnostikaRequests.list().length,
+            active:window.DiagnostikaRequests.activeId(),
+            viewed:window.DiagnostikaRequests.viewedId(),
+            title:window.DiagnostikaRequests.viewed()?.title||'',
+            dialogTitle:document.querySelector('.request-title-dialog-title')?.textContent?.trim()||'',
+            input:document.querySelector('#requestTitleDialogInput')?.value||''
+          }));
+          if(created.count!==beforeCount+1)throw new Error(`New request was not created: ${JSON.stringify(created)}`);
+          if(String(created.active)!==String(created.viewed))throw new Error(`New request is not active/viewed: ${JSON.stringify(created)}`);
+          if(created.title!=='Новый запрос')throw new Error(`New request placeholder title is wrong: ${JSON.stringify(created)}`);
+          if(created.dialogTitle!=='Новый запрос'||created.input!=='')throw new Error(`New request editor did not open blank immediately: ${JSON.stringify(created)}`);
+          await page.locator('#requestTitleDialogInput').fill('Новый запрос из редактора');
+          await page.locator('.request-title-dialog-save').click();
+          await page.locator('.request-title-dialog').waitFor({state:'hidden',timeout:3000});
+          const savedTitle=await page.evaluate(()=>window.DiagnostikaRequests.active()?.title||'');
+          if(savedTitle!=='Новый запрос из редактора')throw new Error(`New request title was not saved from editor: ${savedTitle}`);
 
           const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
           if(serious.length)throw new Error(serious.join(' | '));
