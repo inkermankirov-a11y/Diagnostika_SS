@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:1000}});
-await context.addInitScript(()=>localStorage.setItem('diagnostika-ui-language','ru'));
+await context.addInitScript(()=>{localStorage.setItem('diagnostika-ui-language','ru');localStorage.setItem('diagnostika-help-tooltips-enabled','1');});
 const page=await context.newPage();
 const errors=[];
 page.on('pageerror',e=>errors.push('pageerror: '+e.message));
@@ -29,6 +29,19 @@ const colors=await page.evaluate(()=>Object.fromEntries(
 assert.match(colors.addBeliefBtn.backgroundImage,/rgb\(36, 79, 175\)|rgb\(18, 53, 127\)/,'Primary belief button is not deep blue');
 assert.match(colors.addFeelingBtn.backgroundImage,/rgb\(255, 216, 90\)|rgb\(231, 173, 22\)/,'Secondary feelings button is not yellow');
 assert.match(colors.addDeepBtn.backgroundImage,/rgb\(139, 99, 216\)|rgb\(101, 61, 179\)/,'Secondary belief button is not purple');
+
+async function expectHoverHelp(id,fragment){
+  const button=page.locator('#'+id);
+  await button.hover();
+  const tip=page.locator('.diagnosis-help-tooltip');
+  await tip.waitFor({state:'visible',timeout:2000});
+  const text=(await tip.textContent()).trim();
+  assert(text.includes(fragment),id+' hover help missing: '+text);
+  await page.mouse.move(10,10);
+}
+await expectHoverHelp('addBeliefBtn','клиент говорит о себе в первую очередь');
+await expectHoverHelp('addFeelingBtn','клиент чувствует');
+await expectHoverHelp('addDeepBtn','скрытое, глубокое, конечное убеждение');
 
 const primary=page.locator('#tree .tree-row.primary').first();
 await primary.waitFor({state:'visible',timeout:5000});
