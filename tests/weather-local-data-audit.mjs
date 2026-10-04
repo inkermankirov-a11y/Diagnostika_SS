@@ -23,7 +23,7 @@ assert.ok(header.includes("diagnostika-weather-mode')||'geo'"),'Geolocation must
 assert.ok(header.includes('diagnostika-weather-current-local'),'Current weather local fallback missing');
 assert.ok(header.includes('diagnostika-weather-forecast-local'),'Forecast local fallback missing');
 assert.ok(header.includes('WEATHER_REFRESH_MS=5*60*1000'),'5-minute local refresh missing');
-assert.ok(index.includes('header-utilities.js?v=20261004-weather-local-5min-2'),'Weather cache key not bumped');
+assert.ok(index.includes('header-utilities.js?v=20261004-weather-modal-offset-1'),'Weather cache key not bumped');
 assert.ok(workflow.includes("cron: '*/5 * * * *'"),'5-minute weather schedule missing');
 assert.ok(workflow.includes('contents: write'),'Weather workflow write permission missing');
 assert.ok(workflow.includes('workflow_dispatch:'),'Manual weather workflow dispatch missing');
