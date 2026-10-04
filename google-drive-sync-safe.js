@@ -6,6 +6,7 @@
 
   const TOKEN_KEY='diagnostika-google-drive-token-v2';
   const FOLDER_KEY='diagnostika-google-drive-folder-v2';
+  const CONNECTED_KEY='diagnostika-google-drive-connected-v1';
   const FOLDER_NAME='Diagnostika';
   const BACKUP_FOLDER_NAME='Backups';
   const SYNC_DB='diagnostika-google-sync-v1';
@@ -50,6 +51,28 @@
     const t=getSession(TOKEN_KEY);
     return t?.access_token&&Date.now()<Number(t.expires_at||0)-30000?t:null;
   }
+  function rememberedConnection(){
+    try{return localStorage.getItem(CONNECTED_KEY)==='1';}
+    catch{return false;}
+  }
+  function clearToken(){
+    try{sessionStorage.removeItem(TOKEN_KEY);}catch{}
+    try{localStorage.removeItem(TOKEN_KEY);}catch{}
+  }
+  async function ensureAuthToken(force=false){
+    if(!force){
+      const current=token();
+      if(current)return current;
+    }
+    const auth=window.DiagnostikaGoogleDriveAuth;
+    if(auth?.ensureToken){
+      try{
+        await auth.ensureToken({interactive:false,force});
+        return token();
+      }catch(_){}
+    }
+    return token();
+  }
   async function notify(message,title='Google Drive'){
     if(window.AppDialog?.alert)return AppDialog.alert(message,title);
     alert(message);
@@ -59,16 +82,21 @@
     return confirm(`${title}\n\n${message}`);
   }
 
-  async function driveFetch(url,options={}){
-    const t=token();
-    if(!t)throw new Error('Сессия Google истекла. Подключи Google Drive снова.');
+  async function driveFetch(url,options={},retry=true){
+    let t=await ensureAuthToken(false);
+    if(!t)throw new Error('Не удалось автоматически восстановить доступ Google Drive.');
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),FETCH_TIMEOUT);
     const headers=new Headers(options.headers||{});
     headers.set('Authorization',`Bearer ${t.access_token}`);
     try{
       const res=await fetch(url,{...options,headers,signal:controller.signal});
-      if(res.status===401)throw new Error('Сессия Google истекла. Подключи Google Drive снова.');
+      if(res.status===401&&retry){
+        clearToken();
+        t=await ensureAuthToken(true);
+        if(t)return driveFetch(url,options,false);
+      }
+      if(res.status===401)throw new Error('Доступ Google Drive требует повторного подтверждения.');
       if(!res.ok){
         let message=`Google Drive: ${res.status}`;
         try{message=(await res.json())?.error?.message||message;}catch{}
@@ -334,7 +362,7 @@
   }
 
   function scheduleAutoSync(delay=AUTO_SYNC_DEBOUNCE){
-    if(!token())return;
+    if(!token()&&!rememberedConnection())return;
     autoSyncPending=true;
     clearTimeout(autoSyncTimer);
     const sinceLast=Date.now()-lastAutoSyncAt;
@@ -345,7 +373,7 @@
   async function runAutoSync(){
     clearTimeout(autoSyncTimer);
     autoSyncTimer=null;
-    if(!token())return;
+    if(!token()&&!rememberedConnection())return;
     if(document.hidden){
       autoSyncPending=true;
       return;
@@ -388,19 +416,19 @@
     });
 
     document.addEventListener('visibilitychange',()=>{
-      if(!document.hidden&&token())scheduleAutoSync(autoSyncPending?500:2000);
+      if(!document.hidden&&(token()||rememberedConnection()))scheduleAutoSync(autoSyncPending?500:2000);
     });
     window.addEventListener('focus',()=>{
-      if(token())scheduleAutoSync(2000);
+      if(token()||rememberedConnection())scheduleAutoSync(2000);
     });
     window.addEventListener('online',()=>scheduleAutoSync(1500));
 
     clearInterval(autoSyncPollTimer);
     autoSyncPollTimer=setInterval(()=>{
-      if(!document.hidden&&token())scheduleAutoSync(0);
+      if(!document.hidden&&(token()||rememberedConnection()))scheduleAutoSync(0);
     },AUTO_SYNC_POLL_INTERVAL);
 
-    if(token())scheduleAutoSync(5000);
+    if(token()||rememberedConnection())scheduleAutoSync(5000);
     return true;
   }
 
