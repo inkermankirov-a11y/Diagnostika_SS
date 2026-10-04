@@ -114,6 +114,30 @@ jobs:
           if(!activated.disabled||!activated.text.includes('✓'))throw new Error(`Activated request button state is wrong: ${JSON.stringify(activated)}`);
           if(activated.badgeText!=='В работе'||activated.badgeDisplay==='none')throw new Error(`Active request does not show "В работе": ${JSON.stringify(activated)}`);
 
+          const actionGrid=await page.evaluate(()=>{
+            const read=selector=>{
+              const el=document.querySelector(selector);
+              const r=el.getBoundingClientRect();
+              const s=getComputedStyle(el);
+              return {x:r.x,y:r.y,width:r.width,height:r.height,borderRadius:s.borderRadius};
+            };
+            return {
+              add:read('#addRequestBtn'),
+              active:read('.request-current-btn'),
+              del:read('#deleteRequestBtn'),
+              finish:read('.request-finish-btn')
+            };
+          });
+          const buttons=[actionGrid.add,actionGrid.active,actionGrid.del,actionGrid.finish];
+          for(const b of buttons){
+            if(Math.abs(b.width-124)>0.5||Math.abs(b.height-34)>0.5)throw new Error(`Request action button size mismatch: ${JSON.stringify(actionGrid)}`);
+            if(b.borderRadius!=='6px')throw new Error(`Request action button shape mismatch: ${JSON.stringify(actionGrid)}`);
+          }
+          if(Math.abs(actionGrid.add.x-actionGrid.active.x)>0.5)throw new Error(`Active request button is not directly under Add: ${JSON.stringify(actionGrid)}`);
+          if(Math.abs(actionGrid.del.x-actionGrid.finish.x)>0.5)throw new Error(`Finish button is not directly under Delete: ${JSON.stringify(actionGrid)}`);
+          if(Math.abs(actionGrid.add.width-actionGrid.del.width)>0.5||Math.abs(actionGrid.active.width-actionGrid.finish.width)>0.5)throw new Error(`Request action columns are not symmetrical: ${JSON.stringify(actionGrid)}`);
+          if(!(actionGrid.active.y>actionGrid.add.y&&actionGrid.finish.y>actionGrid.del.y))throw new Error(`Request action rows are not stacked correctly: ${JSON.stringify(actionGrid)}`);
+
           const beforeCount=await page.evaluate(()=>window.DiagnostikaRequests.list().length);
           await page.locator('#addRequestBtn').click();
           await page.locator('.request-title-dialog').waitFor({state:'visible',timeout:3000});

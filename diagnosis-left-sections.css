@@ -59,6 +59,52 @@
   border:1px solid rgba(139,92,196,.30);
   border-radius:8px;
   background:linear-gradient(180deg,rgba(235,222,249,.86),rgba(220,200,242,.86));
+  grid-template-columns:minmax(0,1fr) 124px 124px;
+  gap:6px;
+}
+
+/* Request actions: two perfectly aligned columns.
+   Row 1: Add | Delete. Row 2: Active | Finish. */
+#diagnosisWorkspace .diagnosis-request-card .request-status-controls{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 124px 124px;
+  gap:6px;
+  align-items:center;
+  margin:6px 7px 10px;
+}
+
+#diagnosisWorkspace .diagnosis-request-card .request-status-badge{
+  grid-column:1;
+  justify-self:start;
+}
+
+#diagnosisWorkspace .diagnosis-request-card .request-current-btn,
+#diagnosisWorkspace .diagnosis-request-card .request-resume-btn{
+  grid-column:2;
+  margin:0!important;
+}
+
+#diagnosisWorkspace .diagnosis-request-card .request-finish-btn{
+  grid-column:3;
+  margin:0!important;
+}
+
+#diagnosisWorkspace .diagnosis-request-card #addRequestBtn,
+#diagnosisWorkspace .diagnosis-request-card #deleteRequestBtn,
+#diagnosisWorkspace .diagnosis-request-card .request-current-btn,
+#diagnosisWorkspace .diagnosis-request-card .request-resume-btn,
+#diagnosisWorkspace .diagnosis-request-card .request-finish-btn{
+  width:124px!important;
+  min-width:124px!important;
+  max-width:124px!important;
+  height:34px!important;
+  min-height:34px!important;
+  max-height:34px!important;
+  padding:0 8px!important;
+  border-radius:6px!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+  white-space:nowrap;
 }
 
 /* Situations — richer mint/aqua, clearly separate from the result block. */
