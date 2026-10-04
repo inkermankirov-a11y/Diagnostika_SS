@@ -107,9 +107,12 @@ assert.equal(snap.viewed,'requests-3b-r2');
 assert.equal(snap.last,'requests-3b-r2');
 assert.equal(snap.requests,baseline.requests,'activate() mutated request payload');
 
-page.once('dialog',dialog=>dialog.accept('Второй запрос — обновлён'));
 await page.locator('#requestTitleEditBtn').click();
-await page.waitForTimeout(100);
+await page.locator('.request-title-dialog').waitFor({state:'visible',timeout:3000});
+assert.equal(await page.locator('#requestTitleDialogInput').inputValue(),'Второй запрос');
+await page.locator('#requestTitleDialogInput').fill('Второй запрос — обновлён');
+await page.locator('.request-title-dialog-save').click();
+await page.locator('.request-title-dialog').waitFor({state:'hidden',timeout:3000});
 assert.equal(await page.evaluate(()=>window.DiagnostikaRequests.get('requests-3b-r2')?.title),'Второй запрос — обновлён');
 assert.equal((await page.locator('#requestTitleDisplay').textContent())?.trim(),'Второй запрос — обновлён');
 
@@ -137,16 +140,24 @@ assert.deepEqual(snap,{status:'active',active:'requests-3b-r2',viewed:'requests-
 
 const countBefore=await page.evaluate(()=>window.DiagnostikaRequests.list().length);
 await page.locator('#addRequestBtn').click();
-await page.waitForTimeout(100);
+await page.locator('.request-title-dialog').waitFor({state:'visible',timeout:3000});
 const created=await page.evaluate(()=>({
   count:window.DiagnostikaRequests.list().length,
   active:window.DiagnostikaRequests.activeId(),
   viewed:window.DiagnostikaRequests.viewedId(),
-  title:window.DiagnostikaRequests.viewed()?.title||''
+  title:window.DiagnostikaRequests.viewed()?.title||'',
+  dialogTitle:document.querySelector('.request-title-dialog-title')?.textContent?.trim()||'',
+  input:document.querySelector('#requestTitleDialogInput')?.value||''
 }));
 assert.equal(created.count,countBefore+1);
 assert.equal(created.active,created.viewed);
 assert.equal(created.title,'Новый запрос');
+assert.equal(created.dialogTitle,'Новый запрос');
+assert.equal(created.input,'');
+await page.locator('#requestTitleDialogInput').fill('Новый запрос из редактора');
+await page.locator('.request-title-dialog-save').click();
+await page.locator('.request-title-dialog').waitFor({state:'hidden',timeout:3000});
+assert.equal(await page.evaluate(()=>window.DiagnostikaRequests.active()?.title),'Новый запрос из редактора');
 
 page.once('dialog',dialog=>dialog.accept());
 await page.locator('#deleteRequestBtn').click();
