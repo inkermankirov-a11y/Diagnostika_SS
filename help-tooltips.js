@@ -40,6 +40,27 @@
     return wrap;
   }
 
+  const DIAGNOSIS_HELP={
+    addBeliefBtn:'Первичное убеждение — то, что клиент говорит о себе в первую очередь: первое осознаваемое убеждение о себе в этой ситуации.',
+    addFeelingBtn:'Вторичные чувства — то, что клиент чувствует, когда активируется первичное убеждение.',
+    addDeepBtn:'Вторичное убеждение — скрытое, глубокое, конечное убеждение, к которому ведёт диагностика. Главная задача диагностики — выявить именно его.',
+    addInstinctBtn:'Инстинкты — базовые внутренние реакции, которые сопровождают вторичное убеждение и помогают точнее раскрыть его.'
+  };
+
+  function applyDiagnosisHelp(){
+    for(const [id,text] of Object.entries(DIAGNOSIS_HELP)){
+      const el=document.getElementById(id);
+      if(!el) continue;
+      if(hintsEnabled()){
+        el.dataset.diagnosisHelp=text;
+        el.setAttribute('aria-description',text);
+      }else{
+        delete el.dataset.diagnosisHelp;
+        el.removeAttribute('aria-description');
+      }
+    }
+  }
+
   function removeFieldHelp(dialog){
     if(!dialog) return;
     dialog.querySelectorAll('.help-tip').forEach(x=>x.remove());
@@ -89,6 +110,7 @@
 
   function applyAll(){
     document.querySelectorAll('.session-edit-dialog').forEach(addFieldHelp);
+    applyDiagnosisHelp();
     if(!hintsEnabled()) document.querySelectorAll('.help-tip').forEach(x=>x.remove());
   }
 
@@ -98,6 +120,7 @@
         if(!(node instanceof Element)) continue;
         if(node.matches?.('.session-edit-dialog')) addFieldHelp(node);
         node.querySelectorAll?.('.session-edit-dialog').forEach(addFieldHelp);
+        if(node.matches?.('#addBeliefBtn,#addFeelingBtn,#addDeepBtn,#addInstinctBtn') || node.querySelector?.('#addBeliefBtn,#addFeelingBtn,#addDeepBtn,#addInstinctBtn')) applyDiagnosisHelp();
       }
     }
   });
