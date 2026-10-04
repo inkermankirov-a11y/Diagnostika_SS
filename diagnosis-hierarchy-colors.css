@@ -59,3 +59,9 @@
   font-family:Tahoma,Verdana,Arial,sans-serif!important;
   line-height:1.2;
 }
+
+
+/* Align the four diagnosis action buttons with the top edge of the client header frame. */
+#diagnosisWorkspace .center-actions{
+  transform:translateY(-19px);
+}
