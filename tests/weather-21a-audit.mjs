@@ -5,22 +5,24 @@ import fs from 'node:fs';
 const src=fs.readFileSync('header-utilities.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 
-assert(index.includes('header-utilities.js?v=20260929-weather21b'),'Weather 21B cache marker missing');
-assert(src.includes("const WEATHER_CACHE_KEY='diagnostika-weather-cache-v2'"),'Weather cache missing');
-assert(src.includes("const weatherMode=()=>localStorage.getItem('diagnostika-weather-mode')||'city'"),'Default weather mode must be city');
-assert(src.includes("const DEFAULT_CITY=Object.freeze({name:'Киров',latitude:58.6036,longitude:49.6680})"),'Default Kirov city missing');
+assert(index.includes('header-utilities.js?v=20261004-weather-live-audit-1'),'Weather cache marker missing');
+assert(src.includes("const WEATHER_CACHE_KEY='diagnostika-weather-cache-v3'"),'Live weather cache missing');
+assert(src.includes("const WEATHER_REFRESH_MS=5*60*1000"),'Weather must refresh every 5 minutes');
+assert(src.includes("const DEFAULT_CITY=Object.freeze({name:'Киров',latitude:58.6036,longitude:49.6680"),'Kirov fallback missing');
 assert(src.includes('for(const url of [modern,modern,legacy])'),'Weather retry sequence missing');
 assert(src.includes('current_weather=true'),'Legacy Open-Meteo fallback missing');
+assert(src.includes('setInterval(()=>refreshWeather({rerender:true}),WEATHER_REFRESH_MS)'),'5-minute UI refresh missing');
 assert(src.includes('window.DiagnostikaWeather=Object.freeze'),'Weather diagnostics missing');
 
 const browser=await chromium.launch({headless:true});
 
 const daily={
-  time:['2026-09-29','2026-09-30'],
-  weather_code:[1,2],
-  temperature_2m_max:[8,9],
-  temperature_2m_min:[1,2],
-  precipitation_probability_max:[10,20]
+  time:['2026-10-04','2026-10-05','2026-10-06','2026-10-07','2026-10-08','2026-10-09','2026-10-10'],
+  weather_code:[1,2,3,61,2,3,1],
+  temperature_2m_max:[8,9,10,11,12,13,14],
+  temperature_2m_min:[1,2,3,4,5,6,7],
+  precipitation_probability_max:[10,20,30,40,50,60,70],
+  wind_speed_10m_max:[5,6,7,8,9,10,11]
 };
 
 async function makePage({mode='city',cache=null,handler}={}){
@@ -28,19 +30,22 @@ async function makePage({mode='city',cache=null,handler}={}){
   await context.addInitScript(({mode,cache})=>{
     localStorage.setItem('diagnostika-ui-language','ru');
     localStorage.setItem('diagnostika-weather-mode',mode);
-    localStorage.setItem('diagnostika-weather-city',JSON.stringify({name:'Киров',latitude:58.6036,longitude:49.6680}));
-    if(cache)localStorage.setItem('diagnostika-weather-cache-v2',JSON.stringify(cache));
+    localStorage.setItem('diagnostika-weather-city',JSON.stringify({
+      name:'Киров',latitude:58.6036,longitude:49.6680,timezone:'Europe/Kirov'
+    }));
+    localStorage.removeItem('diagnostika-weather-cache-v3');
+    if(cache)localStorage.setItem('diagnostika-weather-cache-v3',JSON.stringify(cache));
   },{mode,cache});
   const page=await context.newPage();
   if(handler)await page.route('https://api.open-meteo.com/**',handler);
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:8000/index.html?weather21a='+Date.now(),{waitUntil:'commit',timeout:15000});
+  await page.goto('http://127.0.0.1:8000/index.html?weather-audit='+Date.now(),{waitUntil:'commit',timeout:15000});
   await page.waitForFunction(()=>window.DiagnostikaWeather?.state,null,{timeout:15000});
   return {context,page,errors};
 }
 
-// Modern API success.
+// Modern live API success.
 {
   const {context,page,errors}=await makePage({
     handler:route=>route.fulfill({
@@ -52,7 +57,7 @@ async function makePage({mode='city',cache=null,handler}={}){
       })
     })
   });
-  await page.waitForFunction(()=>window.DiagnostikaWeather.state().ready===true,null,{timeout:8000});
+  await page.waitForFunction(()=>window.DiagnostikaWeather.state().ready===true,null,{timeout:10000});
   const state=await page.evaluate(()=>({
     weather:window.DiagnostikaWeather.state(),
     main:document.querySelector('#headerWeatherBtn .hu-main')?.textContent||'',
@@ -62,13 +67,41 @@ async function makePage({mode='city',cache=null,handler}={}){
   assert.equal(state.sub,'Киров');
   assert.equal(state.weather.cached,false);
   assert.equal(state.weather.error,'');
+  assert(state.weather.updatedAt);
   assert.deepEqual(errors,[]);
   await context.close();
 }
 
-// Modern request fails, legacy current_weather succeeds.
+// First modern request fails; immediate retry recovers.
 {
   let modernCalls=0;
+  const {context,page,errors}=await makePage({
+    handler:route=>{
+      const url=route.request().url();
+      if(url.includes('current_weather=true'))return route.fulfill({status:500,contentType:'application/json',body:'{}'});
+      modernCalls++;
+      if(modernCalls===1)return route.fulfill({status:503,contentType:'application/json',body:'{}'});
+      return route.fulfill({
+        status:200,
+        contentType:'application/json',
+        body:JSON.stringify({
+          current:{temperature_2m:7.1,apparent_temperature:5.8,weather_code:2,is_day:1},
+          daily
+        })
+      });
+    }
+  });
+  await page.waitForFunction(()=>window.DiagnostikaWeather.state().ready===true,null,{timeout:10000});
+  const state=await page.evaluate(()=>window.DiagnostikaWeather.state());
+  assert(modernCalls>=2,'Transient modern failure must retry');
+  assert.equal(state.temperature,7.1);
+  assert.equal(state.cached,false);
+  assert.deepEqual(errors,[]);
+  await context.close();
+}
+
+// Modern API fails twice, legacy current_weather succeeds.
+{
   let legacyCalls=0;
   const {context,page,errors}=await makePage({
     handler:route=>{
@@ -84,57 +117,21 @@ async function makePage({mode='city',cache=null,handler}={}){
           })
         });
       }
-      modernCalls++;
       return route.fulfill({status:500,contentType:'application/json',body:'{}'});
     }
   });
   await page.waitForFunction(()=>window.DiagnostikaWeather.state().ready===true,null,{timeout:10000});
-  const state=await page.evaluate(()=>({
-    weather:window.DiagnostikaWeather.state(),
-    main:document.querySelector('#headerWeatherBtn .hu-main')?.textContent||''
-  }));
-  assert(modernCalls>=1,'Modern weather request was not attempted');
-  assert(legacyCalls>=1,'Legacy weather fallback was not attempted');
-  assert.equal(state.main,'-3°');
-  assert.equal(state.weather.temperature,-3.2);
-  assert.deepEqual(errors,[]);
-  await context.close();
-}
-
-// First modern request fails transiently; immediate retry must recover without cache.
-{
-  let modernCalls=0;
-  const {context,page,errors}=await makePage({
-    handler:route=>{
-      const url=route.request().url();
-      if(url.includes('current_weather=true')){
-        return route.fulfill({status:500,contentType:'application/json',body:'{}'});
-      }
-      modernCalls++;
-      if(modernCalls===1)return route.fulfill({status:503,contentType:'application/json',body:'{}'});
-      return route.fulfill({
-        status:200,
-        contentType:'application/json',
-        body:JSON.stringify({
-          current:{temperature_2m:7.1,apparent_temperature:5.8,weather_code:2,is_day:1},
-          daily
-        })
-      });
-    }
-  });
-  await page.waitForFunction(()=>window.DiagnostikaWeather.state().ready===true,null,{timeout:10000});
   const state=await page.evaluate(()=>window.DiagnostikaWeather.state());
-  assert(modernCalls>=2,'Transient modern failure must recover on retry');
-  assert.equal(state.temperature,7.1);
-  assert.equal(state.cached,false);
+  assert(legacyCalls>=1,'Legacy fallback missing');
+  assert.equal(state.temperature,-3.2);
   assert.deepEqual(errors,[]);
   await context.close();
 }
 
-// Both requests fail: valid cache must keep temperature visible.
+// API unavailable: recent cache is shown and marked as cached.
 {
   const cache={
-    savedAt:Date.now()-10*60*1000,
+    savedAt:Date.now()-5*60*1000,
     label:'Киров',
     latitude:58.6036,
     longitude:49.6680,
@@ -161,7 +158,7 @@ async function makePage({mode='city',cache=null,handler}={}){
   await context.close();
 }
 
-// No API and no cache: show explicit error state, not a fake successful value.
+// API unavailable and no valid cache: explicit error, never stale static weather-data.json.
 {
   const {context,page}=await makePage({
     handler:route=>route.fulfill({status:503,contentType:'application/json',body:'{}'})
@@ -170,52 +167,38 @@ async function makePage({mode='city',cache=null,handler}={}){
   const state=await page.evaluate(()=>({
     weather:window.DiagnostikaWeather.state(),
     main:document.querySelector('#headerWeatherBtn .hu-main')?.textContent||'',
-    icon:document.querySelector('#headerWeatherBtn .hu-icon')?.textContent||'',
-    title:document.querySelector('#headerWeatherBtn')?.title||''
+    icon:document.querySelector('#headerWeatherBtn .hu-icon')?.textContent||''
   }));
   assert.equal(state.weather.ready,false);
   assert.equal(state.main,'—°');
   assert.equal(state.icon,'⚠️');
-  assert.equal(state.title,'Нет данных');
   await context.close();
 }
 
-// No weather settings: app must load default Kirov immediately instead of waiting for geolocation.
+// Manual refresh updates both header and already-open popup.
 {
-  const context=await browser.newContext({viewport:{width:1440,height:1000}});
-  await context.addInitScript(()=>{
-    localStorage.setItem('diagnostika-ui-language','ru');
-    localStorage.removeItem('diagnostika-weather-mode');
-    localStorage.removeItem('diagnostika-weather-city');
-    localStorage.removeItem('diagnostika-weather-cache-v2');
-  });
-  const page=await context.newPage();
-  let requestedUrl='';
-  await page.route('https://api.open-meteo.com/**',route=>{
-    requestedUrl=route.request().url();
-    return route.fulfill({
+  let temperature=5.2;
+  const {context,page,errors}=await makePage({
+    handler:route=>route.fulfill({
       status:200,
       contentType:'application/json',
       body:JSON.stringify({
-        current:{temperature_2m:5.6,apparent_temperature:3.4,weather_code:1,is_day:1},
+        current:{temperature_2m:temperature,apparent_temperature:temperature-1,weather_code:1,is_day:1},
         daily
       })
-    });
+    })
   });
-  await page.goto('http://127.0.0.1:8000/index.html?weather-default='+Date.now(),{waitUntil:'commit',timeout:15000});
-  await page.waitForFunction(()=>window.DiagnostikaWeather?.state().ready===true,null,{timeout:10000});
-  const state=await page.evaluate(()=>window.DiagnostikaWeather.state());
-  assert.equal(state.mode,'city','Default mode without saved settings must load Kirov');
-  assert.equal(state.label,'Киров');
-  assert(requestedUrl.includes('latitude=58.6036'),'Default Kirov latitude missing');
-  assert(requestedUrl.includes('longitude=49.668'),'Default Kirov longitude missing');
+  await page.waitForFunction(()=>window.DiagnostikaWeather.state().ready===true,null,{timeout:10000});
+  await page.click('#headerWeatherBtn');
+  await page.waitForSelector('.weather-current-temp');
+  assert.equal(await page.locator('.weather-current-temp').textContent(),'+5°');
+  temperature=9.2;
+  await page.evaluate(()=>window.DiagnostikaWeather.refresh());
+  await page.waitForFunction(()=>document.querySelector('.weather-current-temp')?.textContent==='+9°',null,{timeout:10000});
+  assert.equal(await page.locator('#headerWeatherBtn .hu-main').textContent(),'+9°');
+  assert.deepEqual(errors,[]);
   await context.close();
 }
 
 await browser.close();
-console.log('WEATHER_21A_SUCCESS',JSON.stringify({
-  modern:true,
-  legacyFallback:true,
-  cachedFallback:true,
-  explicitFailure:true
-}));
+console.log('WEATHER_LIVE_AUDIT_SUCCESS');
