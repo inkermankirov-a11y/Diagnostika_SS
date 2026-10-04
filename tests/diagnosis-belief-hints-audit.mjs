@@ -87,6 +87,7 @@ const leftSections=await page.evaluate(()=>{
     mainBlockCount:document.querySelectorAll('#diagnosticsLeft>.diagnosis-main-block').length
   };
 });
+console.log('LEFT_SECTIONS',JSON.stringify(leftSections));
 assert.equal(leftSections.mainBlockCount,3,'Diagnosis left column must contain exactly three primary blocks');
 assert.equal(leftSections.footerInsideSituations,true,'Situation actions must stay inside the Situations block');
 for(const name of ['request','situations','result']){
