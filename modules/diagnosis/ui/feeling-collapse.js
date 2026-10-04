@@ -212,7 +212,7 @@
       const btn=document.createElement('button');
       btn.type='button';
       btn.className='context-add-deep-btn';
-      btn.textContent='+ Убеждение 2';
+      btn.textContent='+ Вторичное убеждение';
       btn.title='Добавить глубинное убеждение к выбранному вторичному чувству';
       btn.onclick=()=>{
         const selected=selection();
