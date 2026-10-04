@@ -24,11 +24,11 @@
   };
 
   const UI={
-    ru:{pTitle:'Первичные ограничивающие убеждения',pSub:'Подсказки из загруженного документа. Нажми на формулировку, чтобы вставить её в редактор.',dTitle:'Убеждение 2 — глубинные убеждения',dSub:'Нажми на формулировку, чтобы вставить её в редактор.',search:'Поиск по убеждениям…',empty:'Ничего не найдено'},
-    en:{pTitle:'Primary limiting beliefs',pSub:'Suggestions from the source document. Click a statement to insert it into the editor.',dTitle:'Belief 2 — deep beliefs',dSub:'Click a statement to insert it into the editor.',search:'Search beliefs…',empty:'Nothing found'},
-    fr:{pTitle:'Croyances limitantes primaires',pSub:'Suggestions du document source. Cliquez sur une formulation pour l’insérer dans l’éditeur.',dTitle:'Croyance 2 — croyances profondes',dSub:'Cliquez sur une formulation pour l’insérer dans l’éditeur.',search:'Rechercher dans les croyances…',empty:'Aucun résultat'},
-    de:{pTitle:'Primäre einschränkende Überzeugungen',pSub:'Hinweise aus dem Quelldokument. Klicke auf eine Formulierung, um sie in den Editor einzufügen.',dTitle:'Überzeugung 2 — tiefe Überzeugungen',dSub:'Klicke auf eine Formulierung, um sie in den Editor einzufügen.',search:'Überzeugungen durchsuchen…',empty:'Nichts gefunden'},
-    it:{pTitle:'Convinzioni limitanti primarie',pSub:'Suggerimenti dal documento di origine. Fai clic su una formulazione per inserirla nell’editor.',dTitle:'Convinzione 2 — convinzioni profonde',dSub:'Fai clic su una formulazione per inserirla nell’editor.',search:'Cerca nelle convinzioni…',empty:'Nessun risultato'}
+    ru:{pTitle:'Первичные убеждения',pSub:'Нажми на формулировку, чтобы вставить её в редактор.',dTitle:'Вторичные убеждения',dSub:'Нажми на формулировку, чтобы вставить её в редактор.',search:'Поиск по убеждениям…',empty:'Ничего не найдено'},
+    en:{pTitle:'Primary beliefs',pSub:'Click a statement to insert it into the editor.',dTitle:'Secondary beliefs',dSub:'Click a statement to insert it into the editor.',search:'Search beliefs…',empty:'Nothing found'},
+    fr:{pTitle:'Croyances primaires',pSub:'Cliquez sur une formulation pour l’insérer dans l’éditeur.',dTitle:'Croyances secondaires',dSub:'Cliquez sur une formulation pour l’insérer dans l’éditeur.',search:'Rechercher dans les croyances…',empty:'Aucun résultat'},
+    de:{pTitle:'Primäre Überzeugungen',pSub:'Klicke auf eine Formulierung, um sie in den Editor einzufügen.',dTitle:'Sekundäre Überzeugungen',dSub:'Klicke auf eine Formulierung, um sie in den Editor einzufügen.',search:'Überzeugungen durchsuchen…',empty:'Nichts gefunden'},
+    it:{pTitle:'Convinzioni primarie',pSub:'Fai clic su una formulazione per inserirla nell’editor.',dTitle:'Convinzioni secondarie',dSub:'Fai clic su una formulazione per inserirla nell’editor.',search:'Cerca nelle convinzioni…',empty:'Nessun risultato'}
   };
 
   function lang(){const l=window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';return PRIMARY[l]?l:'en';}
