@@ -30,6 +30,7 @@ assert.match(colors.addBeliefBtn.backgroundImage,/rgb\(36, 79, 175\)|rgb\(18, 53
 assert.match(colors.addFeelingBtn.backgroundImage,/rgb\(255, 216, 90\)|rgb\(231, 173, 22\)/,'Secondary feelings button is not yellow');
 assert.match(colors.addDeepBtn.backgroundImage,/rgb\(139, 99, 216\)|rgb\(101, 61, 179\)/,'Secondary belief button is not purple');
 
+// Verify the top action row lines up with the client header frame.
 const actionLayout=await page.evaluate(()=>{
   const ids=['addBeliefBtn','addFeelingBtn','addDeepBtn','deleteElementBtn'];
   const data=Object.fromEntries(ids.map(id=>{
