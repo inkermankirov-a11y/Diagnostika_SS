@@ -135,7 +135,7 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const css=document.createElement('link');
       css.rel='stylesheet';
-      css.href='home-dashboard.css?v=20261003-left-width-11';
+      css.href='home-dashboard.css?v=20261004-dark-navy-1';
       css.setAttribute('data-home-dashboard','1');
       document.head.appendChild(css);
     }
@@ -164,7 +164,7 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const l=document.createElement('link');
       l.rel='stylesheet';
-      l.href='home-dashboard.css?v=20261003-layout-regression-10';
+      l.href='home-dashboard.css?v=20261004-dark-navy-1';
       l.setAttribute('data-home-dashboard','1');
       document.head.appendChild(l);
     }
