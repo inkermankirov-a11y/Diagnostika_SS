@@ -53,6 +53,7 @@ jobs:
           node --check modules/clients/ui/card.js
           node --check modules/clients/ui/delete.js
           node --check modules/clients/ui/trash.js
+          node --check modules/clients/ui/archive.js
           node --check modules/clients/ui/database.js
           node --check modules/sessions/ui/interactions.js
           node --check app-loader.js
@@ -76,6 +77,7 @@ jobs:
           card=Path('modules/clients/ui/card.js').read_text(encoding='utf-8')
           delete_client=Path('modules/clients/ui/delete.js').read_text(encoding='utf-8')
           trash=Path('modules/clients/ui/trash.js').read_text(encoding='utf-8')
+          archive=Path('modules/clients/ui/archive.js').read_text(encoding='utf-8')
           db=Path('modules/clients/ui/database.js').read_text(encoding='utf-8')
           session_interactions=Path('modules/sessions/ui/interactions.js').read_text(encoding='utf-8')
           loader=Path('app-loader.js').read_text(encoding='utf-8')
@@ -91,33 +93,36 @@ jobs:
               errors.append('ClientService directly assigns legacy navigation/state')
           if 'platform.shell?.selectClient?.' not in service: errors.append('ClientService does not select through shell bridge')
           if 'platform.store?.persist?.' not in service: errors.append('ClientService does not persist through store bridge')
-          for token in ["created: 'client:created'","selected: 'client:selected'","updated: 'client:updated'","deleted: 'client:deleted'","restored: 'client:restored'"]:
+          for token in ["created: 'client:created'","selected: 'client:selected'","updated: 'client:updated'","deleted: 'client:deleted'","restored: 'client:restored'","archived: 'client:archived'","unarchived: 'client:unarchived'"]:
               if token not in service: errors.append('service contract missing '+token)
-          for token in ['function create(', 'function update(', 'function trashList(', 'function remove(', 'function restore(', 'function purge(', 'create,', 'update,', 'trashList,', 'remove,', 'restore,', 'purge']:
+          for token in ['function create(', 'function update(', 'function archiveList(', 'function archive(', 'function unarchive(', 'function trashList(', 'function remove(', 'function restore(', 'function purge(', 'create,', 'update,', 'archiveList,', 'archive,', 'unarchive,', 'trashList,', 'remove,', 'restore,', 'purge']:
               if token not in service: errors.append('client lifecycle service missing '+token)
           if "id: MODULE_ID" not in module or "const MODULE_ID = 'clients'" not in module: errors.append('clients module registration missing')
           if "roles: ['specialist', 'admin']" not in module: errors.append('clients module roles missing')
           if 'moduleAware:true' not in api: errors.append('module-aware compatibility facade missing')
-          if "version:'2B2'" not in api: errors.append('client facade version is stale')
-          for token in ['create,','update,','trashList,','remove,','restore,','purge,']:
+          if "version:'2B3'" not in api: errors.append('client facade version is stale')
+          for token in ['create,','update,','archiveList,','archive,','unarchive,','trashList,','remove,','restore,','purge,']:
               if token not in api: errors.append('client facade lifecycle method missing '+token)
           if 'state.clients.push' in card: errors.append('client card still pushes directly into state.clients')
           if "emit('client:created'" in card or "emit('client:updated'" in card: errors.append('client card still emits write events directly')
           if 'api.create?.' not in card or 'api.update?.' not in card: errors.append('client card does not use client service facade')
           if 'state.deletedClients' in trash or 'state.deletedClientTombstones' in trash: errors.append('trash UI still mutates trash state directly')
           if 'new MutationObserver' in trash: errors.append('trash UI still installs a global MutationObserver')
+          if 'state.archivedClients' in archive: errors.append('archive UI still mutates archive state directly')
+          if 'clientsApi()?.unarchive?.' not in archive: errors.append('archive UI does not restore through client facade')
           if 'state.clients' in delete_client or 'deletedClients' in delete_client: errors.append('delete compatibility layer still owns client data')
           if 'clientId=' in db.replace('===','').replace('!==',''): errors.append('enhanced database still assigns clientId directly')
           if "clientsApi()?.select?.(c.id,{source:'client-database-open'})" not in db: errors.append('enhanced database does not select through client facade')
           if 'state.clients.splice' in session_interactions: errors.append('session interactions still hard-deletes clients')
           if "session-interactions-client-delete" not in session_interactions or "api?.remove?.(" not in session_interactions: errors.append('protected client delete does not use client service')
-          if 'modules/clients/client-service.js?v=20260918-clients2b2' not in loader: errors.append('client service cache version is stale')
+          if 'modules/clients/client-service.js?v=20261005-archive-1' not in loader: errors.append('client service cache version is stale')
           if 'modules/clients/index.js?v=20260918-clients2b2' not in loader: errors.append('clients module cache version is stale')
-          if 'client-api.js?v=20260918-clients2b2' not in loader: errors.append('client API cache version is stale')
+          if 'client-api.js?v=20261005-archive-1' not in loader: errors.append('client API cache version is stale')
           if 'modules/clients/ui/card.js?v=20260930-modular-stage5-13' not in index: errors.append('client card module/cache marker is stale')
           if 'modules/clients/ui/delete.js?v=20260930-modular-stage5-21' not in index: errors.append('client delete module/cache marker is stale')
-          if 'modules/clients/ui/database.js?v=20260930-modular-stage5-12' not in index: errors.append('client DB module/cache marker is stale')
+          if 'modules/clients/ui/database.js?v=20261005-archive-1' not in index: errors.append('client DB module/cache marker is stale')
           if 'modules/clients/ui/trash.js?v=20260930-modular-stage5-15' not in index: errors.append('client trash module/cache marker is stale')
+          if 'modules/clients/ui/archive.js?v=20261005-archive-1' not in index: errors.append('client archive module/cache marker is missing')
           if 'modules/sessions/ui/interactions.js?v=20260929-modular24a' not in index: errors.append('session interactions script/cache marker is missing')
           if 'app-loader.js?v=' not in index: errors.append('app loader script is missing')
           if 'home-dashboard.js?v=20260918-clients2d' not in loader: errors.append('home dashboard cache version is stale')
@@ -133,7 +138,7 @@ jobs:
           if 'free-consultation-client-card-sync.js?v=20260918-clients2c2' not in index: errors.append('free consultation sync cache version is stale')
           if 'modules/ai/ui/settings.js?v=20261001-modular-stage7-10' not in index: errors.append('AI settings loader cache version is stale')
           if 'renderClient=' in home_dashboard.replace('===','').replace('!==',''): errors.append('home dashboard still replaces renderClient')
-          for token in ["'client:created'","'client:selected'","'client:updated'","'client:deleted'","'client:restored'","'client:purged'",'events.on(type,()=>setTimeout(refresh,0))']:
+          for token in ["'client:created'","'client:selected'","'client:updated'","'client:deleted'","'client:restored'","'client:purged'","'client:archived'","'client:unarchived'",'events.on(type,()=>setTimeout(refresh,0))']:
               if token not in home_dashboard: errors.append('home dashboard client event boundary missing '+token)
           if 'name="diagnostika-build" content="' not in index: errors.append('build marker is missing')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
@@ -207,6 +212,14 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-trash-ui-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           CLIENT_TRASH_PHASE=ui node tests/client-trash-audit.mjs
+      - name: Verify client archive and restore lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-archive-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          CLIENT_TRASH_PHASE=archive node tests/client-trash-audit.mjs
+
       - name: Verify last client replacement and reload
         shell: bash
         run: |
