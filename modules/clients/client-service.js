@@ -135,7 +135,6 @@
       changed = true;
     }
 
-    const archiveIds = new Set((root.archivedClients || []).map(item => item?.id).filter(Boolean).map(String));
     const activeIds = new Set(list().map(item => item?.id).filter(Boolean).map(String));
     const deletedIds = new Set((root.deletedClients || []).map(item => item?.id).filter(Boolean).map(String));
     const tombstones = new Set((root.deletedClientTombstones || []).filter(Boolean).map(String));
@@ -189,6 +188,7 @@
 
     const blocked = new Set(root.deletedClientTombstones.filter(Boolean).map(String));
     const activeIds = new Set(list().map(item => item?.id).filter(Boolean).map(String));
+    const archiveIds = new Set((root.archivedClients || []).map(item => item?.id).filter(Boolean).map(String));
     const filtered = root.deletedClients.filter(item => {
       if (!item?.id) return false;
       const key = String(item.id);
