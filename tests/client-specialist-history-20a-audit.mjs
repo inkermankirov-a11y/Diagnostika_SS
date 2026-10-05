@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const transferSource=fs.readFileSync('modules/clients/ui/transfer.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const appLoader=fs.readFileSync('app-loader.js','utf8');
+// Layout contract: current specialist sits directly below the social row.
 
 assert(!transferSource.includes('Первичный специалист'),'Legacy primary specialist label still exists');
 assert(transferSource.includes('client-specialist-history-btn'),'Current specialist button missing');
