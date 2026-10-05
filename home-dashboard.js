@@ -739,7 +739,7 @@
   window.addEventListener('resize',()=>{closeClientMenu();hideUpcomingTooltip();},{passive:true});
 
   const dashboardEvents=[
-    'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged',
+    'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged','client:archived','client:unarchived',
     'request:created','request:selected','request:activated','request:completed','request:resumed',
     'session:created','session:updated','session:deleted',
     'calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced',
