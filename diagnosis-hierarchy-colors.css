@@ -72,7 +72,7 @@
 }
 
 
-/* Align the four diagnosis action buttons with the Hypothesis button in the client header. */
+/* Align the four diagnosis action buttons with the Hypothesis button in the client header, top and height. */
 #diagnosisWorkspace .center-actions{
   transform:translateY(-5px);
 }
