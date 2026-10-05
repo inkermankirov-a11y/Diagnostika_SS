@@ -11,10 +11,13 @@ assert.ok(sync.includes('latestDeletedAt(state)'), 'deletion timestamp is not pa
 assert.ok(sync.includes("events.on('client:deleted'"), 'client deletion event not tracked');
 assert.ok(sync.includes("events.on('client:restored'"), 'client restore event not tracked');
 assert.ok(sync.includes("events.on('client:purged'"), 'client purge event not tracked');
+assert.ok(sync.includes("events.on('client:archived'"), 'client archive event not tracked');
+assert.ok(sync.includes("events.on('client:unarchived'"), 'client unarchive event not tracked');
+assert.ok(sync.includes('base.archivedClients=(p.archivedClients||[])'), 'folder sync does not preserve archive membership');
 assert.ok(sync.includes('rememberDeletedClient(detail?.clientId)'), 'deleted client is not persisted in ledger');
 assert.ok(sync.includes('forgetDeletedClient(detail?.clientId)'), 'restored client is not removed from ledger');
 assert.ok(sync.includes('merged=filterDeletedFromClientSet(merged,deletedIds)'), 'merged state can still resurrect deleted clients');
-assert.ok(settings.includes('storage-simple-sync.js?v=20261002-purge-folder-1'),'storage sync cache key not bumped');
+assert.ok(settings.includes('storage-simple-sync.js?v=20261005-client-archive-1'),'storage sync cache key not bumped');
 assert.ok(sync.includes('removeClientFoldersByIds'),'permanent client folder cleanup missing');
 assert.ok(sync.includes("removeEntry(name,{recursive:true})"),'client folder is not removed recursively');
 assert.ok(sync.includes('permanentDeletedIds(state)'),'permanent-delete tombstones are not swept during sync');
