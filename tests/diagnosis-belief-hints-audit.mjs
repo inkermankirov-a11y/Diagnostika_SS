@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:1000}});
@@ -10,7 +11,7 @@ await context.addInitScript(()=>{
 });
 const page=await context.newPage();
 let hypothesisPayload=null;
-await page.route('https://lugovoyn8n.ru/webhook-test/diagnostika-client-chat-v1',async route=>{
+await page.route('https://lugovoyn8n.ru/webhook-test/diagnostika-hypothesis-v1',async route=>{
   hypothesisPayload=route.request().postDataJSON();
   await route.fulfill({
     status:200,
@@ -21,6 +22,19 @@ await page.route('https://lugovoyn8n.ru/webhook-test/diagnostika-client-chat-v1'
   });
 });
 const errors=[];
+const workflow=JSON.parse(fs.readFileSync('n8n/diagnostika-hypothesis-v1.json','utf8'));
+assert.equal(workflow.name,'Diagnostika_SS — Гипотеза по диагностике v1');
+const webhookNode=workflow.nodes.find(x=>x.name==='Webhook — Гипотеза');
+assert.equal(webhookNode?.parameters?.path,'diagnostika-hypothesis-v1','Dedicated hypothesis webhook path is wrong');
+const prepareNode=workflow.nodes.find(x=>x.name==='Подготовить гипотезу');
+const prepareCode=String(prepareNode?.parameters?.jsCode||'');
+assert(prepareCode.includes('РАСШИРЕННАЯ ГИПОТЕЗА'),'Dedicated workflow lost expanded hypothesis instruction');
+assert(prepareCode.includes('КОРОТКАЯ ГИПОТЕЗА'),'Dedicated workflow lost short hypothesis instruction');
+assert(prepareCode.includes('Не придумывай причин, которых нет в диагностике.'),'Dedicated workflow lost anti-fabrication rule');
+assert(prepareCode.includes("const prompt='ДАННЫЕ КЛИЕНТА:"),'Dedicated workflow does not append diagnostic data');
+const openAiNode=workflow.nodes.find(x=>x.name==='OpenAI — Responses API');
+assert(String(openAiNode?.parameters?.url||'').includes('api.openai.com/v1/responses'),'Dedicated workflow is not wired to OpenAI Responses API');
+
 page.on('pageerror',e=>errors.push('pageerror: '+e.message));
 page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
 page.on('dialog',d=>d.accept().catch(()=>{}));
@@ -87,21 +101,15 @@ assert(hypothesisData,'Hypothesis diagnostic data was not built');
 assert(hypothesisData.исходный_запрос?.формулировка,'Hypothesis payload has no request title');
 assert(Array.isArray(hypothesisData.ситуации),'Hypothesis payload has no situations array');
 assert(hypothesisData.ситуации.length>0,'Hypothesis payload has no diagnostic situations');
-const hypothesisPrompt=await page.evaluate(()=>window.DiagnostikaHypothesis?.buildPrompt?.());
-assert(hypothesisPrompt.includes('РАСШИРЕННАЯ ГИПОТЕЗА'),'Hypothesis prompt lost expanded hypothesis instruction');
-assert(hypothesisPrompt.includes('КОРОТКАЯ ГИПОТЕЗА'),'Hypothesis prompt lost short hypothesis instruction');
-assert(hypothesisPrompt.includes('Не придумывай причин, которых нет в диагностике.'),'Hypothesis anti-fabrication instruction is missing');
-assert(hypothesisPrompt.includes('ДАННЫЕ КЛИЕНТА:'),'Hypothesis prompt has no diagnostic data marker');
-
 await hypothesisOverlay.locator('.diagnosis-hypothesis-generate').click();
 await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').waitFor({state:'visible',timeout:5000});
 assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('несостоятельности'));
 assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-short').innerText()).includes('не справляется'));
 assert(hypothesisPayload,'Hypothesis request was not sent to AI endpoint');
-assert.equal(hypothesisPayload.clientContext?.purpose,'diagnosis-hypothesis');
-assert.equal(String(hypothesisPayload.clientContext?.selectedRequestId||''),String(hypothesisData.исходный_запрос.id||''));
-assert.equal(hypothesisPayload.chatHistory?.length,0,'Hypothesis request must not include unrelated chat history');
-assert(hypothesisPayload.message.includes(hypothesisData.исходный_запрос.формулировка),'Hypothesis AI request does not include the selected request');
+assert.equal(String(hypothesisPayload.requestId||''),String(hypothesisData.исходный_запрос.id||''),'Dedicated workflow requestId mismatch');
+assert.deepEqual(hypothesisPayload.diagnosticData,hypothesisData,'Dedicated workflow did not receive the exact diagnostic payload');
+assert.equal('message' in hypothesisPayload,false,'Frontend still sends the hypothesis prompt instead of letting the dedicated workflow own it');
+assert.equal('chatHistory' in hypothesisPayload,false,'Dedicated hypothesis request must not include client AI chat history');
 await hypothesisOverlay.locator('.diagnosis-hypothesis-cancel').click();
 await hypothesisOverlay.waitFor({state:'hidden',timeout:3000});
 
