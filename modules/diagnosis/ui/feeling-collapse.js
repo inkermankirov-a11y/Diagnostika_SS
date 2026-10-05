@@ -111,6 +111,20 @@
     return `${beliefId}::${feelingId}`;
   }
 
+  function syncTreeRowHeights(root){
+    if(!root)return;
+    requestAnimationFrame(()=>{
+      root.querySelectorAll('.tree-row').forEach(row=>{
+        const label=row.querySelector('.tree-row-label');
+        if(!label||getComputedStyle(row).display==='none')return;
+        row.style.setProperty('height','auto','important');
+        const labelHeight=Math.ceil(label.getBoundingClientRect().height||label.scrollHeight||0);
+        const min=Math.max(30,labelHeight+12);
+        row.style.setProperty('min-height',min+'px','important');
+      });
+    });
+  }
+
   function applyFeelingCollapse(){
     const root=document.querySelector('#tree');
     const s=currentSituation();
@@ -191,6 +205,7 @@
         }
       });
     });
+    syncTreeRowHeights(root);
   }
 
   function updateContextDeepButton(){
