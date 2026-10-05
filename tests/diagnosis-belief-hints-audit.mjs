@@ -81,12 +81,16 @@ const actionLayout=await page.evaluate(()=>{
     return [id,{fontFamily:s.fontFamily,width:r.width,height:r.height,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,whiteSpace:s.whiteSpace,writingMode:s.writingMode}];
   }));
   const bar=document.querySelector('.center-actions');
-  const clientHeader=document.getElementById('diagnosisClientHeader');
+  const hypothesis=document.querySelector('.diagnosis-hypothesis-btn');
+  const hypothesisBox=hypothesis.getBoundingClientRect();
+  const actionBox=document.getElementById('addBeliefBtn').getBoundingClientRect();
   return {
     ...data,
     bar:{scrollWidth:bar.scrollWidth,clientWidth:bar.clientWidth},
-    clientHeaderTop:clientHeader.getBoundingClientRect().top,
-    actionTop:document.getElementById('addBeliefBtn').getBoundingClientRect().top
+    hypothesisTop:hypothesisBox.top,
+    hypothesisHeight:hypothesisBox.height,
+    actionTop:actionBox.top,
+    actionHeight:actionBox.height
   };
 });
 for(const id of ['addBeliefBtn','addFeelingBtn','addDeepBtn','deleteElementBtn']){
@@ -97,6 +101,8 @@ assert(actionLayout.deleteElementBtn.scrollWidth<=actionLayout.deleteElementBtn.
 assert.equal(actionLayout.deleteElementBtn.whiteSpace,'nowrap','Delete text can wrap');
 assert.match(actionLayout.deleteElementBtn.writingMode,/horizontal/i,'Delete button is not horizontal');
 assert(actionLayout.bar.scrollWidth<=actionLayout.bar.clientWidth+1,'Diagnosis action bar overflows');
+assert(Math.abs(actionLayout.actionTop-actionLayout.hypothesisTop)<=1,'Diagnosis action row is not level with Hypothesis button');
+assert(Math.abs(actionLayout.actionHeight-actionLayout.hypothesisHeight)<=0.5,'Diagnosis action row height does not match Hypothesis button');
 
 // Diagnosis buttons must keep a stationary hit box on hover.
 // The old global translateY(-2px) made the pointer repeatedly enter/leave at button edges.
