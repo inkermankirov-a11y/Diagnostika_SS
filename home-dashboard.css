@@ -1816,3 +1816,47 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
   --hd-column-border:rgba(111,140,168,.58);
   --hd-column-shadow:0 8px 24px rgba(11,28,46,.13);
 }
+
+
+/* Dashboard v7 — keep the reminder in the right rail and place the current
+   specialist as a stable profile control directly below the social row. */
+.hd-client-view.has-client .hd-client-specialist-slot{
+  width:min(300px,100%)!important;
+  min-height:46px;
+  margin:12px 0 0!important;
+  transform:none!important;
+  align-self:flex-start;
+  box-sizing:border-box;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-info{
+  width:100%!important;
+  max-width:none!important;
+  height:46px!important;
+  min-height:46px!important;
+  margin:0!important;
+  padding:6px 8px!important;
+}
+#hdClientView .hd-client-specialist-slot .client-specialist-current{
+  width:100%!important;
+  grid-template-columns:134px minmax(0,1fr)!important;
+  column-gap:9px!important;
+  min-height:34px!important;
+}
+.hd-client-view.has-client .hd-selected-summary{
+  margin-top:20px!important;
+}
+.hd-client-right-rail{
+  grid-template-rows:minmax(145px,auto)!important;
+  gap:0!important;
+}
+@media(max-width:860px){
+  .hd-client-view.has-client .hd-client-specialist-slot{
+    width:min(300px,100%)!important;
+    margin:12px 0 0!important;
+  }
+}
+@media(max-width:560px){
+  .hd-client-view.has-client .hd-client-specialist-slot{
+    width:100%!important;
+  }
+}
