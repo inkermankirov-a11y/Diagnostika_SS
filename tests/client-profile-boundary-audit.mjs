@@ -20,7 +20,7 @@ for(const token of ['typeof save','state.clients','c.questionnaires=','c.questio
 for(const token of ['c.mainRequest=next.mainRequest','c[key]=cleaned.value','c[key]=next']){
   assert.equal(consultationSource.includes(token),false,'free consultation direct profile mutation remains: '+token);
 }
-assert.match(consultationSource,/api\.update\(c\.id,profilePatch,\{source:'free-consultation-card-sync',render:false\}\)/);
+assert.match(consultationSource,/api\.update\(c\.id,patch,\{source:'free-consultation-card-sync',render:false\}\)/);
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const legacyStart='=== БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ / ИИ ===';
