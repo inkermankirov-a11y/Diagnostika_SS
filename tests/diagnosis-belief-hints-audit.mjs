@@ -3,8 +3,23 @@ import assert from 'node:assert/strict';
 
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:1000}});
-await context.addInitScript(()=>{localStorage.setItem('diagnostika-ui-language','ru');localStorage.setItem('diagnostika-help-tooltips-enabled','1');});
+await context.addInitScript(()=>{
+  localStorage.setItem('diagnostika-ui-language','ru');
+  localStorage.setItem('diagnostika-help-tooltips-enabled','1');
+  localStorage.setItem('diagnostika-ai-n8n-access-key','diagnosis-hypothesis-test-key');
+});
 const page=await context.newPage();
+let hypothesisPayload=null;
+await page.route('https://lugovoyn8n.ru/webhook-test/diagnostika-client-chat-v1',async route=>{
+  hypothesisPayload=route.request().postDataJSON();
+  await route.fulfill({
+    status:200,
+    contentType:'application/json',
+    body:JSON.stringify({
+      reply:'РАСШИРЕННАЯ ГИПОТЕЗА:\nПохоже, в разных ситуациях повторяется переживание собственной несостоятельности, которое усиливает тревогу и приводит к восприятию конкретных событий как подтверждения того, что клиент не справляется.\n\nКОРОТКАЯ ГИПОТЕЗА:\nПохоже, под поверхностным запросом повторяется восприятие себя как человека, который не справляется.'
+    })
+  });
+});
 const errors=[];
 page.on('pageerror',e=>errors.push('pageerror: '+e.message));
 page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
@@ -60,6 +75,35 @@ assert(compactHeader.hypothesis.x>compactHeader.name.x,'Hypothesis button is not
 assert(compactHeader.header.right-compactHeader.hypothesis.right<=14,'Hypothesis button is not aligned to the far right of the client header');
 assert.equal(compactHeader.back.color,'rgb(255, 255, 255)','Back-to-client button is not visually emphasized');
 assert.match(compactHeader.back.backgroundImage,/rgb\(79, 134, 255\)|rgb\(36, 87, 214\)/,'Back-to-client button did not receive the vivid blue treatment');
+
+await page.locator('.diagnosis-hypothesis-btn').click();
+const hypothesisOverlay=page.locator('#diagnosisHypothesisOverlay');
+await hypothesisOverlay.waitFor({state:'visible',timeout:3000});
+assert.equal((await hypothesisOverlay.locator('#diagnosisHypothesisTitle').textContent()).trim(),'Гипотеза по запросу');
+assert.equal((await hypothesisOverlay.locator('.diagnosis-hypothesis-generate').textContent()).trim(),'Сформировать');
+
+const hypothesisData=await page.evaluate(()=>window.DiagnostikaHypothesis?.buildDiagnosticData?.());
+assert(hypothesisData,'Hypothesis diagnostic data was not built');
+assert(hypothesisData.исходный_запрос?.формулировка,'Hypothesis payload has no request title');
+assert(Array.isArray(hypothesisData.ситуации),'Hypothesis payload has no situations array');
+assert(hypothesisData.ситуации.length>0,'Hypothesis payload has no diagnostic situations');
+const hypothesisPrompt=await page.evaluate(()=>window.DiagnostikaHypothesis?.buildPrompt?.());
+assert(hypothesisPrompt.includes('РАСШИРЕННАЯ ГИПОТЕЗА'),'Hypothesis prompt lost expanded hypothesis instruction');
+assert(hypothesisPrompt.includes('КОРОТКАЯ ГИПОТЕЗА'),'Hypothesis prompt lost short hypothesis instruction');
+assert(hypothesisPrompt.includes('Не придумывай причин, которых нет в диагностике.'),'Hypothesis anti-fabrication instruction is missing');
+assert(hypothesisPrompt.includes('ДАННЫЕ КЛИЕНТА:'),'Hypothesis prompt has no diagnostic data marker');
+
+await hypothesisOverlay.locator('.diagnosis-hypothesis-generate').click();
+await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').waitFor({state:'visible',timeout:5000});
+assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('несостоятельности'));
+assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-short').innerText()).includes('не справляется'));
+assert(hypothesisPayload,'Hypothesis request was not sent to AI endpoint');
+assert.equal(hypothesisPayload.clientContext?.purpose,'diagnosis-hypothesis');
+assert.equal(String(hypothesisPayload.clientContext?.selectedRequestId||''),String(hypothesisData.исходный_запрос.id||''));
+assert.equal(hypothesisPayload.chatHistory?.length,0,'Hypothesis request must not include unrelated chat history');
+assert(hypothesisPayload.message.includes(hypothesisData.исходный_запрос.формулировка),'Hypothesis AI request does not include the selected request');
+await hypothesisOverlay.locator('.diagnosis-hypothesis-cancel').click();
+await hypothesisOverlay.waitFor({state:'hidden',timeout:3000});
 
 const colors=await page.evaluate(()=>Object.fromEntries(
   ['addBeliefBtn','addFeelingBtn','addDeepBtn'].map(id=>{
