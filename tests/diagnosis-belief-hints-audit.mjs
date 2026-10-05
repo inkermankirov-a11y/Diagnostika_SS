@@ -30,7 +30,7 @@ const prepareNode=workflow.nodes.find(x=>x.name==='Подготовить гип
 const prepareCode=String(prepareNode?.parameters?.jsCode||'');
 assert(prepareCode.includes('РАСШИРЕННАЯ ГИПОТЕЗА'),'Dedicated workflow lost expanded hypothesis instruction');
 assert(prepareCode.includes('КОРОТКАЯ ГИПОТЕЗА'),'Dedicated workflow lost short hypothesis instruction');
-assert(prepareCode.includes('Не придумывай причин, которых нет в диагностике.'),'Dedicated workflow lost anti-fabrication rule');
+assert(prepareCode.includes('Запрещено самостоятельно придумывать:'),'Dedicated workflow lost anti-fabrication rule');
 assert(prepareCode.includes('Объём: примерно 70–130 слов.'),'Dedicated workflow lost concise expanded-hypothesis length');
 assert(prepareCode.includes('2–3 коротких абзаца БЕЗ подзаголовков'),'Dedicated workflow lost paragraph-only expanded format');
 assert(!prepareCode.includes('Используй ровно четыре смысловых блока'),'Old four-block hypothesis format is still present');
