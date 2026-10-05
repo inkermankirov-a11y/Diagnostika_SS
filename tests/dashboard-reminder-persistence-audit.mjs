@@ -60,6 +60,29 @@ await page.waitForFunction(
 await page.evaluate(()=>window.DiagnostikaHomeDashboard.openClient('reminder-client'));
 await page.waitForSelector('#hdHeroReminder:not([hidden])',{timeout:5000});
 
+const specialistLayout=await page.evaluate(()=>{
+  const stack=document.querySelector('.hd-client-photo-stack');
+  const socials=document.getElementById('hdClientSocials');
+  const slot=document.getElementById('hdClientSpecialistSlot');
+  const sr=socials?.getBoundingClientRect();
+  const rr=slot?.getBoundingClientRect();
+  return {
+    parentClass:slot?.parentElement?.className||'',
+    socialsLeft:sr?.left??null,
+    socialsBottom:sr?.bottom??null,
+    slotLeft:rr?.left??null,
+    slotTop:rr?.top??null,
+    slotWidth:rr?.width??null,
+    inRightRail:Boolean(slot?.closest('.hd-client-right-rail')),
+    stackContains:Boolean(stack&&slot&&stack.contains(slot))
+  };
+});
+assert.equal(specialistLayout.stackContains,true,'Current specialist is not placed under the social block');
+assert.equal(specialistLayout.inRightRail,false,'Current specialist is still inside the reminder rail');
+assert(Math.abs(specialistLayout.slotLeft-specialistLayout.socialsLeft)<=2,'Current specialist is not aligned with VK/MAX/Telegram');
+assert(specialistLayout.slotTop>=specialistLayout.socialsBottom+8,'Current specialist is not below the social row');
+assert(specialistLayout.slotWidth>=290,'Current specialist card became too narrow');
+
 const before=await page.evaluate(()=>{
   const card=document.getElementById('hdHeroReminder');
   const row=document.querySelector('.hd-client-row[data-id="reminder-client"]');
@@ -81,8 +104,27 @@ assert.equal(before.persisted?.completedAt,undefined,'Reminder is completed befo
 
 const source=page.locator('#hdHeroReminder .hd-hero-reminder-source');
 assert.equal((await source.textContent()).trim(),'из календаря','Calendar source link text changed');
+const sourceLayout=await page.evaluate(()=>{
+  const card=document.getElementById('hdHeroReminder');
+  const source=card?.querySelector('.hd-hero-reminder-source');
+  const cr=card?.getBoundingClientRect();
+  const sr=source?.getBoundingClientRect();
+  return {
+    scrollWidth:source?.scrollWidth||0,
+    clientWidth:source?.clientWidth||0,
+    sourceRight:sr?.right||0,
+    cardRight:cr?.right||0
+  };
+});
+assert(sourceLayout.scrollWidth<=sourceLayout.clientWidth+1,'Calendar source text is clipped');
+assert(sourceLayout.sourceRight<=sourceLayout.cardRight+1,'Calendar source link overflows the reminder card');
+
 await source.click();
 await page.waitForSelector('#diagnostikaCalendarOverlay[open]',{timeout:5000});
+const targeted=page.locator('#diagnostikaCalendarOverlay .cal-event[data-calendar-event-id="reminder-overdue-1"]');
+await targeted.waitFor({state:'visible',timeout:5000});
+assert.equal(await targeted.evaluate(el=>el.classList.contains('is-targeted')),true,'Calendar did not focus the clicked reminder');
+assert((await targeted.innerText()).includes('Ответить клиенту по сообщению'),'Focused calendar reminder is the wrong event');
 await page.locator('#diagnostikaCalendarOverlay .cal-close').click();
 await page.waitForFunction(()=>!document.getElementById('diagnostikaCalendarOverlay')?.open,null,{timeout:5000});
 
