@@ -17,7 +17,7 @@ await page.route('https://lugovoyn8n.ru/webhook-test/diagnostika-hypothesis-v1',
     status:200,
     contentType:'application/json',
     body:JSON.stringify({
-      reply:'РАСШИРЕННАЯ ГИПОТЕЗА:\nГлубинная конструкция:\nПохоже, в глубине ты воспринимаешь себя как недостаточно способного и значимого.\n\nЧто запускается:\nНа этом фоне у тебя усиливаются тревога и страх оценки.\n\nКак это проявляется:\nВ конкретных ситуациях ты воспринимаешь происходящее как подтверждение того, что не справляешься.\n\nСвязь с запросом:\nПоэтому трудность отстаивать границы поддерживается повторяющимся переживанием собственной несостоятельности.\n\nКОРОТКАЯ ГИПОТЕЗА:\nПохоже, под поверхностным запросом у тебя повторяется восприятие себя как человека, который не справляется.'
+      reply:'РАСШИРЕННАЯ ГИПОТЕЗА:\nВ первую очередь здесь не сами границы, а повторяющееся ощущение, что ты недостаточно способен и можешь не справиться. Когда тебя критикуют, тебе отказывают или нужно попросить о помощи, у тебя включается это восприятие себя, а вместе с ним — тревога и страх оценки.\n\nИз-за этого тебе становится сложнее спокойно выдерживать чужое недовольство и прямо говорить о своих потребностях. Поэтому трудность отстаивать границы здесь строится на повторяющемся переживании собственной несостоятельности.\n\nКОРОТКАЯ ГИПОТЕЗА:\nПохоже, трудность с границами строится на повторяющемся ощущении, что ты не справишься и недостаточно способен выдержать чужую реакцию.'
     })
   });
 });
@@ -31,11 +31,13 @@ const prepareCode=String(prepareNode?.parameters?.jsCode||'');
 assert(prepareCode.includes('РАСШИРЕННАЯ ГИПОТЕЗА'),'Dedicated workflow lost expanded hypothesis instruction');
 assert(prepareCode.includes('КОРОТКАЯ ГИПОТЕЗА'),'Dedicated workflow lost short hypothesis instruction');
 assert(prepareCode.includes('Не придумывай причин, которых нет в диагностике.'),'Dedicated workflow lost anti-fabrication rule');
-assert(prepareCode.includes('Глубинная конструкция:'),'Dedicated workflow lost structured expanded-hypothesis format');
+assert(prepareCode.includes('Объём: примерно 70–130 слов.'),'Dedicated workflow lost concise expanded-hypothesis length');
+assert(prepareCode.includes('2–3 коротких абзаца БЕЗ подзаголовков'),'Dedicated workflow lost paragraph-only expanded format');
+assert(!prepareCode.includes('Используй ровно четыре смысловых блока'),'Old four-block hypothesis format is still present');
 assert(prepareCode.includes("addressMode==='vy'"),'Dedicated workflow lost Вы addressing mode');
 assert(prepareCode.includes("addressMode==='third'"),'Dedicated workflow lost third-person addressing mode');
 assert(prepareCode.includes("на «ты»"),'Dedicated workflow lost Ты addressing mode');
-assert(prepareCode.includes("const prompt='ДАННЫЕ КЛИЕНТА:"),'Dedicated workflow does not append diagnostic data');
+assert(prepareCode.includes("const prompt='ДАННЫЕ ДИАГНОСТИКИ:"),'Dedicated workflow does not append diagnostic data');
 const openAiNode=workflow.nodes.find(x=>x.name==='OpenAI — Responses API');
 assert(String(openAiNode?.parameters?.url||'').includes('api.openai.com/v1/responses'),'Dedicated workflow is not wired to OpenAI Responses API');
 
@@ -99,6 +101,8 @@ const hypothesisOverlay=page.locator('#diagnosisHypothesisOverlay');
 await hypothesisOverlay.waitFor({state:'visible',timeout:3000});
 assert.equal((await hypothesisOverlay.locator('#diagnosisHypothesisTitle').textContent()).trim(),'Гипотеза по запросу');
 assert.equal((await hypothesisOverlay.locator('.diagnosis-hypothesis-generate').textContent()).trim(),'Сформировать');
+assert.equal((await hypothesisOverlay.locator('.diagnosis-hypothesis-save').textContent()).trim(),'Сохранить гипотезу');
+assert.equal(await hypothesisOverlay.locator('.diagnosis-hypothesis-save').isDisabled(),true,'Save hypothesis must be disabled before generation');
 assert.equal(await hypothesisOverlay.locator('input[name="diagnosisHypothesisAddress"]').count(),3,'Hypothesis addressing selector must have three choices');
 assert.equal(await hypothesisOverlay.locator('input[name="diagnosisHypothesisAddress"][value="ty"]').isChecked(),true,'Ты must be the default hypothesis addressing mode');
 const modalBox=await hypothesisOverlay.locator('.diagnosis-hypothesis-modal').boundingBox();
@@ -112,8 +116,11 @@ assert(hypothesisData.ситуации.length>0,'Hypothesis payload has no diagn
 await hypothesisOverlay.locator('.diagnosis-hypothesis-generate').click();
 await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').waitFor({state:'visible',timeout:5000});
 assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('несостоятельности'));
-assert.equal(await hypothesisOverlay.locator('.diagnosis-hypothesis-part').count(),4,'Expanded hypothesis is not split into four readable blocks');
-assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('Глубинная конструкция'),'Structured expanded hypothesis heading is missing');
+assert.equal(await hypothesisOverlay.locator('.diagnosis-hypothesis-part').count(),0,'Old structured hypothesis cards are still visible');
+const expandedParagraphCount=await hypothesisOverlay.locator('.diagnosis-hypothesis-expanded-content p').count();
+assert(expandedParagraphCount>=2&&expandedParagraphCount<=3,'Expanded hypothesis must render as 2–3 plain paragraphs');
+assert(!(await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('Глубинная конструкция'),'Old structured hypothesis heading is still visible');
+assert.equal(await hypothesisOverlay.locator('.diagnosis-hypothesis-save').isDisabled(),false,'Save hypothesis must be enabled after generation');
 assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-short').innerText()).includes('не справляется'));
 assert(hypothesisPayload,'Hypothesis request was not sent to AI endpoint');
 assert.equal(String(hypothesisPayload.requestId||''),String(hypothesisData.исходный_запрос.id||''),'Dedicated workflow requestId mismatch');
@@ -124,6 +131,25 @@ assert.equal('chatHistory' in hypothesisPayload,false,'Dedicated hypothesis requ
 await hypothesisOverlay.locator('label:has(input[name="diagnosisHypothesisAddress"][value="vy"])').click();
 assert.equal(await page.evaluate(()=>window.DiagnostikaHypothesis?.selectedAddressMode?.()),'vy','Вы addressing mode cannot be selected');
 assert.equal(await page.evaluate(()=>localStorage.getItem('diagnostika-hypothesis-address-mode')),'vy','Addressing preference was not persisted');
+
+await hypothesisOverlay.locator('.diagnosis-hypothesis-save').click();
+assert.equal(await hypothesisOverlay.locator('.diagnosis-hypothesis-save').isDisabled(),true,'Saved hypothesis button did not switch to saved state');
+assert.equal((await hypothesisOverlay.locator('.diagnosis-hypothesis-save').textContent()).trim(),'Сохранено');
+const savedHypothesis=await page.evaluate(()=>{
+  const r=window.DiagnostikaRequests?.viewed?.()||window.DiagnostikaRequests?.active?.();
+  return r?.hypothesis||null;
+});
+assert(savedHypothesis?.raw?.includes('РАСШИРЕННАЯ ГИПОТЕЗА'),'Hypothesis was not persisted on the request');
+assert.equal(savedHypothesis?.addressMode,'vy','Saved hypothesis lost addressing mode');
+assert(savedHypothesis?.savedAt,'Saved hypothesis timestamp is missing');
+
+await hypothesisOverlay.locator('.diagnosis-hypothesis-cancel').click();
+await hypothesisOverlay.waitFor({state:'hidden',timeout:3000});
+await page.locator('.diagnosis-hypothesis-btn').click();
+await hypothesisOverlay.waitFor({state:'visible',timeout:3000});
+assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('несостоятельности'),'Saved hypothesis was not restored without another AI request');
+assert.equal((await hypothesisOverlay.locator('.diagnosis-hypothesis-save').textContent()).trim(),'Сохранено','Saved hypothesis state was not restored');
+assert.equal(await hypothesisOverlay.locator('input[name="diagnosisHypothesisAddress"][value="vy"]').isChecked(),true,'Saved addressing mode was not restored');
 await hypothesisOverlay.locator('.diagnosis-hypothesis-cancel').click();
 await hypothesisOverlay.waitFor({state:'hidden',timeout:3000});
 
