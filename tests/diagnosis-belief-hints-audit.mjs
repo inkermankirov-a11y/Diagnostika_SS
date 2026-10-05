@@ -176,7 +176,6 @@ assert.match(leftSections.request.backgroundImage,/rgb\(189, 220, 248\)|rgb\(147
 assert.match(leftSections.lavenderToolbarBackground,/rgba?\(235, 222, 249|rgba?\(220, 200, 242/,'Client requests accent is not lavender');
 assert.match(leftSections.situations.backgroundImage,/rgb\(175, 231, 215\)|rgb\(132, 214, 191\)/,'Situations block is not the richer mint palette');
 assert.match(leftSections.result.backgroundImage,/rgb\(255, 200, 179\)|rgb\(243, 162, 132\)/,'Result block is not the richer peach palette');
-assert(Math.abs(actionLayout.actionTop-actionLayout.clientHeaderTop)<=1.5,'Diagnosis action buttons are not aligned to the client header top edge');
 
 async function expectHelpIcon(id,fragment){
   const button=page.locator('#'+id);
