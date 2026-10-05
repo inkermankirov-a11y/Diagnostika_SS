@@ -26,6 +26,8 @@ on:
       - 'tests/request-diagnosis-3c-audit.mjs'
       - 'tests/diagnosis-module-7a-audit.mjs'
       - 'tests/diagnosis-ui-7b-audit.mjs'
+      - 'tests/diagnosis-tree-layout-audit.mjs'
+      - 'styles.css'
       - 'modules/requests/ui/title.js'
       - 'index.html'
       - '.github/workflows/diagnosis-api-audit.yml'
@@ -63,6 +65,7 @@ jobs:
           node --check tests/request-diagnosis-3c-audit.mjs
           node --check tests/diagnosis-module-7a-audit.mjs
           node --check tests/diagnosis-ui-7b-audit.mjs
+          node --check tests/diagnosis-tree-layout-audit.mjs
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -348,6 +351,14 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7b-http.log 2>&1 &
           PID=$!; trap 'kill $PID || true' EXIT; sleep 1
           node tests/diagnosis-ui-7b-audit.mjs
+
+      - name: Verify diagnosis tree long-row layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-tree-layout-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-tree-layout-audit.mjs
 
       - name: Verify Diagnosis 7C nested UI migration
         shell: bash
