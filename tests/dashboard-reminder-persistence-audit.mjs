@@ -8,6 +8,8 @@ const yyyy=yesterday.getFullYear();
 const mm=String(yesterday.getMonth()+1).padStart(2,'0');
 const dd=String(yesterday.getDate()).padStart(2,'0');
 const pastDate=`${yyyy}-${mm}-${dd}`;
+const tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,12,0,0,0);
+const futureDate=`${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
 
 const fixture={
   version:4,
@@ -50,6 +52,7 @@ await page.waitForFunction(
   ()=>document.documentElement.classList.contains('diagnostika-dashboard-ready')
     &&window.DiagnostikaClients?.moduleAware
     &&window.DiagnostikaCalendar?.moduleAware
+    &&window.DiagnostikaCalendarUI?.open
     &&window.DiagnostikaHomeDashboard,
   null,{timeout:20000}
 );
@@ -75,6 +78,40 @@ assert.equal(before.overdue,true,'Expired reminder card has no overdue state');
 assert.equal(before.doneButton.trim(),'✓ Выполнено','Reminder has no completion action');
 assert.equal(before.marker,true,'Expired reminder marker disappeared from the client row');
 assert.equal(before.persisted?.completedAt,undefined,'Reminder is completed before user action');
+
+const source=page.locator('#hdHeroReminder .hd-hero-reminder-source');
+assert.equal((await source.textContent()).trim(),'из календаря','Calendar source link text changed');
+await source.click();
+await page.waitForSelector('#diagnostikaCalendarOverlay[open]',{timeout:5000});
+await page.locator('#diagnostikaCalendarOverlay .cal-close').click();
+await page.waitForFunction(()=>!document.getElementById('diagnostikaCalendarOverlay')?.open,null,{timeout:5000});
+
+const snooze=page.locator('#hdHeroReminder .hd-hero-reminder-snooze');
+assert.equal((await snooze.textContent()).trim(),'⏰ Отложить','Snooze action is missing');
+await snooze.click();
+await page.waitForSelector('.hd-reminder-snooze-dialog[open]',{timeout:5000});
+await page.locator('.hd-reminder-snooze-date').fill(futureDate);
+await page.locator('.hd-reminder-snooze-time').fill('10:30');
+await page.locator('.hd-reminder-snooze-save').click();
+await page.waitForFunction(()=>!document.querySelector('.hd-reminder-snooze-dialog')?.open,null,{timeout:5000});
+
+await page.waitForFunction(
+  ({date,time})=>{
+    const event=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}').calendarEvents?.find(x=>x.id==='reminder-overdue-1');
+    return event?.date===date&&event?.time===time&&event?.status==='pending'&&event?.completedAt===null;
+  },
+  {date:futureDate,time:'10:30'},
+  {timeout:5000}
+);
+
+const snoozed=await page.evaluate(()=>({
+  visible:!document.getElementById('hdHeroReminder')?.hidden,
+  overdue:document.getElementById('hdHeroReminder')?.classList.contains('is-overdue')||false,
+  doneBackground:getComputedStyle(document.querySelector('.hd-hero-reminder-done')).backgroundImage
+}));
+assert.equal(snoozed.visible,true,'Snoozed reminder disappeared');
+assert.equal(snoozed.overdue,false,'Snoozed reminder still looks overdue');
+assert(/45, 154, 97|43, 185, 119/.test(snoozed.doneBackground),'Completed action is not green');
 
 await page.locator('#hdHeroReminder .hd-hero-reminder-done').click();
 await page.waitForFunction(()=>document.getElementById('hdHeroReminder')?.hidden===true,null,{timeout:5000});
