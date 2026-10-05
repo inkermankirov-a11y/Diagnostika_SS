@@ -118,27 +118,27 @@ jobs:
           if 'modules/clients/client-service.js?v=20261005-archive-1' not in loader: errors.append('client service cache version is stale')
           if 'modules/clients/index.js?v=20260918-clients2b2' not in loader: errors.append('clients module cache version is stale')
           if 'client-api.js?v=20261005-archive-1' not in loader: errors.append('client API cache version is stale')
-          if 'modules/clients/ui/card.js?v=20260930-modular-stage5-13' not in index: errors.append('client card module/cache marker is stale')
+          if 'modules/clients/ui/card.js?v=20261003-work-actions-2' not in index: errors.append('client card module/cache marker is stale')
           if 'modules/clients/ui/delete.js?v=20260930-modular-stage5-21' not in index: errors.append('client delete module/cache marker is stale')
           if 'modules/clients/ui/database.js?v=20261005-archive-1' not in index: errors.append('client DB module/cache marker is stale')
           if 'modules/clients/ui/trash.js?v=20260930-modular-stage5-15' not in index: errors.append('client trash module/cache marker is stale')
           if 'modules/clients/ui/archive.js?v=20261005-archive-1' not in index: errors.append('client archive module/cache marker is missing')
           if 'modules/sessions/ui/interactions.js?v=20260929-modular24a' not in index: errors.append('session interactions script/cache marker is missing')
           if 'app-loader.js?v=' not in index: errors.append('app loader script is missing')
-          if 'home-dashboard.js?v=20260918-clients2d' not in loader: errors.append('home dashboard cache version is stale')
+          if 'home-dashboard.js?v=20261003-client-ai-binding-7' not in loader: errors.append('home dashboard cache version is stale')
           if "persistQuestionnaires(c,next,'questionnaire-primary-profile',patch)" not in questionnaires: errors.append('questionnaire primary profile does not use client service')
           for token in ['typeof save','state.clients','c.questionnaires=','c.questionnaires.push']:
               if token in questionnaires: errors.append('questionnaire legacy write remains '+token)
           for token in ['if(p.name)c.name=p.name','if(p.phone)c.phone=p.phone',"if(typeof renderClient==='function')renderClient();"]:
               if token in questionnaires: errors.append('questionnaire direct profile mutation remains '+token)
-          if "api.update(c.id,profilePatch,{source:'free-consultation-card-sync',render:false})" not in consultation_sync: errors.append('free consultation profile sync does not use client service')
+          if "api.update(c.id,patch,{source:'free-consultation-card-sync',render:false})" not in consultation_sync: errors.append('free consultation profile sync does not use client service')
           for token in ['c.mainRequest=next.mainRequest','c[key]=cleaned.value','c[key]=next']:
               if token in consultation_sync: errors.append('free consultation direct profile mutation remains '+token)
           if 'modules/clients/ui/questionnaires.js?v=20260930-modular-stage5-16' not in ai_settings: errors.append('questionnaire module/cache marker is stale')
           if 'free-consultation-client-card-sync.js?v=20260918-clients2c2' not in index: errors.append('free consultation sync cache version is stale')
           if 'modules/ai/ui/settings.js?v=20261001-modular-stage7-10' not in index: errors.append('AI settings loader cache version is stale')
           if 'renderClient=' in home_dashboard.replace('===','').replace('!==',''): errors.append('home dashboard still replaces renderClient')
-          for token in ["'client:created'","'client:selected'","'client:updated'","'client:deleted'","'client:restored'","'client:purged'","'client:archived'","'client:unarchived'",'events.on(type,()=>setTimeout(refresh,0))']:
+          for token in ["'client:created'","'client:selected'","'client:updated'","'client:deleted'","'client:restored'","'client:purged'","'client:archived'","'client:unarchived'",'events.on(type,detail=>','setTimeout(refresh,0)']:
               if token not in home_dashboard: errors.append('home dashboard client event boundary missing '+token)
           if 'name="diagnostika-build" content="' not in index: errors.append('build marker is missing')
           print('CLIENT_MODULE_STATIC_ERRORS:',errors)
