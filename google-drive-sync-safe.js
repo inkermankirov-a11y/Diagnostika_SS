@@ -211,7 +211,7 @@
   function mergeInWorker(base,local,remote){
     return new Promise((resolve,reject)=>{
       let settled=false;
-      const worker=new Worker('google-drive-merge-worker.js?v=20260914-1');
+      const worker=new Worker('google-drive-merge-worker.js?v=20261005-client-archive-1');
       const timer=setTimeout(()=>{
         if(settled)return;
         settled=true;
