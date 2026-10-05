@@ -161,13 +161,21 @@
   }
 
   compact.querySelector('.diagnosis-compact-back').addEventListener('click',()=>{
+    const clientId=currentClient()?.id||window.DiagnostikaClients?.currentId?.()||'';
     document.querySelector('#diagnosisLaunchDialog')?.close?.();
     document.querySelector('#requestHistoryDialog')?.close?.();
     shell()?.setMode?.('card');
     shell()?.clearSelection?.();
     shell()?.renderMode?.();
     shell()?.renderSessions?.();
-    setTimeout(sync,0);
+    setTimeout(()=>{
+      if(clientId&&typeof window.DiagnostikaHomeDashboard?.openClient==='function'){
+        window.DiagnostikaHomeDashboard.openClient(clientId);
+      }else{
+        window.DiagnostikaHomeDashboard?.showHome?.();
+      }
+      sync();
+    },0);
   });
 
   document.addEventListener('diagnostika:mode-rendered',sync);
