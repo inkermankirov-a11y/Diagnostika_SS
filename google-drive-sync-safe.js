@@ -59,18 +59,10 @@
     try{sessionStorage.removeItem(TOKEN_KEY);}catch{}
     try{localStorage.removeItem(TOKEN_KEY);}catch{}
   }
-  async function ensureAuthToken(force=false){
-    if(!force){
-      const current=token();
-      if(current)return current;
-    }
-    const auth=window.DiagnostikaGoogleDriveAuth;
-    if(auth?.ensureToken){
-      try{
-        await auth.ensureToken({interactive:false,force});
-        return token();
-      }catch(_){}
-    }
+  async function ensureAuthToken(){
+    // Automatic synchronization is deliberately UI-silent.
+    // If the token expired, stop and wait for an explicit user click on
+    // «Восстановить Google Drive» instead of opening a Google OAuth popup.
     return token();
   }
   async function notify(message,title='Google Drive'){
@@ -362,7 +354,7 @@
   }
 
   function scheduleAutoSync(delay=AUTO_SYNC_DEBOUNCE){
-    if(!token()&&!rememberedConnection())return;
+    if(!token())return;
     autoSyncPending=true;
     clearTimeout(autoSyncTimer);
     const sinceLast=Date.now()-lastAutoSyncAt;
@@ -373,7 +365,7 @@
   async function runAutoSync(){
     clearTimeout(autoSyncTimer);
     autoSyncTimer=null;
-    if(!token()&&!rememberedConnection())return;
+    if(!token())return;
     if(document.hidden){
       autoSyncPending=true;
       return;
@@ -419,7 +411,7 @@
       if(!document.hidden&&(token()||rememberedConnection()))scheduleAutoSync(autoSyncPending?500:2000);
     });
     window.addEventListener('focus',()=>{
-      if(token()||rememberedConnection())scheduleAutoSync(2000);
+      if(token())scheduleAutoSync(2000);
     });
     window.addEventListener('online',()=>scheduleAutoSync(1500));
 
@@ -428,7 +420,7 @@
       if(!document.hidden&&(token()||rememberedConnection()))scheduleAutoSync(0);
     },AUTO_SYNC_POLL_INTERVAL);
 
-    if(token()||rememberedConnection())scheduleAutoSync(5000);
+    if(token())scheduleAutoSync(5000);
     return true;
   }
 
