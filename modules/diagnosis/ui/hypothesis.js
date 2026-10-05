@@ -9,6 +9,8 @@
   let overlay=null;
   let busy=false;
   let openedRequestId='';
+  let lastGeneratedRaw='';
+  let lastGeneratedRequestId='';
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
@@ -163,30 +165,74 @@
     };
   }
 
-  function structuredExpandedHtml(text){
-    const source=String(text||'').trim();
-    if(!source)return '';
-    const labels=['Глубинная конструкция','Что запускается','Как это проявляется','Связь с запросом'];
-    const pattern=new RegExp('(?:^|\\n)(' + labels.join('|') + ')\\s*:\\s*','gi');
-    const matches=[...source.matchAll(pattern)];
-    if(!matches.length)return '<div class="diagnosis-hypothesis-prose">'+esc(source).replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>')+'</div>';
-    return matches.map((m,index)=>{
-      const start=(m.index||0)+m[0].length;
-      const end=index+1<matches.length?(matches[index+1].index||source.length):source.length;
-      const body=source.slice(start,end).trim();
-      return `<div class="diagnosis-hypothesis-part"><h4>${esc(m[1])}</h4><p>${esc(body).replace(/\n/g,'<br>')}</p></div>`;
-    }).join('');
+  function expandedParagraphs(text){
+    let source=String(text||'').trim();
+    if(!source)return [];
+
+    // Backward-compatible cleanup for answers produced by the previous
+    // four-heading prompt. We keep the text but never show those headings.
+    source=source.replace(/^(Глубинная конструкция|Что запускается|Как это проявляется|Связь с запросом)\s*:\s*/gim,'').trim();
+
+    let paragraphs=source.split(/\n\s*\n+/).map(x=>x.trim()).filter(Boolean);
+    if(paragraphs.length>1)return paragraphs.slice(0,3);
+
+    const sentences=(source.match(/[^.!?…]+[.!?…]+(?:[»”"']+)?|[^.!?…]+$/g)||[])
+      .map(x=>x.trim())
+      .filter(Boolean);
+    if(sentences.length<=2)return [source];
+
+    const count=sentences.length>=6?3:2;
+    const result=[];
+    let cursor=0;
+    for(let i=0;i<count;i++){
+      const remaining=sentences.length-cursor;
+      const groupsLeft=count-i;
+      const take=Math.ceil(remaining/groupsLeft);
+      result.push(sentences.slice(cursor,cursor+take).join(' '));
+      cursor+=take;
+    }
+    return result.filter(Boolean);
+  }
+
+  function expandedHtml(text){
+    return expandedParagraphs(text)
+      .map(p=>`<p>${esc(p).replace(/\n/g,'<br>')}</p>`)
+      .join('');
   }
 
   function resultHtml(raw){
     const parsed=parseAnswer(raw);
     if(parsed.expanded||parsed.short){
       return `
-        ${parsed.expanded?`<section class="diagnosis-hypothesis-result-section diagnosis-hypothesis-result-expanded"><h3>Расширенная гипотеза</h3><div class="diagnosis-hypothesis-expanded-content">${structuredExpandedHtml(parsed.expanded)}</div></section>`:''}
+        ${parsed.expanded?`<section class="diagnosis-hypothesis-result-section diagnosis-hypothesis-result-expanded"><h3>Расширенная гипотеза</h3><div class="diagnosis-hypothesis-expanded-content">${expandedHtml(parsed.expanded)}</div></section>`:''}
         ${parsed.short?`<section class="diagnosis-hypothesis-result-section diagnosis-hypothesis-result-short"><h3>Короткая гипотеза</h3><div>${esc(parsed.short).replace(/\n/g,'<br>')}</div></section>`:''}
       `;
     }
     return `<div class="diagnosis-hypothesis-raw">${esc(parsed.raw).replace(/\n/g,'<br>')}</div>`;
+  }
+
+  function savedHypothesis(request){
+    const h=request?.hypothesis;
+    if(!h||typeof h!=='object'||!String(h.raw||'').trim())return null;
+    return h;
+  }
+
+  function formatSavedAt(value){
+    if(!value)return '';
+    const d=new Date(value);
+    if(Number.isNaN(d.getTime()))return '';
+    return d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+
+  function setSaveState(saved){
+    const btn=ensureOverlay().querySelector('.diagnosis-hypothesis-save');
+    if(saved){
+      btn.disabled=true;
+      btn.textContent='Сохранено';
+    }else{
+      btn.disabled=!lastGeneratedRaw;
+      btn.textContent='Сохранить гипотезу';
+    }
   }
 
   function ensureOverlay(){
@@ -216,6 +262,7 @@
         </div>
         <div class="diagnosis-hypothesis-status" aria-live="polite"></div>
         <footer class="diagnosis-hypothesis-actions">
+          <button type="button" class="tk-btn diagnosis-hypothesis-save" disabled>Сохранить гипотезу</button>
           <button type="button" class="tk-btn diagnosis-hypothesis-generate">Сформировать</button>
           <button type="button" class="tk-btn diagnosis-hypothesis-cancel">Закрыть</button>
         </footer>
@@ -226,6 +273,7 @@
     overlay.querySelector('.diagnosis-hypothesis-close').addEventListener('click',close);
     overlay.querySelector('.diagnosis-hypothesis-cancel').addEventListener('click',close);
     overlay.querySelector('.diagnosis-hypothesis-generate').addEventListener('click',generate);
+    overlay.querySelector('.diagnosis-hypothesis-save').addEventListener('click',saveHypothesis);
     overlay.querySelectorAll('input[name="diagnosisHypothesisAddress"]').forEach(input=>{
       input.addEventListener('change',()=>{
         if(input.checked){
@@ -260,14 +308,30 @@
       return false;
     }
     openedRequestId=String(r.id||'');
-    let savedMode='ty';
-    try{savedMode=localStorage.getItem('diagnostika-hypothesis-address-mode')||'ty';}catch(_){}
+    const saved=savedHypothesis(r);
+    let savedMode=String(saved?.addressMode||'');
+    if(!['ty','vy','third'].includes(savedMode)){
+      try{savedMode=localStorage.getItem('diagnostika-hypothesis-address-mode')||'ty';}catch(_){savedMode='ty';}
+    }
     if(!['ty','vy','third'].includes(savedMode))savedMode='ty';
     const modeInput=root.querySelector(`input[name="diagnosisHypothesisAddress"][value="${savedMode}"]`);
     if(modeInput)modeInput.checked=true;
     root.querySelector('.diagnosis-hypothesis-request').textContent=`Запрос: ${r.title||'Без названия'}`;
-    root.querySelector('.diagnosis-hypothesis-result').innerHTML='<div class="diagnosis-hypothesis-empty">Нажмите «Сформировать», чтобы получить расширенную и короткую гипотезу.</div>';
-    setStatus('');
+
+    if(saved){
+      lastGeneratedRaw=String(saved.raw||'');
+      lastGeneratedRequestId=String(r.id||'');
+      root.querySelector('.diagnosis-hypothesis-result').innerHTML=resultHtml(lastGeneratedRaw);
+      const stamp=formatSavedAt(saved.savedAt);
+      setStatus(stamp?`Сохранённая гипотеза · ${stamp}`:'Сохранённая гипотеза','saved');
+      setSaveState(true);
+    }else{
+      lastGeneratedRaw='';
+      lastGeneratedRequestId='';
+      root.querySelector('.diagnosis-hypothesis-result').innerHTML='<div class="diagnosis-hypothesis-empty">Нажмите «Сформировать», чтобы получить расширенную и короткую гипотезу.</div>';
+      setStatus('');
+      setSaveState(false);
+    }
     setBusy(false);
     root.hidden=false;
     document.documentElement.classList.add('diagnosis-hypothesis-open');
@@ -307,8 +371,11 @@
 
     try{
       const answer=await askAi(c,r,data);
+      lastGeneratedRaw=answer;
+      lastGeneratedRequestId=String(r.id||'');
       result.innerHTML=resultHtml(answer);
-      setStatus('Гипотеза сформирована.','success');
+      setSaveState(false);
+      setStatus('Гипотеза сформирована. Сохраните её, чтобы она осталась у этого запроса.','success');
       return answer;
     }catch(err){
       console.warn('Diagnosis hypothesis generation failed',err);
@@ -318,6 +385,45 @@
     }finally{
       setBusy(false);
     }
+  }
+
+  function saveHypothesis(){
+    if(busy)return false;
+    const c=currentClient();
+    const r=currentRequest(c);
+    if(!c||!r||!lastGeneratedRaw){
+      setStatus('Сначала сформируйте гипотезу.','error');
+      return false;
+    }
+    if(String(r.id||'')!==String(openedRequestId||'')||String(r.id||'')!==String(lastGeneratedRequestId||'')){
+      setStatus('Запрос изменился. Откройте гипотезу заново.','error');
+      return false;
+    }
+
+    const parsed=parseAnswer(lastGeneratedRaw);
+    const savedAt=new Date().toISOString();
+    const updated=window.DiagnostikaRequests?.update?.(
+      r.id,
+      {
+        hypothesis:{
+          raw:lastGeneratedRaw,
+          expanded:parsed.expanded,
+          short:parsed.short,
+          addressMode:selectedAddressMode(),
+          savedAt
+        }
+      },
+      {source:'diagnosis-hypothesis-save',render:false}
+    );
+
+    if(!updated){
+      setStatus('Не удалось сохранить гипотезу.','error');
+      return false;
+    }
+
+    setSaveState(true);
+    setStatus(`Гипотеза сохранена · ${formatSavedAt(savedAt)}`,'saved');
+    return true;
   }
 
   function bindButton(){
@@ -343,6 +449,8 @@
     buildDiagnosticData,
     parseAnswer,
     selectedAddressMode,
+    saveHypothesis,
+    expandedParagraphs,
     testUrl:TEST_URL,
     productionUrl:PROD_URL,
     workflow:'diagnostika-hypothesis-v1'
