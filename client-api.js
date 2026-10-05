@@ -9,7 +9,9 @@
     updated: 'client:updated',
     deleted: 'client:deleted',
     restored: 'client:restored',
-    purged: 'client:purged'
+    purged: 'client:purged',
+    archived: 'client:archived',
+    unarchived: 'client:unarchived'
   });
   const PIN_LIMIT = 10;
 
@@ -61,7 +63,7 @@
   }
 
   const api = Object.freeze({
-    version:'2B2',
+    version:'2B3',
     moduleAware:true,
     events: service()?.events || EVENT_NAMES,
     list,
@@ -71,6 +73,10 @@
     select,
     create,
     update,
+    archiveList,
+    findArchivedById,
+    archive,
+    unarchive,
     trashList,
     findDeletedById,
     remove,
