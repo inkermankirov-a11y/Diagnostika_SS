@@ -330,6 +330,115 @@
     return true;
   }
 
+  function openReminderCalendar(){
+    const ui=window.DiagnostikaCalendarUI;
+    if(typeof ui?.open==='function')return ui.open({mode:'client'});
+    const button=document.getElementById('ccCalendarBtn');
+    if(button){button.click();return true;}
+    unavailable('Календарь не загрузился. Обновите страницу.','Календарь');
+    return false;
+  }
+
+  let reminderSnoozeDialog=null;
+  let reminderSnoozeEventId='';
+
+  function localIsoDate(date){
+    return `${date.getFullYear()}-${pad2(date.getMonth()+1)}-${pad2(date.getDate())}`;
+  }
+
+  function reminderSnoozeDefaults(event){
+    const eventTime=calendarEventStartTime(event);
+    const now=Date.now();
+    if(Number.isFinite(eventTime)&&eventTime>now){
+      return {
+        date:String(event?.date||'').slice(0,10),
+        time:String(event?.time||'').slice(0,5)||'09:00'
+      };
+    }
+    const d=new Date(now+60*60*1000);
+    d.setMinutes(Math.ceil(d.getMinutes()/5)*5,0,0);
+    return {
+      date:localIsoDate(d),
+      time:`${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+    };
+  }
+
+  function ensureReminderSnoozeDialog(){
+    if(reminderSnoozeDialog?.isConnected)return reminderSnoozeDialog;
+
+    const dialog=document.createElement('dialog');
+    dialog.className='hd-reminder-snooze-dialog';
+    dialog.innerHTML=`
+      <form method="dialog" class="hd-reminder-snooze-card">
+        <div class="hd-reminder-snooze-head">
+          <div>
+            <div class="hd-reminder-snooze-title">Отложить напоминание</div>
+            <div class="hd-reminder-snooze-sub">Выбери новую дату и время.</div>
+          </div>
+          <button type="button" class="hd-reminder-snooze-close" aria-label="Закрыть">×</button>
+        </div>
+        <div class="hd-reminder-snooze-note"></div>
+        <div class="hd-reminder-snooze-fields">
+          <label>Дата<input class="hd-reminder-snooze-date" type="date" required></label>
+          <label>Время<input class="hd-reminder-snooze-time" type="time" required></label>
+        </div>
+        <div class="hd-reminder-snooze-actions">
+          <button type="button" class="hd-reminder-snooze-cancel">Отмена</button>
+          <button type="button" class="hd-reminder-snooze-save">Сохранить</button>
+        </div>
+      </form>`;
+
+    document.body.appendChild(dialog);
+    const close=()=>{if(dialog.open)dialog.close();};
+    dialog.querySelector('.hd-reminder-snooze-close').onclick=close;
+    dialog.querySelector('.hd-reminder-snooze-cancel').onclick=close;
+    dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
+    dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
+
+    dialog.querySelector('.hd-reminder-snooze-save').onclick=()=>{
+      const date=dialog.querySelector('.hd-reminder-snooze-date').value;
+      const time=dialog.querySelector('.hd-reminder-snooze-time').value;
+      if(!date||!time)return;
+
+      const updated=calendarApi()?.update?.(
+        reminderSnoozeEventId,
+        {
+          date,
+          time,
+          status:'pending',
+          completedAt:null
+        },
+        {source:'dashboard-reminder-snooze'}
+      );
+
+      if(!updated){
+        unavailable('Не удалось перенести напоминание.','Напоминание');
+        return;
+      }
+      close();
+      refresh();
+    };
+
+    reminderSnoozeDialog=dialog;
+    return dialog;
+  }
+
+  function openReminderSnooze(event){
+    if(!event?.id)return false;
+    const dialog=ensureReminderSnoozeDialog();
+    reminderSnoozeEventId=String(event.id);
+    const defaults=reminderSnoozeDefaults(event);
+    dialog.querySelector('.hd-reminder-snooze-note').textContent=String(event?.note||'').trim()||'Напоминание';
+    const date=dialog.querySelector('.hd-reminder-snooze-date');
+    const time=dialog.querySelector('.hd-reminder-snooze-time');
+    date.min=localIsoDate(new Date());
+    date.value=defaults.date;
+    time.value=defaults.time;
+    if(!dialog.open)dialog.showModal();
+    setTimeout(()=>date.focus(),0);
+    return true;
+  }
+
   function renderHeroReminder(c){
     if(!heroReminder)return;
     heroReminder.hidden=true;
@@ -347,13 +456,26 @@
 
     const head=document.createElement('div');head.className='hd-hero-reminder-head';
     const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent=overdue?'● НАПОМИНАНИЕ · ПРОСРОЧЕНО':'● НАПОМИНАНИЕ';
-    const source=document.createElement('span');source.className='hd-hero-reminder-source';source.textContent='из календаря';
+    const source=document.createElement('button');
+    source.type='button';
+    source.className='hd-hero-reminder-source';
+    source.textContent='из календаря';
+    source.title='Открыть календарь';
+    source.onclick=e=>{e.stopPropagation();openReminderCalendar();};
     head.append(badge,source);
 
     const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=calendarEventDateLabel(event);
     const text=document.createElement('div');text.className='hd-hero-reminder-text';text.textContent=note;
 
     const actions=document.createElement('div');actions.className='hd-hero-reminder-actions';
+
+    const snooze=document.createElement('button');
+    snooze.type='button';
+    snooze.className='hd-hero-reminder-snooze';
+    snooze.textContent='⏰ Отложить';
+    snooze.title='Перенести напоминание на другую дату и время';
+    snooze.onclick=e=>{e.stopPropagation();openReminderSnooze(event);};
+
     const done=document.createElement('button');
     done.type='button';
     done.className='hd-hero-reminder-done';
@@ -364,7 +486,7 @@
       done.disabled=true;
       if(!completeReminder(event))done.disabled=false;
     };
-    actions.appendChild(done);
+    actions.append(snooze,done);
 
     if(overdue)heroReminder.classList.add('is-overdue');
     heroReminder.append(head,when,text,actions);

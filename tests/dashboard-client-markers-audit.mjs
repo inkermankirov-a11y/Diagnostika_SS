@@ -37,6 +37,11 @@ assert.ok(js.includes("note=String(event?.note||'').trim()"),'client hero remind
 assert.ok(js.includes("calendarEventDateLabel(event)"),'client hero reminder date/time formatter missing');
 assert.ok(js.includes("status:'completed'")&&js.includes("completedAt:new Date().toISOString()"),'reminder completion is not persisted');
 assert.ok(js.includes("done.textContent='✓ Выполнено'"),'reminder completion button is missing');
+assert.ok(js.includes("source.textContent='из календаря'")&&js.includes('openReminderCalendar()'),'calendar source is not clickable');
+assert.ok(js.includes("snooze.textContent='⏰ Отложить'"),'reminder snooze button is missing');
+assert.ok(js.includes("source:'dashboard-reminder-snooze'"),'reminder snooze does not persist through calendar API');
+assert.ok(css.includes('.hd-hero-reminder-done{height:30px')&&css.includes('#2d9a61'),'completed reminder action is not green');
+assert.ok(css.includes('.hd-reminder-snooze-dialog'),'reminder snooze dialog style is missing');
 assert.ok(js.includes("if(time<=now)")&&js.includes("return overdue||future"),'overdue reminders do not stay pending');
 assert.ok(js.includes("calendarEventDone(event)"),'completed reminders are not filtered');
 assert.ok(css.includes('.hd-hero-reminder-done'),'reminder done button style missing');
@@ -102,8 +107,8 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261005-reminder-persist-1'),'dashboard CSS cache key missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261005-reminder-persist-1'),'dashboard client-main cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261005-reminder-actions-1'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261005-reminder-actions-1'),'dashboard client-main cache key missing');
 assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-capsule-4'),'dashboard sessions cache key missing');
 assert.ok(sessionsUi.includes('border:2px solid #b9d3ea'),'sessions capsule border is not visible enough');
 assert.ok(sessionsUi.includes('font-size:13px;line-height:1.35;color:#536b89;font-weight:750'),'sessions empty count is not readable enough');

@@ -244,17 +244,36 @@
 .hd-hero-reminder[hidden]{display:none!important}
 .hd-hero-reminder-head{display:flex;align-items:center;gap:7px;min-width:0}
 .hd-hero-reminder-badge{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#8b5cf6;color:#fff;font-size:10px;font-weight:900;letter-spacing:.055em;box-shadow:0 3px 10px rgba(124,58,237,.18)}
-.hd-hero-reminder-source{color:#8a76ab;font-size:10px;font-weight:800;white-space:nowrap}
+.hd-hero-reminder-source{appearance:none;border:0;padding:0;background:transparent;color:#8a76ab;font:800 10px/1.2 inherit;white-space:nowrap;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.hd-hero-reminder-source:hover{color:#6f52a3;text-decoration-style:solid}
 .hd-hero-reminder-when{margin-top:9px;color:#5f458c;font-size:14px;font-weight:900;line-height:1.25}
 .hd-hero-reminder-text{margin-top:6px;color:#66547f;font-size:12px;font-weight:700;line-height:1.42;overflow-wrap:anywhere}
-.hd-hero-reminder-actions{display:flex;justify-content:flex-end;margin-top:10px}
-.hd-hero-reminder-done{height:30px;padding:0 11px;border:1px solid #5b43a6;border-radius:8px;background:linear-gradient(180deg,#7f67d8,#654bb9);color:#fff;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 4px 10px rgba(101,75,185,.18)}
+.hd-hero-reminder-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:10px;flex-wrap:wrap}
+.hd-hero-reminder-done{height:30px;padding:0 11px;border:1px solid #208a58;border-radius:8px;background:linear-gradient(180deg,#43b977,#2d9a61);color:#fff;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 4px 10px rgba(45,154,97,.20)}
 .hd-hero-reminder-done:hover:not(:disabled){filter:brightness(1.07)}
 .hd-hero-reminder-done:disabled{opacity:.58;cursor:wait}
+.hd-hero-reminder-snooze{height:30px;padding:0 11px;border:1px solid #c38a28;border-radius:8px;background:linear-gradient(180deg,#ffd978,#efb83d);color:#5e4214;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 4px 10px rgba(195,138,40,.18)}
+.hd-hero-reminder-snooze:hover{filter:brightness(1.04)}
 .hd-hero-reminder.is-overdue{border-color:rgba(220,67,82,.42);border-left-color:#dc4352;background:linear-gradient(145deg,rgba(255,248,250,.98),rgba(250,239,245,.95));box-shadow:0 10px 28px rgba(173,55,75,.12),inset 0 1px 0 rgba(255,255,255,.88)}
 .hd-hero-reminder.is-overdue .hd-hero-reminder-badge{background:#c94355;box-shadow:0 3px 10px rgba(201,67,85,.18)}
 .hd-hero-reminder.is-overdue .hd-hero-reminder-when{color:#8c3d52}
 .hd-hero-reminder.is-overdue .hd-hero-reminder-text{color:#744c5a}
+.hd-reminder-snooze-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 24px)}
+.hd-reminder-snooze-dialog::backdrop{background:rgba(15,23,42,.46);backdrop-filter:blur(4px)}
+.hd-reminder-snooze-card{width:min(390px,calc(100vw - 28px));box-sizing:border-box;padding:18px;border:1px solid #d7deea;border-radius:15px;background:#fff;box-shadow:0 22px 60px rgba(15,23,42,.28);color:#243447}
+.hd-reminder-snooze-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hd-reminder-snooze-title{font-size:18px;font-weight:900;color:#1f3554}
+.hd-reminder-snooze-sub{margin-top:3px;font-size:12px;color:#7a8aa2}
+.hd-reminder-snooze-close{width:32px;height:32px;padding:0;border:1px solid #d5dde8;border-radius:8px;background:#f8fafc;color:#62728a;font-size:20px;line-height:1;cursor:pointer}
+.hd-reminder-snooze-note{margin:14px 0 12px;padding:10px 11px;border-radius:9px;background:#f8f4ff;color:#604c7e;font-size:12px;font-weight:700;line-height:1.4}
+.hd-reminder-snooze-fields{display:grid;grid-template-columns:1fr 120px;gap:10px}
+.hd-reminder-snooze-fields label{display:grid;gap:5px;color:#52647c;font-size:11px;font-weight:800}
+.hd-reminder-snooze-fields input{height:38px;box-sizing:border-box;padding:0 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#26384c;font:700 13px/1 "Segoe UI",Arial,sans-serif}
+.hd-reminder-snooze-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
+.hd-reminder-snooze-cancel,.hd-reminder-snooze-save{height:36px;padding:0 14px;border-radius:8px;font-size:12px;font-weight:900;cursor:pointer}
+.hd-reminder-snooze-cancel{border:1px solid #cbd5e1;background:#f8fafc;color:#52647c}
+.hd-reminder-snooze-save{border:1px solid #237e51;background:linear-gradient(180deg,#43b977,#2d9a61);color:#fff;box-shadow:0 4px 10px rgba(45,154,97,.18)}
+@media(max-width:440px){.hd-reminder-snooze-fields{grid-template-columns:1fr}}
 @keyframes hdHeroReminderHeartbeat{
   0%,68%,100%{transform:scale(1);border-color:rgba(139,92,246,.40);box-shadow:0 10px 28px rgba(96,63,157,.10),0 0 0 0 rgba(139,92,246,0)}
   74%{transform:scale(1.007);border-color:rgba(139,92,246,.62);box-shadow:0 12px 30px rgba(96,63,157,.14),0 0 0 5px rgba(139,92,246,.07)}
