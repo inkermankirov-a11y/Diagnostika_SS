@@ -223,10 +223,16 @@
     }catch(_){return [];}
   }
 
+  function calendarEventDone(event){
+    const status=String(event?.status||'').trim().toLowerCase();
+    return status==='completed'||status==='done'||Boolean(event?.completedAt);
+  }
+
   function nextUpcomingInteraction(c){
     const now=Date.now();
     let best=null;
     for(const event of calendarEventsForClient(c)){
+      if(calendarEventDone(event))continue;
       const time=calendarEventStartTime(event);
       if(!Number.isFinite(time)||time<now)continue;
       if(!best||time<best.time)best={event,time};
@@ -234,16 +240,23 @@
     return best;
   }
 
-  function nextUpcomingReminder(c){
+  // Reminders are tasks, not disposable calendar beacons. Once a reminder
+  // becomes due it stays pending until the specialist explicitly completes it.
+  function nextPendingReminder(c){
     const now=Date.now();
-    let best=null;
+    let overdue=null;
+    let future=null;
     for(const event of calendarEventsForClient(c)){
-      if(upcomingBeaconKind(event)!=='reminder')continue;
+      if(upcomingBeaconKind(event)!=='reminder'||calendarEventDone(event))continue;
       const time=calendarEventStartTime(event);
-      if(!Number.isFinite(time)||time<now)continue;
-      if(!best||time<best.time)best={event,time};
+      if(!Number.isFinite(time))continue;
+      if(time<=now){
+        if(!overdue||time<overdue.time)overdue={event,time,overdue:true};
+      }else if(!future||time<future.time){
+        future={event,time,overdue:false};
+      }
     }
-    return best;
+    return overdue||future;
   }
 
   function upcomingBeaconKind(event){
@@ -300,28 +313,61 @@
     return `${dateText} • ${timeText}`;
   }
 
+  function completeReminder(event){
+    if(!event?.id)return false;
+    const updated=calendarApi()?.update?.(
+      event.id,
+      {
+        status:'completed',
+        completedAt:new Date().toISOString()
+      },
+      {source:'dashboard-reminder-complete'}
+    );
+    if(!updated){
+      unavailable('Не удалось отметить напоминание выполненным.','Напоминание');
+      return false;
+    }
+    return true;
+  }
+
   function renderHeroReminder(c){
     if(!heroReminder)return;
     heroReminder.hidden=true;
+    heroReminder.classList.remove('is-overdue');
     heroReminder.replaceChildren();
     if(!c)return;
 
-    const upcoming=nextUpcomingReminder(c);
-    if(!upcoming)return;
-    if(upcomingBeaconKind(upcoming.event)!=='reminder')return;
+    const pending=nextPendingReminder(c);
+    if(!pending)return;
+    if(upcomingBeaconKind(pending.event)!=='reminder')return;
 
-    const event=upcoming.event;
+    const event=pending.event;
     const note=String(event?.note||'').trim()||'Напомнить клиенту связаться и согласовать следующую запись.';
+    const overdue=Boolean(pending.overdue);
 
     const head=document.createElement('div');head.className='hd-hero-reminder-head';
-    const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent='● НАПОМИНАНИЕ';
+    const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent=overdue?'● НАПОМИНАНИЕ · ПРОСРОЧЕНО':'● НАПОМИНАНИЕ';
     const source=document.createElement('span');source.className='hd-hero-reminder-source';source.textContent='из календаря';
     head.append(badge,source);
 
     const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=calendarEventDateLabel(event);
     const text=document.createElement('div');text.className='hd-hero-reminder-text';text.textContent=note;
 
-    heroReminder.append(head,when,text);
+    const actions=document.createElement('div');actions.className='hd-hero-reminder-actions';
+    const done=document.createElement('button');
+    done.type='button';
+    done.className='hd-hero-reminder-done';
+    done.textContent='✓ Выполнено';
+    done.title='Отметить напоминание выполненным';
+    done.onclick=e=>{
+      e.stopPropagation();
+      done.disabled=true;
+      if(!completeReminder(event))done.disabled=false;
+    };
+    actions.appendChild(done);
+
+    if(overdue)heroReminder.classList.add('is-overdue');
+    heroReminder.append(head,when,text,actions);
     heroReminder.hidden=false;
   }
 
@@ -633,12 +679,13 @@
       const upcomingText=upcoming?upcomingInteractionLabel(upcomingInfo):'';
       const upcomingKind=upcoming?upcomingBeaconKind(upcomingInfo.event):'neutral';
       const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-tooltip="${esc(upcomingText)}"></span>`:'';
-      const reminderInfo=nextUpcomingReminder(c);
-      const reminderIsTop=!!reminderInfo&&upcoming&&upcomingBeaconKind(upcomingInfo.event)==='reminder'
+      const reminderInfo=nextPendingReminder(c);
+      const reminderIsTop=!!reminderInfo&&!reminderInfo.overdue&&upcoming&&upcomingBeaconKind(upcomingInfo.event)==='reminder'
         &&(reminderInfo.event===upcomingInfo.event||(reminderInfo.event?.id&&String(reminderInfo.event.id)===String(upcomingInfo.event?.id||'')));
       const reminderText=reminderInfo?upcomingInteractionLabel(reminderInfo):'';
+      const reminderPrefix=reminderInfo?.overdue?'Просроченное напоминание':'Напоминание';
       const reminderDot=reminderInfo&&!reminderIsTop
-        ?`<span class="hd-upcoming-session-dot is-reminder" tabindex="0" aria-label="Напоминание: ${esc(reminderText)}" data-kind="reminder" data-tooltip="${esc(reminderText)}"></span>`
+        ?`<span class="hd-upcoming-session-dot is-reminder${reminderInfo.overdue?' is-overdue':''}" tabindex="0" aria-label="${reminderPrefix}: ${esc(reminderText)}" data-kind="reminder" data-tooltip="${esc(reminderPrefix+': '+reminderText)}"></span>`
         :'';
       const pinned=pinRank.has(String(c.id));
       const pin=pinned?`<span class="hd-client-pin" aria-label="Закреплённый клиент" title="Закреплён">📌</span>`:'';
