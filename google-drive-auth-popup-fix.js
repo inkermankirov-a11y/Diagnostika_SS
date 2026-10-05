@@ -175,6 +175,12 @@
       if (current) return current;
     }
     if (!CLIENT_ID) throw new Error('Google OAuth ещё не настроен');
+    // Google Identity Services may still flash an OAuth window even with prompt:''.
+    // Background/silent calls must never start OAuth UI. Reauthorization is
+    // allowed only from the explicit Google Drive connect/restore button.
+    if (!interactive) {
+      throw new Error('Доступ Google Drive нужно восстановить вручную.');
+    }
     if (ensurePromise) return ensurePromise;
 
     ensurePromise = (async () => {
@@ -271,9 +277,7 @@
     if (validToken()) {
       setCardConnected(getStored(USER_KEY));
     } else if (rememberedConnection()) {
-      setCardConnected(getStored(USER_KEY), 'Восстанавливаю доступ Google Drive…');
-      ensureToken({ interactive: false })
-        .catch(error => setCardNeedsAuth(error?.message || 'Нужно восстановить доступ Google Drive'));
+      setCardNeedsAuth('Доступ Google Drive истёк. Нажмите «Восстановить Google Drive».');
     }
 
     connect.onclick = async () => {
