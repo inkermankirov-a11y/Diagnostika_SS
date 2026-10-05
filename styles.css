@@ -42,3 +42,35 @@
 #diagnosisWorkspace .tree-view .tree-row.feeling{
   column-gap:3px;
 }
+
+
+/* Diagnosis tree hard layout: grid rows cannot collapse onto the next item. */
+#diagnosisWorkspace .tree-view .tree-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr);
+  align-items:start!important;
+  height:auto!important;
+  min-height:30px!important;
+}
+#diagnosisWorkspace .tree-view .tree-row.feeling{
+  grid-template-columns:20px minmax(0,1fr)!important;
+  column-gap:3px!important;
+  padding-left:8px!important;
+}
+#diagnosisWorkspace .tree-view .tree-row.feeling > .feeling-child-toggle{
+  grid-column:1!important;
+  margin:0!important;
+  align-self:start!important;
+}
+#diagnosisWorkspace .tree-view .tree-row.feeling > .tree-row-label{
+  grid-column:2!important;
+}
+#diagnosisWorkspace .tree-view .tree-row > .tree-row-label{
+  min-width:0!important;
+  width:auto!important;
+  max-width:none!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
