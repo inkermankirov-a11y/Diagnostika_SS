@@ -29,7 +29,7 @@ async function ready(){
     const p=window.DiagnostikaPlatform;
     const api=window.DiagnostikaClients;
     return p?.modules?.get?.('clients')?.status==='started'
-      && api?.version==='2B2'
+      && api?.version==='2B3'
       && typeof api?.remove==='function'
       && typeof api?.restore==='function'
       && typeof api?.purge==='function'
@@ -250,7 +250,7 @@ if(phase==='last'){
 
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
-console.log('CLIENT_TRASH_2B2_AUDIT_SUCCESS',phase);
+console.log('CLIENT_TRASH_2B3_AUDIT_SUCCESS',phase);
 
 await context.close();
 await browser.close();
