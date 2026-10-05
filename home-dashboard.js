@@ -941,7 +941,7 @@
     if(e.target?.matches?.('dialog.session-edit-dialog,dialog.payment-dialog'))setTimeout(renderClients,0);
   },true);
 
-  window.DiagnostikaHomeDashboard={refresh,renderClients,openCard,openClientDatabase,showHome,openClient:selectClient,currentView:()=>dashboardView};
+  window.DiagnostikaHomeDashboard={refresh,renderClients,openCard,addClient,openClientDatabase,showHome,openClient:selectClient,currentView:()=>dashboardView};
 
   showHome();
 })();

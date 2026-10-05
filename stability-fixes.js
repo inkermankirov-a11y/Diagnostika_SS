@@ -26,9 +26,13 @@
   try{pageBuild=new URL(location.href).searchParams.get('build')||'';}catch(_){ }
   const moduleVersion=encodeURIComponent(pageBuild||'20260915-live');
 
-  // client-ai-chat-view не подключён напрямую в index.html, поэтому
-  // загружаем только его. Остальные патчи подключаются index.html ровно один раз.
-  if (!document.querySelector('script[data-client-ai-chat-view]')) {
+  // client-ai-chat-view сейчас подключён из index.html. Оставляем этот
+  // загрузчик только как fallback для старых/встраиваемых страниц и не создаём дубль.
+  const clientAiChatViewPresent=[...document.scripts].some(script=>{
+    const src=script.getAttribute('src')||'';
+    return /(?:^|\/)client-ai-chat-view[.]js(?:[?#]|$)/.test(src);
+  });
+  if (!clientAiChatViewPresent) {
     const aiChatView = document.createElement('script');
     aiChatView.src = `client-ai-chat-view.js?v=${moduleVersion}`;
     aiChatView.dataset.clientAiChatView = '1';
