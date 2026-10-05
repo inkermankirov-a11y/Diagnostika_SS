@@ -25,7 +25,7 @@ const fixture={version:4,clients:[{
           {id:'f1',text:'Злость',level:10,comment:'',deep:[]},
           {id:'f2',text:'Страх: отвержения других участников процесса',level:10,comment:'',deep:[]},
           {id:'f3',text:'Стыд: перед другими',level:10,comment:'',deep:[]},
-          {id:'f4',text:'Жалость к себе: время проходит, становлюсь старше, ничего не могу с этим сделать, не занимаюсь кожей, не могу найти причину, я старею с каждым годом, кожа становится хуже, я что то себе запрещаю из-за этого, пойти в люди.',level:8,comment:'',deep:[]},
+          {id:'f4',text:'Жалость к себе: время проходит, становлюсь старше, ничего не могу с этим сделать, не занимаюсь кожей, не могу найти причину, я старею с каждым годом, кожа становится хуже, я что то себе запрещаю из-за этого, пойти в люди.',level:8,comment:'',deep:[{id:'d1',text:'Не заполнено',level:5,comment:'',instincts:[{id:'i1',name:'Не выбран',level:5,comment:''}]},{id:'d2',text:'Ещё одно длинное вторичное убеждение, чтобы проверить, что вложенные строки тоже не накладываются друг на друга',level:5,comment:'',instincts:[{id:'i2',name:'Не выбран',level:5,comment:''}]}]},
           {id:'f5',text:'Чувство долга: должна себе',level:10,comment:'',deep:[]}
         ]
       }]
@@ -53,30 +53,47 @@ await page.evaluate(()=>window.DiagnostikaDiagnosis.open());
 await page.locator('#diagnosisWorkspace').waitFor({state:'visible',timeout:5000});
 await page.locator('#tree .tree-row.primary').waitFor({state:'visible',timeout:5000});
 await page.locator('#tree .feeling-group-toggle').click();
-await page.locator('#tree .tree-row.feeling').filter({hasText:'Жалость к себе'}).waitFor({state:'visible',timeout:5000});
+const longFeeling=page.locator('#tree .tree-row.feeling').filter({hasText:'Жалость к себе'});
+await longFeeling.waitFor({state:'visible',timeout:5000});
+await longFeeling.locator('.feeling-child-toggle').click();
+await page.locator('#tree .tree-row.deep').first().waitFor({state:'visible',timeout:5000});
 
 const geometry=await page.evaluate(()=>{
-  const rows=[...document.querySelectorAll('#tree .tree-row.feeling')];
-  const longRow=rows.find(row=>row.textContent.includes('Жалость к себе'));
-  const next=longRow?.nextElementSibling?.classList?.contains('tree-row')
-    ? longRow.nextElementSibling
-    : rows[rows.indexOf(longRow)+1]||null;
+  const longRow=[...document.querySelectorAll('#tree .tree-row.feeling')].find(row=>row.textContent.includes('Жалость к себе'));
+  const label=longRow?.querySelector('.tree-row-label');
   const r=longRow?.getBoundingClientRect();
-  const n=next?.getBoundingClientRect();
-  const cs=longRow?getComputedStyle(longRow):null;
+  const lr=label?.getBoundingClientRect();
+  const cs=label?getComputedStyle(label):null;
+  const visible=[...document.querySelectorAll('#tree .tree-row')].filter(el=>getComputedStyle(el).display!=='none');
+  const overlaps=[];
+  for(let i=0;i<visible.length-1;i++){
+    const a=visible[i].getBoundingClientRect();
+    const b=visible[i+1].getBoundingClientRect();
+    if(a.bottom>b.top+0.5) overlaps.push({
+      a:visible[i].textContent.slice(0,60),
+      b:visible[i+1].textContent.slice(0,60),
+      bottom:a.bottom,
+      nextTop:b.top
+    });
+  }
   return {
     height:r?.height||0,
-    bottom:r?.bottom||0,
-    nextTop:n?.top||0,
+    labelWidth:lr?.width||0,
+    rowWidth:r?.width||0,
     whiteSpace:cs?.whiteSpace||'',
     lineHeight:cs?.lineHeight||'',
-    overflow:cs?.overflow||''
+    overflow:cs?.overflow||'',
+    labelExists:Boolean(label),
+    visibleRows:visible.length,
+    overlaps
   };
 });
 
 assert(geometry.height>45,`Long diagnosis row did not grow: ${JSON.stringify(geometry)}`);
 assert.equal(geometry.whiteSpace,'normal',`Long diagnosis row does not wrap normally: ${JSON.stringify(geometry)}`);
-assert(geometry.nextTop===0||geometry.bottom<=geometry.nextTop+0.5,`Diagnosis rows overlap: ${JSON.stringify(geometry)}`);
+assert.equal(geometry.labelExists,true,`Diagnosis tree text is not wrapped in a label span: ${JSON.stringify(geometry)}`);
+assert(geometry.labelWidth<geometry.rowWidth,`Diagnosis label did not reserve space for the disclosure control: ${JSON.stringify(geometry)}`);
+assert.equal(geometry.overlaps.length,0,`Diagnosis rows overlap: ${JSON.stringify(geometry)}`);
 
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
