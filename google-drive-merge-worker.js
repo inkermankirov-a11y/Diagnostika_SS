@@ -146,6 +146,7 @@ function applyClientDeletionRules(merged,base,local,remote,conflicts){
   ])];
   const tomb=new Set(merged.deletedClientTombstones.map(String));
   merged.clients=(merged.clients||[]).filter(c=>!tomb.has(String(c?.id)));
+  merged.archivedClients=(merged.archivedClients||[]).filter(c=>!tomb.has(String(c?.id)));
   merged.deletedClients=(merged.deletedClients||[]).filter(c=>!tomb.has(String(c?.id)));
 
   const baseActive=new Map((base?.clients||[]).map(c=>[String(c.id),c]));

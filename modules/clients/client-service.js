@@ -14,7 +14,9 @@
     updated: 'client:updated',
     deleted: 'client:deleted',
     restored: 'client:restored',
-    purged: 'client:purged'
+    purged: 'client:purged',
+    archived: 'client:archived',
+    unarchived: 'client:unarchived'
   });
   const PIN_LIMIT = 10;
 
@@ -123,6 +125,53 @@
     return Object.freeze({ ok: true, changed: true, clientId: target.id, limit: PIN_LIMIT, pinnedIds: Object.freeze([...next]) });
   }
 
+  function ensureArchiveState(options = {}) {
+    const root = stateRef();
+    if (!root) return null;
+
+    let changed = false;
+    if (!Array.isArray(root.archivedClients)) {
+      root.archivedClients = [];
+      changed = true;
+    }
+
+    const activeIds = new Set(list().map(item => item?.id).filter(Boolean).map(String));
+    const deletedIds = new Set((root.deletedClients || []).map(item => item?.id).filter(Boolean).map(String));
+    const tombstones = new Set((root.deletedClientTombstones || []).filter(Boolean).map(String));
+    const seen = new Set();
+    const filtered = [];
+
+    for (const item of root.archivedClients) {
+      if (!item?.id) continue;
+      const key = String(item.id);
+      if (seen.has(key) || activeIds.has(key) || deletedIds.has(key) || tombstones.has(key)) {
+        changed = true;
+        continue;
+      }
+      seen.add(key);
+      filtered.push(item);
+    }
+
+    if (filtered.length !== root.archivedClients.length) {
+      root.archivedClients = filtered;
+      changed = true;
+    }
+
+    if (changed && options.persist !== false) persist();
+    return { root, archivedClients: root.archivedClients };
+  }
+
+  function archiveList() {
+    const archive = ensureArchiveState();
+    if (!archive) return [];
+    return clone(archive.archivedClients) || [];
+  }
+
+  function findArchivedById(id) {
+    if (id === undefined || id === null || id === '') return null;
+    return archiveList().find(item => item && String(item.id) === String(id)) || null;
+  }
+
   function ensureTrashState(options = {}) {
     const root = stateRef();
     if (!root) return null;
@@ -139,10 +188,11 @@
 
     const blocked = new Set(root.deletedClientTombstones.filter(Boolean).map(String));
     const activeIds = new Set(list().map(item => item?.id).filter(Boolean).map(String));
+    const archiveIds = new Set((root.archivedClients || []).map(item => item?.id).filter(Boolean).map(String));
     const filtered = root.deletedClients.filter(item => {
       if (!item?.id) return false;
       const key = String(item.id);
-      return !blocked.has(key) && !activeIds.has(key);
+      return !blocked.has(key) && !activeIds.has(key) && !archiveIds.has(key);
     });
 
     if (filtered.length !== root.deletedClients.length) {
@@ -257,7 +307,7 @@
 
   function create(data = {}, options = {}) {
     const created = freshClient(data);
-    if (findById(created.id)) return null;
+    if (findById(created.id) || findArchivedById(created.id)) return null;
 
     const clients = list();
     if (!Array.isArray(clients)) return null;
@@ -315,6 +365,134 @@
   function findDeletedById(id) {
     if (id === undefined || id === null || id === '') return null;
     return trashList().find(item => item && String(item.id) === String(id)) || null;
+  }
+
+  function archive(id, options = {}) {
+    const clients = list();
+    const index = clients.findIndex(item => item && String(item.id) === String(id));
+    if (index < 0) return null;
+
+    const archiveState = ensureArchiveState({ persist: false });
+    if (!archiveState) return null;
+
+    const activeBefore = clone(clients) || [];
+    const archivedBefore = clone(archiveState.archivedClients) || [];
+    const pinnedBefore = Array.isArray(archiveState.root.pinnedClientIds) ? [...archiveState.root.pinnedClientIds] : null;
+    const previousClientId = currentId();
+    const previousNavigation = platform.shell?.navigationSnapshot?.() || null;
+
+    const target = clients[index];
+    const stored = clone(target) || {};
+    stored.archivedAt = new Date().toISOString();
+
+    archiveState.root.archivedClients = archiveState.archivedClients.filter(item => item && String(item.id) !== String(id));
+    archiveState.root.archivedClients.push(stored);
+    if (Array.isArray(archiveState.root.pinnedClientIds)) {
+      archiveState.root.pinnedClientIds = archiveState.root.pinnedClientIds.filter(value => String(value) !== String(id));
+    }
+    clients.splice(index, 1);
+
+    let replacementCreated = false;
+    let selectionChanged = false;
+
+    if (!clients.length) {
+      const replacement = freshClient();
+      clients.push(replacement);
+      if (platform.shell?.selectClient?.(replacement.id, { requestId: null, mode: 'card' }) !== true) {
+        clients.splice(0, clients.length, ...activeBefore);
+        archiveState.root.archivedClients = archivedBefore;
+        if (pinnedBefore) archiveState.root.pinnedClientIds = pinnedBefore;
+        platform.shell?.restoreNavigation?.(previousNavigation);
+        return null;
+      }
+      replacementCreated = true;
+      selectionChanged = String(previousClientId ?? '') !== String(replacement.id);
+    } else {
+      const currentStillExists = clients.some(item => item && String(item.id) === String(previousClientId));
+      if (!currentStillExists) {
+        const replacement = clients[Math.min(index, clients.length - 1)];
+        if (platform.shell?.selectClient?.(replacement?.id ?? null, { requestId: null, mode: 'card' }) !== true) {
+          clients.splice(0, clients.length, ...activeBefore);
+          archiveState.root.archivedClients = archivedBefore;
+          if (pinnedBefore) archiveState.root.pinnedClientIds = pinnedBefore;
+          platform.shell?.restoreNavigation?.(previousNavigation);
+          return null;
+        }
+        selectionChanged = String(previousClientId ?? '') !== String(replacement?.id ?? '');
+      }
+    }
+
+    if (!persist()) {
+      clients.splice(0, clients.length, ...activeBefore);
+      archiveState.root.archivedClients = archivedBefore;
+      if (pinnedBefore) archiveState.root.pinnedClientIds = pinnedBefore;
+      else delete archiveState.root.pinnedClientIds;
+      platform.shell?.restoreNavigation?.(previousNavigation);
+      return null;
+    }
+
+    if (options.render !== false) render();
+
+    const selectedClientId = currentId();
+    emit(EVENTS.archived, {
+      clientId: target.id,
+      selectedClientId,
+      replacementCreated,
+      source: options.source || 'client-service-archive'
+    });
+
+    if (selectionChanged && selectedClientId) {
+      emit(EVENTS.selected, {
+        clientId: selectedClientId,
+        previousClientId: previousClientId ?? null,
+        reason: 'client-archived',
+        source: options.source || 'client-service-archive'
+      });
+    }
+
+    return Object.freeze({
+      clientId: target.id,
+      selectedClientId,
+      replacementCreated
+    });
+  }
+
+  function unarchive(id, options = {}) {
+    const archiveState = ensureArchiveState({ persist: false });
+    if (!archiveState) return null;
+
+    const index = archiveState.archivedClients.findIndex(item => item && String(item.id) === String(id));
+    if (index < 0 || findById(id)) return null;
+
+    const clients = list();
+    const stored = clone(archiveState.archivedClients[index]) || {};
+    const restored = clone(stored) || {};
+    delete restored.archivedAt;
+
+    archiveState.archivedClients.splice(index, 1);
+    clients.push(restored);
+
+    if (!persist()) {
+      clients.pop();
+      archiveState.archivedClients.splice(index, 0, stored);
+      return null;
+    }
+
+    emit(EVENTS.unarchived, {
+      clientId: restored.id,
+      source: options.source || 'client-service-unarchive'
+    });
+
+    if (options.select === true) {
+      select(restored.id, {
+        source: options.selectSource || options.source || 'client-service-unarchive',
+        render: options.render
+      });
+    } else if (options.render !== false) {
+      render();
+    }
+
+    return restored;
   }
 
   function remove(id, options = {}) {
@@ -469,6 +647,10 @@
     select,
     create,
     update,
+    archiveList,
+    findArchivedById,
+    archive,
+    unarchive,
     trashList,
     findDeletedById,
     remove,

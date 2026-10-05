@@ -120,22 +120,62 @@
     return [...map.values()];
   }
 
-  function mergeStates(primary,secondary){
-    const base=mergeObjects(primary||{clients:[]},secondary||{clients:[]});
-    base.clients=mergeArrays(primary?.clients||[],secondary?.clients||[]);
+  function reconcileArchiveMembership(base,primary,secondary){
+    const p=primary||{clients:[]};
+    const s=secondary||{clients:[]};
+    const pActive=new Map((p.clients||[]).filter(c=>c?.id).map(c=>[String(c.id),c]));
+    const pArchived=new Map((p.archivedClients||[]).filter(c=>c?.id).map(c=>[String(c.id),c]));
+    const sActive=new Map((s.clients||[]).filter(c=>c?.id).map(c=>[String(c.id),c]));
+    const sArchived=new Map((s.archivedClients||[]).filter(c=>c?.id).map(c=>[String(c.id),c]));
+
+    // The primary side is the fresher membership authority. Secondary may enrich
+    // the record, but cannot move a client back out of the archive or into it.
+    base.clients=[...(base.clients||[])].filter(c=>c?.id&&!pArchived.has(String(c.id)));
+    base.archivedClients=[...(base.archivedClients||[])].filter(c=>c?.id&&!pActive.has(String(c.id)));
+
+    const activeById=new Map((base.clients||[]).filter(c=>c?.id).map(c=>[String(c.id),c]));
+    for(const [id,item] of pActive){
+      const other=sActive.get(id)||sArchived.get(id);
+      activeById.set(id,other?mergeObjects(item,other):clone(item));
+    }
+
+    const archivedById=new Map((base.archivedClients||[]).filter(c=>c?.id).map(c=>[String(c.id),c]));
+    for(const [id,item] of pArchived){
+      const other=sArchived.get(id)||sActive.get(id);
+      archivedById.set(id,other?mergeObjects(item,other):clone(item));
+    }
+
+    for(const id of pActive.keys())archivedById.delete(id);
+    for(const id of pArchived.keys())activeById.delete(id);
+    base.clients=[...activeById.values()];
+    base.archivedClients=[...archivedById.values()];
     return base;
   }
 
-  // Состав списка клиентов берём ТОЛЬКО из primary.
-  // secondary может дополнять данные существующих клиентов, но не возвращать
-  // клиента, который уже удалён из более свежей базы.
+  function mergeStates(primary,secondary){
+    const base=mergeObjects(primary||{clients:[]},secondary||{clients:[]});
+    base.clients=mergeArrays(primary?.clients||[],secondary?.clients||[]);
+    base.archivedClients=mergeArrays(primary?.archivedClients||[],secondary?.archivedClients||[]);
+    return reconcileArchiveMembership(base,primary,secondary);
+  }
+
+  // Состав активных клиентов и архива берём ТОЛЬКО из primary.
+  // secondary может дополнять данные существующих клиентов, но не менять
+  // принадлежность клиента к основной базе или архиву.
   function mergeStatesKeepClientSet(primary,secondary){
     const p=primary||{clients:[]};
     const s=secondary||{clients:[]};
     const base=mergeObjects(p,s);
-    const secondaryById=new Map((s.clients||[]).filter(c=>c?.id).map(c=>[c.id,c]));
+    const secondaryById=new Map([
+      ...(s.clients||[]).filter(c=>c?.id).map(c=>[String(c.id),c]),
+      ...(s.archivedClients||[]).filter(c=>c?.id).map(c=>[String(c.id),c])
+    ]);
     base.clients=(p.clients||[]).map(c=>{
-      const other=secondaryById.get(c?.id);
+      const other=secondaryById.get(String(c?.id));
+      return other?mergeObjects(c,other):clone(c);
+    });
+    base.archivedClients=(p.archivedClients||[]).map(c=>{
+      const other=secondaryById.get(String(c?.id));
       return other?mergeObjects(c,other):clone(c);
     });
     return base;
@@ -491,6 +531,8 @@
       purgeClientFromConnectedStorage(detail?.clientId)
         .catch(error=>console.warn('Не удалось сразу удалить папку клиента из хранилища',error));
     });
+    events.on('client:archived',()=>markBrowserUpdated());
+    events.on('client:unarchived',()=>markBrowserUpdated());
 
     lifecycleEventsBound=true;
     return true;

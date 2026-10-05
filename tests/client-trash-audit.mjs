@@ -29,20 +29,24 @@ async function ready(){
     const p=window.DiagnostikaPlatform;
     const api=window.DiagnostikaClients;
     return p?.modules?.get?.('clients')?.status==='started'
-      && api?.version==='2B2'
+      && api?.version==='2B3'
       && typeof api?.remove==='function'
       && typeof api?.restore==='function'
       && typeof api?.purge==='function'
       && typeof api?.trashList==='function'
+      && typeof api?.archiveList==='function'
+      && typeof api?.archive==='function'
+      && typeof api?.unarchive==='function'
       && typeof window.moveClientToTrashById==='function'
-      && typeof window.openDeletedClients==='function';
+      && typeof window.openDeletedClients==='function'
+      && typeof window.openArchivedClients==='function';
   },null,{timeout:10000});
 }
 
 async function subscribe(){
   await page.evaluate(()=>{
     window.__clientTrashEvents=[];
-    for(const type of ['client:deleted','client:selected','client:restored','client:purged']){
+    for(const type of ['client:deleted','client:selected','client:restored','client:purged','client:archived','client:unarchived']){
       window.DiagnostikaPlatform.events.on(type,detail=>window.__clientTrashEvents.push({type,detail}));
     }
   });
@@ -154,6 +158,59 @@ if(phase==='ui'){
   assert.equal(snap.purgeEvents,1);
 }
 
+if(phase==='archive'){
+  assert.equal(await page.locator('#archivedClientsBtn').count(),1,'Archive button must be installed exactly once');
+
+  await page.evaluate(()=>window.openDatabase());
+  const database=page.locator('#clientDialog');
+  await database.waitFor({state:'visible',timeout:5000});
+  const betaRow=database.locator('tbody tr').filter({hasText:'Beta'}).first();
+  await betaRow.locator('.db-archive-btn').click();
+  await page.waitForTimeout(50);
+
+  let snap=await page.evaluate(()=>({
+    active:window.DiagnostikaClients.list().map(x=>x.id),
+    archived:window.DiagnostikaClients.archiveList().map(x=>x.id),
+    current:window.DiagnostikaClients.currentId(),
+    persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}'),
+    events:window.__clientTrashEvents.map(x=>({type:x.type,detail:{...x.detail}}))
+  }));
+  assert.deepEqual(snap.active,['client-a','client-c']);
+  assert.deepEqual(snap.archived,['client-b']);
+  assert.equal(snap.current,'client-a');
+  assert.equal(snap.persisted.archivedClients?.[0]?.id,'client-b');
+  assert(snap.persisted.archivedClients?.[0]?.archivedAt);
+  assert(snap.events.some(x=>x.type==='client:archived'&&x.detail.clientId==='client-b'));
+
+  await page.evaluate(()=>document.getElementById('clientDialog')?.close());
+  await page.evaluate(()=>window.openArchivedClients());
+  const archiveDialog=page.locator('.archive-dialog');
+  await archiveDialog.waitFor({state:'visible',timeout:5000});
+  assert.equal(await archiveDialog.locator('.archive-row').filter({hasText:'Beta'}).count(),1);
+  await archiveDialog.locator('.archive-row').filter({hasText:'Beta'}).first().locator('.archive-restore').click();
+  await page.waitForTimeout(50);
+
+  snap=await page.evaluate(()=>({
+    active:window.DiagnostikaClients.list().map(x=>x.id),
+    archived:window.DiagnostikaClients.archiveList().map(x=>x.id),
+    persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}'),
+    unarchivedEvents:window.__clientTrashEvents.filter(x=>x.type==='client:unarchived'&&x.detail.clientId==='client-b').length
+  }));
+  assert.deepEqual(snap.active,['client-a','client-c','client-b']);
+  assert.deepEqual(snap.archived,[]);
+  assert.deepEqual(snap.persisted.archivedClients,[]);
+  assert.equal(snap.unarchivedEvents,1);
+
+  await page.reload({waitUntil:'commit',timeout:10000});
+  await ready();
+  snap=await page.evaluate(()=>({
+    active:window.DiagnostikaClients.list().map(x=>x.id),
+    archived:window.DiagnostikaClients.archiveList().map(x=>x.id)
+  }));
+  assert.deepEqual(snap.active,['client-a','client-c','client-b']);
+  assert.deepEqual(snap.archived,[]);
+}
+
 if(phase==='last'){
   assert(await page.evaluate(()=>!!window.DiagnostikaClients.remove('client-b',{source:'audit-remove-b'})));
   assert(await page.evaluate(()=>window.DiagnostikaClients.purge('client-b',{source:'audit-purge-b'})));
@@ -193,7 +250,7 @@ if(phase==='last'){
 
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
-console.log('CLIENT_TRASH_2B2_AUDIT_SUCCESS',phase);
+console.log('CLIENT_TRASH_2B3_AUDIT_SUCCESS',phase);
 
 await context.close();
 await browser.close();

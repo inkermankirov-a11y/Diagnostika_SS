@@ -9,7 +9,9 @@
     updated: 'client:updated',
     deleted: 'client:deleted',
     restored: 'client:restored',
-    purged: 'client:purged'
+    purged: 'client:purged',
+    archived: 'client:archived',
+    unarchived: 'client:unarchived'
   });
   const PIN_LIMIT = 10;
 
@@ -37,6 +39,10 @@
   function select(id, options = {}) { return call('select', false, id, options); }
   function create(data = {}, options = {}) { return call('create', null, data, options); }
   function update(id, changes = {}, options = {}) { return call('update', null, id, changes, options); }
+  function archiveList() { return call('archiveList', []); }
+  function findArchivedById(id) { return call('findArchivedById', null, id); }
+  function archive(id, options = {}) { return call('archive', null, id, options); }
+  function unarchive(id, options = {}) { return call('unarchive', null, id, options); }
   function trashList() { return call('trashList', []); }
   function findDeletedById(id) { return call('findDeletedById', null, id); }
   function remove(id, options = {}) { return call('remove', null, id, options); }
@@ -61,7 +67,7 @@
   }
 
   const api = Object.freeze({
-    version:'2B2',
+    version:'2B3',
     moduleAware:true,
     events: service()?.events || EVENT_NAMES,
     list,
@@ -71,6 +77,10 @@
     select,
     create,
     update,
+    archiveList,
+    findArchivedById,
+    archive,
+    unarchive,
     trashList,
     findDeletedById,
     remove,

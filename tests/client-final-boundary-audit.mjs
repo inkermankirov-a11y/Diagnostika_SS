@@ -5,11 +5,12 @@ import fs from 'node:fs';
 const dashboardSource=fs.readFileSync('home-dashboard.js','utf8');
 assert.equal(/\brenderClient\s*=/.test(dashboardSource),false,'home dashboard must not replace renderClient');
 for(const eventName of [
-  'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged'
+  'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged','client:archived','client:unarchived'
 ]){
   assert.equal(dashboardSource.includes(`'${eventName}'`),true,'dashboard event missing: '+eventName);
 }
-assert.match(dashboardSource,/events\.on\(type,\(\)=>setTimeout\(refresh,0\)\)/);
+assert.match(dashboardSource,/events\.on\(type,detail=>/);
+assert.match(dashboardSource,/setTimeout\(refresh,0\)/);
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const fixture={version:4,clients:[

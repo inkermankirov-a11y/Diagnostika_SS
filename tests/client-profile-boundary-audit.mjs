@@ -20,7 +20,7 @@ for(const token of ['typeof save','state.clients','c.questionnaires=','c.questio
 for(const token of ['c.mainRequest=next.mainRequest','c[key]=cleaned.value','c[key]=next']){
   assert.equal(consultationSource.includes(token),false,'free consultation direct profile mutation remains: '+token);
 }
-assert.match(consultationSource,/api\.update\(c\.id,profilePatch,\{source:'free-consultation-card-sync',render:false\}\)/);
+assert.match(consultationSource,/api\.update\(c\.id,patch,\{source:'free-consultation-card-sync',render:false\}\)/);
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const legacyStart='=== БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ / ИИ ===';
@@ -168,7 +168,7 @@ assert.equal(consultationState.desiredOutcome,'Желаемый результа
 assert.equal(consultationState.clientNotes,'До блока\n\nПосле блока');
 assert.equal(consultationState.syncValues.mainRequest,'Короткий AI запрос');
 assert.equal(consultationState.events.length,1,'free consultation profile sync must emit one client:updated');
-assert.deepEqual([...consultationState.events[0].fields].sort(),['clientNotes','desiredOutcome','initialProblem','tried'].sort());
+assert.deepEqual([...consultationState.events[0].fields].sort(),['clientNotes','desiredOutcome','freeConsultation','initialProblem','tried'].sort());
 
 await page.reload({waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});

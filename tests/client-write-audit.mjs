@@ -45,7 +45,7 @@ await page.waitForFunction(()=>{
   return p?.modules?.get?.('clients')?.status==='started'
     && typeof p?.services?.clients?.create==='function'
     && typeof p?.services?.clients?.update==='function'
-    && window.DiagnostikaClients?.version==='2B2'
+    && window.DiagnostikaClients?.version==='2B3'
     && typeof window.DiagnostikaClientCard?.openNew==='function';
 },null,{timeout:10000});
 
@@ -87,7 +87,7 @@ if(phase==='create'){
   assert.equal(created[0].detail.source,'client-card-create');
 
   await page.reload({waitUntil:'commit',timeout:10000});
-  await page.waitForFunction(()=>window.DiagnostikaClients?.version==='2B2'&&window.DiagnostikaPlatform?.services?.clients,null,{timeout:20000});
+  await page.waitForFunction(()=>window.DiagnostikaClients?.version==='2B3'&&window.DiagnostikaPlatform?.services?.clients,null,{timeout:20000});
   const afterReload=await page.evaluate(id=>window.DiagnostikaClients.findById(id),result.currentId);
   assert.equal(afterReload?.name,'Created Through Card');
   assert.equal(afterReload?.phone,'+79990001122');
@@ -145,7 +145,7 @@ if(phase==='legacy'){
 
 const serious=pageErrors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
-console.log('CLIENT_WRITE_2B2_AUDIT_SUCCESS',phase);
+console.log('CLIENT_WRITE_2B3_AUDIT_SUCCESS',phase);
 
 await context.close();
 await browser.close();

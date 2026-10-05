@@ -109,6 +109,18 @@
         document.dispatchEvent(new CustomEvent('diagnostika:client-export-request',{detail:{clientId:c.id}}));
       };
 
+      const archiveBtn=document.createElement('button');
+      archiveBtn.type='button';
+      archiveBtn.className='db-archive-btn db-icon-action-btn';
+      archiveBtn.textContent='▣';
+      archiveBtn.title='В архив';
+      archiveBtn.setAttribute('aria-label','В архив');
+      archiveBtn.onclick=e=>{
+        e.stopPropagation();
+        const archived=clientsApi()?.archive?.(c.id,{source:'client-database-archive'});
+        if(archived && dlg.open) window.renderClientDatabaseTable();
+      };
+
       const delBtn=document.createElement('button');
       delBtn.type='button';
       delBtn.className='db-delete-btn db-delete-btn-compact db-icon-action-btn';
@@ -120,7 +132,7 @@
         if(removed && dlg.open) window.renderClientDatabaseTable();
       };
 
-      group.append(openBtn,exportBtn,delBtn);actions.appendChild(group);
+      group.append(openBtn,exportBtn,archiveBtn,delBtn);actions.appendChild(group);
       tr.append(num,name,city,lastCell,formatCell,actions);tbody.appendChild(tr);
     });
 

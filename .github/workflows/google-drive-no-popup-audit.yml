@@ -1,0 +1,28 @@
+name: Google Drive no-popup audit
+
+on:
+  push:
+    branches: [main, 'feature-client-*']
+    paths:
+      - 'google-drive-auth-popup-fix.js'
+      - 'google-drive-sync-safe.js'
+      - 'google-drive-lazy-loader.js'
+      - 'google-drive-merge-worker.js'
+      - 'tests/google-drive-no-popup-audit.mjs'
+      - '.github/workflows/google-drive-no-popup-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  google-drive-no-popup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify background sync cannot open Google OAuth
+        run: |
+          set -euo pipefail
+          node --check google-drive-auth-popup-fix.js
+          node --check google-drive-sync-safe.js
+          node --check google-drive-lazy-loader.js
+          node --check google-drive-merge-worker.js
+          node tests/google-drive-no-popup-audit.mjs
