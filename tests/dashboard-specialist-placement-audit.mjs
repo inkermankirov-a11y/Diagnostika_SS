@@ -55,6 +55,8 @@ const layout=await page.evaluate(()=>{
   };
   return {
     slotParent:slot?.parentElement?.className||'',
+    profileContainsSlot:Boolean(document.querySelector('.hd-client-profile')?.contains(slot)),
+    stackContainsSlot:Boolean(stack?.contains(slot)),
     railHasSlot:Boolean(rail?.querySelector('#hdClientSpecialistSlot')),
     slot:rect(slot),
     socials:rect(socials),
@@ -64,7 +66,9 @@ const layout=await page.evaluate(()=>{
   };
 });
 
-assert(layout.slotParent.includes('hd-client-profile'),'Current specialist is not inside the client profile');
+assert.equal(layout.profileContainsSlot,true,'Current specialist is not inside the client profile');
+assert.equal(layout.stackContainsSlot,true,'Current specialist is not anchored under the client photo/social column');
+assert(layout.slotParent.includes('hd-client-photo-stack'),'Current specialist direct parent is not the photo/social stack');
 assert.equal(layout.railHasSlot,false,'Current specialist is still inside the reminder rail');
 assert(layout.specialistText.includes('Текущий специалист'),'Current specialist control is missing');
 assert(layout.specialistText.includes('Евгений'),'Current specialist name is missing');
