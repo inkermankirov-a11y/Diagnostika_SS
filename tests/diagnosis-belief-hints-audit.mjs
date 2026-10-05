@@ -121,7 +121,7 @@ assert.deepEqual(hypothesisPayload.diagnosticData,hypothesisData,'Dedicated work
 assert.equal(hypothesisPayload.addressMode,'ty','Default hypothesis addressing mode was not sent to n8n');
 assert.equal('message' in hypothesisPayload,false,'Frontend still sends the hypothesis prompt instead of letting the dedicated workflow own it');
 assert.equal('chatHistory' in hypothesisPayload,false,'Dedicated hypothesis request must not include client AI chat history');
-await hypothesisOverlay.locator('input[name="diagnosisHypothesisAddress"][value="vy"]').check();
+await hypothesisOverlay.locator('label:has(input[name="diagnosisHypothesisAddress"][value="vy"])').click();
 assert.equal(await page.evaluate(()=>window.DiagnostikaHypothesis?.selectedAddressMode?.()),'vy','Вы addressing mode cannot be selected');
 assert.equal(await page.evaluate(()=>localStorage.getItem('diagnostika-hypothesis-address-mode')),'vy','Addressing preference was not persisted');
 await hypothesisOverlay.locator('.diagnosis-hypothesis-cancel').click();
