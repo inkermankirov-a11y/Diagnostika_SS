@@ -17,7 +17,7 @@ await page.route('https://lugovoyn8n.ru/webhook-test/diagnostika-hypothesis-v1',
     status:200,
     contentType:'application/json',
     body:JSON.stringify({
-      reply:'РАСШИРЕННАЯ ГИПОТЕЗА:\nПохоже, в разных ситуациях повторяется переживание собственной несостоятельности, которое усиливает тревогу и приводит к восприятию конкретных событий как подтверждения того, что клиент не справляется.\n\nКОРОТКАЯ ГИПОТЕЗА:\nПохоже, под поверхностным запросом повторяется восприятие себя как человека, который не справляется.'
+      reply:'РАСШИРЕННАЯ ГИПОТЕЗА:\nГлубинная конструкция:\nПохоже, в глубине ты воспринимаешь себя как недостаточно способного и значимого.\n\nЧто запускается:\nНа этом фоне у тебя усиливаются тревога и страх оценки.\n\nКак это проявляется:\nВ конкретных ситуациях ты воспринимаешь происходящее как подтверждение того, что не справляешься.\n\nСвязь с запросом:\nПоэтому трудность отстаивать границы поддерживается повторяющимся переживанием собственной несостоятельности.\n\nКОРОТКАЯ ГИПОТЕЗА:\nПохоже, под поверхностным запросом у тебя повторяется восприятие себя как человека, который не справляется.'
     })
   });
 });
@@ -31,6 +31,10 @@ const prepareCode=String(prepareNode?.parameters?.jsCode||'');
 assert(prepareCode.includes('РАСШИРЕННАЯ ГИПОТЕЗА'),'Dedicated workflow lost expanded hypothesis instruction');
 assert(prepareCode.includes('КОРОТКАЯ ГИПОТЕЗА'),'Dedicated workflow lost short hypothesis instruction');
 assert(prepareCode.includes('Не придумывай причин, которых нет в диагностике.'),'Dedicated workflow lost anti-fabrication rule');
+assert(prepareCode.includes('Глубинная конструкция:'),'Dedicated workflow lost structured expanded-hypothesis format');
+assert(prepareCode.includes("addressMode==='vy'"),'Dedicated workflow lost Вы addressing mode');
+assert(prepareCode.includes("addressMode==='third'"),'Dedicated workflow lost third-person addressing mode');
+assert(prepareCode.includes("на «ты»"),'Dedicated workflow lost Ты addressing mode');
 assert(prepareCode.includes("const prompt='ДАННЫЕ КЛИЕНТА:"),'Dedicated workflow does not append diagnostic data');
 const openAiNode=workflow.nodes.find(x=>x.name==='OpenAI — Responses API');
 assert(String(openAiNode?.parameters?.url||'').includes('api.openai.com/v1/responses'),'Dedicated workflow is not wired to OpenAI Responses API');
@@ -95,6 +99,10 @@ const hypothesisOverlay=page.locator('#diagnosisHypothesisOverlay');
 await hypothesisOverlay.waitFor({state:'visible',timeout:3000});
 assert.equal((await hypothesisOverlay.locator('#diagnosisHypothesisTitle').textContent()).trim(),'Гипотеза по запросу');
 assert.equal((await hypothesisOverlay.locator('.diagnosis-hypothesis-generate').textContent()).trim(),'Сформировать');
+assert.equal(await hypothesisOverlay.locator('input[name="diagnosisHypothesisAddress"]').count(),3,'Hypothesis addressing selector must have three choices');
+assert.equal(await hypothesisOverlay.locator('input[name="diagnosisHypothesisAddress"][value="ty"]').isChecked(),true,'Ты must be the default hypothesis addressing mode');
+const modalBox=await hypothesisOverlay.locator('.diagnosis-hypothesis-modal').boundingBox();
+assert(modalBox&&modalBox.y>=75,'Hypothesis modal top is still hidden behind the app header');
 
 const hypothesisData=await page.evaluate(()=>window.DiagnostikaHypothesis?.buildDiagnosticData?.());
 assert(hypothesisData,'Hypothesis diagnostic data was not built');
@@ -104,12 +112,18 @@ assert(hypothesisData.ситуации.length>0,'Hypothesis payload has no diagn
 await hypothesisOverlay.locator('.diagnosis-hypothesis-generate').click();
 await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').waitFor({state:'visible',timeout:5000});
 assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('несостоятельности'));
+assert.equal(await hypothesisOverlay.locator('.diagnosis-hypothesis-part').count(),4,'Expanded hypothesis is not split into four readable blocks');
+assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('Глубинная конструкция'),'Structured expanded hypothesis heading is missing');
 assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-short').innerText()).includes('не справляется'));
 assert(hypothesisPayload,'Hypothesis request was not sent to AI endpoint');
 assert.equal(String(hypothesisPayload.requestId||''),String(hypothesisData.исходный_запрос.id||''),'Dedicated workflow requestId mismatch');
 assert.deepEqual(hypothesisPayload.diagnosticData,hypothesisData,'Dedicated workflow did not receive the exact diagnostic payload');
+assert.equal(hypothesisPayload.addressMode,'ty','Default hypothesis addressing mode was not sent to n8n');
 assert.equal('message' in hypothesisPayload,false,'Frontend still sends the hypothesis prompt instead of letting the dedicated workflow own it');
 assert.equal('chatHistory' in hypothesisPayload,false,'Dedicated hypothesis request must not include client AI chat history');
+await hypothesisOverlay.locator('input[name="diagnosisHypothesisAddress"][value="vy"]').check();
+assert.equal(await page.evaluate(()=>window.DiagnostikaHypothesis?.selectedAddressMode?.()),'vy','Вы addressing mode cannot be selected');
+assert.equal(await page.evaluate(()=>localStorage.getItem('diagnostika-hypothesis-address-mode')),'vy','Addressing preference was not persisted');
 await hypothesisOverlay.locator('.diagnosis-hypothesis-cancel').click();
 await hypothesisOverlay.waitFor({state:'hidden',timeout:3000});
 
