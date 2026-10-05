@@ -8,7 +8,7 @@ const googleSource=fs.readFileSync('modules/calendar/ui/google-link.js','utf8');
 const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(uiSource.includes("version:'8D'"),'Calendar UI bridge is not 8D');
+assert(uiSource.includes("version:'8E'"),'Calendar UI bridge is not 8E');
 assert(uiSource.includes('window.DiagnostikaCalendarUI=ui'),'Dedicated Calendar UI bridge missing');
 assert(uiSource.includes("if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui"),'Calendar UI can overwrite module facade');
 assert(apiSource.includes("version:'8D'"),'Calendar facade is not 8D');
@@ -17,10 +17,10 @@ assert(googleSource.includes("version:'8D'"),'Google Calendar bridge is not 8D')
 assert(googleSource.includes('calendarApi()?.get?.(id)'),'Google Calendar link does not resolve canonical event data');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade cache marker is stale');
 for(const marker of [
-  'modules/calendar/ui/calendar.js?v=20261003-ru-date-1',
+  'modules/calendar/ui/calendar.js?v=20261005-open-event-1',
   'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
 ])assert(indexSource.includes(marker),'Calendar 8D marker missing '+marker);
-assert(indexSource.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1&beacons=20261003-1&reminder=20261003-1&dates=20261003-1'),'Calendar global app-loader marker missing');
+assert(indexSource.includes('app-loader.js?v=20261004-theme-switcher-1'),'Calendar global app-loader marker missing');
 
 const fixture={version:4,calendarEvents:[{
   id:'cal-8d-existing',
@@ -58,7 +58,7 @@ await page.goto('http://127.0.0.1:8000/index.html?calendar-8d=1',{waitUntil:'com
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
 await page.waitForFunction(()=>window.DiagnostikaCalendar?.version==='8D'
   && window.DiagnostikaCalendar?.moduleAware===true
-  && window.DiagnostikaCalendarUI?.version==='8D'
+  && window.DiagnostikaCalendarUI?.version==='8E'
   && window.DiagnostikaGoogleCalendarLink?.version==='8D',
   null,{timeout:15000});
 
@@ -132,7 +132,7 @@ const orderSafe=await orderPage.evaluate(()=>({
 }));
 assert.equal(orderSafe.sentinel,true,'Calendar UI overwrote an existing module-aware facade');
 assert.equal(orderSafe.facadeVersion,'SENTINEL');
-assert.equal(orderSafe.uiVersion,'8D');
+assert.equal(orderSafe.uiVersion,'8E');
 assert.equal(orderSafe.overlay,true);
 
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
