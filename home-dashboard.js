@@ -416,6 +416,7 @@
         return;
       }
       close();
+      setTimeout(refresh,0);
     };
 
     reminderSnoozeDialog=dialog;
