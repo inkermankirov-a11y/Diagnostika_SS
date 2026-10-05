@@ -29,6 +29,7 @@
             <div class="hd-client-photo-stack">
               <div class="hd-hero-icon" aria-hidden="true"></div>
               <div id="hdClientSocials" class="hd-client-socials" aria-label="Социальные сети клиента"></div>
+              <div id="hdClientSpecialistSlot" class="hd-client-specialist-slot" aria-live="polite"></div>
             </div>
             <div class="hd-client-profile-copy">
               <h2 id="hdHeroTitle">Выберите клиента</h2>
@@ -36,7 +37,6 @@
               <div id="hdHeroActions" class="hd-client-actions"></div>
             </div>
           </div>
-          <div id="hdClientSpecialistSlot" class="hd-client-specialist-slot" aria-live="polite"></div>
           <div id="hdSummary" class="hd-selected-summary" hidden></div>
         </section>
         <aside class="hd-client-right-rail" aria-label="Напоминание">
@@ -330,9 +330,10 @@
     return true;
   }
 
-  function openReminderCalendar(){
+  function openReminderCalendar(event){
     const ui=window.DiagnostikaCalendarUI;
-    if(typeof ui?.open==='function')return ui.open({mode:'client'});
+    if(event?.id&&typeof ui?.openEvent==='function')return ui.openEvent(event.id,{mode:'client'});
+    if(typeof ui?.open==='function')return ui.open({mode:'client',eventId:event?.id||''});
     const button=document.getElementById('ccCalendarBtn');
     if(button){button.click();return true;}
     unavailable('Календарь не загрузился. Обновите страницу.','Календарь');
@@ -461,7 +462,7 @@
     source.className='hd-hero-reminder-source';
     source.textContent='из календаря';
     source.title='Открыть календарь';
-    source.onclick=e=>{e.stopPropagation();openReminderCalendar();};
+    source.onclick=e=>{e.stopPropagation();openReminderCalendar(event);};
     head.append(badge,source);
 
     const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=calendarEventDateLabel(event);
