@@ -47,7 +47,7 @@
     .cal-day-tooltip-time{font-weight:900;color:var(--cal-tooltip-time);font-size:13px}
     .cal-day-tooltip-avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#e7eef7;color:#315475;font-size:12px;font-weight:900;box-shadow:0 0 0 1px #d4deea}.cal-day-tooltip-avatar img{width:100%;height:100%;object-fit:cover}
     .cal-day-tooltip-details{min-width:0}.cal-day-tooltip-client{font-weight:900;font-size:13px;overflow-wrap:anywhere;color:#27384b}.cal-day-tooltip-event{margin-top:3px;font-size:12px;font-weight:700;line-height:1.35;color:#64748b;overflow-wrap:anywhere}
-    .cal-side-title{font-size:15px;font-weight:900;margin-bottom:4px}.cal-selected-date{font-size:12px;color:#64748b;margin-bottom:10px}.cal-events{display:grid;gap:7px;max-height:300px;overflow:auto;margin-bottom:12px}.cal-empty{padding:14px;border:1px dashed #d6dee8;border-radius:10px;text-align:center;color:#94a3b8;font-size:12px}.cal-event{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:start;padding:9px;border:1px solid #e0e7ef;border-radius:10px;background:#f8fafc}.cal-event.is-reminder{border-color:#c4b5fd;background:#faf7ff}.cal-event.is-reminder .cal-event-time,.cal-event.is-reminder .cal-event-title{color:#6d45b8}.cal-event-time{font-size:12px;font-weight:900;color:#334155}.cal-event-title{font-size:12px;font-weight:900;color:#1e293b}.cal-event-meta{font-size:10px;color:#64748b;margin-top:2px}.cal-delete{width:28px;height:28px!important;padding:0!important;font-size:13px!important;color:#b42318!important}
+    .cal-side-title{font-size:15px;font-weight:900;margin-bottom:4px}.cal-selected-date{font-size:12px;color:#64748b;margin-bottom:10px}.cal-events{display:grid;gap:7px;max-height:300px;overflow:auto;margin-bottom:12px}.cal-empty{padding:14px;border:1px dashed #d6dee8;border-radius:10px;text-align:center;color:#94a3b8;font-size:12px}.cal-event{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:start;padding:9px;border:1px solid #e0e7ef;border-radius:10px;background:#f8fafc}.cal-event.is-reminder{border-color:#c4b5fd;background:#faf7ff}.cal-event.is-reminder .cal-event-time,.cal-event.is-reminder .cal-event-title{color:#6d45b8}.cal-event.is-targeted{border-color:#7c3aed!important;background:#f5efff!important;box-shadow:0 0 0 3px rgba(124,58,237,.18),0 8px 20px rgba(92,54,170,.12);animation:calTargetEventPulse 1.1s ease-in-out 2}@keyframes calTargetEventPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}.cal-event-time{font-size:12px;font-weight:900;color:#334155}.cal-event-title{font-size:12px;font-weight:900;color:#1e293b}.cal-event-meta{font-size:10px;color:#64748b;margin-top:2px}.cal-delete{width:28px;height:28px!important;padding:0!important;font-size:13px!important;color:#b42318!important}
     .cal-quick-assign{width:100%;height:38px!important;margin:2px 0 12px;background:linear-gradient(#4b90ed,#2f74d6)!important;color:#fff!important;font-weight:900!important}.cal-overlay.client-mode .cal-quick-assign{display:none}.cal-overlay.overview-mode .cal-form{display:none}.cal-overlay.overview-mode.assign-open .cal-form{display:block}
     .cal-form{border-top:1px solid #e2e8f0;padding-top:12px}.cal-form-title{font-size:13px;font-weight:900;margin-bottom:8px}.cal-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cal-form label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#64748b}.cal-form input,.cal-form select,.cal-form textarea{width:100%;box-sizing:border-box;border:1px solid #c6d2df;border-radius:8px;background:#fff;padding:0 9px;font:600 12px 'Segoe UI',Arial,sans-serif;color:#243447}.cal-form input,.cal-form select{height:36px}.cal-form textarea{min-height:64px;padding-top:8px;resize:vertical}.cal-span2{grid-column:1/-1}.cal-client-time-preview{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-height:38px;padding:8px 10px;border:1px solid #d7e0eb;border-radius:8px;background:#f7f9fc;color:#53657a;font-size:11px;font-weight:800;box-sizing:border-box}.cal-client-time-preview strong{font-size:12px;color:#243447}.cal-client-time-preview.ok{border-color:#a9d9bd;background:#f1fbf5}.cal-client-time-preview.caution{border-color:#e8c86a;background:#fffaf0;color:#805900}.cal-client-time-preview.night{border-color:#e7a0a0;background:#fff3f3;color:#a63737}.cal-client-time-preview.night strong{color:#a63737}.cal-client-time-preview.unknown{border-color:#d7dde5;background:#f7f8fa;color:#6b7a8d}.cal-save{width:100%;margin-top:9px;height:38px!important;background:linear-gradient(#48a873,#278656)!important;color:#fff!important;font-weight:900!important}
     .cal-overlay.week-view .cal-week,.cal-overlay.day-view .cal-week{display:none}
@@ -202,6 +202,7 @@
   let openMode='client';
   let viewMode='month';
   let assignOpen=false;
+  let targetedEventId='';
   let locationCatalogPromise=null;
   let clientTimePreviewRequest=0;
 
@@ -726,20 +727,63 @@
     if(quick)quick.textContent=assignOpen?'Скрыть назначение':'＋ Выбрать и назначить';
   }
 
-  function render(){hideHoverTooltip();syncModeUi();fillClientOptions();renderCalendarSurface();renderDayDetails();updateClientTimePreview();}
+  function focusTargetedEvent(){
+    if(!targetedEventId)return;
+    requestAnimationFrame(()=>{
+      const row=eventsBox.querySelector('[data-calendar-event-id="'+CSS.escape(String(targetedEventId))+'"]');
+      if(!row)return;
+      eventsBox.querySelectorAll('.cal-event.is-targeted').forEach(x=>x.classList.remove('is-targeted'));
+      row.classList.add('is-targeted');
+      row.scrollIntoView({block:'center',behavior:'smooth'});
+      row.setAttribute('tabindex','-1');
+      try{row.focus({preventScroll:true});}catch(_){}
+    });
+  }
+
+  function render(){
+    hideHoverTooltip();
+    syncModeUi();
+    fillClientOptions();
+    renderCalendarSurface();
+    renderDayDetails();
+    updateClientTimePreview();
+    focusTargetedEvent();
+  }
 
   function openCalendar(options={}){
     const now=new Date();
     openMode=options?.mode==='overview'?'overview':'client';
     viewMode=options?.view==='week'?'week':'month';
     assignOpen=false;
-    selected=todayIso();
-    cursor=new Date(now.getFullYear(),now.getMonth(),1);
+    targetedEventId=String(options?.eventId||'').trim();
+
+    let target=null;
+    if(targetedEventId){
+      const rows=calendarApi()?.list?.();
+      target=Array.isArray(rows)?rows.find(event=>String(event?.id||'')===targetedEventId)||null:null;
+    }
+
+    if(target?.date&&/^\d{4}-\d{2}-\d{2}$/.test(String(target.date))){
+      selected=String(target.date);
+      const d=new Date(selected+'T12:00:00');
+      cursor=new Date(d.getFullYear(),d.getMonth(),1);
+      viewMode='month';
+    }else{
+      selected=todayIso();
+      cursor=new Date(now.getFullYear(),now.getMonth(),1);
+      targetedEventId='';
+    }
+
     if(openMode==='overview')clientSelect.value='';
     render();
     if(!overlay.open)overlay.showModal();
     document.documentElement.style.overflow='hidden';
     return true;
+  }
+
+  function openEvent(eventId,options={}){
+    if(eventId===undefined||eventId===null||eventId==='')return false;
+    return openCalendar({...options,eventId:String(eventId)});
   }
   function closeCalendar(){hideHoverTooltip();if(overlay.open)overlay.close();document.documentElement.style.overflow='';}
 
@@ -801,7 +845,7 @@
   }
   attach();
 
-  const ui=Object.freeze({version:'8D',open:openCalendar,refresh:render});
+  const ui=Object.freeze({version:'8E',open:openCalendar,openEvent,refresh:render});
   window.DiagnostikaCalendarUI=ui;
   if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui;
 

@@ -242,9 +242,9 @@
 .hd-main-sub{font-size:16px;line-height:1.45;color:#7587a4;max-width:720px;margin-bottom:24px}
 .hd-hero-reminder{position:absolute;top:36px;right:28px;width:min(292px,34%);box-sizing:border-box;padding:13px 14px 14px;border:1px solid rgba(139,92,246,.44);border-left:4px solid #8b5cf6;border-radius:13px;background:linear-gradient(145deg,rgba(250,247,255,.98),rgba(244,238,255,.95));color:#4f3b78;text-align:left;box-shadow:0 10px 28px rgba(96,63,157,.12),inset 0 1px 0 rgba(255,255,255,.85);animation:hdHeroReminderHeartbeat 4.8s ease-in-out infinite;transform-origin:center;z-index:3}
 .hd-hero-reminder[hidden]{display:none!important}
-.hd-hero-reminder-head{display:flex;align-items:center;gap:7px;min-width:0}
-.hd-hero-reminder-badge{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#8b5cf6;color:#fff;font-size:10px;font-weight:900;letter-spacing:.055em;box-shadow:0 3px 10px rgba(124,58,237,.18)}
-.hd-hero-reminder-source{appearance:none;border:0;padding:0;background:transparent;color:#8a76ab;font:800 10px/1.2 inherit;white-space:nowrap;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.hd-hero-reminder-head{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:start;gap:8px;min-width:0}
+.hd-hero-reminder-badge{display:inline-flex;align-items:center;justify-self:start;max-width:100%;box-sizing:border-box;padding:5px 8px;border-radius:999px;background:#8b5cf6;color:#fff;font-size:10px;font-weight:900;letter-spacing:.055em;line-height:1.12;box-shadow:0 3px 10px rgba(124,58,237,.18)}
+.hd-hero-reminder-source{appearance:none;display:inline-flex;align-items:center;justify-content:center;min-width:max-content;max-width:none;overflow:visible;border:0;padding:3px 0 0;background:transparent;color:#8a76ab;font:800 10px/1.2 inherit;white-space:nowrap;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
 .hd-hero-reminder-source:hover{color:#6f52a3;text-decoration-style:solid}
 .hd-hero-reminder-when{margin-top:9px;color:#5f458c;font-size:14px;font-weight:900;line-height:1.25}
 .hd-hero-reminder-text{margin-top:6px;color:#66547f;font-size:12px;font-weight:700;line-height:1.42;overflow-wrap:anywhere}
@@ -1818,29 +1818,50 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
 }
 
 
-/* Dashboard v7 — keep the reminder in the right rail and place the current
-   specialist as a stable profile control directly below the social row. */
-.hd-client-view.has-client .hd-client-specialist-slot{
-  width:min(300px,100%)!important;
+/* Dashboard v11 — reminder stays in the right rail; current specialist
+   is anchored directly below VK / MAX / Telegram. */
+.hd-client-view.has-client .hd-client-photo-stack{
+  overflow:visible;
+}
+.hd-client-view.has-client .hd-client-photo-stack > .hd-client-specialist-slot{
+  width:300px!important;
+  min-width:300px!important;
+  max-width:300px!important;
   min-height:46px;
   margin:12px 0 0!important;
   transform:none!important;
   align-self:flex-start;
   box-sizing:border-box;
 }
-#hdClientView .hd-client-specialist-slot .client-specialist-info{
+#hdClientView .hd-client-photo-stack > .hd-client-specialist-slot .client-specialist-info{
   width:100%!important;
   max-width:none!important;
   height:46px!important;
   min-height:46px!important;
   margin:0!important;
   padding:6px 8px!important;
+  box-sizing:border-box!important;
 }
-#hdClientView .hd-client-specialist-slot .client-specialist-current{
+#hdClientView .hd-client-photo-stack > .hd-client-specialist-slot .client-specialist-current{
   width:100%!important;
   grid-template-columns:134px minmax(0,1fr)!important;
   column-gap:9px!important;
   min-height:34px!important;
+  align-items:center!important;
+}
+#hdClientView .hd-client-photo-stack > .hd-client-specialist-slot .client-specialist-history-btn{
+  height:34px!important;
+  min-height:34px!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+#hdClientView .hd-client-photo-stack > .hd-client-specialist-slot .client-specialist-name{
+  min-height:34px!important;
+  display:flex!important;
+  align-items:center!important;
+  line-height:1.2!important;
 }
 .hd-client-view.has-client .hd-selected-summary{
   margin-top:20px!important;
@@ -1849,14 +1870,10 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
   grid-template-rows:minmax(145px,auto)!important;
   gap:0!important;
 }
-@media(max-width:860px){
-  .hd-client-view.has-client .hd-client-specialist-slot{
-    width:min(300px,100%)!important;
-    margin:12px 0 0!important;
-  }
-}
 @media(max-width:560px){
-  .hd-client-view.has-client .hd-client-specialist-slot{
-    width:100%!important;
+  .hd-client-view.has-client .hd-client-photo-stack > .hd-client-specialist-slot{
+    width:260px!important;
+    min-width:260px!important;
+    max-width:260px!important;
   }
 }
