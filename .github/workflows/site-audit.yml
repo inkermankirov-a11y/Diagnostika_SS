@@ -130,8 +130,8 @@ jobs:
           await dep.locator('#clientDialog').waitFor({state:'visible',timeout:3000});
           await dep.evaluate(()=>document.getElementById('clientDialog')?.close());
           await dep.locator('#clientDialog').waitFor({state:'hidden',timeout:3000});
-          const newOpened=await dep.evaluate(()=>{const b=document.getElementById('hdAddClient');if(!b)return false;b.click();return true;});
-          if(!newOpened)throw new Error('Dashboard new-client action missing');
+          const newOpened=await dep.evaluate(()=>{const api=window.DiagnostikaHomeDashboard;if(!api||typeof api.addClient!=='function')return false;api.addClient();return true;});
+          if(!newOpened)throw new Error('Dashboard new-client API missing');
           await dep.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});
           const legacyClicks=await dep.evaluate(()=>window.__legacyDashboardClicks||[]);
           console.log('DASHBOARD_LEGACY_BUTTON_CLICKS:',JSON.stringify(legacyClicks));
