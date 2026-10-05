@@ -210,6 +210,7 @@
 .hd-upcoming-session-dot{--hd-beacon:#94a3b8;--hd-beacon-ring:#64748b;--hd-beacon-rgb:148,163,184;width:10px;height:10px;border-radius:50%;display:block;background:var(--hd-beacon);border:2px solid #fff;box-shadow:0 0 0 1px var(--hd-beacon-ring),0 0 0 0 rgba(var(--hd-beacon-rgb),.20);cursor:help;animation:hdUpcomingSessionPulse 1.25s ease-in-out infinite;outline:none}
 .hd-upcoming-session-dot.is-session{--hd-beacon:#f4b72a;--hd-beacon-ring:#e4bd59;--hd-beacon-rgb:244,183,42}
 .hd-upcoming-session-dot.is-reminder{--hd-beacon:#8b5cf6;--hd-beacon-ring:#7c3aed;--hd-beacon-rgb:139,92,246}
+.hd-upcoming-session-dot.is-reminder.is-overdue{--hd-beacon:#a855f7;--hd-beacon-ring:#dc4352;--hd-beacon-rgb:220,67,82}
 .hd-upcoming-session-dot.is-free-consultation{--hd-beacon:#22c55e;--hd-beacon-ring:#16a34a;--hd-beacon-rgb:34,197,94}
 .hd-upcoming-session-dot.is-neutral{--hd-beacon:#94a3b8;--hd-beacon-ring:#64748b;--hd-beacon-rgb:148,163,184}
 .hd-upcoming-session-dot:focus-visible{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--hd-beacon-ring)}
@@ -246,6 +247,14 @@
 .hd-hero-reminder-source{color:#8a76ab;font-size:10px;font-weight:800;white-space:nowrap}
 .hd-hero-reminder-when{margin-top:9px;color:#5f458c;font-size:14px;font-weight:900;line-height:1.25}
 .hd-hero-reminder-text{margin-top:6px;color:#66547f;font-size:12px;font-weight:700;line-height:1.42;overflow-wrap:anywhere}
+.hd-hero-reminder-actions{display:flex;justify-content:flex-end;margin-top:10px}
+.hd-hero-reminder-done{height:30px;padding:0 11px;border:1px solid #5b43a6;border-radius:8px;background:linear-gradient(180deg,#7f67d8,#654bb9);color:#fff;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 4px 10px rgba(101,75,185,.18)}
+.hd-hero-reminder-done:hover:not(:disabled){filter:brightness(1.07)}
+.hd-hero-reminder-done:disabled{opacity:.58;cursor:wait}
+.hd-hero-reminder.is-overdue{border-color:rgba(220,67,82,.42);border-left-color:#dc4352;background:linear-gradient(145deg,rgba(255,248,250,.98),rgba(250,239,245,.95));box-shadow:0 10px 28px rgba(173,55,75,.12),inset 0 1px 0 rgba(255,255,255,.88)}
+.hd-hero-reminder.is-overdue .hd-hero-reminder-badge{background:#c94355;box-shadow:0 3px 10px rgba(201,67,85,.18)}
+.hd-hero-reminder.is-overdue .hd-hero-reminder-when{color:#8c3d52}
+.hd-hero-reminder.is-overdue .hd-hero-reminder-text{color:#744c5a}
 @keyframes hdHeroReminderHeartbeat{
   0%,68%,100%{transform:scale(1);border-color:rgba(139,92,246,.40);box-shadow:0 10px 28px rgba(96,63,157,.10),0 0 0 0 rgba(139,92,246,0)}
   74%{transform:scale(1.007);border-color:rgba(139,92,246,.62);box-shadow:0 12px 30px rgba(96,63,157,.14),0 0 0 5px rgba(139,92,246,.07)}
