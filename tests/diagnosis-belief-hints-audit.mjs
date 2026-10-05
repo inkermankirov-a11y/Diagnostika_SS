@@ -121,7 +121,7 @@ const expandedParagraphCount=await hypothesisOverlay.locator('.diagnosis-hypothe
 assert(expandedParagraphCount>=2&&expandedParagraphCount<=3,'Expanded hypothesis must render as 2–3 plain paragraphs');
 assert(!(await hypothesisOverlay.locator('.diagnosis-hypothesis-result-expanded').innerText()).includes('Глубинная конструкция'),'Old structured hypothesis heading is still visible');
 assert.equal(await hypothesisOverlay.locator('.diagnosis-hypothesis-save').isDisabled(),false,'Save hypothesis must be enabled after generation');
-assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-short').innerText()).includes('не справляется'));
+assert((await hypothesisOverlay.locator('.diagnosis-hypothesis-result-short').innerText()).includes('не справишься'));
 assert(hypothesisPayload,'Hypothesis request was not sent to AI endpoint');
 assert.equal(String(hypothesisPayload.requestId||''),String(hypothesisData.исходный_запрос.id||''),'Dedicated workflow requestId mismatch');
 assert.deepEqual(hypothesisPayload.diagnosticData,hypothesisData,'Dedicated workflow did not receive the exact diagnostic payload');
