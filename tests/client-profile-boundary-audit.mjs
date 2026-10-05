@@ -168,7 +168,7 @@ assert.equal(consultationState.desiredOutcome,'Желаемый результа
 assert.equal(consultationState.clientNotes,'До блока\n\nПосле блока');
 assert.equal(consultationState.syncValues.mainRequest,'Короткий AI запрос');
 assert.equal(consultationState.events.length,1,'free consultation profile sync must emit one client:updated');
-assert.deepEqual([...consultationState.events[0].fields].sort(),['clientNotes','desiredOutcome','initialProblem','tried'].sort());
+assert.deepEqual([...consultationState.events[0].fields].sort(),['clientNotes','desiredOutcome','freeConsultation','initialProblem','tried'].sort());
 
 await page.reload({waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
