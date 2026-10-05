@@ -5,13 +5,14 @@ import fs from 'node:fs';
 const transferSource=fs.readFileSync('modules/clients/ui/transfer.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const appLoader=fs.readFileSync('app-loader.js','utf8');
+// Layout contract: current specialist sits directly below the social row.
 
 assert(!transferSource.includes('Первичный специалист'),'Legacy primary specialist label still exists');
 assert(transferSource.includes('client-specialist-history-btn'),'Current specialist button missing');
 assert(transferSource.includes('clientSpecialistHistoryDialog'),'Specialist history dialog missing');
 assert(transferSource.includes('requests:requestsForPeriod(incoming,start,transferredAt)'),'Transfer does not snapshot requests');
 assert(index.includes('modules/clients/ui/transfer.js?v=20261003-specialist-right-rail-4'),'Specialist row module/cache marker missing');
-assert(appLoader.includes('home-dashboard.css?v=20261004-profile-row-align-1'),'Dashboard profile alignment CSS cache marker missing');
+assert(appLoader.includes('home-dashboard.css?v=20261005-reminder-target-2'),'Dashboard specialist layout CSS cache marker missing');
 
 const fixture={
   version:4,
@@ -81,16 +82,15 @@ const hero=await page.evaluate(()=>{
   const button=info?.querySelector('.client-specialist-history-btn');
   const name=info?.querySelector('.client-specialist-name');
   const slot=document.querySelector('#hdClientSpecialistSlot');
-  const reminderSlot=document.querySelector('.hd-reminder-slot');
   const socials=document.querySelector('#hdClientSocials');
-  const clientCardButton=document.querySelector('#hdHeroActions .hd-secondary');
+  const photoStack=document.querySelector('.hd-client-photo-stack');
+  const profile=document.querySelector('.hd-client-profile');
   const infoBox=info?.getBoundingClientRect();
   const buttonBox=button?.getBoundingClientRect();
   const nameBox=name?.getBoundingClientRect();
   const slotBox=slot?.getBoundingClientRect();
-  const reminderBox=reminderSlot?.getBoundingClientRect();
   const socialsBox=socials?.getBoundingClientRect();
-  const clientCardBox=clientCardButton?.getBoundingClientRect();
+  const stackBox=photoStack?.getBoundingClientRect();
   return {
     text:info?.innerText||'',
     buttonTag:button?.tagName||'',
@@ -107,9 +107,11 @@ const hero=await page.evaluate(()=>{
     specialistInfoBottom:infoBox?.bottom||0,
     specialistButtonTop:buttonBox?.top||0,
     specialistButtonBottom:buttonBox?.bottom||0,
-    reminderBottom:reminderBox?.bottom||0,
-    socialsTop:socialsBox?.top||0,
-    clientCardTop:clientCardBox?.top||0,
+    socialsLeft:socialsBox?.left||0,
+    socialsBottom:socialsBox?.bottom||0,
+    stackLeft:stackBox?.left||0,
+    profileContainsSlot:Boolean(profile?.contains(slot)),
+    stackContainsSlot:Boolean(photoStack?.contains(slot)),
     bodyText:document.body.innerText
   };
 });
@@ -120,11 +122,13 @@ assert.equal(hero.nameTag,'SPAN','Specialist name should be plain text');
 assert.equal(hero.nameText.trim(),'Евгений');
 assert(hero.width>=210,`Specialist row is too narrow: ${hero.width}px`);
 assert(Math.abs(hero.buttonCenterY-hero.nameCenterY)<=1,`Button/name vertical alignment differs: ${hero.buttonCenterY} vs ${hero.nameCenterY}`);
-assert.equal(hero.parentId,'hdClientSpecialistSlot','Specialist row is not inside the dedicated right-side slot');
-assert(hero.slotWidth>=210,`Specialist slot is too narrow: ${hero.slotWidth}px`);
-assert(hero.specialistTop>=hero.reminderBottom-1,`Specialist overlaps the reserved reminder area: ${hero.specialistTop} < ${hero.reminderBottom}`);
-assert(Math.abs(hero.socialsTop-hero.specialistInfoTop)<=1,`Social row is not level with specialist row: ${hero.socialsTop} vs ${hero.specialistInfoTop}`);
-assert(Math.abs(hero.clientCardTop-hero.specialistInfoTop)<=1,`Client card button is not level with specialist row: ${hero.clientCardTop} vs ${hero.specialistInfoTop}`);
+assert.equal(hero.parentId,'hdClientSpecialistSlot','Specialist row is not inside the dedicated specialist slot');
+assert(hero.slotWidth>=295&&hero.slotWidth<=305,`Specialist slot width is not 300px: ${hero.slotWidth}px`);
+assert.equal(hero.profileContainsSlot,true,'Specialist slot is outside the client profile');
+assert.equal(hero.stackContainsSlot,true,'Specialist slot is outside the photo/social stack');
+assert(hero.specialistTop>=hero.socialsBottom+8,`Specialist is not below the social row: ${hero.specialistTop} < ${hero.socialsBottom+8}`);
+assert(Math.abs(hero.specialistInfoTop-hero.specialistTop)<=1,`Specialist info is not aligned to its slot top: ${hero.specialistInfoTop} vs ${hero.specialistTop}`);
+assert(Math.abs(hero.socialsLeft-hero.stackLeft)<=2,`Social row is not aligned with photo stack: ${hero.socialsLeft} vs ${hero.stackLeft}`);
 const specialistTopInset=hero.specialistButtonTop-hero.specialistInfoTop;
 const specialistBottomInset=hero.specialistInfoBottom-hero.specialistButtonBottom;
 assert(Math.abs(specialistTopInset-specialistBottomInset)<=0.5,`Current specialist button is not vertically centered inside its field: top=${specialistTopInset}, bottom=${specialistBottomInset}`);
