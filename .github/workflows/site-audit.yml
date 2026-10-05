@@ -117,8 +117,8 @@ jobs:
               if(el)el.addEventListener('click',()=>window.__legacyDashboardClicks.push(id),true);
             }
           });
-          const cardOpened=await dep.evaluate(()=>{const b=[...document.querySelectorAll('#hdHeroActions button')].find(x=>x.textContent.includes('Карточка клиента'));if(!b)return false;b.click();return true;});
-          if(!cardOpened)throw new Error('Dashboard client-card action missing');
+          const cardOpened=await dep.evaluate(()=>{const api=window.DiagnostikaHomeDashboard;if(!api||typeof api.openCard!=='function')return false;api.openCard();return true;});
+          if(!cardOpened)throw new Error('Dashboard client-card API missing');
           await dep.locator('#clientCardDialog').waitFor({state:'visible',timeout:3000});
           await dep.evaluate(()=>document.getElementById('clientCardDialog')?.close());
           await dep.locator('#clientCardDialog').waitFor({state:'hidden',timeout:3000});
