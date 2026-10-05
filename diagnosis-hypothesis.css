@@ -3,8 +3,9 @@
   inset:0;
   z-index:22000;
   display:grid;
-  place-items:center;
-  padding:24px;
+  place-items:start center;
+  padding:82px 24px 24px;
+  overflow-y:auto;
   background:rgba(15,23,42,.46);
   backdrop-filter:blur(5px);
   -webkit-backdrop-filter:blur(5px);
@@ -13,7 +14,7 @@
 
 .diagnosis-hypothesis-modal{
   width:min(820px,calc(100vw - 32px));
-  max-height:min(86vh,860px);
+  max-height:min(calc(100vh - 106px),860px);
   overflow:auto;
   box-sizing:border-box;
   padding:20px;
@@ -59,6 +60,53 @@
 }
 .diagnosis-hypothesis-close:hover{
   background:#eaf0f7!important;
+}
+
+.diagnosis-hypothesis-address{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin:0 0 10px;
+  padding:0;
+  border:0;
+}
+.diagnosis-hypothesis-address legend{
+  float:left;
+  margin:0 10px 0 0;
+  padding:0;
+  color:#60738d;
+  font:700 12px/32px "Segoe UI",Arial,sans-serif;
+}
+.diagnosis-hypothesis-address label{
+  position:relative;
+  display:inline-flex;
+  cursor:pointer;
+}
+.diagnosis-hypothesis-address input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.diagnosis-hypothesis-address span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:54px;
+  height:30px;
+  padding:0 10px;
+  border:1px solid #c8d5e5;
+  border-radius:999px;
+  background:#f7f9fc;
+  color:#53657e;
+  font:800 11px/1 "Segoe UI",Arial,sans-serif;
+  transition:background .12s ease,border-color .12s ease,box-shadow .12s ease,color .12s ease;
+}
+.diagnosis-hypothesis-address label:last-child span{min-width:92px}
+.diagnosis-hypothesis-address input:checked+span{
+  border-color:#4aa884;
+  background:#e9f7f1;
+  color:#237458;
+  box-shadow:inset 0 0 0 1px rgba(74,168,132,.10),0 2px 6px rgba(35,116,88,.10);
 }
 
 .diagnosis-hypothesis-note{
@@ -115,7 +163,7 @@
   font:14px/1.58 "Segoe UI",Arial,sans-serif;
 }
 .diagnosis-hypothesis-result-section h3{
-  margin:0 0 9px;
+  margin:0 0 12px;
   font-size:13px;
   line-height:1.2;
   letter-spacing:.025em;
@@ -127,6 +175,32 @@
   color:#243b58;
 }
 .diagnosis-hypothesis-result-expanded h3{color:#246b9b}
+.diagnosis-hypothesis-expanded-content{
+  display:grid;
+  gap:9px;
+}
+.diagnosis-hypothesis-part{
+  padding:10px 12px;
+  border-left:3px solid #8fc6e7;
+  border-radius:8px;
+  background:rgba(255,255,255,.64);
+}
+.diagnosis-hypothesis-part h4{
+  margin:0 0 5px;
+  color:#376d95;
+  font:800 12px/1.25 "Segoe UI",Arial,sans-serif;
+}
+.diagnosis-hypothesis-part p{
+  margin:0;
+  color:#2d405a;
+  font:14px/1.55 "Segoe UI",Arial,sans-serif;
+}
+.diagnosis-hypothesis-prose{
+  color:#2d405a;
+  font:14px/1.62 "Segoe UI",Arial,sans-serif;
+}
+.diagnosis-hypothesis-prose p{margin:0 0 10px}
+.diagnosis-hypothesis-prose p:last-child{margin-bottom:0}
 .diagnosis-hypothesis-result-short{
   border:1px solid #b9dfd2;
   background:linear-gradient(145deg,#f2fbf7,#e8f7f1);
@@ -176,14 +250,16 @@
 html.diagnosis-hypothesis-open{overflow:hidden}
 
 @media(max-width:620px){
-  .diagnosis-hypothesis-overlay{padding:8px}
+  .diagnosis-hypothesis-overlay{padding:72px 8px 8px}
   .diagnosis-hypothesis-modal{
     width:100%;
-    max-height:94vh;
+    max-height:calc(100vh - 80px);
     padding:14px;
     border-radius:14px;
   }
   .diagnosis-hypothesis-head h2{font-size:19px}
+  .diagnosis-hypothesis-address{align-items:flex-start;flex-wrap:wrap}
+  .diagnosis-hypothesis-address legend{width:100%;line-height:1.2;margin-bottom:2px}
   .diagnosis-hypothesis-actions{display:grid;grid-template-columns:1fr 1fr}
   .diagnosis-hypothesis-generate,.diagnosis-hypothesis-cancel{width:100%}
 }
