@@ -116,12 +116,19 @@
     return '';
   }
 
+  function selectedAddressMode(){
+    const checked=ensureOverlay().querySelector('input[name="diagnosisHypothesisAddress"]:checked');
+    const mode=String(checked?.value||'ty');
+    return ['ty','vy','third'].includes(mode)?mode:'ty';
+  }
+
   async function askAi(c,r,data){
     const payload={
       accessKey:getAccessKey(),
       clientId:String(c.id||''),
       clientName:c.name||'',
       requestId:String(r.id||''),
+      addressMode:selectedAddressMode(),
       diagnosticData:data
     };
 
@@ -156,11 +163,26 @@
     };
   }
 
+  function structuredExpandedHtml(text){
+    const source=String(text||'').trim();
+    if(!source)return '';
+    const labels=['Глубинная конструкция','Что запускается','Как это проявляется','Связь с запросом'];
+    const pattern=new RegExp('(?:^|\\n)(' + labels.join('|') + ')\\s*:\\s*','gi');
+    const matches=[...source.matchAll(pattern)];
+    if(!matches.length)return '<div class="diagnosis-hypothesis-prose">'+esc(source).replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>')+'</div>';
+    return matches.map((m,index)=>{
+      const start=(m.index||0)+m[0].length;
+      const end=index+1<matches.length?(matches[index+1].index||source.length):source.length;
+      const body=source.slice(start,end).trim();
+      return `<div class="diagnosis-hypothesis-part"><h4>${esc(m[1])}</h4><p>${esc(body).replace(/\n/g,'<br>')}</p></div>`;
+    }).join('');
+  }
+
   function resultHtml(raw){
     const parsed=parseAnswer(raw);
     if(parsed.expanded||parsed.short){
       return `
-        ${parsed.expanded?`<section class="diagnosis-hypothesis-result-section diagnosis-hypothesis-result-expanded"><h3>Расширенная гипотеза</h3><div>${esc(parsed.expanded).replace(/\n/g,'<br>')}</div></section>`:''}
+        ${parsed.expanded?`<section class="diagnosis-hypothesis-result-section diagnosis-hypothesis-result-expanded"><h3>Расширенная гипотеза</h3><div class="diagnosis-hypothesis-expanded-content">${structuredExpandedHtml(parsed.expanded)}</div></section>`:''}
         ${parsed.short?`<section class="diagnosis-hypothesis-result-section diagnosis-hypothesis-result-short"><h3>Короткая гипотеза</h3><div>${esc(parsed.short).replace(/\n/g,'<br>')}</div></section>`:''}
       `;
     }
@@ -182,6 +204,12 @@
           </div>
           <button type="button" class="diagnosis-hypothesis-close" aria-label="Закрыть">×</button>
         </header>
+        <fieldset class="diagnosis-hypothesis-address">
+          <legend>Форма обращения</legend>
+          <label><input type="radio" name="diagnosisHypothesisAddress" value="ty" checked><span>Ты</span></label>
+          <label><input type="radio" name="diagnosisHypothesisAddress" value="vy"><span>Вы</span></label>
+          <label><input type="radio" name="diagnosisHypothesisAddress" value="third"><span>Третье лицо</span></label>
+        </fieldset>
         <div class="diagnosis-hypothesis-note">Гипотеза формируется отдельным AI-сценарием только по выбранному запросу и его диагностике.</div>
         <div class="diagnosis-hypothesis-result" aria-live="polite">
           <div class="diagnosis-hypothesis-empty">Нажмите «Сформировать», чтобы получить расширенную и короткую гипотезу.</div>
@@ -198,6 +226,13 @@
     overlay.querySelector('.diagnosis-hypothesis-close').addEventListener('click',close);
     overlay.querySelector('.diagnosis-hypothesis-cancel').addEventListener('click',close);
     overlay.querySelector('.diagnosis-hypothesis-generate').addEventListener('click',generate);
+    overlay.querySelectorAll('input[name="diagnosisHypothesisAddress"]').forEach(input=>{
+      input.addEventListener('change',()=>{
+        if(input.checked){
+          try{localStorage.setItem('diagnostika-hypothesis-address-mode',input.value);}catch(_){}
+        }
+      });
+    });
     overlay.addEventListener('mousedown',e=>{if(e.target===overlay)close();});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden)close();});
     return overlay;
@@ -225,6 +260,11 @@
       return false;
     }
     openedRequestId=String(r.id||'');
+    let savedMode='ty';
+    try{savedMode=localStorage.getItem('diagnostika-hypothesis-address-mode')||'ty';}catch(_){}
+    if(!['ty','vy','third'].includes(savedMode))savedMode='ty';
+    const modeInput=root.querySelector(`input[name="diagnosisHypothesisAddress"][value="${savedMode}"]`);
+    if(modeInput)modeInput.checked=true;
     root.querySelector('.diagnosis-hypothesis-request').textContent=`Запрос: ${r.title||'Без названия'}`;
     root.querySelector('.diagnosis-hypothesis-result').innerHTML='<div class="diagnosis-hypothesis-empty">Нажмите «Сформировать», чтобы получить расширенную и короткую гипотезу.</div>';
     setStatus('');
@@ -302,6 +342,7 @@
     generate,
     buildDiagnosticData,
     parseAnswer,
+    selectedAddressMode,
     testUrl:TEST_URL,
     productionUrl:PROD_URL,
     workflow:'diagnostika-hypothesis-v1'
