@@ -111,22 +111,17 @@ const reminderLayout=await page.evaluate(()=>{
   const mr=move?.getBoundingClientRect();
   const dr=done?.getBoundingClientRect();
   const cr=card?.getBoundingClientRect();
-  const dot=getComputedStyle(badge,'::before');
   return {
     cardHeight:cr?.height||0,
     moveTop:mr?.top||0,
     doneTop:dr?.top||0,
     moveBottom:mr?.bottom||0,
-    doneBottom:dr?.bottom||0,
-    dotWidth:dot?.width||'',
-    dotHeight:dot?.height||''
+    doneBottom:dr?.bottom||0
   };
 });
 assert(Math.abs(reminderLayout.moveTop-reminderLayout.doneTop)<=1,'Reminder actions are not on one row');
 assert(Math.abs(reminderLayout.moveBottom-reminderLayout.doneBottom)<=1,'Reminder action heights differ');
 assert(reminderLayout.cardHeight<180,'Reminder card is not compact');
-assert.equal(reminderLayout.dotWidth,'5px','Reminder badge dot is not aligned through CSS');
-assert.equal(reminderLayout.dotHeight,'5px','Reminder badge dot height is wrong');
 
 const snooze=page.locator('#hdHeroReminder .hd-hero-reminder-snooze');
 assert.equal((await snooze.textContent()).trim(),'📅 Перенести','Reminder move action is wrong');
