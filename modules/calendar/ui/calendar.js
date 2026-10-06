@@ -79,7 +79,8 @@
     .cal-time-column.selected{background-color:#fbfdff}
     .cal-time-column.today{box-shadow:inset 0 0 0 1px rgba(26,115,232,.08)}
     .cal-time-event{position:absolute;left:4px;right:4px;z-index:4;min-height:30px;padding:5px 7px;border:1px solid #9ec1f6;border-left:4px solid #1a73e8;border-radius:6px;background:#d2e3fc;color:#174ea6;box-sizing:border-box;overflow:hidden;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(60,64,67,.12);font-family:inherit}
-    .cal-time-event:hover{background:#c5dafb;box-shadow:0 2px 6px rgba(60,64,67,.16)}
+    .cal-time-event:hover{box-shadow:0 2px 6px rgba(60,64,67,.16)}
+    .cal-time-event.is-reminder{border-color:#b79af7;border-left-color:#7c3aed;background:#f3e8ff;color:#6d45b8}.cal-time-event.is-diagnosis{border-color:#f2c26b;border-left-color:#d97706;background:#fff1d6;color:#a45b04}.cal-time-event.is-session{border-color:#93b8f5;border-left-color:#2563eb;background:#eaf2ff;color:#245db5}.cal-time-event.is-free-consultation{border-color:#86d9a4;border-left-color:#16a34a;background:#eaf8ef;color:#176a36}.cal-time-event.is-call{border-color:#7bd7e7;border-left-color:#0891b2;background:#e8fafd;color:#0e7490}.cal-time-event.is-neutral{border-color:#cbd5e1;border-left-color:#64748b;background:#f1f5f9;color:#475569}
     .cal-time-event-time{font-size:12px;font-weight:900;line-height:1.2}
     .cal-time-event-title{margin-top:2px;font-size:13px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cal-time-event-meta{margin-top:2px;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
@@ -569,6 +570,7 @@
       const evs=eventsOn(ds);
       const signalEvents=evs.filter(event=>eventShouldSignal(event));
       const cell=document.createElement('div');
+      cell.dataset.date=ds;
       const weekend=(i%7)>=5;
       const hasRecords=evs.length>0;
       const hasSignal=signalEvents.length>0;
