@@ -456,6 +456,15 @@
     return raw||'Сессия';
   }
 
+  function notificationRecordTypeKey(session){
+    const label=sessionAppointmentLabel(session).toLocaleLowerCase('ru-RU').replace(/\s+/g,' ').trim();
+    if(/^сессия(?:\s*№\s*\d+)?$/.test(label))return 'session';
+    if(label.includes('диагност'))return 'diagnosis';
+    if(label.includes('консультац'))return 'consultation';
+    if(label.includes('созвон'))return 'call';
+    return label||'session';
+  }
+
   function sessionOrdinalMap(c){
     const rows=[...(c?.sessions||[])].sort((a,b)=>{
       const ta=plannedSessionStartTime(a);
@@ -464,7 +473,13 @@
       return String(a?.createdAt||a?.date||'').localeCompare(String(b?.createdAt||b?.date||''));
     });
     const map=new Map();
-    rows.forEach((session,index)=>map.set(String(session?.id||''),index+1));
+    const counters=new Map();
+    rows.forEach(session=>{
+      const key=notificationRecordTypeKey(session);
+      const number=(counters.get(key)||0)+1;
+      counters.set(key,number);
+      map.set(String(session?.id||''),number);
+    });
     return map;
   }
 
