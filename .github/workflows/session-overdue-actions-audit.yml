@@ -4,6 +4,8 @@ on:
   push:
     branches: [main, 'feature-sessions-*', 'feature-client-*']
     paths:
+      - 'home-dashboard.js'
+      - 'home-dashboard.css'
       - 'home-dashboard-sessions.js'
       - 'modules/sessions/ui/editor.js'
       - 'modules/calendar/ui/session-planning.js'
@@ -21,6 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Static checks
         run: |
+          node --check home-dashboard.js
           node --check home-dashboard-sessions.js
           node --check modules/sessions/ui/editor.js
           node --check modules/calendar/ui/session-planning.js
