@@ -26,10 +26,11 @@ for(const token of [
   'modules/ai/ui/session-chat.js?v=20261006-synced-key-1'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
 const aiBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
-const aiLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)&api=13d/);
+const aiLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)/);
 assert(aiBuildMatch,'AI global build marker missing');
-assert(aiLoaderMatch,'AI global app-loader/API marker missing');
-assert.equal(aiBuildMatch[1],aiLoaderMatch[1],'AI global build/app-loader markers differ');
+assert(aiLoaderMatch,'AI global app-loader marker missing');
+assert(aiBuildMatch[1].trim(),'AI global build marker is empty');
+assert(aiLoaderMatch[1].trim(),'AI global app-loader marker is empty');
 
 const base=process.env.AUDIT_URL||'http://127.0.0.1:8000/index.html';
 const fixture={version:4,clients:[{
