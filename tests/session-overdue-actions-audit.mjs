@@ -164,7 +164,12 @@ await page.waitForFunction(()=>!window.DiagnostikaSessions.get('future-session-2
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:future-session-2"]').count(),0,'Deleted diagnosis remains in notification deck');
 
 await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:overdue-session-1"]').click();
+const overdueTarget=page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:overdue-session-1"]');
+if(await overdueTarget.evaluate(el=>el.classList.contains('is-active'))){
+  await overdueTarget.locator('.hd-notification-head').click();
+}else{
+  await overdueTarget.click();
+}
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='session:overdue-session-1');
 await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-notification-complete').click();
 
