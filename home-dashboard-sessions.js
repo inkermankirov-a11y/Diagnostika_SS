@@ -471,6 +471,7 @@
     .hd-sessions-actions{display:flex;align-items:center;gap:8px}
     .hd-add-session,.hd-session-archive-btn{height:40px;padding:0 16px;font-size:13px}
     .hd-session-archive-btn{background:linear-gradient(#fff,#edf2f7)!important;color:#31536f!important;border:1px solid #c8d5e3!important}
+    .hd-client-alert-slot:empty{display:none}.hd-client-alert-slot{margin-top:14px}
     .hd-session-overdue-notice{display:flex;align-items:flex-start;gap:10px;margin:0 0 12px;padding:11px 13px;border:1px solid #ef9a82;border-left:5px solid #dc4b32;border-radius:10px;background:#fff1ed;color:#8d2f20;box-shadow:0 3px 10px rgba(174,57,34,.08)}
     .hd-session-overdue-notice[hidden]{display:none!important}.hd-session-overdue-notice strong{white-space:nowrap;font-size:12px}.hd-session-overdue-notice span{font-size:12px;line-height:1.4}
     .hd-sessions-list{display:grid;gap:11px;width:100%}
