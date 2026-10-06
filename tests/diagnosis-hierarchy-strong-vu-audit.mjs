@@ -61,8 +61,8 @@ const initial=await page.evaluate(()=>{
     instinctCount:by('instinct').length,
     deepDisplay:style(deep)?.display,
     instinctDisplay:style(instinct)?.display,
-    deepLeft:rect(deep)?.left||0,
-    instinctLeft:rect(instinct)?.left||0,
+    deepLeft:rect(deep?.querySelector('.tree-row-kind'))?.left||0,
+    instinctLeft:rect(instinct?.querySelector('.tree-row-kind'))?.left||0,
     groupToggle:!!document.querySelector('.feeling-group-toggle'),
     summary:[...document.querySelectorAll('.strong-vu-row')].map(r=>({text:r.querySelector('.strong-vu-text')?.textContent,level:r.querySelector('.strong-vu-level')?.textContent,count:r.querySelector('.strong-vu-count')?.textContent||'',repeat:r.classList.contains('is-repeat'),bg:style(r)?.backgroundColor}))
   };
@@ -93,8 +93,8 @@ const expanded1=await page.evaluate(()=>({
   d1:getComputedStyle(document.querySelector('#tree .tree-row.deep[data-element-id="d1"]')).display,
   i1:getComputedStyle(document.querySelector('#tree .tree-row.instinct[data-element-id="i1"]')).display,
   d2:getComputedStyle(document.querySelector('#tree .tree-row.deep[data-element-id="d2"]')).display,
-  deepLeft:document.querySelector('#tree .tree-row.deep[data-element-id="d1"]').getBoundingClientRect().left,
-  instinctLeft:document.querySelector('#tree .tree-row.instinct[data-element-id="i1"]').getBoundingClientRect().left
+  deepLeft:document.querySelector('#tree .tree-row.deep[data-element-id="d1"] .tree-row-kind').getBoundingClientRect().left,
+  instinctLeft:document.querySelector('#tree .tree-row.instinct[data-element-id="i1"] .tree-row-kind').getBoundingClientRect().left
 }));
 assert.notEqual(expanded1.d1,'none');
 assert.notEqual(expanded1.i1,'none');
