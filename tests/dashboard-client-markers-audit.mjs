@@ -26,6 +26,7 @@ assert.equal(js.includes('hd-new-client-dot'),false,'old blinking green new-clie
 assert.ok(js.includes('hd-upcoming-session-dot'),'upcoming appointment indicator missing');
 assert.ok(js.includes("if(type==='напоминание'||title==='напоминание')return 'reminder'"),'reminder beacon type mapping missing');
 assert.ok(js.includes("if(type==='бесплатная консультация'||title==='бесплатная консультация')return 'free-consultation'"),'free-consultation beacon type mapping missing');
+assert.ok(js.includes("if(type==='диагностика'||title==='диагностика'||/^диагностика №\\d+$/i.test"),'diagnosis beacon type mapping missing');
 assert.ok(js.includes("if(type==='сессия'||/^сессия №\\d+$/i.test"),'session beacon type mapping missing');
 assert.ok(js.includes("return `${upcomingBeaconTypeLabel(event)} • ${dateText} • ${timeText}`"),'beacon tooltip does not identify appointment type');
 assert.ok(js.includes("const heroReminder=$('#hdHeroReminder')"),'client hero reminder container missing');
@@ -56,7 +57,8 @@ assert.equal(css.includes("stroke='%233b82f6'"),false,'old blue crescent marker 
 assert.equal(css.includes("stroke='%2335b86b'"),false,'old green crescent marker asset still present');
 assert.equal(css.includes('hdNewClientPulse'),false,'green new-client marker must not blink');
 assert.ok(css.includes('@keyframes hdUpcomingSessionPulse'),'upcoming appointment pulse missing');
-assert.ok(css.includes('.hd-upcoming-session-dot.is-session{--hd-beacon:#f4b72a'),'session beacon is not yellow');
+assert.ok(css.includes('.hd-upcoming-session-dot.is-diagnosis{--hd-beacon:#f4b72a'),'diagnosis beacon is not yellow');
+assert.ok(css.includes('.hd-upcoming-session-dot.is-session{--hd-beacon:#4c8ed9'),'session beacon is not blue');
 assert.ok(css.includes('.hd-upcoming-session-dot.is-reminder{--hd-beacon:#8b5cf6'),'reminder beacon is not purple');
 assert.ok(css.includes('.hd-upcoming-session-dot.is-free-consultation{--hd-beacon:#22c55e'),'free-consultation beacon is not green');
 assert.ok(css.includes('.hd-upcoming-tooltip'),'upcoming appointment tooltip style missing');
@@ -107,9 +109,9 @@ assert.ok(sessionsUi.includes('.hd-session-card.hd-session-focus-unpaid'),'unpai
 assert.ok(js.includes("if(a.pinned!==b.pinned)return a.pinned?-1:1"),'pinned and unpinned groups are not kept separate');
 assert.ok(js.includes('if(a.nextAt!==b.nextAt)return a.nextAt-b.nextAt'),'clients are not ordered by nearest planned interaction inside each group');
 assert.ok(js.includes('if(a.pinned&&a.pinRank!==b.pinRank)return a.pinRank-b.pinRank'),'pin order fallback missing');
-assert.ok(loader.includes('home-dashboard.css?v=20261005-reminder-actions-1'),'dashboard CSS cache key missing');
-assert.ok(loader.includes('home-dashboard.js?v=20261005-reminder-actions-1'),'dashboard client-main cache key missing');
-assert.ok(loader.includes('home-dashboard-sessions.js?v=20261003-capsule-4'),'dashboard sessions cache key missing');
+assert.ok(loader.includes('home-dashboard.css?v=20261006-diagnosis-beacon-1'),'dashboard CSS cache key missing');
+assert.ok(loader.includes('home-dashboard.js?v=20261006-diagnosis-beacon-1'),'dashboard client-main cache key missing');
+assert.ok(loader.includes('home-dashboard-sessions.js?v=20261006-number-by-type-1'),'dashboard sessions cache key missing');
 assert.ok(sessionsUi.includes('border:2px solid #b9d3ea'),'sessions capsule border is not visible enough');
 assert.ok(sessionsUi.includes('font-size:13px;line-height:1.35;color:#536b89;font-weight:750'),'sessions empty count is not readable enough');
 assert.ok(sessionsUi.includes('border:2px dashed #b9cee3'),'sessions empty-state border is not visible enough');
@@ -154,7 +156,7 @@ assert.ok(css.includes('backdrop-filter:blur(22px) saturate(1.20)'),'notes frost
 assert.ok(css.includes('.hd-client-view.has-client .hd-client-profile-copy{\n  min-height:182px'),'Client card button baseline alignment missing');
 assert.ok(css.includes('.hd-client-view.has-client .hd-social-btn{\n  height:40px'),'social icon height alignment missing');
 assert.ok(css.includes('.hd-client-specialist-slot{\n  transform:translateY(-3px)'),'current specialist lift missing');
-assert.ok(index.includes('app-loader.js?v=20260919-db14d&api=13d&final=15a&planned=20261003-1&beacons=20261003-1&reminder=20261003-1&dates=20261003-1'),'app-loader cache key missing');
+assert.ok(index.includes('app-loader.js?v=20261006-diagnosis-beacon-1'),'app-loader cache key missing');
 assert.ok(index.includes('modules/payments/ui/client-debt-flags.js?v=20261003-planned-session-1'),'client debt flags cache key missing');
 
 console.log('DASHBOARD_CLIENT_MARKERS_AUDIT_OK');

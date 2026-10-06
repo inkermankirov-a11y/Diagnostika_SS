@@ -208,14 +208,16 @@
 .hd-client-row.new-client .hd-avatar{box-shadow:0 0 0 2px #fff,0 0 0 5px #35b86b,0 2px 8px rgba(53,184,107,.16)}
 .hd-client-row.active.new-client .hd-avatar{box-shadow:0 0 0 2px #eaf4ff,0 0 0 5px #35b86b,0 2px 8px rgba(53,184,107,.16)}
 .hd-upcoming-session-dot{--hd-beacon:#94a3b8;--hd-beacon-ring:#64748b;--hd-beacon-rgb:148,163,184;width:10px;height:10px;border-radius:50%;display:block;background:var(--hd-beacon);border:2px solid #fff;box-shadow:0 0 0 1px var(--hd-beacon-ring),0 0 0 0 rgba(var(--hd-beacon-rgb),.20);cursor:help;animation:hdUpcomingSessionPulse 1.25s ease-in-out infinite;outline:none}
-.hd-upcoming-session-dot.is-session{--hd-beacon:#f4b72a;--hd-beacon-ring:#e4bd59;--hd-beacon-rgb:244,183,42}
+.hd-upcoming-session-dot.is-session{--hd-beacon:#4c8ed9;--hd-beacon-ring:#2f70c4;--hd-beacon-rgb:76,142,217}
+.hd-upcoming-session-dot.is-diagnosis{--hd-beacon:#f4b72a;--hd-beacon-ring:#d89b0b;--hd-beacon-rgb:244,183,42}
 .hd-upcoming-session-dot.is-reminder{--hd-beacon:#8b5cf6;--hd-beacon-ring:#7c3aed;--hd-beacon-rgb:139,92,246}
 .hd-upcoming-session-dot.is-reminder.is-overdue{--hd-beacon:#a855f7;--hd-beacon-ring:#dc4352;--hd-beacon-rgb:220,67,82}
 .hd-upcoming-session-dot.is-free-consultation{--hd-beacon:#22c55e;--hd-beacon-ring:#16a34a;--hd-beacon-rgb:34,197,94}
 .hd-upcoming-session-dot.is-neutral{--hd-beacon:#94a3b8;--hd-beacon-ring:#64748b;--hd-beacon-rgb:148,163,184}
 .hd-upcoming-session-dot:focus-visible{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--hd-beacon-ring)}
 .hd-upcoming-tooltip{position:fixed;z-index:22000;max-width:300px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#334155;font:700 12px/1.3 'Segoe UI',Arial,sans-serif;box-shadow:0 8px 24px rgba(15,23,42,.18);pointer-events:none;white-space:nowrap}
-.hd-upcoming-tooltip.is-session{border-color:#d7b84d;background:#fffaf0;color:#5b4613}
+.hd-upcoming-tooltip.is-session{border-color:#a8c8ed;background:#f2f7ff;color:#31547a}
+.hd-upcoming-tooltip.is-diagnosis{border-color:#d7b84d;background:#fffaf0;color:#5b4613}
 .hd-upcoming-tooltip.is-reminder{border-color:#b79af7;background:#f7f2ff;color:#5b3a99}
 .hd-upcoming-tooltip.is-free-consultation{border-color:#86d9a4;background:#f1fff6;color:#176a36}
 .hd-upcoming-tooltip[hidden]{display:none!important}

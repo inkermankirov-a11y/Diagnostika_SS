@@ -2,12 +2,13 @@ name: Dashboard reminder persistence audit
 
 on:
   push:
-    branches: [main, 'feature-dashboard-*', 'feature-client-*']
+    branches: [main, 'feature-dashboard-*', 'feature-client-*', 'feature-diagnosis-*']
     paths:
       - 'home-dashboard.js'
       - 'home-dashboard.css'
       - 'app-loader.js'
       - 'tests/dashboard-reminder-persistence-audit.mjs'
+      - 'tests/dashboard-diagnosis-beacon-audit.mjs'
       - '.github/workflows/dashboard-reminder-persistence-audit.yml'
   workflow_dispatch:
 
@@ -32,3 +33,4 @@ jobs:
           trap 'kill $PID || true' EXIT
           sleep 1
           node tests/dashboard-reminder-persistence-audit.mjs
+          node tests/dashboard-diagnosis-beacon-audit.mjs
