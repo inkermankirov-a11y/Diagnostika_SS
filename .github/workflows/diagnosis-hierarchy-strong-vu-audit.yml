@@ -1,0 +1,42 @@
+name: Diagnosis hierarchy strong VU audit
+
+on:
+  push:
+    branches: [main, 'feature-diagnosis-*']
+    paths:
+      - 'app.js'
+      - 'styles.css'
+      - 'index.html'
+      - 'modules/diagnosis/ui/feeling-collapse.js'
+      - 'modules/diagnosis/ui/strong-vu-summary.js'
+      - 'tests/diagnosis-hierarchy-strong-vu-audit.mjs'
+      - '.github/workflows/diagnosis-hierarchy-strong-vu-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  hierarchy-strong-vu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Static checks
+        run: |
+          node --check app.js
+          node --check modules/diagnosis/ui/feeling-collapse.js
+          node --check modules/diagnosis/ui/strong-vu-summary.js
+          node --check tests/diagnosis-hierarchy-strong-vu-audit.mjs
+      - name: Install browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Verify hierarchy and strong VU summary
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/hierarchy-vu-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 1
+          node tests/diagnosis-hierarchy-strong-vu-audit.mjs
