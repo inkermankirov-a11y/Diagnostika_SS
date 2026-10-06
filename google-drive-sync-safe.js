@@ -349,6 +349,7 @@
 
   async function safeSync(setStatus){
     setStatus('Подготавливаю локальную базу…');
+    try{window.DiagnostikaRequestAI?.migrateLegacyKey?.();}catch(error){console.warn('[Google Drive auto sync] AI key migration skipped',error);}
     const local=currentDatabase();
     if(!local)throw new Error('Не удалось получить текущую базу браузера.');
     const accountEmail=await googleAccountEmail();
