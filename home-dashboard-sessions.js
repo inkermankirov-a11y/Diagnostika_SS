@@ -177,8 +177,13 @@
     return true;
   }
 
+  const deletingSessionIds=new Set();
+
   async function deletePlanned(c,s,number){
     if(!c||!s)return false;
+    const id=String(s.id||'');
+    if(!id||deletingSessionIds.has(id))return false;
+
     const title=appointmentTitle(s,number);
     const ok=await confirmAction(
       `Удалить «${title}»? Будет удалена и связанная запись в календаре.`,
@@ -187,17 +192,25 @@
     );
     if(!ok)return false;
 
-    if(s.calendarEventId){
-      try{calendarApi()?.remove?.(s.calendarEventId,{source:'home-dashboard-session-delete'});}catch(_){}
-    }
-    const api=sessionsApi();
-    if(!api?.remove)return false;
-    const removed=api.remove(s.id,{client:c,source:'home-dashboard-session-delete'});
-    if(!removed)return false;
+    deletingSessionIds.add(id);
+    try{
+      const api=sessionsApi();
+      if(!api?.remove)return false;
 
-    try{window.DiagnostikaCalendarSessionPlanning?.refresh?.();}catch(_){}
-    render();
-    return true;
+      // Delete the session first. Calendar cleanup must not block or undo the visible deletion.
+      const removed=api.remove(s.id,{client:c,source:'home-dashboard-session-delete'});
+      if(!removed)return false;
+
+      render();
+
+      if(s.calendarEventId){
+        try{calendarApi()?.remove?.(s.calendarEventId,{source:'home-dashboard-session-delete'});}catch(_){}
+      }
+      try{window.DiagnostikaCalendarSessionPlanning?.refresh?.();}catch(_){}
+      return true;
+    }finally{
+      deletingSessionIds.delete(id);
+    }
   }
 
   function reschedulePlanned(s){
@@ -399,7 +412,16 @@
       });
       card.querySelector('.hd-session-delete-planned-btn')?.addEventListener('click',async e=>{
         e.preventDefault();e.stopPropagation();
-        await deletePlanned(c,s,number);
+        const button=e.currentTarget;
+        if(button.disabled)return;
+        button.disabled=true;
+        const originalText=button.textContent;
+        button.textContent='Удаление…';
+        const removed=await deletePlanned(c,s,number);
+        if(!removed&&button.isConnected){
+          button.disabled=false;
+          button.textContent=originalText;
+        }
       });
       card.addEventListener('click',e=>{
         if(e.target.closest('button,a,input,select,textarea,label')) return;
