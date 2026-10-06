@@ -2,7 +2,7 @@ name: Session overdue actions audit
 
 on:
   push:
-    branches: [main, 'feature-sessions-*']
+    branches: [main, 'feature-sessions-*', 'feature-client-*']
     paths:
       - 'home-dashboard-sessions.js'
       - 'modules/sessions/ui/editor.js'
