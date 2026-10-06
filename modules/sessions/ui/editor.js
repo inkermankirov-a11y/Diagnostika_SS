@@ -181,12 +181,13 @@ function openSessionEditor(c,s,number){
     const at=new Date(y,m-1,d,match?Number(match[1]):23,match?Number(match[2]):59,match?0:59,match?0:999).getTime();
     return at<Date.now();
   })();
-  const h=document.createElement('div');h.className='session-edit-title';h.textContent=`Сессия №${number}`;
+  const recordType=String(s?.appointmentType||s?.calendarTitle||'Сессия').trim()||'Сессия';
+  const h=document.createElement('div');h.className='session-edit-title';h.textContent=`${recordType} №${number}`;
 
   const plannedBanner=document.createElement('div');
   plannedBanner.className='session-planned-banner';
   plannedBanner.hidden=!planned;
-  const plannedType=String(s?.appointmentType||'Сессия');
+  const plannedType=recordType;
   const plannedDate=sessionDisplayDate(s?.date||sessionToday());
   const plannedTime=String(s?.scheduledTime||'').trim();
   const plannedBannerTop=document.createElement('div');plannedBannerTop.className='session-planned-banner-top';
