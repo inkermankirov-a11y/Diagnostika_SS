@@ -56,7 +56,11 @@ const state=await page.evaluate(()=>{
     badge:badge?.textContent?.trim()||'',
     sourceCount:card?.querySelectorAll('.hd-hero-reminder-source').length||0,
     buttons:actions.map(x=>x.textContent.trim()),
+    labels:actions.map(x=>x.getAttribute('aria-label')||''),
+    titles:actions.map(x=>x.getAttribute('title')||''),
+    svgCount:actions.map(x=>x.querySelectorAll('svg').length),
     tops:rects.map(r=>r.top),
+    widths:rects.map(r=>r.width),
     heights:rects.map(r=>r.height),
     dotContent:pseudo?.content||''
   };
@@ -64,9 +68,15 @@ const state=await page.evaluate(()=>{
 
 assert.equal(state.badge,'ДИАГНОСТИКА');
 assert.equal(state.sourceCount,0);
-assert.deepEqual(state.buttons,['✓ Проведена','📅 Перенести','Удалить']);
+assert.deepEqual(state.buttons,['','','']);
+assert.deepEqual(state.labels,['Проведено','Перенести','Удалить']);
+assert.deepEqual(state.titles,['Проведено','Перенести','Удалить']);
+assert.deepEqual(state.svgCount,[1,1,1]);
 assert(Math.max(...state.tops)-Math.min(...state.tops)<=1,'Diagnosis action buttons are not on one row');
 assert(Math.max(...state.heights)-Math.min(...state.heights)<=1,'Diagnosis action buttons have different heights');
+assert(Math.max(...state.widths)-Math.min(...state.widths)<=1,'Diagnosis action buttons have different widths');
+assert(state.widths.every((w,i)=>Math.abs(w-state.heights[i])<=1),`Diagnosis action buttons are not square: ${state.widths.join(',')} x ${state.heights.join(',')}`);
+assert(state.widths.every(w=>w<=30),`Diagnosis action buttons are too large: ${state.widths.join(',')}`);
 assert(state.height<150,`Diagnosis card is not compact: ${state.height}px`);
 assert(state.dotContent==='none'||state.dotContent==='normal'||state.dotContent==='""','Decorative badge dot still renders');
 assert(!state.text.includes('из календаря'),'Calendar source text is still visible');
