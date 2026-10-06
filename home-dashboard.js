@@ -37,6 +37,7 @@
               <div id="hdHeroActions" class="hd-client-actions"></div>
             </div>
           </div>
+          <div id="hdClientAlertSlot" class="hd-client-alert-slot" aria-live="polite"></div>
           <div id="hdSummary" class="hd-selected-summary" hidden></div>
         </section>
         <aside class="hd-client-right-rail" aria-label="Напоминание">

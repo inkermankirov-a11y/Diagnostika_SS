@@ -3,13 +3,23 @@ import assert from 'node:assert/strict';
 
 const fixture={version:4,calendarEvents:[{
   id:'cal-overdue-1',
-  title:'Сессия №1',
+  title:'Диагностика',
   type:'Диагностика',
   date:'2000-01-01',
   time:'19:00',
   clientId:'overdue-client',
   requestId:'overdue-r1',
   sessionId:'overdue-session-1',
+  plannedSessionSkeleton:true
+},{
+  id:'cal-overdue-2',
+  title:'Диагностика',
+  type:'Диагностика',
+  date:'2000-01-02',
+  time:'18:00',
+  clientId:'overdue-client',
+  requestId:'overdue-r1',
+  sessionId:'overdue-session-2',
   plannedSessionSkeleton:true
 }],clients:[{
   id:'overdue-client',
@@ -27,6 +37,18 @@ const fixture={version:4,calendarEvents:[{
     status:'planned',
     planned:true,
     calendarEventId:'cal-overdue-1',
+    appointmentType:'Диагностика',
+    calendarTitle:'Диагностика'
+  },{
+    id:'overdue-session-2',
+    date:'2000-01-02',
+    scheduledTime:'18:00',
+    requestId:'overdue-r1',
+    notes:'',
+    plan:'',
+    status:'planned',
+    planned:true,
+    calendarEventId:'cal-overdue-2',
     appointmentType:'Диагностика',
     calendarTitle:'Диагностика'
   }]
@@ -56,19 +78,28 @@ await page.evaluate(()=>{
 });
 
 const card=page.locator('.hd-session-card[data-session-id="overdue-session-1"]');
+const deleteCard=page.locator('.hd-session-card[data-session-id="overdue-session-2"]');
+const notice=page.locator('#hdSessionOverdueNotice');
 await card.waitFor({state:'visible',timeout:8000});
-await page.locator('#hdSessionOverdueNotice').waitFor({state:'visible',timeout:5000});
+await deleteCard.waitFor({state:'visible',timeout:8000});
+await notice.waitFor({state:'visible',timeout:5000});
 
+assert.equal(await notice.evaluate(el=>el.parentElement?.id),'hdClientAlertSlot','Overdue notice is not in the top client alert area');
 assert.equal(await card.evaluate(el=>el.classList.contains('is-overdue')),true);
 assert.equal(await card.locator('.hd-session-overdue-badge').textContent(),'⚠ ПРОСРОЧЕНО');
+assert.match(await card.locator('.hd-session-top strong').textContent(),/^Диагностика №\d+$/);
 assert.equal(await card.locator('.hd-session-complete-btn').isVisible(),true);
 assert.equal(await card.locator('.hd-session-reschedule-btn').isVisible(),true);
-assert.match(await page.locator('#hdSessionOverdueNotice').innerText(),/Просроченная запись/);
-assert.match(await page.locator('#hdSessionOverdueNotice').innerText(),/(Диагностика|Сессия)/);
+assert.equal(await card.locator('.hd-session-delete-planned-btn').isVisible(),true);
+assert.match(await notice.innerText(),/Просроченная запись/);
+assert.match(await notice.innerText(),/Диагностика/);
 
-await page.evaluate(()=>{
-  window.AppDialog.confirm=async()=>true;
-});
+await page.evaluate(()=>{window.AppDialog.confirm=async()=>true;});
+await deleteCard.locator('.hd-session-delete-planned-btn').click();
+await page.waitForFunction(()=>!window.DiagnostikaSessions.get('overdue-session-2')&&!window.DiagnostikaCalendar.get('cal-overdue-2'));
+
+assert.equal(await page.locator('.hd-session-card[data-session-id="overdue-session-2"]').count(),0,'Deleted diagnosis card still exists');
+
 await card.locator('.hd-session-complete-btn').click();
 await page.waitForFunction(()=>{
   const s=window.DiagnostikaSessions.get('overdue-session-1');
@@ -91,6 +122,7 @@ assert.equal(state.event.status,'completed');
 assert.equal(state.event.plannedSessionSkeleton,false);
 assert.equal(state.noticeHidden,true);
 assert.equal(state.summary.find(x=>x.label?.trim()==='Сессии')?.value,'1');
+assert.match(await page.locator('.hd-session-card[data-session-id="overdue-session-1"] .hd-session-top strong').textContent(),/^Диагностика №\d+$/);
 assert.equal(state.summary.find(x=>x.label?.trim()==='Последняя сессия')?.value,'01.01.2000');
 
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));

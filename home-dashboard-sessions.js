@@ -29,7 +29,6 @@
         <button id="hdAddSession" class="hd-primary hd-add-session" type="button">＋ Добавить сессию</button>
       </div>
     </div>
-    <div id="hdSessionOverdueNotice" class="hd-session-overdue-notice" hidden></div>
     <div id="hdSessionsList" class="hd-sessions-list"></div>
   `;
 
@@ -37,7 +36,16 @@
   const count=section.querySelector('#hdSessionsCount');
   const add=section.querySelector('#hdAddSession');
   const archiveBtn=section.querySelector('#hdSessionArchive');
-  const overdueNotice=section.querySelector('#hdSessionOverdueNotice');
+  const alertSlot=dashboard.querySelector('#hdClientAlertSlot');
+  let overdueNotice=dashboard.querySelector('#hdSessionOverdueNotice');
+  if(!overdueNotice){
+    overdueNotice=document.createElement('div');
+    overdueNotice.id='hdSessionOverdueNotice';
+    overdueNotice.className='hd-session-overdue-notice';
+    overdueNotice.hidden=true;
+    if(alertSlot)alertSlot.appendChild(overdueNotice);
+    else section.insertAdjacentElement('beforebegin',overdueNotice);
+  }
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const getClient=()=>window.DiagnostikaClients?.current?.()||null;
@@ -90,6 +98,15 @@
     return !!s&&(s.planned===true||String(s.status||'')==='planned');
   }
 
+  function appointmentLabel(s){
+    const raw=String(s?.appointmentType||s?.calendarTitle||'').trim();
+    return raw||'Сессия';
+  }
+
+  function appointmentTitle(s,number){
+    return `${appointmentLabel(s)} №${number}`;
+  }
+
   function calendarApi(){
     return window.DiagnostikaCalendar?.moduleAware===true
       ?window.DiagnostikaCalendar
@@ -125,8 +142,8 @@
   async function markConducted(c,s){
     if(!c||!s||!isPlannedSession(s))return false;
     const ok=await confirmAction(
-      `Отметить «${s.appointmentType||'Сессию'}» от ${scheduledLabel(s)} как проведённую?`,
-      'Сессия проведена?',
+      `Отметить «${appointmentLabel(s)}» от ${scheduledLabel(s)} как проведённую?`,
+      `${appointmentLabel(s)} проведена?`,
       'Да, проведена'
     );
     if(!ok)return false;
@@ -152,6 +169,29 @@
         },{source:'home-dashboard-session-complete'});
       }catch(_){}
     }
+    try{window.DiagnostikaCalendarSessionPlanning?.refresh?.();}catch(_){}
+    render();
+    return true;
+  }
+
+  async function deletePlanned(c,s,number){
+    if(!c||!s)return false;
+    const title=appointmentTitle(s,number);
+    const ok=await confirmAction(
+      `Удалить «${title}»? Будет удалена и связанная запись в календаре.`,
+      'Удалить запись?',
+      'Удалить'
+    );
+    if(!ok)return false;
+
+    if(s.calendarEventId){
+      try{calendarApi()?.remove?.(s.calendarEventId,{source:'home-dashboard-session-delete'});}catch(_){}
+    }
+    const api=sessionsApi();
+    if(!api?.remove)return false;
+    const removed=api.remove(s.id,{client:c,source:'home-dashboard-session-delete'});
+    if(!removed)return false;
+
     try{window.DiagnostikaCalendarSessionPlanning?.refresh?.();}catch(_){}
     render();
     return true;
@@ -257,7 +297,7 @@
       row.tabIndex=0;
       row.innerHTML=`
         <div class="hd-session-archive-main">
-          <strong>Сессия №${number}</strong>
+          <strong>${esc(appointmentTitle(s,number))}</strong>
           <span>${esc(formatRuDate(s.date))}</span>
         </div>
         <div class="hd-session-archive-request">${esc(req?.title||'Без связи с запросом')}</div>
@@ -273,7 +313,12 @@
 
   function render(){
     const c=getClient();
-    if(!c){section.hidden=true;emitSessionsRendered();return;}
+    if(!c){
+      section.hidden=true;
+      if(overdueNotice){overdueNotice.hidden=true;overdueNotice.innerHTML='';}
+      emitSessionsRendered();
+      return;
+    }
     section.hidden=false;
     const r=currentRequest(c);
     const all=numberedSessions(c);
@@ -291,7 +336,7 @@
     if(overdueNotice){
       if(overdueItems.length){
         const first=overdueItems[0]?.s;
-        const type=first?.appointmentType||'Сессия';
+        const type=appointmentLabel(first);
         const extra=overdueItems.length>1?` Ещё просрочено: ${overdueItems.length-1}.`:'';
         overdueNotice.hidden=false;
         overdueNotice.innerHTML=`<strong>⚠ Просроченная запись</strong><span>${esc(type)} · ${esc(scheduledLabel(first))}. Отметьте, была ли она проведена, или перенесите.${esc(extra)}</span>`;
@@ -326,16 +371,17 @@
       const plannedHtml=planned
         ?`<span class="hd-session-planned-badge">● ЗАПЛАНИРОВАНО</span><span class="${overdue?'hd-session-overdue-badge':'hd-session-not-done'}">${overdue?'⚠ ПРОСРОЧЕНО':'НЕ ПРОВЕДЕНА'}</span>`
         :'';
-      const typeHtml=planned&&s.appointmentType?`<span class="hd-session-type">${esc(s.appointmentType)}</span>`:'';
+      const type=appointmentLabel(s);
+      const typeHtml=planned&&type&&type!=='Сессия'?`<span class="hd-session-type">${esc(type)}</span>`:'';
       const plannedActions=planned
-        ?`<div class="hd-session-card-actions"><button type="button" class="hd-session-complete-btn">✓ Проведена</button><button type="button" class="hd-session-reschedule-btn">Перенести</button></div>`
+        ?`<div class="hd-session-card-actions"><button type="button" class="hd-session-complete-btn">✓ Проведена</button><button type="button" class="hd-session-reschedule-btn">Перенести</button><button type="button" class="hd-session-delete-planned-btn">Удалить</button></div>`
         :'';
       const bodyHtml=planned
         ?`<div class="hd-session-plan-label">ПЛАН НА СЕССИЮ</div><div class="hd-session-plan ${plan?'':'empty'}">${plan?esc(plan):'План пока не заполнен — откройте карточку и подготовьте его заранее.'}</div>${plannedActions}`
         :(notes?`<div class="hd-session-note-label">ЗАМЕТКА</div><div class="hd-session-note">${esc(notes)}</div>`:'<div class="hd-session-note hd-session-note-empty">Заметка не добавлена</div>');
       card.innerHTML=`
         <div class="hd-session-top">
-          <strong>Сессия №${number}</strong>
+          <strong>${esc(appointmentTitle(s,number))}</strong>
           ${plannedHtml}
           <span class="hd-session-date">${planned?(overdue?'Было назначено:':'Назначено:'):'◷'} ${esc(planned?scheduledLabel(s):formatRuDate(s.date))}</span>
           ${typeHtml}
@@ -352,6 +398,10 @@
       card.querySelector('.hd-session-reschedule-btn')?.addEventListener('click',e=>{
         e.preventDefault();e.stopPropagation();
         if(!reschedulePlanned(s))openEditor(c,s,number);
+      });
+      card.querySelector('.hd-session-delete-planned-btn')?.addEventListener('click',async e=>{
+        e.preventDefault();e.stopPropagation();
+        await deletePlanned(c,s,number);
       });
       card.addEventListener('click',e=>{
         if(e.target.closest('button,a,input,select,textarea,label')) return;
@@ -421,6 +471,7 @@
     .hd-sessions-actions{display:flex;align-items:center;gap:8px}
     .hd-add-session,.hd-session-archive-btn{height:40px;padding:0 16px;font-size:13px}
     .hd-session-archive-btn{background:linear-gradient(#fff,#edf2f7)!important;color:#31536f!important;border:1px solid #c8d5e3!important}
+    .hd-client-alert-slot:empty{display:none}.hd-client-alert-slot{margin-top:14px}
     .hd-session-overdue-notice{display:flex;align-items:flex-start;gap:10px;margin:0 0 12px;padding:11px 13px;border:1px solid #ef9a82;border-left:5px solid #dc4b32;border-radius:10px;background:#fff1ed;color:#8d2f20;box-shadow:0 3px 10px rgba(174,57,34,.08)}
     .hd-session-overdue-notice[hidden]{display:none!important}.hd-session-overdue-notice strong{white-space:nowrap;font-size:12px}.hd-session-overdue-notice span{font-size:12px;line-height:1.4}
     .hd-sessions-list{display:grid;gap:11px;width:100%}
@@ -442,7 +493,7 @@
     .hd-session-overdue-badge{padding:4px 8px;border:1px solid #d96b55;border-radius:999px;background:#df553d;color:#fff;font-size:10px;font-weight:900;letter-spacing:.04em;box-shadow:0 2px 6px rgba(175,55,35,.18)}
     .hd-session-type{border-color:#d7c8f4;background:#f6f0ff;color:#6d49a3;font-weight:800}
     .hd-session-pay{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid transparent;white-space:nowrap}.hd-session-pay.paid{background:#e9f8ef;color:#247a49;border-color:#bfe7ce}.hd-session-pay.unpaid{background:#fdecec;color:#b33a3a;border-color:#f1c3c3}.hd-session-flag{font-size:13px;line-height:1}
-    .hd-session-card-actions{display:flex;gap:8px;padding:0 14px 13px}.hd-session-card-actions button{height:34px;border-radius:8px;padding:0 13px;font-size:12px;font-weight:850;cursor:pointer}.hd-session-complete-btn{border:1px solid #8fcca7;background:#eaf8ef;color:#287447}.hd-session-complete-btn:hover{background:#dff3e7}.hd-session-reschedule-btn{border:1px solid #c9d5e4;background:#fff;color:#36546f}.hd-session-reschedule-btn:hover{background:#f2f6fa}
+    .hd-session-card-actions{display:flex;gap:8px;padding:0 14px 13px}.hd-session-card-actions button{height:34px;border-radius:8px;padding:0 13px;font-size:12px;font-weight:850;cursor:pointer}.hd-session-complete-btn{border:1px solid #8fcca7;background:#eaf8ef;color:#287447}.hd-session-complete-btn:hover{background:#dff3e7}.hd-session-reschedule-btn{border:1px solid #c9d5e4;background:#fff;color:#36546f}.hd-session-reschedule-btn:hover{background:#f2f6fa}.hd-session-delete-planned-btn{border:1px solid #e4aaa2;background:#fff5f4;color:#a63b2c}.hd-session-delete-planned-btn:hover{background:#fde6e3}
     .hd-session-edit-hint{margin-left:auto;color:#2f70d4;font-size:12px;font-weight:800}.hd-session-note-label,.hd-session-plan-label{padding:11px 14px 0;color:#a17b55;font-size:10px;font-weight:800;letter-spacing:.08em}.hd-session-note,.hd-session-plan{padding:7px 14px 14px;color:#243a58;font-size:13px;line-height:1.45;white-space:pre-wrap}.hd-session-note-empty{color:#9aa9bc;font-style:italic;padding-top:13px}.hd-session-plan-label{color:#976a0a}.hd-session-plan{color:#654c17;font-weight:700}.hd-session-plan.empty{color:#a2854a;font-weight:600;font-style:italic}.hd-sessions-empty{min-height:68px;padding:20px 22px;border:2px dashed #b9cee3;border-radius:12px;text-align:center;color:#4e6482;background:linear-gradient(145deg,#ffffff,#f4f8fc);font-size:14px;line-height:1.45;font-weight:700;display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.96)}
     .hd-session-archive-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}.hd-session-archive-dialog::backdrop{background:rgba(15,23,42,.44);backdrop-filter:blur(5px)}.hd-session-archive-window{width:min(720px,calc(100vw - 24px));max-height:86vh;overflow:auto;background:#f8fafc;border:1px solid #d5dee8;border-radius:14px;box-shadow:0 24px 65px rgba(15,23,42,.28);padding:18px;box-sizing:border-box}.hd-session-archive-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.hd-session-archive-head strong{font-size:19px;color:#26384b}.hd-session-archive-sub{margin-top:3px;font-size:12px;color:#7b8ba0}.hd-session-archive-close{width:36px;height:36px;border-radius:8px!important;padding:0!important}.hd-session-archive-list{display:grid;gap:8px}.hd-session-archive-row{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;padding:11px 12px;border:1px solid #dbe4ed;border-radius:9px;background:#fff;cursor:pointer}.hd-session-archive-row:hover{background:#f8fbff}.hd-session-archive-main{display:grid;gap:3px}.hd-session-archive-main span{font-size:12px;color:#718198}.hd-session-archive-request{font-size:13px;color:#334155}
     @media(max-width:820px){.hd-sessions-section{padding:14px}.hd-sessions-head{align-items:stretch;flex-direction:column}.hd-sessions-actions{width:100%}.hd-sessions-actions button{flex:1}.hd-session-edit-hint{width:100%;margin-left:0}.hd-session-archive-row{grid-template-columns:1fr}.hd-session-pay{justify-self:start}}
