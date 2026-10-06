@@ -6,6 +6,7 @@
   const currentRequest=()=>shell()?.currentRequest?.()||null;
   const currentSituation=()=>shell()?.currentSituation?.()||null;
   const selection=()=>shell()?.currentSelection?.()||null;
+  const afterGuard=async action=>{const guard=window.DiagnostikaEditorGuard;if(guard?.beforeLeave)return guard.beforeLeave(action);action();return true;};
   function focusEditor(){
     requestAnimationFrame(()=>{
       const input=document.querySelector('#editorText');
@@ -18,7 +19,8 @@
 
   const addBelief=document.querySelector('#addBeliefBtn');
   if(addBelief){
-    addBelief.onclick=()=>{
+    addBelief.onclick=async()=>{
+      await afterGuard(()=>{
       const s=currentSituation();
       const c=currentClient();
       const r=currentRequest();
@@ -30,12 +32,14 @@
       shell()?.selectDiagnosisElement?.('belief',b.id);
       shell()?.renderDiagnosisTree?.();
       focusEditor();
+      });
     };
   }
 
   const addFeeling=document.querySelector('#addFeelingBtn');
   if(addFeeling){
-    addFeeling.onclick=()=>{
+    addFeeling.onclick=async()=>{
+      await afterGuard(()=>{
       const selected=selection();
       if(selected?.type!=='belief') return alert('Сначала выбери первичное убеждение.');
       const c=currentClient();
@@ -47,12 +51,14 @@
       shell()?.selectDiagnosisElement?.('feeling',f.id);
       shell()?.renderDiagnosisTree?.();
       focusEditor();
+      });
     };
   }
 
   const addDeep=document.querySelector('#addDeepBtn');
   if(addDeep){
-    addDeep.onclick=()=>{
+    addDeep.onclick=async()=>{
+      await afterGuard(()=>{
       const selected=selection();
       if(selected?.type!=='feeling') return alert('Сначала выбери вторичное чувство.');
       const c=currentClient();
@@ -64,6 +70,7 @@
       shell()?.selectDiagnosisElement?.('deep',d.id);
       shell()?.renderDiagnosisTree?.();
       focusEditor();
+      });
     };
   }
 })();
