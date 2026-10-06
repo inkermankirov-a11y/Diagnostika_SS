@@ -160,22 +160,27 @@
     if(nameEl)nameEl.textContent=c?.name||'Клиент';
   }
 
-  compact.querySelector('.diagnosis-compact-back').addEventListener('click',()=>{
-    const clientId=currentClient()?.id||window.DiagnostikaClients?.currentId?.()||'';
-    document.querySelector('#diagnosisLaunchDialog')?.close?.();
-    document.querySelector('#requestHistoryDialog')?.close?.();
-    shell()?.setMode?.('card');
-    shell()?.clearSelection?.();
-    shell()?.renderMode?.();
-    shell()?.renderSessions?.();
-    setTimeout(()=>{
-      if(clientId&&typeof window.DiagnostikaHomeDashboard?.openClient==='function'){
-        window.DiagnostikaHomeDashboard.openClient(clientId);
-      }else{
-        window.DiagnostikaHomeDashboard?.showHome?.();
-      }
-      sync();
-    },0);
+  compact.querySelector('.diagnosis-compact-back').addEventListener('click',async()=>{
+    const leave=()=>{
+      const clientId=currentClient()?.id||window.DiagnostikaClients?.currentId?.()||'';
+      document.querySelector('#diagnosisLaunchDialog')?.close?.();
+      document.querySelector('#requestHistoryDialog')?.close?.();
+      shell()?.setMode?.('card');
+      shell()?.clearSelection?.();
+      shell()?.renderMode?.();
+      shell()?.renderSessions?.();
+      setTimeout(()=>{
+        if(clientId&&typeof window.DiagnostikaHomeDashboard?.openClient==='function'){
+          window.DiagnostikaHomeDashboard.openClient(clientId);
+        }else{
+          window.DiagnostikaHomeDashboard?.showHome?.();
+        }
+        sync();
+      },0);
+    };
+    const guard=window.DiagnostikaEditorGuard;
+    if(guard?.beforeLeave)await guard.beforeLeave(leave);
+    else leave();
   });
 
   document.addEventListener('diagnostika:mode-rendered',sync);
