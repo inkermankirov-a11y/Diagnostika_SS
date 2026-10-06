@@ -2129,6 +2129,7 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
 .hd-notification-card:not(.is-overdue) .hd-notification-badge::before,
 .hd-notification-card.is-reminder:not(.is-overdue) .hd-hero-reminder-badge::before{
   content:'';
+  display:block;
   width:5px;
   height:5px;
   flex:0 0 5px;
