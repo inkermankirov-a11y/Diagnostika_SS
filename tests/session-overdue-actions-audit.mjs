@@ -59,7 +59,7 @@ const card=page.locator('.hd-session-card[data-session-id="overdue-session-1"]')
 await card.waitFor({state:'visible',timeout:8000});
 await page.locator('#hdSessionOverdueNotice').waitFor({state:'visible',timeout:5000});
 
-assert.equal(await card.classList().then(x=>x.includes('is-overdue')),true);
+assert.equal(await card.evaluate(el=>el.classList.contains('is-overdue')),true);
 assert.equal(await card.locator('.hd-session-overdue-badge').textContent(),'⚠ ПРОСРОЧЕНО');
 assert.equal(await card.locator('.hd-session-complete-btn').isVisible(),true);
 assert.equal(await card.locator('.hd-session-reschedule-btn').isVisible(),true);
