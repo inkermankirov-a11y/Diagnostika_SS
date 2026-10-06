@@ -51,20 +51,21 @@ function saveDiagnosisEditorDraft({render=true}={}){
  if(!selected)return true;
  const draft=diagnosisEditorDraftState();
  if(!draft.dirty)return true;
- const ctx=diagnosisUiContext('diagnosis-ui-unsaved-guard-save');
+ const ctx=diagnosisUiContext('diagnosis-ui-element-save');
  if(!ctx)return false;
  const type=selected.type,id=selected.obj.id;
  if(draft.mainDirty){
    const changes={level:lvl($('#editorLevel').value),comment:$('#editorComment').value};
    if(type==='instinct')changes.name=$('#editorText').value;else changes.text=$('#editorText').value;
-   if(!ctx.api.updateElement(type,id,changes,ctx.options))return false;
+   if(!ctx.api.updateElement(type,id,changes,{...ctx.options,source:'diagnosis-ui-element-save'}))return false;
  }
  if(type==='deep'&&draft.instinctDirty){
    selectDiagnosisElementById('deep',id);
    const deep=selected?.obj;
    const first=Array.isArray(deep?.instincts)?deep.instincts[0]:null;
    const changes={name:$('#instinctCombo').value,level:lvl($('#instinctLevel').value),comment:$('#instinctComment').value};
-   const saved=first?ctx.api.updateElement('instinct',first.id,changes,ctx.options):ctx.api.addInstinct(id,changes,ctx.options);
+   const instinctOptions={...ctx.options,source:'diagnosis-ui-instinct-save'};
+   const saved=first?ctx.api.updateElement('instinct',first.id,changes,instinctOptions):ctx.api.addInstinct(id,changes,instinctOptions);
    if(!saved)return false;
  }
  selectDiagnosisElementById(type,id);
