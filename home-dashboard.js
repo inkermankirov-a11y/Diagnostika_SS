@@ -267,6 +267,7 @@
     const title=String(event?.title||'').trim().toLowerCase();
     if(type==='напоминание'||title==='напоминание')return 'reminder';
     if(type==='бесплатная консультация'||title==='бесплатная консультация')return 'free-consultation';
+    if(type==='диагностика'||title==='диагностика'||/^диагностика №\d+$/i.test(String(event?.title||'').trim()))return 'diagnosis';
     if(type==='сессия'||/^сессия №\d+$/i.test(String(event?.title||'').trim()))return 'session';
     return 'neutral';
   }
@@ -274,6 +275,7 @@
   function upcomingBeaconTypeLabel(event){
     const kind=upcomingBeaconKind(event);
     if(kind==='session')return 'Сессия';
+    if(kind==='diagnosis')return 'Диагностика';
     if(kind==='reminder')return 'Напоминание';
     if(kind==='free-consultation')return 'Бесплатная консультация';
     return String(event?.type||event?.title||'Запись').trim()||'Запись';
