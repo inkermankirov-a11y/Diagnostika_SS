@@ -2,7 +2,7 @@ name: Google Drive no-popup audit
 
 on:
   push:
-    branches: [main, 'feature-client-*']
+    branches: [main, 'feature-client-*', 'feature-google-*']
     paths:
       - 'google-drive-auth-popup-fix.js'
       - 'google-drive-sync-safe.js'
