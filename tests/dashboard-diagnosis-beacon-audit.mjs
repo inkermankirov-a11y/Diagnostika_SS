@@ -1,11 +1,14 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
+const future=new Date(Date.now()+24*60*60*1000);
+const futureDate=[future.getFullYear(),String(future.getMonth()+1).padStart(2,'0'),String(future.getDate()).padStart(2,'0')].join('-');
+
 const fixture={version:4,calendarEvents:[{
   id:'diag-beacon-1',
   title:'Диагностика',
   type:'Диагностика',
-  date:'2099-01-02',
+  date:futureDate,
   time:'19:00',
   clientId:'diag-beacon-client',
   requestId:'diag-beacon-r1',
@@ -18,7 +21,7 @@ const fixture={version:4,calendarEvents:[{
   requests:[{id:'diag-beacon-r1',title:'Запрос',status:'active',situations:[]}],
   sessions:[{
     id:'diag-beacon-session',
-    date:'2099-01-02',
+    date:futureDate,
     scheduledTime:'19:00',
     requestId:'diag-beacon-r1',
     appointmentType:'Диагностика',
