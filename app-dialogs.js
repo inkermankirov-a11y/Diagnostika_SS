@@ -14,6 +14,7 @@
     .app-message-actions button:active{transform:translateY(1px)}
     .app-message-ok,.app-message-yes{background:linear-gradient(#3fa56f,#218955);color:#fff}
     .app-message-no{background:linear-gradient(#eef2f7,#dbe3ec);color:#334155}
+    .app-message-discard{background:linear-gradient(#f8e5e5,#efd0d0);color:#8a2f2f}
     @media(max-width:520px){.app-message-card{padding:17px}.app-message-actions{display:grid;grid-template-columns:1fr 1fr}.app-message-actions button{width:100%;min-width:0}.app-message-actions.single{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
@@ -47,8 +48,36 @@
     });
   }
 
+  function savePrompt(text='Есть несохранённые изменения.',title='Сохранить изменения?'){
+    return new Promise(resolve=>{
+      const dialog=document.createElement('dialog');
+      dialog.className='app-message-dialog';
+      dialog.innerHTML='<div class="app-message-card"><div class="app-message-title"></div><div class="app-message-text"></div><div class="app-message-actions triple"></div></div>';
+      dialog.querySelector('.app-message-title').textContent=title;
+      dialog.querySelector('.app-message-text').textContent=String(text||'');
+      const actions=dialog.querySelector('.app-message-actions');
+      const finish=value=>{try{dialog.close();}catch(e){} dialog.remove();resolve(value);};
+
+      const stay=document.createElement('button');
+      stay.type='button';stay.className='app-message-no';stay.textContent='Остаться';stay.onclick=()=>finish('cancel');
+
+      const discard=document.createElement('button');
+      discard.type='button';discard.className='app-message-discard';discard.textContent='Не сохранять';discard.onclick=()=>finish('discard');
+
+      const save=document.createElement('button');
+      save.type='button';save.className='app-message-yes';save.textContent='Сохранить';save.onclick=()=>finish('save');
+
+      actions.append(stay,discard,save);
+      dialog.addEventListener('cancel',e=>{e.preventDefault();finish('cancel');},{once:true});
+      document.body.appendChild(dialog);
+      dialog.showModal();
+      requestAnimationFrame(()=>save.focus());
+    });
+  }
+
   window.AppDialog={
     alert(text,title='Сообщение'){return show({title,text,confirm:false});},
-    confirm(text,title='Подтверждение',okText='Продолжить',cancelText='Отмена'){return show({title,text,confirm:true,okText,cancelText});}
+    confirm(text,title='Подтверждение',okText='Продолжить',cancelText='Отмена'){return show({title,text,confirm:true,okText,cancelText});},
+    savePrompt(text,title='Сохранить изменения?'){return savePrompt(text,title);}
   };
 })();
