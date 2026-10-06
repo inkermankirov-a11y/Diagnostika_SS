@@ -619,7 +619,7 @@
     heroReminder.classList.toggle('is-overdue',Boolean(active.overdue));
     heroReminder.classList.toggle('is-fanned',notificationFanOpen);
     heroReminder.style.setProperty('--notification-count',String(items.length));
-    heroReminder.style.height=`${Math.min(170+Math.max(0,items.length-1)*(notificationFanOpen?42:9),620)}px`;
+    heroReminder.style.height=`${Math.min(150+Math.max(0,items.length-1)*(notificationFanOpen?42:9),620)}px`;
 
     ordered.forEach((item,index)=>{
       const card=item.kind==='reminder'?buildReminderNotificationCard(item):buildSessionNotificationCard(item);
