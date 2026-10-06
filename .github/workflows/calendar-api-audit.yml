@@ -2,7 +2,7 @@ name: Calendar API audit
 
 on:
   push:
-    branches: [main, 'feature-calendar-*', 'feature-session-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
+    branches: [main, 'feature-calendar-*', 'fix-calendar-*', 'feature-session-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
     paths:
       - 'modules/calendar/**'
       - 'calendar-api.js'
@@ -129,7 +129,7 @@ jobs:
               if token not in google:
                   errors.append('calendar 8D Google bridge hardening missing '+token)
           for token in [
-              'modules/calendar/ui/calendar.js?v=20261005-open-event-1',
+              'modules/calendar/ui/calendar.js?v=20261006-future-beacon-tooltip-1',
               'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
           ]:
               if token not in index:

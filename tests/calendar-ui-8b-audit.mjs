@@ -8,12 +8,18 @@ const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
 assert(apiSource.includes("version:'8D'"),'Calendar facade version is not 8D');
-assert(indexSource.includes('modules/calendar/ui/calendar.js?v=20261005-open-event-1'),'Calendar UI cache marker is stale');
+assert(indexSource.includes('modules/calendar/ui/calendar.js?v=20261006-future-beacon-tooltip-1'),'Calendar UI cache marker is stale');
 assert(uiSource.includes(".cal-day.has-events.is-reminder{--cal-beacon:#8b5cf6"),'Reminder day beacon is not purple');
 assert(uiSource.includes("if(kinds.includes('reminder'))return 'reminder'"),'Reminder day kind priority is missing');
 assert(uiSource.includes("row.className=`cal-event is-${calendarEventKind(e)}`"),'Reminder day detail does not receive event type styling');
-assert(indexSource.includes('app-loader.js?v=20261006-number-by-type-1'),'Global app-loader marker missing');
+assert(indexSource.includes('app-loader.js?v=20261006-session-delete-first-click-1'),'Global app-loader marker missing');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade loader marker is stale');
+assert(uiSource.includes('function eventShouldSignal(event,now=new Date())'),'Future-only calendar signal filter is missing');
+assert(uiSource.includes('event?.sessionCompleted===true'),'Completed calendar records still signal');
+assert(uiSource.includes('.cal-day-tooltip-action'),'Structured calendar action line is missing');
+assert(uiSource.includes('.cal-day-tooltip-note'),'Structured calendar note line is missing');
+assert(uiSource.includes('.cal-day-tooltip-row.is-reminder{--cal-row-accent:#7c3aed'),'Reminder tooltip accent is not purple');
+assert(uiSource.includes(".cal-day.has-events.is-diagnosis{--cal-beacon:#f59e0b"),'Diagnosis beacon color is missing');
 
 for(const forbidden of [
   'customEvents().push(item)',
@@ -62,11 +68,63 @@ await page.evaluate(()=>{
   for(const type of Object.values(window.DiagnostikaCalendar.events)){
     window.DiagnostikaPlatform.events.on(type,detail=>window.__calendar8bEvents.push({type,detail:{...detail}}));
   }
+  const pad=n=>String(n).padStart(2,'0');
+  const day=offset=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;};
+  const dates={past:day(-1),reminder:day(1),diagnosis:day(2),completed:day(3)};
+  window.__calendar8bSignalDates=dates;
+  const api=window.DiagnostikaCalendar;
+  api.create({id:'signal-past-diagnosis',date:dates.past,time:'19:00',clientId:'cal-8b-client',clientName:'Calendar 8B Client',type:'Диагностика',title:'Диагностика',note:'Проведена вчера',plannedSessionSkeleton:false},{source:'calendar-8b-signal-fixture'});
+  api.create({id:'signal-reminder',date:dates.reminder,time:'19:00',clientId:'cal-8b-client',clientName:'Calendar 8B Client',type:'Напоминание',title:'Напоминание',note:'Уточнить состояние после диагностики',plannedSessionSkeleton:false},{source:'calendar-8b-signal-fixture'});
+  api.create({id:'signal-diagnosis',date:dates.diagnosis,time:'18:30',clientId:'cal-8b-client',clientName:'Calendar 8B Client',type:'Диагностика',title:'Диагностика',note:'Повторная диагностика',plannedSessionSkeleton:false},{source:'calendar-8b-signal-fixture'});
+  api.create({id:'signal-completed',date:dates.completed,time:'17:00',clientId:'cal-8b-client',clientName:'Calendar 8B Client',type:'Сессия',title:'Сессия',note:'Уже проведена',sessionCompleted:true,status:'completed',completedAt:new Date().toISOString(),plannedSessionSkeleton:false},{source:'calendar-8b-signal-fixture'});
   window.DiagnostikaCalendar.open();
 });
 
 const dialog=page.locator('#diagnostikaCalendarOverlay');
 await dialog.waitFor({state:'visible'});
+const signalDates=await page.evaluate(()=>window.__calendar8bSignalDates);
+const pastCell=dialog.locator(`.cal-day[data-date="${signalDates.past}"]`);
+const reminderCell=dialog.locator(`.cal-day[data-date="${signalDates.reminder}"]`);
+const diagnosisCell=dialog.locator(`.cal-day[data-date="${signalDates.diagnosis}"]`);
+const completedCell=dialog.locator(`.cal-day[data-date="${signalDates.completed}"]`);
+await pastCell.waitFor({state:'visible',timeout:5000});
+assert.equal(await pastCell.locator('.cal-day-beacon').count(),0,'Past diagnosis still shows a signal');
+assert.equal(await completedCell.locator('.cal-day-beacon').count(),0,'Completed calendar record still shows a signal');
+assert.equal(await reminderCell.locator('.cal-day-beacon').count(),1,'Future reminder has no signal');
+assert.equal(await diagnosisCell.locator('.cal-day-beacon').count(),1,'Future diagnosis has no signal');
+
+await reminderCell.hover();
+const hover=dialog.locator('.cal-hover-tooltip');
+await hover.waitFor({state:'visible',timeout:3000});
+const reminderRow=hover.locator('.cal-day-tooltip-row.is-reminder');
+const reminderTooltip=await reminderRow.evaluate(row=>{
+  const client=row.querySelector('.cal-day-tooltip-client');
+  const action=row.querySelector('.cal-day-tooltip-action');
+  const note=row.querySelector('.cal-day-tooltip-note');
+  return {
+    client:client?.textContent?.trim()||'',
+    action:action?.textContent?.trim()||'',
+    note:note?.textContent?.trim()||'',
+    actionColor:getComputedStyle(action).color,
+    noteColor:getComputedStyle(note).color,
+    clientDisplay:getComputedStyle(client).display,
+    noteDisplay:getComputedStyle(note).display
+  };
+});
+assert.equal(reminderTooltip.client,'Calendar 8B Client');
+assert.equal(reminderTooltip.action,'Напоминание');
+assert.equal(reminderTooltip.note,'Уточнить состояние после диагностики');
+assert.equal(reminderTooltip.actionColor,'rgb(124, 58, 237)');
+assert.equal(reminderTooltip.noteColor,'rgb(124, 58, 237)');
+assert.equal(reminderTooltip.clientDisplay,'block');
+assert.equal(reminderTooltip.noteDisplay,'block');
+
+await page.mouse.move(5,5);
+await diagnosisCell.hover();
+await hover.waitFor({state:'visible',timeout:3000});
+const diagnosisRow=hover.locator('.cal-day-tooltip-row.is-diagnosis');
+assert.equal(await diagnosisRow.locator('.cal-day-tooltip-action').innerText(),'Диагностика');
+assert.equal(await diagnosisRow.locator('.cal-day-tooltip-note').innerText(),'Повторная диагностика');
 await dialog.locator('.cal-date').fill('2026-09-22');
 await dialog.locator('.cal-time').fill('18:30');
 await dialog.locator('.cal-client').selectOption('cal-8b-client');

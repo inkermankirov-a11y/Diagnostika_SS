@@ -31,23 +31,32 @@
     .cal-num{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:900;color:#243447}.cal-day-weekend .cal-num{color:#b45309}
     .cal-day.has-events{--cal-beacon:#f4b72a;--cal-beacon-ring:#e4bd59;--cal-beacon-rgb:244,183,42;--cal-event-border:#e8c86a;--cal-event-border-strong:#d9ad2d;--cal-tooltip-bg:#fffdf6;--cal-tooltip-time:#8a5b00;border-color:var(--cal-event-border)}
     .cal-day.has-events.is-reminder{--cal-beacon:#8b5cf6;--cal-beacon-ring:#7c3aed;--cal-beacon-rgb:139,92,246;--cal-event-border:#b79af7;--cal-event-border-strong:#8b5cf6;--cal-tooltip-bg:#faf7ff;--cal-tooltip-time:#6d45b8}
+    .cal-day.has-events.is-diagnosis{--cal-beacon:#f59e0b;--cal-beacon-ring:#d97706;--cal-beacon-rgb:245,158,11;--cal-event-border:#f2c26b;--cal-event-border-strong:#d97706;--cal-tooltip-bg:#fffaf0;--cal-tooltip-time:#a45b04}
+    .cal-day.has-events.is-session{--cal-beacon:#3b82f6;--cal-beacon-ring:#2563eb;--cal-beacon-rgb:59,130,246;--cal-event-border:#93b8f5;--cal-event-border-strong:#2563eb;--cal-tooltip-bg:#f4f8ff;--cal-tooltip-time:#245db5}
     .cal-day.has-events.is-free-consultation{--cal-beacon:#22c55e;--cal-beacon-ring:#16a34a;--cal-beacon-rgb:34,197,94;--cal-event-border:#86d9a4;--cal-event-border-strong:#22c55e;--cal-tooltip-bg:#f1fff6;--cal-tooltip-time:#176a36}
+    .cal-day.has-events.is-call{--cal-beacon:#06b6d4;--cal-beacon-ring:#0891b2;--cal-beacon-rgb:6,182,212;--cal-event-border:#7bd7e7;--cal-event-border-strong:#0891b2;--cal-tooltip-bg:#f1fcfe;--cal-tooltip-time:#0e7490}
+    .cal-day.has-events.is-neutral{--cal-beacon:#94a3b8;--cal-beacon-ring:#64748b;--cal-beacon-rgb:148,163,184;--cal-event-border:#cbd5e1;--cal-event-border-strong:#64748b;--cal-tooltip-bg:#f8fafc;--cal-tooltip-time:#475569}
     .cal-day.has-events:hover,.cal-day.has-events:focus{z-index:30;outline:none;border-color:var(--cal-event-border-strong);box-shadow:0 0 0 2px rgba(var(--cal-beacon-rgb),.12)}
     .cal-day-beacon{position:absolute;top:9px;right:9px;width:10px;height:10px;border-radius:50%;background:var(--cal-beacon);border:2px solid #fff;box-shadow:0 0 0 1px var(--cal-beacon-ring),0 0 0 0 rgba(var(--cal-beacon-rgb),.18);animation:calDayBeaconPulse 1.25s ease-in-out infinite}
     @keyframes calDayBeaconPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 1px var(--cal-beacon-ring),0 0 0 0 rgba(var(--cal-beacon-rgb),.12)}50%{transform:scale(1.14);box-shadow:0 0 0 1px var(--cal-beacon-ring),0 0 0 5px rgba(var(--cal-beacon-rgb),.20)}}
     .cal-hover-tooltip{position:fixed;z-index:30200;width:min(380px,calc(100vw - 24px));max-width:380px;padding:14px 16px;border:1px solid var(--cal-event-border,#e8c86a);border-radius:12px;background:var(--cal-tooltip-bg,#fffdf6);box-shadow:0 16px 40px rgba(32,37,51,.28);text-align:left;box-sizing:border-box;pointer-events:auto}
     .cal-hover-tooltip[hidden]{display:none!important}
     .cal-hover-tooltip.is-reminder{--cal-beacon-rgb:139,92,246;--cal-event-border:#b79af7;--cal-tooltip-bg:#faf7ff;--cal-tooltip-time:#6d45b8}
+    .cal-hover-tooltip.is-diagnosis{--cal-beacon-rgb:245,158,11;--cal-event-border:#f2c26b;--cal-tooltip-bg:#fffaf0;--cal-tooltip-time:#a45b04}
+    .cal-hover-tooltip.is-session{--cal-beacon-rgb:59,130,246;--cal-event-border:#93b8f5;--cal-tooltip-bg:#f4f8ff;--cal-tooltip-time:#245db5}
     .cal-hover-tooltip.is-free-consultation{--cal-beacon-rgb:34,197,94;--cal-event-border:#86d9a4;--cal-tooltip-bg:#f1fff6;--cal-tooltip-time:#176a36}
-    .cal-hover-tooltip.is-session{--cal-beacon-rgb:244,183,42;--cal-event-border:#e8c86a;--cal-tooltip-bg:#fffdf6;--cal-tooltip-time:#8a5b00}
+    .cal-hover-tooltip.is-call{--cal-beacon-rgb:6,182,212;--cal-event-border:#7bd7e7;--cal-tooltip-bg:#f1fcfe;--cal-tooltip-time:#0e7490}
     .cal-hover-tooltip.is-neutral{--cal-beacon-rgb:148,163,184;--cal-event-border:#cbd5e1;--cal-tooltip-bg:#f8fafc;--cal-tooltip-time:#475569}
     .cal-day-tooltip-row{width:100%;display:grid;grid-template-columns:56px 44px minmax(0,1fr);gap:10px;align-items:center;font-size:13px;line-height:1.35;color:#334155;text-align:left;border:0;background:transparent;padding:4px 2px;font-family:inherit}
     .cal-day-tooltip-row+.cal-day-tooltip-row{margin-top:8px;padding-top:10px;border-top:1px solid rgba(148,163,184,.24)}
     .cal-day-tooltip-client-link{cursor:pointer;border-radius:8px}.cal-day-tooltip-client-link:hover{background:rgba(var(--cal-beacon-rgb),.08)}
     .cal-day-tooltip-time{font-weight:900;color:var(--cal-tooltip-time);font-size:13px}
     .cal-day-tooltip-avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#e7eef7;color:#315475;font-size:12px;font-weight:900;box-shadow:0 0 0 1px #d4deea}.cal-day-tooltip-avatar img{width:100%;height:100%;object-fit:cover}
-    .cal-day-tooltip-details{min-width:0}.cal-day-tooltip-client{font-weight:900;font-size:13px;overflow-wrap:anywhere;color:#27384b}.cal-day-tooltip-event{margin-top:3px;font-size:12px;font-weight:700;line-height:1.35;color:#64748b;overflow-wrap:anywhere}
-    .cal-side-title{font-size:15px;font-weight:900;margin-bottom:4px}.cal-selected-date{font-size:12px;color:#64748b;margin-bottom:10px}.cal-events{display:grid;gap:7px;max-height:300px;overflow:auto;margin-bottom:12px}.cal-empty{padding:14px;border:1px dashed #d6dee8;border-radius:10px;text-align:center;color:#94a3b8;font-size:12px}.cal-event{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:start;padding:9px;border:1px solid #e0e7ef;border-radius:10px;background:#f8fafc}.cal-event.is-reminder{border-color:#c4b5fd;background:#faf7ff}.cal-event.is-reminder .cal-event-time,.cal-event.is-reminder .cal-event-title{color:#6d45b8}.cal-event.is-targeted{border-color:#7c3aed!important;background:#f5efff!important;box-shadow:0 0 0 3px rgba(124,58,237,.18),0 8px 20px rgba(92,54,170,.12);animation:calTargetEventPulse 1.1s ease-in-out 2}@keyframes calTargetEventPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}.cal-event-time{font-size:12px;font-weight:900;color:#334155}.cal-event-title{font-size:12px;font-weight:900;color:#1e293b}.cal-event-meta{font-size:10px;color:#64748b;margin-top:2px}.cal-delete{width:28px;height:28px!important;padding:0!important;font-size:13px!important;color:#b42318!important}
+    .cal-day-tooltip-details{min-width:0;display:grid;gap:4px}.cal-day-tooltip-client{display:block;font-weight:900;font-size:13px;line-height:1.3;overflow-wrap:anywhere;color:#27384b}
+    .cal-day-tooltip-row{--cal-row-accent:#64748b;--cal-row-soft:#f1f5f9}.cal-day-tooltip-row.is-reminder{--cal-row-accent:#7c3aed;--cal-row-soft:#f3e8ff}.cal-day-tooltip-row.is-diagnosis{--cal-row-accent:#d97706;--cal-row-soft:#fff1d6}.cal-day-tooltip-row.is-session{--cal-row-accent:#2563eb;--cal-row-soft:#eaf2ff}.cal-day-tooltip-row.is-free-consultation{--cal-row-accent:#16a34a;--cal-row-soft:#eaf8ef}.cal-day-tooltip-row.is-call{--cal-row-accent:#0891b2;--cal-row-soft:#e8fafd}
+    .cal-day-tooltip-action{display:inline-flex;justify-self:start;align-items:center;min-height:20px;padding:2px 8px;border-radius:999px;background:var(--cal-row-soft);color:var(--cal-row-accent);font-size:11px;font-weight:900;line-height:1.25}
+    .cal-day-tooltip-note{display:block;padding:5px 7px;border-left:3px solid var(--cal-row-accent);border-radius:5px;background:var(--cal-row-soft);color:var(--cal-row-accent);font-size:11px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+    .cal-side-title{font-size:15px;font-weight:900;margin-bottom:4px}.cal-selected-date{font-size:12px;color:#64748b;margin-bottom:10px}.cal-events{display:grid;gap:7px;max-height:300px;overflow:auto;margin-bottom:12px}.cal-empty{padding:14px;border:1px dashed #d6dee8;border-radius:10px;text-align:center;color:#94a3b8;font-size:12px}.cal-event{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:start;padding:9px;border:1px solid #e0e7ef;border-radius:10px;background:#f8fafc}.cal-event.is-reminder{border-color:#c4b5fd;background:#faf7ff}.cal-event.is-reminder .cal-event-time,.cal-event.is-reminder .cal-event-title{color:#6d45b8}.cal-event.is-diagnosis{border-color:#f2c26b;background:#fffaf0}.cal-event.is-diagnosis .cal-event-time,.cal-event.is-diagnosis .cal-event-title{color:#a45b04}.cal-event.is-session{border-color:#93b8f5;background:#f4f8ff}.cal-event.is-session .cal-event-time,.cal-event.is-session .cal-event-title{color:#245db5}.cal-event.is-free-consultation{border-color:#86d9a4;background:#f1fff6}.cal-event.is-free-consultation .cal-event-time,.cal-event.is-free-consultation .cal-event-title{color:#176a36}.cal-event.is-call{border-color:#7bd7e7;background:#f1fcfe}.cal-event.is-call .cal-event-time,.cal-event.is-call .cal-event-title{color:#0e7490}.cal-event.is-targeted{border-color:#7c3aed!important;background:#f5efff!important;box-shadow:0 0 0 3px rgba(124,58,237,.18),0 8px 20px rgba(92,54,170,.12);animation:calTargetEventPulse 1.1s ease-in-out 2}@keyframes calTargetEventPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}.cal-event-time{font-size:12px;font-weight:900;color:#334155}.cal-event-title{font-size:12px;font-weight:900;color:#1e293b}.cal-event-meta{font-size:10px;color:#64748b;margin-top:2px}.cal-delete{width:28px;height:28px!important;padding:0!important;font-size:13px!important;color:#b42318!important}
     .cal-quick-assign{width:100%;height:38px!important;margin:2px 0 12px;background:linear-gradient(#4b90ed,#2f74d6)!important;color:#fff!important;font-weight:900!important}.cal-overlay.client-mode .cal-quick-assign{display:none}.cal-overlay.overview-mode .cal-form{display:none}.cal-overlay.overview-mode.assign-open .cal-form{display:block}
     .cal-form{border-top:1px solid #e2e8f0;padding-top:12px}.cal-form-title{font-size:13px;font-weight:900;margin-bottom:8px}.cal-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cal-form label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#64748b}.cal-form input,.cal-form select,.cal-form textarea{width:100%;box-sizing:border-box;border:1px solid #c6d2df;border-radius:8px;background:#fff;padding:0 9px;font:600 12px 'Segoe UI',Arial,sans-serif;color:#243447}.cal-form input,.cal-form select{height:36px}.cal-form textarea{min-height:64px;padding-top:8px;resize:vertical}.cal-span2{grid-column:1/-1}.cal-client-time-preview{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-height:38px;padding:8px 10px;border:1px solid #d7e0eb;border-radius:8px;background:#f7f9fc;color:#53657a;font-size:11px;font-weight:800;box-sizing:border-box}.cal-client-time-preview strong{font-size:12px;color:#243447}.cal-client-time-preview.ok{border-color:#a9d9bd;background:#f1fbf5}.cal-client-time-preview.caution{border-color:#e8c86a;background:#fffaf0;color:#805900}.cal-client-time-preview.night{border-color:#e7a0a0;background:#fff3f3;color:#a63737}.cal-client-time-preview.night strong{color:#a63737}.cal-client-time-preview.unknown{border-color:#d7dde5;background:#f7f8fa;color:#6b7a8d}.cal-save{width:100%;margin-top:9px;height:38px!important;background:linear-gradient(#48a873,#278656)!important;color:#fff!important;font-weight:900!important}
     .cal-overlay.week-view .cal-week,.cal-overlay.day-view .cal-week{display:none}
@@ -70,7 +79,8 @@
     .cal-time-column.selected{background-color:#fbfdff}
     .cal-time-column.today{box-shadow:inset 0 0 0 1px rgba(26,115,232,.08)}
     .cal-time-event{position:absolute;left:4px;right:4px;z-index:4;min-height:30px;padding:5px 7px;border:1px solid #9ec1f6;border-left:4px solid #1a73e8;border-radius:6px;background:#d2e3fc;color:#174ea6;box-sizing:border-box;overflow:hidden;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(60,64,67,.12);font-family:inherit}
-    .cal-time-event:hover{background:#c5dafb;box-shadow:0 2px 6px rgba(60,64,67,.16)}
+    .cal-time-event:hover{box-shadow:0 2px 6px rgba(60,64,67,.16)}
+    .cal-time-event.is-reminder{border-color:#b79af7;border-left-color:#7c3aed;background:#f3e8ff;color:#6d45b8}.cal-time-event.is-diagnosis{border-color:#f2c26b;border-left-color:#d97706;background:#fff1d6;color:#a45b04}.cal-time-event.is-session{border-color:#93b8f5;border-left-color:#2563eb;background:#eaf2ff;color:#245db5}.cal-time-event.is-free-consultation{border-color:#86d9a4;border-left-color:#16a34a;background:#eaf8ef;color:#176a36}.cal-time-event.is-call{border-color:#7bd7e7;border-left-color:#0891b2;background:#e8fafd;color:#0e7490}.cal-time-event.is-neutral{border-color:#cbd5e1;border-left-color:#64748b;background:#f1f5f9;color:#475569}
     .cal-time-event-time{font-size:12px;font-weight:900;line-height:1.2}
     .cal-time-event-title{margin-top:2px;font-size:13px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cal-time-event-meta{margin-top:2px;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
@@ -142,12 +152,22 @@
     hoverTooltipHideTimer=setTimeout(hideHoverTooltip,120);
   }
   function calendarTooltipTheme(kind){
-    return ['reminder','free-consultation','session','neutral'].includes(kind)?kind:'neutral';
+    return ['reminder','diagnosis','session','free-consultation','call','neutral'].includes(kind)?kind:'neutral';
+  }
+  function eventActionLabel(e){
+    const type=String(e?.type||'').trim();
+    const title=String(e?.title||'').trim();
+    if(type)return type;
+    if(/^сессия(?:\s*№\s*\d+)?$/i.test(title))return 'Сессия';
+    return title||'Запись';
+  }
+  function eventTooltipNote(e){
+    return String(e?.note||e?.meta||'').trim();
   }
   function eventTooltipLabel(e){
-    const title=String(e?.title||e?.type||'Запись').trim()||'Запись';
-    const note=String(e?.note||e?.meta||'').trim();
-    return note?title+' — '+note:title;
+    const action=eventActionLabel(e);
+    const note=eventTooltipNote(e);
+    return note?action+' — '+note:action;
   }
   function positionHoverTooltip(anchor){
     if(!anchor||hoverTooltip.hidden)return;
@@ -170,9 +190,13 @@
     hoverTooltip.innerHTML=rows.map(e=>{
       const client=clientById(e.clientId);
       const name=client?.name||e.clientName||'Без клиента';
+      const rowKind=calendarEventKind(e);
+      const action=eventActionLabel(e);
+      const note=eventTooltipNote(e);
       const tag=client&&e.clientId?'button':'div';
-      const attrs=client&&e.clientId?` type="button" class="cal-day-tooltip-row cal-day-tooltip-client-link" data-client-id="${esc(e.clientId)}"`:' class="cal-day-tooltip-row"';
-      return `<${tag}${attrs}><span class="cal-day-tooltip-time">${esc(e.time||'—')}</span>${clientAvatarHtml(client)}<span class="cal-day-tooltip-details"><span class="cal-day-tooltip-client">${esc(name)}</span><span class="cal-day-tooltip-event">${esc(eventTooltipLabel(e))}</span></span></${tag}>`;
+      const classes='cal-day-tooltip-row'+(client&&e.clientId?' cal-day-tooltip-client-link':'')+' is-'+rowKind;
+      const attrs=client&&e.clientId?` type="button" class="${classes}" data-client-id="${esc(e.clientId)}"`:` class="${classes}"`;
+      return `<${tag}${attrs}><span class="cal-day-tooltip-time">${esc(e.time||'—')}</span>${clientAvatarHtml(client)}<span class="cal-day-tooltip-details"><span class="cal-day-tooltip-client">${esc(name)}</span><span class="cal-day-tooltip-action">${esc(action)}</span>${note?`<span class="cal-day-tooltip-note">${esc(note)}</span>`:''}</span></${tag}>`;
     }).join('');
     hoverTooltip.hidden=false;
     hoverTooltip.querySelectorAll('.cal-day-tooltip-client-link').forEach(link=>{
@@ -417,16 +441,39 @@
     const type=String(event?.type||'').trim().toLowerCase();
     const title=String(event?.title||'').trim().toLowerCase();
     if(type==='напоминание'||title==='напоминание')return 'reminder';
-    if(type==='бесплатная консультация'||title==='бесплатная консультация')return 'free-consultation';
+    if(type==='диагностика'||title==='диагностика')return 'diagnosis';
     if(type==='сессия'||/^сессия №\d+$/i.test(String(event?.title||'').trim()))return 'session';
+    if(type==='бесплатная консультация'||title==='бесплатная консультация')return 'free-consultation';
+    if(type==='созвон'||title==='созвон')return 'call';
     return 'neutral';
   }
   function calendarDayKind(rows){
     const kinds=(rows||[]).map(calendarEventKind);
     if(kinds.includes('reminder'))return 'reminder';
-    if(kinds.includes('free-consultation'))return 'free-consultation';
+    if(kinds.includes('diagnosis'))return 'diagnosis';
     if(kinds.includes('session'))return 'session';
+    if(kinds.includes('free-consultation'))return 'free-consultation';
+    if(kinds.includes('call'))return 'call';
     return 'neutral';
+  }
+  function eventIsCompleted(event){
+    const status=String(event?.status||'').trim().toLowerCase();
+    return event?.sessionCompleted===true
+      || Boolean(event?.completedAt||event?.conductedAt)
+      || ['completed','done','cancelled','canceled'].includes(status);
+  }
+  function eventShouldSignal(event,now=new Date()){
+    if(!event||eventIsCompleted(event))return false;
+    const date=String(event.date||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
+    const today=iso(now.getFullYear(),now.getMonth(),now.getDate());
+    if(date<today)return false;
+    if(date>today)return true;
+    const match=String(event.time||'').trim().match(/^(\d{1,2}):(\d{2})/);
+    if(!match)return true;
+    const [year,month,day]=date.split('-').map(Number);
+    const at=new Date(year,month-1,day,Number(match[1]),Number(match[2]),0,0);
+    return at.getTime()>now.getTime();
   }
   function currentClientId(){
     try{
@@ -521,20 +568,23 @@
       const d=new Date(start);d.setDate(start.getDate()+i);
       const ds=iso(d.getFullYear(),d.getMonth(),d.getDate());
       const evs=eventsOn(ds);
+      const signalEvents=evs.filter(event=>eventShouldSignal(event));
       const cell=document.createElement('div');
+      cell.dataset.date=ds;
       const weekend=(i%7)>=5;
-      const hasEvents=evs.length>0;
-      const eventClass=hasEvents?` has-events is-${calendarDayKind(evs)}`:'';
+      const hasRecords=evs.length>0;
+      const hasSignal=signalEvents.length>0;
+      const eventClass=hasSignal?` has-events is-${calendarDayKind(signalEvents)}`:(hasRecords?' has-records':'');
       const outside=d.getMonth()!==m;
       cell.className='cal-day'+(outside?' out':'')+(ds===selected?' selected':'')+(ds===today?' today':'')+(weekend?' cal-day-weekend':'')+eventClass;
-      if(hasEvents)cell.tabIndex=0;
+      if(hasRecords)cell.tabIndex=0;
 
-      cell.innerHTML=`<div class="cal-num">${d.getDate()}</div>${hasEvents?'<span class="cal-day-beacon" aria-hidden="true"></span>':''}`;
-      if(hasEvents){
-        cell.setAttribute('aria-label',evs.map(e=>`${e.time||'—'} ${clientById(e.clientId)?.name||e.clientName||'Без клиента'} — ${eventTooltipLabel(e)}`).join('; '));
-        cell.addEventListener('mouseenter',()=>showHoverTooltip(cell,evs));
+      cell.innerHTML=`<div class="cal-num">${d.getDate()}</div>${hasSignal?'<span class="cal-day-beacon" aria-hidden="true"></span>':''}`;
+      if(hasSignal){
+        cell.setAttribute('aria-label',signalEvents.map(e=>`${e.time||'—'} ${clientById(e.clientId)?.name||e.clientName||'Без клиента'} — ${eventTooltipLabel(e)}`).join('; '));
+        cell.addEventListener('mouseenter',()=>showHoverTooltip(cell,signalEvents));
         cell.addEventListener('mouseleave',scheduleHoverTooltipHide);
-        cell.addEventListener('focusin',()=>showHoverTooltip(cell,evs));
+        cell.addEventListener('focusin',()=>showHoverTooltip(cell,signalEvents));
         cell.addEventListener('focusout',scheduleHoverTooltipHide);
       }
       cell.onclick=()=>{
@@ -651,14 +701,16 @@
         const top=((clamped-TIME_GRID_START*60)/60)*TIME_GRID_HOUR_PX;
         const item=document.createElement('button');
         item.type='button';
-        item.className='cal-time-event';
+        item.className='cal-time-event is-'+calendarEventKind(e);
         item.style.top=Math.max(0,top+2)+'px';
         item.style.height=Math.max(34,TIME_GRID_HOUR_PX*.78)+'px';
         const client=clientById(e.clientId);
         const title=client?.name||e.clientName||e.title||e.type||'Запись';
-        const meta=[e.type||e.title,e.note].filter(Boolean).join(' • ');
-        item.innerHTML=`<div class="cal-time-event-time">${esc(e.time||'Без времени')}</div><div class="cal-time-event-title">${esc(title)}</div>${meta?`<div class="cal-time-event-meta">${esc(meta)}</div>`:''}`;
-        item.title=[e.time,title,meta].filter(Boolean).join(' · ');
+        const action=eventActionLabel(e);
+        const note=eventTooltipNote(e);
+        const meta=[action,note].filter(Boolean).join(' • ');
+        item.innerHTML=`<div class="cal-time-event-time">${esc(e.time||'Без времени')}</div><div class="cal-time-event-title">${esc(title)}</div><div class="cal-time-event-meta">${esc(action)}</div>${note?`<div class="cal-time-event-meta">${esc(note)}</div>`:''}`;
+        item.title=[e.time,title,action,note].filter(Boolean).join(' · ');
         item.onclick=event=>{
           event.stopPropagation();
           selected=ds;
