@@ -12,7 +12,7 @@ assert(indexSource.includes('modules/calendar/ui/calendar.js?v=20261006-future-b
 assert(uiSource.includes(".cal-day.has-events.is-reminder{--cal-beacon:#8b5cf6"),'Reminder day beacon is not purple');
 assert(uiSource.includes("if(kinds.includes('reminder'))return 'reminder'"),'Reminder day kind priority is missing');
 assert(uiSource.includes("row.className=`cal-event is-${calendarEventKind(e)}`"),'Reminder day detail does not receive event type styling');
-assert(indexSource.includes('app-loader.js?v=20261006-session-delete-first-click-1'),'Global app-loader marker missing');
+assert(indexSource.includes('app-loader.js?v=20261006-notification-icon-actions-1'),'Global app-loader marker missing');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade loader marker is stale');
 assert(uiSource.includes('function eventShouldSignal(event,now=new Date())'),'Future-only calendar signal filter is missing');
 assert(uiSource.includes('event?.sessionCompleted===true'),'Completed calendar records still signal');
