@@ -7,7 +7,8 @@
   const btn=document.querySelector('#addSituationBtn');
   if(!btn) return;
 
-  btn.onclick=()=>{
+  btn.onclick=async()=>{
+    const openDialog=()=>{
     const r=currentRequest();
     if(!r) return alert('Сначала выбери или создай запрос клиента.');
 
@@ -77,5 +78,8 @@
     dlg.addEventListener('click',e=>{if(e.target===dlg) dlg.close();});
     dlg.showModal();
     requestAnimationFrame(()=>nameInput.focus());
+    };
+    const guard=window.DiagnostikaEditorGuard;
+    if(guard?.beforeLeave)await guard.beforeLeave(openDialog);else openDialog();
   };
 })();
