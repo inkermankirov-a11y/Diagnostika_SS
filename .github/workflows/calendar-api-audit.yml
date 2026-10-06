@@ -2,7 +2,7 @@ name: Calendar API audit
 
 on:
   push:
-    branches: [main, 'feature-calendar-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
+    branches: [main, 'feature-calendar-*', 'feature-session-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
     paths:
       - 'modules/calendar/**'
       - 'calendar-api.js'
@@ -119,7 +119,7 @@ jobs:
           for forbidden in ["typeof save==='function'", 'st.calendarEvents', 'e.sessionNumber=', 'e.requestId=']:
               if forbidden in planning:
                   errors.append('calendar 8F legacy mutation remains: '+forbidden)
-          if 'modules/calendar/ui/session-planning.js?v=20261003-planned-session-3' not in index:
+          if 'modules/calendar/ui/session-planning.js?v=20261006-number-by-type-1' not in index:
               errors.append('calendar session planning module marker is stale')
 
           for token in ["version:'8E'", 'window.DiagnostikaCalendarUI=ui', "if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui", 'row.dataset.calendarEventId']:
