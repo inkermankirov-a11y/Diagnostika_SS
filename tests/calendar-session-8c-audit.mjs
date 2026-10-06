@@ -6,7 +6,7 @@ const planningSource=fs.readFileSync('modules/calendar/ui/session-planning.js','
 const indexSource=fs.readFileSync('index.html','utf8');
 
 assert(planningSource.includes("version:'8F'"),'Calendar session planning version is not 8F');
-assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261003-planned-session-3'),'Calendar session planner module marker is stale');
+assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261006-number-by-type-1'),'Calendar session planner module marker is stale');
 
 for(const forbidden of [
   "typeof save==='function'",
@@ -65,6 +65,29 @@ const fixture={
     }],
     quickNotes:[],
     questionnaires:[]
+  },{
+    id:'diag-only-client',
+    name:'Diagnosis Only Client',
+    currentRequestId:'diag-only-r1',
+    lastDiagnosisRequestId:'diag-only-r1',
+    requests:[{
+      id:'diag-only-r1',
+      title:'Diagnosis only request',
+      status:'active',
+      situations:[]
+    }],
+    sessions:[{
+      id:'diag-only-record-1',
+      date:'2026-10-05',
+      requestId:'diag-only-r1',
+      appointmentType:'Диагностика',
+      calendarTitle:'Диагностика',
+      planned:false,
+      status:'completed',
+      notes:'Диагностика проведена'
+    }],
+    quickNotes:[],
+    questionnaires:[]
   }]
 };
 
@@ -87,6 +110,13 @@ await page.waitForFunction(()=>window.DiagnostikaCalendar?.moduleAware===true
   && window.DiagnostikaSessions?.moduleAware===true
   && window.DiagnostikaCalendarSessionPlanning?.version==='8F',
   null,{timeout:15000});
+
+const diagnosisOnlyNumber=await page.evaluate(()=>{
+  const c=window.DiagnostikaClients.list().find(x=>x.id==='diag-only-client');
+  const r=c?.requests?.find(x=>x.id==='diag-only-r1');
+  return window.DiagnostikaCalendarSessionPlanning.nextSessionNumber(c,r);
+});
+assert.equal(diagnosisOnlyNumber,1,'Conducted diagnosis incorrectly increments therapy session number');
 
 await page.waitForFunction(()=>window.DiagnostikaSessions.list('cal-8c-client').some(s=>
   s.calendarEventId==='cal-8c-existing-future'

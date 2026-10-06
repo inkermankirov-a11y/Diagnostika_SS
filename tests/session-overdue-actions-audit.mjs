@@ -151,7 +151,11 @@ const state=await page.evaluate(()=>({
   event:window.DiagnostikaCalendar.get('cal-overdue-1'),
   deckKeys:[...document.querySelectorAll('#hdHeroReminder .hd-notification-card')].map(el=>el.dataset.notificationKey),
   listCardClass:document.querySelector('.hd-session-card[data-session-id="overdue-session-1"]')?.className||'',
-  listTitle:document.querySelector('.hd-session-card[data-session-id="overdue-session-1"] .hd-session-top strong')?.textContent||''
+  listTitle:document.querySelector('.hd-session-card[data-session-id="overdue-session-1"] .hd-session-top strong')?.textContent||'',
+  summary:[...document.querySelectorAll('#hdSummary .hd-summary-box')].map(box=>({
+    label:box.querySelector('.hd-summary-label')?.textContent?.trim()||'',
+    value:box.querySelector('.hd-summary-value')?.textContent?.trim()||''
+  }))
 }));
 assert.equal(state.session.planned,false);
 assert.equal(state.session.status,'completed');
@@ -159,7 +163,9 @@ assert.equal(state.event.sessionCompleted,true);
 assert.equal(state.event.status,'completed');
 assert(!state.deckKeys.includes('session:overdue-session-1'),'Completed diagnosis remains in notification deck');
 assert.match(state.listCardClass,/is-diagnosis/,'Completed diagnosis lost its yellow diagnosis identity');
-assert.match(state.listTitle,/^Диагностика №\d+$/);
+assert.match(state.listTitle,/^Диагностика №1$/);
+assert.equal(state.summary.find(x=>x.label==='Сессии')?.value,'0','Conducted diagnosis incorrectly increments session summary');
+assert.equal(state.summary.find(x=>x.label==='Последняя сессия')?.value,'—','Diagnosis incorrectly became the last therapy session');
 
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
