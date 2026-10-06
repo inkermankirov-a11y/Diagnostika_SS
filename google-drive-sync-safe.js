@@ -351,14 +351,20 @@
     setStatus('Подготавливаю локальную базу…');
     const local=currentDatabase();
     if(!local)throw new Error('Не удалось получить текущую базу браузера.');
+    const accountEmail=await googleAccountEmail();
     await pause();
 
-    setStatus('Загружаю базу из Google Drive…');
+    setStatus('Ищу все базы Diagnostika в Google Drive…');
     const remote=await remoteDatabase();
     const base=await getBase();
     await pause();
 
-    if(remote.data&&equal(local,remote.data)){
+    const coveredFolders=new Set((remote.copies||[]).map(copy=>String(copy.folder?.id||'')));
+    const cloudAligned=Boolean(remote.data)
+      &&(remote.folders||[]).every(folder=>coveredFolders.has(String(folder.id)))
+      &&(remote.copies||[]).every(copy=>equal(copy.data,remote.data));
+
+    if(remote.data&&equal(local,remote.data)&&cloudAligned){
       await setBase(local);
       setStatus(`Актуально: ${local.clients?.length||0} клиент(ов)`);
       return {
@@ -366,6 +372,9 @@
         conflicts:[],
         localCount:local.clients?.length||0,
         remoteCount:remote.data?.clients?.length||0,
+        remoteCopyCount:remote.copies?.length||0,
+        folderCount:remote.folders?.length||0,
+        accountEmail,
         unchanged:true
       };
     }
@@ -373,19 +382,28 @@
     setStatus('Создаю страховочные копии…');
     const backupFolder=await ensureBackupFolder(remote.folder.id);
     const jobs=[backupSnapshot(remote.folder.id,'local-before-sync',local,backupFolder)];
-    if(remote.data)jobs.push(backupSnapshot(remote.folder.id,'cloud-before-sync',remote.data,backupFolder));
+    (remote.copies||[]).forEach((copy,index)=>{
+      jobs.push(backupSnapshot(
+        remote.folder.id,
+        `cloud-copy-${index+1}-before-sync`,
+        copy.data,
+        backupFolder
+      ));
+    });
     await Promise.all(jobs);
     await pause();
 
-    setStatus('Объединяю данные в фоновом режиме…');
-    const {merged,conflicts}=await mergeInWorker(base,local,remote.data||{version:4,clients:[]});
+    setStatus('Объединяю локальную и все облачные базы…');
+    const localMerge=await mergeInWorker(base,local,remote.data||{version:4,clients:[]});
+    const merged=localMerge.merged;
+    const conflicts=[...(remote.cloudConflicts||[]),...(localMerge.conflicts||[])];
     await pause();
 
-    setStatus('Сохраняю объединённую базу в Google Drive…');
-    await uploadJson(remote.folder.id,'database.json',merged,remote.file?.id||null);
+    setStatus('Привожу все database.json в Google Drive к одной базе…');
+    const remoteWrites=await convergeRemoteCopies(remote,merged);
     await pause();
 
-    setStatus('Сохраняю локальную копию…');
+    setStatus('Сохраняю объединённую базу на этом ПК…');
     if(!writeCanonicalDatabase(merged,'google-drive-safe-sync'))throw new Error('Объединённая база уже сохранена в Google, но локальную копию сохранить не удалось. Не удаляй резервные копии в Diagnostika/Backups.');
     await setBase(merged);
     applyDatabaseToRuntime(merged);
@@ -397,6 +415,10 @@
       conflicts,
       localCount:local.clients?.length||0,
       remoteCount:remote.data?.clients?.length||0,
+      remoteCopyCount:remote.copies?.length||0,
+      folderCount:remote.folders?.length||0,
+      remoteWrites,
+      accountEmail,
       unchanged:false
     };
   }
