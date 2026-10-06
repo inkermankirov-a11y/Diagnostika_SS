@@ -52,7 +52,6 @@ await page.waitForFunction(()=>document.documentElement.classList.contains('diag
 await page.evaluate(()=>window.DiagnostikaDiagnosis.open());
 await page.locator('#diagnosisWorkspace').waitFor({state:'visible',timeout:5000});
 await page.locator('#tree .tree-row.primary').waitFor({state:'visible',timeout:5000});
-await page.locator('#tree .feeling-group-toggle').click();
 const longFeeling=page.locator('#tree .tree-row.feeling').filter({hasText:'Жалость к себе'});
 await longFeeling.waitFor({state:'visible',timeout:5000});
 await longFeeling.locator('.feeling-child-toggle').click();

@@ -74,3 +74,267 @@
   overflow-wrap:anywhere!important;
   word-break:normal!important;
 }
+
+
+/* Diagnosis hierarchy v2: compact, explicit PU -> VCh -> VU -> instinct tree. */
+#diagnosisWorkspace .tree-view{
+  background:#fff;
+}
+#diagnosisWorkspace .tree-view .tree-row{
+  display:grid!important;
+  align-items:start!important;
+  gap:6px;
+  min-height:29px!important;
+  height:auto!important;
+  padding-top:5px!important;
+  padding-bottom:5px!important;
+  line-height:1.28!important;
+  border-bottom:1px solid rgba(37,54,79,.06);
+  border-left:4px solid transparent;
+}
+#diagnosisWorkspace .tree-view .tree-row .tree-row-kind{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:25px;
+  height:19px;
+  padding:0 5px;
+  border-radius:5px;
+  font-size:10px;
+  line-height:19px;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+#diagnosisWorkspace .tree-view .tree-row .tree-row-label{
+  min-width:0!important;
+  width:auto!important;
+  max-width:none!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  line-height:1.28!important;
+}
+#diagnosisWorkspace .tree-view .tree-row .tree-row-level{
+  justify-self:end;
+  display:inline-grid;
+  place-items:center;
+  min-width:25px;
+  height:21px;
+  padding:0 5px;
+  border-radius:999px;
+  font-size:11px;
+  line-height:21px;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+#diagnosisWorkspace .tree-view .tree-row .tree-row-status{
+  justify-self:center;
+  align-self:center;
+  color:#cf8b00;
+  font-size:18px;
+  line-height:16px;
+  font-weight:900;
+}
+#diagnosisWorkspace .tree-view .tree-row.primary{
+  grid-template-columns:34px minmax(0,1fr) 30px!important;
+  padding-left:8px!important;
+  background:#3568d4!important;
+  color:#fff!important;
+  border-left-color:#244bb0;
+  font-weight:750;
+}
+#diagnosisWorkspace .tree-view .tree-row.primary .tree-row-kind{
+  background:rgba(255,255,255,.18);
+  color:#fff;
+}
+#diagnosisWorkspace .tree-view .tree-row.primary .tree-row-level{
+  background:rgba(255,255,255,.20);
+  color:#fff;
+}
+#diagnosisWorkspace .tree-view .tree-row.feeling{
+  grid-template-columns:20px 34px minmax(0,1fr) 30px 12px!important;
+  padding-left:20px!important;
+  background:#fff3b8!important;
+  color:#5b4700!important;
+  border-left-color:#e2b928;
+  font-weight:650;
+}
+#diagnosisWorkspace .tree-view .tree-row.feeling .tree-row-kind{
+  background:#efd36b;
+  color:#5b4700;
+}
+#diagnosisWorkspace .tree-view .tree-row.feeling .tree-row-level{
+  background:#f5df7f;
+  color:#5b4700;
+}
+#diagnosisWorkspace .tree-view .tree-row.deep{
+  grid-template-columns:34px minmax(0,1fr) 30px!important;
+  padding-left:48px!important;
+  background:#fbe0e0!important;
+  color:#7e2424!important;
+  border-left-color:#d85c5c;
+  font-weight:650;
+}
+#diagnosisWorkspace .tree-view .tree-row.deep .tree-row-kind{
+  background:#dfa0a0;
+  color:#721f1f;
+}
+#diagnosisWorkspace .tree-view .tree-row.deep .tree-row-level{
+  background:#edb8b8;
+  color:#721f1f;
+}
+#diagnosisWorkspace .tree-view .tree-row.instinct{
+  grid-template-columns:25px minmax(0,1fr) 30px!important;
+  padding-left:78px!important;
+  background:#eef1f4!important;
+  color:#4e5661!important;
+  border-left-color:#a6afb9;
+  font-size:12px;
+}
+#diagnosisWorkspace .tree-view .tree-row.instinct .tree-row-kind{
+  background:#d8dde3;
+  color:#4e5661;
+}
+#diagnosisWorkspace .tree-view .tree-row.instinct .tree-row-level{
+  background:#dfe3e8;
+  color:#4e5661;
+}
+#diagnosisWorkspace .tree-view .tree-row.active-selection{
+  box-shadow:inset 0 0 0 2px #183f9a!important;
+  font-weight:800!important;
+}
+#diagnosisWorkspace .tree-view .tree-row.primary.active-selection{background:#2857bd!important;color:#fff!important}
+#diagnosisWorkspace .tree-view .tree-row.feeling.active-selection{background:#ffe78a!important;color:#513d00!important}
+#diagnosisWorkspace .tree-view .tree-row.deep.active-selection{background:#f5c4c4!important;color:#741f1f!important}
+#diagnosisWorkspace .tree-view .tree-row.instinct.active-selection{background:#dde3e9!important;color:#39424e!important}
+#diagnosisWorkspace .tree-view .feeling-child-toggle{
+  grid-column:1!important;
+  align-self:start!important;
+  justify-self:center;
+  margin:0!important;
+}
+#diagnosisWorkspace .tree-view .tree-row.feeling > .tree-row-kind{grid-column:2!important}
+#diagnosisWorkspace .tree-view .tree-row.feeling > .tree-row-label{grid-column:3!important}
+#diagnosisWorkspace .tree-view .tree-row.feeling > .tree-row-level{grid-column:4!important}
+#diagnosisWorkspace .tree-view .tree-row.feeling > .tree-row-status{grid-column:5!important}
+
+/* Strong secondary beliefs summary under the editor. */
+.strong-vu-panel{
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid #d7dbe0;
+}
+.strong-vu-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:7px;
+}
+.strong-vu-title{
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.03em;
+  color:#263247;
+}
+.strong-vu-threshold{
+  padding:2px 7px;
+  border-radius:999px;
+  background:#eef1f5;
+  color:#697386;
+  font-size:10px;
+  font-weight:800;
+}
+.strong-vu-list{
+  display:grid;
+  gap:5px;
+}
+.strong-vu-row{
+  display:grid;
+  grid-template-columns:29px minmax(0,1fr) 28px auto;
+  align-items:center;
+  gap:6px;
+  min-height:34px;
+  padding:5px 7px;
+  border:1px solid #ead6d6;
+  border-left:4px solid #d89898;
+  border-radius:7px;
+  background:#fff6f6;
+  color:#663232;
+  cursor:pointer;
+  text-align:left;
+}
+.strong-vu-row:hover{
+  background:#ffeded;
+  border-color:#dfbaba;
+}
+.strong-vu-row.is-repeat{
+  background:#f9dada;
+  border-color:#d96a6a;
+  border-left-color:#c83f3f;
+  color:#7e2020;
+  font-weight:700;
+}
+.strong-vu-tag{
+  display:inline-grid;
+  place-items:center;
+  min-width:27px;
+  height:19px;
+  border-radius:5px;
+  background:#e7b4b4;
+  color:#762424;
+  font-size:10px;
+  font-weight:850;
+}
+.strong-vu-text{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.strong-vu-level{
+  justify-self:end;
+  display:grid;
+  place-items:center;
+  min-width:25px;
+  height:21px;
+  border-radius:999px;
+  background:#f0c4c4;
+  font-size:11px;
+  font-weight:850;
+}
+.strong-vu-count{
+  min-width:29px;
+  padding:2px 6px;
+  border-radius:999px;
+  background:#c83f3f;
+  color:#fff;
+  font-size:10px;
+  font-weight:850;
+  text-align:center;
+}
+.strong-vu-empty{
+  padding:10px 8px;
+  border:1px dashed #d7dbe0;
+  border-radius:7px;
+  color:#8a93a1;
+  font-size:11px;
+}
+.strong-vu-more{
+  margin-top:6px;
+  width:100%;
+  border:0;
+  background:#eef1f5;
+  color:#46536a;
+  border-radius:6px;
+  padding:6px 8px;
+  cursor:pointer;
+  font-weight:700;
+}
+.strong-vu-more:hover{background:#e3e8ee}
+.strong-vu-panel.is-expanded .strong-vu-list{
+  max-height:245px;
+  overflow:auto;
+  padding-right:2px;
+}

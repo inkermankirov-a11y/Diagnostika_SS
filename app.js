@@ -115,9 +115,52 @@ function renderRequests(){const c=client(),sel=$('#requestSelect');sel.innerHTML
 function situationColor(i){return ['#5B4BA3','#2F6F9F','#287A55','#A85A2A','#A34A68','#347477','#9A6A16','#4E5C8A'][i%8]}
 function situationBg(i){return ['#E8E1FF','#DDF0FF','#DDF6EA','#FFE8D8','#FCE0EA','#E2F1F1','#FFF0C9','#E7EAF7'][i%8]}
 function renderSituationList(){const root=$('#situationList');root.innerHTML='';const r=request();if(!r){renderTree();return}r.situations.forEach((s,i)=>{const d=document.createElement('div');d.className='situation-item'+(s.id===situationId?' active':'');if(s.id!==situationId){d.style.borderLeft='5px solid '+situationColor(i)}d.textContent=`${s.name||'Без названия'}   [${lvl(s.level)}/10]`;d.onclick=async()=>{if(String(s.id)===String(situationId))return;await guardDiagnosisEditorLeave(()=>{situationId=s.id;selected=null;renderSituationList()})};root.appendChild(d)});renderTree()}
-function addTreeRow(root,cls,text,meta){const d=document.createElement('div');d.className='tree-row '+cls+(selected?.obj===meta.obj?' active-selection':'');const label=document.createElement('span');label.className='tree-row-label';label.textContent=text;d.appendChild(label);d.onclick=async()=>{if(selected?.type===meta.type&&String(selected?.obj?.id)===String(meta.obj?.id))return;await guardDiagnosisEditorLeave(()=>{selected=meta;renderTree()})};root.appendChild(d)}
+function diagnosisTreeText(value){return String(value??'').trim()}
+function addTreeRow(root,cls,kind,text,level,meta,{incomplete=false}={}){
+ const d=document.createElement('div');
+ d.className='tree-row '+cls+(selected?.obj===meta.obj?' active-selection':'')+(incomplete?' is-incomplete':'');
+ d.dataset.elementId=String(meta?.obj?.id??'');
+ d.dataset.parentId=String(meta?.parent?.id??'');
+ d.dataset.elementType=String(meta?.type||'');
+ const tag=document.createElement('span');tag.className='tree-row-kind';tag.textContent=kind;
+ const label=document.createElement('span');label.className='tree-row-label';label.textContent=text;
+ const badge=document.createElement('span');badge.className='tree-row-level';badge.textContent=String(lvl(level));
+ d.append(tag,label,badge);
+ if(incomplete){const status=document.createElement('span');status.className='tree-row-status';status.textContent='•';status.title='Ветка ещё не заполнена';d.appendChild(status)}
+ d.onclick=async()=>{
+   if(selected?.type===meta.type&&String(selected?.obj?.id)===String(meta.obj?.id)){
+     if(meta.type==='feeling')window.DiagnostikaFeelingCollapse?.openFeeling?.(meta.obj.id);
+     return;
+   }
+   await guardDiagnosisEditorLeave(()=>{
+     selected=meta;
+     renderTree();
+     if(meta.type==='feeling')setTimeout(()=>window.DiagnostikaFeelingCollapse?.openFeeling?.(meta.obj.id),0);
+   });
+ };
+ root.appendChild(d);
+}
 function renderTree(){const s=situation(),root=$('#tree');root.innerHTML='';const r=request();if(s&&r){const i=r.situations.indexOf(s);$('#situationTitle').textContent=s.name||'Без названия';$('#situationTitle').style.background=situationBg(i);$('#situationTitle').style.color=situationColor(i);$('#situationInfo').textContent=`Дискомфорт: ${lvl(s.level)}/10`;$('#situationResult').value=s.result||'';$('#resultBlock').classList.remove('hidden')}else{$('#situationTitle').textContent='Выберите ситуацию';$('#situationTitle').style.background='transparent';$('#situationTitle').style.color='#202124';$('#situationInfo').textContent='';$('#resultBlock').classList.add('hidden');root.innerHTML='<div style="padding:16px;color:#888">Добавьте или выберите ситуацию.</div>';renderEditor();document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-tree-rendered'));return}
-(s.beliefs||[]).forEach((b,bi)=>{addTreeRow(root,'primary',`⌄ Первичное убеждение: ${b.text||'Не заполнено'} (${lvl(b.level)}/10)`,{type:'belief',obj:b,parent:s,index:bi});(b.feelings||[]).forEach((f,fi)=>{addTreeRow(root,'feeling',`⌄ ☑ ${f.text||'Вторичное чувство'} (${lvl(f.level)}/10)`,{type:'feeling',obj:f,parent:b,index:fi});(f.deep||[]).forEach((d,di)=>{addTreeRow(root,'deep',`⌄ Вторичное убеждение: ${d.text||'Не заполнено'} (${lvl(d.level)}/10)`,{type:'deep',obj:d,parent:f,index:di});(d.instincts||[]).forEach((x,ii)=>addTreeRow(root,'instinct',`Инстинкт ${ii+1}: ${x.name||'Не выбран'} (${lvl(x.level)}/10)`,{type:'instinct',obj:x,parent:d,index:ii}))})})});renderEditor();document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-tree-rendered'))}
+(s.beliefs||[]).forEach((b,bi)=>{
+ const beliefText=diagnosisTreeText(b.text);
+ if(!beliefText)return;
+ addTreeRow(root,'primary','ПУ',beliefText,b.level,{type:'belief',obj:b,parent:s,index:bi});
+ (b.feelings||[]).forEach((f,fi)=>{
+   const feelingText=diagnosisTreeText(f.text);
+   if(!feelingText)return;
+   const filledDeep=(Array.isArray(f.deep)?f.deep:[]).filter(d=>diagnosisTreeText(d?.text));
+   addTreeRow(root,'feeling','ВЧ',feelingText,f.level,{type:'feeling',obj:f,parent:b,index:fi},{incomplete:filledDeep.length===0});
+   filledDeep.forEach(d=>{
+     const di=(f.deep||[]).indexOf(d);
+     addTreeRow(root,'deep','ВУ',diagnosisTreeText(d.text),d.level,{type:'deep',obj:d,parent:f,index:di});
+     (Array.isArray(d.instincts)?d.instincts:[]).forEach((x,ii)=>{
+       const instinctText=diagnosisTreeText(x?.name);
+       if(!instinctText)return;
+       addTreeRow(root,'instinct','И',instinctText,x.level,{type:'instinct',obj:x,parent:d,index:ii});
+     });
+   });
+ });
+});renderEditor();document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-tree-rendered'))}
 function renderEditor(){const map={belief:'Первичное убеждение',feeling:'Вторичное чувство',deep:'Вторичное убеждение',instinct:'Инстинкт'};$('#editorType').textContent=selected?map[selected.type]:'Элемент не выбран';$('#editorText').value=selected?(selected.obj.text??selected.obj.name??''):'';$('#editorLevel').value=selected?lvl(selected.obj.level):5;$('#editorComment').value=selected?(selected.obj.comment||''):'';$('#instinctFrame').classList.toggle('hidden',selected?.type!=='deep');if(selected?.type==='deep'){const arr=Array.isArray(selected.obj.instincts)?selected.obj.instincts:[];const x=arr[0]||{name:'',level:5,comment:''};$('#instinctSelectedLabel').textContent='Инстинкт 1';$('#instinctCombo').innerHTML='';INSTINCTS.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;$('#instinctCombo').appendChild(o)});$('#instinctCombo').value=x.name||'';$('#instinctLevel').value=lvl(x.level);$('#instinctComment').value=x.comment||''}document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-editor-rendered'))}
 function renderSessions(){document.dispatchEvent(new Event('diagnostika:sessions-changed'))}
 function renderMode(){const diag=mode==='diagnosis';$('#diagnosisWorkspace').hidden=!diag;document.querySelector('.home-dashboard')?.toggleAttribute('hidden',diag);$('#centerPanel').classList.toggle('hidden',!diag);$('#rightPanel').classList.toggle('hidden',!diag);$('#diagnosticsLeft').classList.toggle('hidden',!diag);if(diag)renderTree();document.dispatchEvent(new CustomEvent('diagnostika:mode-rendered',{detail:{mode}}))}

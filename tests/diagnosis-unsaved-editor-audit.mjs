@@ -30,7 +30,6 @@ page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
 await page.goto('http://127.0.0.1:8000/index.html?unsaved-guard=1',{waitUntil:'commit',timeout:10000});
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready')&&window.DiagnostikaDiagnosis?.moduleAware===true&&window.DiagnostikaEditorGuard,null,{timeout:20000});
 await page.evaluate(()=>window.DiagnostikaDiagnosis.open());
-await page.locator('#tree .feeling-group-toggle').click();
 const feeling=page.locator('#tree .tree-row.feeling').filter({hasText:'Страх'});
 await feeling.locator('.feeling-child-toggle').click();
 
