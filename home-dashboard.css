@@ -1877,3 +1877,219 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
     max-width:260px!important;
   }
 }
+
+
+/* Client notification deck — one top area for reminders, overdue items and planned records. */
+.hd-reminder-slot{
+  min-height:178px!important;
+  overflow:visible!important;
+}
+.hd-reminder-slot .hd-notification-deck{
+  position:relative!important;
+  top:auto!important;
+  right:auto!important;
+  width:100%!important;
+  min-height:160px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:inherit!important;
+  box-shadow:none!important;
+  animation:none!important;
+  transform:none!important;
+  overflow:visible!important;
+  z-index:8;
+  transition:height .22s ease;
+}
+.hd-notification-deck[hidden]{display:none!important}
+.hd-notification-card{
+  position:absolute;
+  inset:0 auto auto 0;
+  width:100%;
+  min-height:148px;
+  box-sizing:border-box;
+  padding:13px 14px 14px;
+  border:1px solid #c9d9eb;
+  border-left:4px solid #5595df;
+  border-radius:13px;
+  background:linear-gradient(145deg,#fafdff,#f1f7ff);
+  color:#36516f;
+  box-shadow:0 10px 28px rgba(45,88,137,.13),inset 0 1px 0 rgba(255,255,255,.92);
+  overflow:hidden;
+  cursor:default;
+  transition:top .22s ease,transform .22s ease,height .22s ease,opacity .18s ease,box-shadow .22s ease;
+}
+.hd-notification-card.is-active{top:0;z-index:40!important}
+.hd-notification-card.is-stack-tab{
+  top:calc(132px + (var(--stack-index) - 1) * 9px);
+  height:34px;
+  min-height:34px;
+  padding:7px 11px;
+  opacity:.94;
+  cursor:pointer;
+}
+.hd-notification-card.is-stack-tab > :not(.hd-notification-head):not(.hd-hero-reminder-head){display:none!important}
+.hd-notification-card.is-stack-tab .hd-notification-head,
+.hd-notification-card.is-stack-tab .hd-hero-reminder-head{
+  min-height:20px;
+  overflow:hidden;
+}
+.hd-notification-card.is-stack-tab .hd-hero-reminder-source{display:none!important}
+.hd-notification-deck.is-fanned .hd-notification-card.is-active{
+  opacity:.58;
+  filter:saturate(.82);
+}
+.hd-notification-deck.is-fanned .hd-notification-card.is-stack-tab{
+  top:calc(10px + var(--stack-index) * 42px);
+  height:38px;
+  min-height:38px;
+  transform:translateX(calc(var(--stack-index) * 5px));
+  opacity:1;
+  z-index:calc(50 - var(--stack-index))!important;
+  box-shadow:0 8px 18px rgba(31,55,86,.18);
+}
+.hd-notification-deck.is-fanned .hd-notification-card.is-stack-tab:hover{
+  transform:translateX(calc(var(--stack-index) * 5px + 4px));
+  box-shadow:0 10px 24px rgba(31,55,86,.22);
+}
+.hd-notification-stack-count{
+  position:absolute;
+  top:-8px;
+  right:-8px;
+  z-index:80;
+  min-width:27px;
+  height:27px;
+  padding:0 7px;
+  border:2px solid #fff;
+  border-radius:999px;
+  background:#253f66;
+  color:#fff;
+  font:900 11px/1 "Segoe UI",Arial,sans-serif;
+  cursor:pointer;
+  box-shadow:0 4px 12px rgba(20,43,72,.24);
+}
+.hd-notification-deck.is-fanned .hd-notification-stack-count{background:#1e6ac7}
+.hd-notification-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) max-content;
+  gap:8px;
+  align-items:start;
+  min-width:0;
+}
+.hd-notification-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-self:start;
+  max-width:100%;
+  box-sizing:border-box;
+  padding:5px 8px;
+  border-radius:999px;
+  background:#4c8ed9;
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.045em;
+  line-height:1.12;
+}
+.hd-notification-title{
+  margin-top:9px;
+  color:#173154;
+  font-size:15px;
+  font-weight:900;
+  line-height:1.22;
+}
+.hd-notification-when{
+  margin-top:4px;
+  color:#526d8d;
+  font-size:12px;
+  font-weight:850;
+}
+.hd-notification-text{
+  margin-top:6px;
+  color:#5d718a;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+.hd-notification-actions{
+  display:flex;
+  gap:6px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.hd-notification-actions button{
+  height:29px;
+  padding:0 9px;
+  border-radius:7px;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.hd-notification-complete{border:1px solid #258554;background:linear-gradient(#47bb79,#2e9b62);color:#fff}
+.hd-notification-move{border:1px solid #c5a044;background:linear-gradient(#ffe18a,#efbd48);color:#604513}
+.hd-notification-delete{border:1px solid #dda49e;background:#fff5f4;color:#a33b2f}
+
+/* Reminder stays violet. */
+.hd-notification-card.is-reminder{
+  border-color:rgba(139,92,246,.44);
+  border-left-color:#8b5cf6;
+  background:linear-gradient(145deg,rgba(250,247,255,.99),rgba(244,238,255,.97));
+  color:#4f3b78;
+}
+.hd-notification-card.is-reminder .hd-hero-reminder-badge{background:#8b5cf6}
+.hd-notification-card.is-reminder .hd-hero-reminder-when{color:#5f458c}
+.hd-notification-card.is-reminder .hd-hero-reminder-text{color:#66547f}
+
+/* Diagnosis uses the same warm yellow visual language as the calendar. */
+.hd-notification-card.is-diagnosis{
+  border-color:#efc84e;
+  border-left-color:#e5a20a;
+  background:linear-gradient(145deg,#fffdf1,#fff4bd);
+  color:#6c5010;
+  box-shadow:0 10px 28px rgba(196,139,18,.14),inset 0 1px 0 rgba(255,255,255,.9);
+  animation:hdDiagnosisNoticePulse 3.2s ease-in-out infinite;
+}
+.hd-notification-card.is-diagnosis .hd-notification-badge{background:#eca916;color:#fff}
+.hd-notification-card.is-diagnosis .hd-notification-title{color:#694d09}
+.hd-notification-card.is-diagnosis .hd-notification-when{color:#80611b}
+.hd-notification-card.is-diagnosis .hd-notification-text{color:#806c3b}
+@keyframes hdDiagnosisNoticePulse{
+  0%,100%{box-shadow:0 8px 20px rgba(196,139,18,.11),0 0 0 0 rgba(229,162,10,.12)}
+  50%{box-shadow:0 10px 28px rgba(196,139,18,.17),0 0 0 4px rgba(229,162,10,.09)}
+}
+
+/* Ordinary planned sessions remain blue. */
+.hd-notification-card.is-session,
+.hd-notification-card.is-appointment{
+  border-color:#a8c8ed;
+  border-left-color:#4c8ed9;
+  background:linear-gradient(145deg,#fafdff,#edf5ff);
+}
+
+/* Overdue overrides the base type color, but diagnosis/session identity remains in its title. */
+.hd-notification-card.is-overdue{
+  border-color:#e27a64!important;
+  border-left-color:#d94b36!important;
+  background:linear-gradient(145deg,#fff8f5,#ffebe5)!important;
+  color:#833524!important;
+  animation:none!important;
+}
+.hd-notification-card.is-overdue .hd-notification-badge,
+.hd-notification-card.is-overdue .hd-hero-reminder-badge{background:#d94b36!important;color:#fff!important}
+.hd-notification-card.is-overdue .hd-notification-title,
+.hd-notification-card.is-overdue .hd-notification-when,
+.hd-notification-card.is-overdue .hd-notification-text,
+.hd-notification-card.is-overdue .hd-hero-reminder-when,
+.hd-notification-card.is-overdue .hd-hero-reminder-text{color:#7d3528!important}
+
+@media(max-width:900px){
+  .hd-notification-deck{max-width:560px}
+  .hd-notification-card{min-height:142px}
+}
+@media(prefers-reduced-motion:reduce){
+  .hd-notification-card,.hd-notification-deck{transition:none!important;animation:none!important}
+}

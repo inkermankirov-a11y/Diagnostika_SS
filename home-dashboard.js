@@ -42,7 +42,7 @@
         </section>
         <aside class="hd-client-right-rail" aria-label="Напоминание">
           <div class="hd-reminder-slot">
-            <aside id="hdHeroReminder" class="hd-hero-reminder" hidden aria-live="polite"></aside>
+            <aside id="hdHeroReminder" class="hd-hero-reminder hd-notification-deck" hidden aria-live="polite" aria-label="Уведомления клиента"></aside>
           </div>
         </aside>
         <div class="hd-features">
@@ -132,6 +132,8 @@
     }catch(_){return'all';}
   })();
   let dashboardView='home';
+  let notificationActiveKey='';
+  let notificationFanOpen=false;
 
   function unavailable(message,title='Ошибка'){
     if(window.AppDialog?.alert){window.AppDialog.alert(message,title);return;}
@@ -441,57 +443,205 @@
     return true;
   }
 
+  function plannedSessionStartTime(session){
+    const rawDate=String(session?.date||'').trim().slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(rawDate))return NaN;
+    const [year,month,day]=rawDate.split('-').map(Number);
+    const match=String(session?.scheduledTime||'').trim().match(/^(\d{1,2}):(\d{2})/);
+    return new Date(year,month-1,day,match?Number(match[1]):23,match?Number(match[2]):59,match?0:59,match?0:999).getTime();
+  }
+
+  function sessionAppointmentLabel(session){
+    const raw=String(session?.appointmentType||session?.calendarTitle||'').trim();
+    return raw||'Сессия';
+  }
+
+  function sessionOrdinalMap(c){
+    const rows=[...(c?.sessions||[])].sort((a,b)=>{
+      const ta=plannedSessionStartTime(a);
+      const tb=plannedSessionStartTime(b);
+      if(Number.isFinite(ta)&&Number.isFinite(tb)&&ta!==tb)return ta-tb;
+      return String(a?.createdAt||a?.date||'').localeCompare(String(b?.createdAt||b?.date||''));
+    });
+    const map=new Map();
+    rows.forEach((session,index)=>map.set(String(session?.id||''),index+1));
+    return map;
+  }
+
+  function clientNotificationItems(c){
+    if(!c)return[];
+    const now=Date.now();
+    const items=[];
+
+    for(const event of calendarEventsForClient(c)){
+      if(upcomingBeaconKind(event)!=='reminder'||calendarEventDone(event))continue;
+      const time=calendarEventStartTime(event);
+      if(!Number.isFinite(time))continue;
+      items.push({
+        key:'reminder:'+String(event.id),
+        kind:'reminder',
+        overdue:time<=now,
+        time,
+        event,
+        title:'Напоминание',
+        when:calendarEventDateLabel(event),
+        text:String(event?.note||'').trim()||'Напомнить клиенту связаться и согласовать следующую запись.'
+      });
+    }
+
+    const ordinals=sessionOrdinalMap(c);
+    for(const session of (c.sessions||[])){
+      const planned=session?.planned===true||String(session?.status||'')==='planned';
+      if(!planned)continue;
+      const time=plannedSessionStartTime(session);
+      if(!Number.isFinite(time))continue;
+      const label=sessionAppointmentLabel(session);
+      const lower=label.toLocaleLowerCase('ru-RU');
+      const kind=lower.includes('диагност')?'diagnosis':(lower.includes('сесс')?'session':'appointment');
+      const request=(c.requests||[]).find(r=>String(r?.id||'')===String(session?.requestId||''));
+      const number=ordinals.get(String(session?.id||''))||1;
+      items.push({
+        key:'session:'+String(session.id),
+        kind,
+        overdue:time<now,
+        time,
+        session,
+        number,
+        title:`${label} №${number}`,
+        when:calendarEventDateLabel({date:session.date,time:session.scheduledTime}),
+        text:String(request?.title||session?.calendarTitle||'').trim()
+      });
+    }
+
+    return items.sort((a,b)=>{
+      if(a.overdue!==b.overdue)return a.overdue?-1:1;
+      if(a.time!==b.time)return a.time-b.time;
+      return a.title.localeCompare(b.title,'ru');
+    });
+  }
+
+  function activateNotification(key){
+    notificationActiveKey=String(key||'');
+    notificationFanOpen=false;
+    renderHeroReminder(currentClient());
+  }
+
+  function sessionNotificationAction(method,sessionId){
+    const api=window.DiagnostikaDashboardSessions;
+    if(!api||typeof api[method]!=='function'){
+      unavailable('Действие с записью ещё не загрузилось. Обновите страницу.','Запись');
+      return false;
+    }
+    notificationFanOpen=false;
+    return api[method](sessionId);
+  }
+
+  function buildReminderNotificationCard(item){
+    const event=item.event;
+    const card=document.createElement('article');
+    card.className='hd-notification-card is-reminder'+(item.overdue?' is-overdue':'');
+    card.dataset.notificationKey=item.key;
+
+    const head=document.createElement('div');head.className='hd-hero-reminder-head hd-notification-head';
+    const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent=item.overdue?'● НАПОМИНАНИЕ · ПРОСРОЧЕНО':'● НАПОМИНАНИЕ';
+    const source=document.createElement('button');source.type='button';source.className='hd-hero-reminder-source';source.textContent='из календаря';source.onclick=e=>{e.stopPropagation();openReminderCalendar(event);};
+    head.append(badge,source);
+
+    const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=item.when;
+    const text=document.createElement('div');text.className='hd-hero-reminder-text';text.textContent=item.text;
+    const actions=document.createElement('div');actions.className='hd-hero-reminder-actions';
+
+    const snooze=document.createElement('button');snooze.type='button';snooze.className='hd-hero-reminder-snooze';snooze.textContent='⏰ Отложить';snooze.onclick=e=>{e.stopPropagation();notificationFanOpen=false;openReminderSnooze(event);};
+    const done=document.createElement('button');done.type='button';done.className='hd-hero-reminder-done';done.textContent='✓ Выполнено';done.onclick=e=>{e.stopPropagation();done.disabled=true;notificationFanOpen=false;if(!completeReminder(event))done.disabled=false;};
+    actions.append(snooze,done);
+    card.append(head,when,text,actions);
+    return card;
+  }
+
+  function buildSessionNotificationCard(item){
+    const session=item.session;
+    const card=document.createElement('article');
+    card.className=`hd-notification-card is-${item.kind}${item.overdue?' is-overdue':''}`;
+    card.dataset.notificationKey=item.key;
+
+    const head=document.createElement('div');head.className='hd-notification-head';
+    const badge=document.createElement('span');badge.className='hd-notification-badge';
+    badge.textContent=item.overdue?'⚠ ПРОСРОЧЕНО':'● ЗАПЛАНИРОВАНО';
+    const source=document.createElement('button');source.type='button';source.className='hd-hero-reminder-source';source.textContent='из календаря';source.onclick=e=>{
+      e.stopPropagation();
+      const ui=window.DiagnostikaCalendarUI;
+      if(session?.calendarEventId&&typeof ui?.openEvent==='function')ui.openEvent(session.calendarEventId,{mode:'client'});
+      else if(typeof ui?.open==='function')ui.open({mode:'client'});
+    };
+    head.append(badge,source);
+
+    const title=document.createElement('div');title.className='hd-notification-title';title.textContent=item.title;
+    const when=document.createElement('div');when.className='hd-notification-when';when.textContent=item.when;
+    const text=document.createElement('div');text.className='hd-notification-text';text.textContent=item.text||'Запланированная запись клиента.';
+    const actions=document.createElement('div');actions.className='hd-notification-actions';
+
+    const done=document.createElement('button');done.type='button';done.className='hd-notification-complete';done.textContent='✓ Проведена';done.onclick=e=>{e.stopPropagation();sessionNotificationAction('completePlanned',session.id);};
+    const move=document.createElement('button');move.type='button';move.className='hd-notification-move';move.textContent='Перенести';move.onclick=e=>{e.stopPropagation();sessionNotificationAction('reschedulePlanned',session.id);};
+    const remove=document.createElement('button');remove.type='button';remove.className='hd-notification-delete';remove.textContent='Удалить';remove.onclick=e=>{e.stopPropagation();sessionNotificationAction('deletePlanned',session.id);};
+    actions.append(done,move,remove);
+    card.append(head,title,when,text,actions);
+    return card;
+  }
+
   function renderHeroReminder(c){
     if(!heroReminder)return;
     heroReminder.hidden=true;
-    heroReminder.classList.remove('is-overdue');
+    heroReminder.classList.remove('is-overdue','is-fanned');
     heroReminder.replaceChildren();
     if(!c)return;
 
-    const pending=nextPendingReminder(c);
-    if(!pending)return;
-    if(upcomingBeaconKind(pending.event)!=='reminder')return;
+    const items=clientNotificationItems(c);
+    if(!items.length){
+      notificationActiveKey='';
+      notificationFanOpen=false;
+      return;
+    }
 
-    const event=pending.event;
-    const note=String(event?.note||'').trim()||'Напомнить клиенту связаться и согласовать следующую запись.';
-    const overdue=Boolean(pending.overdue);
+    if(!items.some(item=>item.key===notificationActiveKey))notificationActiveKey=items[0].key;
+    const active=items.find(item=>item.key===notificationActiveKey)||items[0];
+    const ordered=[active,...items.filter(item=>item!==active)];
 
-    const head=document.createElement('div');head.className='hd-hero-reminder-head';
-    const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent=overdue?'● НАПОМИНАНИЕ · ПРОСРОЧЕНО':'● НАПОМИНАНИЕ';
-    const source=document.createElement('button');
-    source.type='button';
-    source.className='hd-hero-reminder-source';
-    source.textContent='из календаря';
-    source.title='Открыть календарь';
-    source.onclick=e=>{e.stopPropagation();openReminderCalendar(event);};
-    head.append(badge,source);
+    heroReminder.classList.toggle('is-overdue',Boolean(active.overdue));
+    heroReminder.classList.toggle('is-fanned',notificationFanOpen);
+    heroReminder.style.setProperty('--notification-count',String(items.length));
+    heroReminder.style.height=`${Math.min(170+Math.max(0,items.length-1)*(notificationFanOpen?42:9),620)}px`;
 
-    const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=calendarEventDateLabel(event);
-    const text=document.createElement('div');text.className='hd-hero-reminder-text';text.textContent=note;
+    ordered.forEach((item,index)=>{
+      const card=item.kind==='reminder'?buildReminderNotificationCard(item):buildSessionNotificationCard(item);
+      card.classList.toggle('is-active',index===0);
+      card.style.setProperty('--stack-index',String(index));
+      card.style.zIndex=String(index===0?40:30-index);
+      if(index>0){
+        card.classList.add('is-stack-tab');
+        card.onclick=e=>{
+          if(e.target.closest('button'))return;
+          activateNotification(item.key);
+        };
+      }else{
+        card.querySelector('.hd-notification-head')?.addEventListener('click',e=>{
+          if(items.length<2||e.target.closest('button'))return;
+          notificationFanOpen=!notificationFanOpen;
+          renderHeroReminder(c);
+        });
+      }
+      heroReminder.appendChild(card);
+    });
 
-    const actions=document.createElement('div');actions.className='hd-hero-reminder-actions';
+    if(items.length>1){
+      const count=document.createElement('button');
+      count.type='button';
+      count.className='hd-notification-stack-count';
+      count.textContent=String(items.length);
+      count.title=notificationFanOpen?'Свернуть уведомления':'Показать все уведомления';
+      count.onclick=e=>{e.stopPropagation();notificationFanOpen=!notificationFanOpen;renderHeroReminder(c);};
+      heroReminder.appendChild(count);
+    }
 
-    const snooze=document.createElement('button');
-    snooze.type='button';
-    snooze.className='hd-hero-reminder-snooze';
-    snooze.textContent='⏰ Отложить';
-    snooze.title='Перенести напоминание на другую дату и время';
-    snooze.onclick=e=>{e.stopPropagation();openReminderSnooze(event);};
-
-    const done=document.createElement('button');
-    done.type='button';
-    done.className='hd-hero-reminder-done';
-    done.textContent='✓ Выполнено';
-    done.title='Отметить напоминание выполненным';
-    done.onclick=e=>{
-      e.stopPropagation();
-      done.disabled=true;
-      if(!completeReminder(event))done.disabled=false;
-    };
-    actions.append(snooze,done);
-
-    if(overdue)heroReminder.classList.add('is-overdue');
-    heroReminder.append(head,when,text,actions);
     heroReminder.hidden=false;
   }
 
