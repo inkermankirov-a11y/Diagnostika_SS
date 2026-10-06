@@ -48,7 +48,12 @@ await page.goto('http://127.0.0.1:8000/index.html?overdue-session=1',{waitUntil:
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready')
   &&window.DiagnostikaSessions?.moduleAware===true
   &&window.DiagnostikaCalendar?.moduleAware===true
-  &&window.DiagnostikaDashboardSessions,null,{timeout:20000});
+  &&window.DiagnostikaDashboardSessions
+  &&window.DiagnostikaHomeDashboard?.openClient,null,{timeout:20000});
+await page.evaluate(()=>{
+  window.DiagnostikaHomeDashboard.openClient('overdue-client');
+  window.DiagnostikaDashboardSessions.refresh();
+});
 
 const card=page.locator('.hd-session-card[data-session-id="overdue-session-1"]');
 await card.waitFor({state:'visible',timeout:8000});
