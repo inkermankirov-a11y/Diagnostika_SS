@@ -591,9 +591,9 @@
     const text=document.createElement('div');text.className='hd-notification-text';text.textContent=item.text||'Запланированная запись клиента.';
     const actions=document.createElement('div');actions.className='hd-notification-actions';
 
-    const done=document.createElement('button');done.type='button';done.className='hd-notification-complete';done.textContent='✓ Проведена';done.onclick=e=>{e.stopPropagation();sessionNotificationAction('completePlanned',session.id);};
-    const move=document.createElement('button');move.type='button';move.className='hd-notification-move';move.textContent='📅 Перенести';move.onclick=e=>{e.stopPropagation();sessionNotificationAction('reschedulePlanned',session.id);};
-    const remove=document.createElement('button');remove.type='button';remove.className='hd-notification-delete';remove.textContent='Удалить';remove.onclick=e=>{e.stopPropagation();sessionNotificationAction('deletePlanned',session.id);};
+    const done=document.createElement('button');done.type='button';done.className='hd-notification-complete hd-notification-icon-btn';done.setAttribute('aria-label','Проведено');done.title='Проведено';done.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7"/></svg>';done.onclick=e=>{e.stopPropagation();sessionNotificationAction('completePlanned',session.id);};
+    const move=document.createElement('button');move.type='button';move.className='hd-notification-move hd-notification-icon-btn';move.setAttribute('aria-label','Перенести');move.title='Перенести';move.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 9.5h16M8 13h2M12 13h2M16 13h1M8 16h2M12 16h2"/></svg>';move.onclick=e=>{e.stopPropagation();sessionNotificationAction('reschedulePlanned',session.id);};
+    const remove=document.createElement('button');remove.type='button';remove.className='hd-notification-delete hd-notification-icon-btn';remove.setAttribute('aria-label','Удалить');remove.title='Удалить';remove.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M7 7l1 13h8l1-13M10 10.5v6M14 10.5v6"/></svg>';remove.onclick=e=>{e.stopPropagation();sessionNotificationAction('deletePlanned',session.id);};
     actions.append(done,move,remove);
     card.append(head,title,when,text,actions);
     return card;

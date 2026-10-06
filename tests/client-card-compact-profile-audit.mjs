@@ -45,7 +45,7 @@ assert(css.includes('.cc-photo-editor-preview'),'Client photo thumbnail editor s
 
 assert(app.includes("birthTime:''")&&app.includes("photoSourceData:''"),'Legacy newClient defaults missing new profile fields');
 assert(service.includes("birthTime: ''")&&service.includes("photoSourceData: ''"),'Client service defaults missing new profile fields');
-assert(loader.includes('modules/clients/client-service.js?v=20260918-clients2b2&db=14b&pin=18a&cleanup=23b&profile=20261003-1'),'Client service cache marker missing');
+assert(loader.includes('modules/clients/client-service.js?v=20261005-archive-1&db=14b&pin=18a&cleanup=23b&profile=20261003-1'),'Client service cache marker missing');
 assert(index.includes('modules/clients/ui/card.css?v=20261003-work-actions-2'),'Client card CSS cache marker missing');
 assert(index.includes('modules/clients/ui/card.js?v=20261003-work-actions-2'),'Client card JS cache marker missing');
 

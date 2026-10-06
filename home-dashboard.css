@@ -2292,3 +2292,44 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
   line-height:1!important;
   white-space:nowrap!important;
 }
+
+
+/* Notification action buttons v3 — tiny square icon controls with native hover hints. */
+.hd-notification-actions{
+  display:flex!important;
+  justify-content:flex-end!important;
+  align-items:center!important;
+  gap:5px!important;
+  margin-top:7px!important;
+  flex-wrap:nowrap!important;
+}
+.hd-notification-actions .hd-notification-icon-btn{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 26px!important;
+  width:26px!important;
+  min-width:26px!important;
+  max-width:26px!important;
+  height:26px!important;
+  min-height:26px!important;
+  padding:0!important;
+  margin:0!important;
+  border-radius:6px!important;
+  line-height:1!important;
+}
+.hd-notification-actions .hd-notification-icon-btn svg{
+  display:block;
+  width:14px;
+  height:14px;
+  pointer-events:none;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.hd-notification-actions .hd-notification-icon-btn:focus-visible{
+  outline:2px solid #246ec9;
+  outline-offset:2px;
+}
