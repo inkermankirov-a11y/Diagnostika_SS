@@ -281,10 +281,9 @@
     return parseSuccessfulResponse(prodAttempt.text,'production');
   }
 
-  migrateLegacyKey();
-
   window.DiagnostikaRequestAI={
     generate,
+    migrateLegacyKey,
     configure,
     clearConfig,
     getConfig,
