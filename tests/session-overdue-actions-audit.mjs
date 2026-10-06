@@ -178,6 +178,13 @@ await page.waitForFunction(()=>{
   return s&&s.planned===false&&s.status==='completed';
 });
 
+await page.waitForFunction(()=>{
+  const rows=[...document.querySelectorAll('#hdSummary .hd-summary-box')];
+  const value=rows.find(box=>box.querySelector('.hd-summary-label')?.textContent?.trim()==='Сессии')
+    ?.querySelector('.hd-summary-value')?.textContent?.trim();
+  return value==='0';
+},null,{timeout:5000});
+
 const state=await page.evaluate(()=>({
   session:window.DiagnostikaSessions.get('overdue-session-1'),
   event:window.DiagnostikaCalendar.get('cal-overdue-1'),
