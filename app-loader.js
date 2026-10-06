@@ -135,13 +135,13 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const css=document.createElement('link');
       css.rel='stylesheet';
-      css.href='home-dashboard.css?v=20261005-reminder-target-2';
+      css.href='home-dashboard.css?v=20261006-notification-deck-1';
       css.setAttribute('data-home-dashboard','1');
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261006-client-alert-slot-1','data-home-dashboard-preload'],
-      ['home-dashboard-sessions.js?v=20261006-diagnosis-delete-1','data-home-dashboard-sessions-preload']
+      ['home-dashboard.js?v=20261006-notification-deck-1','data-home-dashboard-preload'],
+      ['home-dashboard-sessions.js?v=20261006-notification-deck-1','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
       const preload=document.createElement('link');
@@ -164,18 +164,18 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const l=document.createElement('link');
       l.rel='stylesheet';
-      l.href='home-dashboard.css?v=20261005-reminder-target-2';
+      l.href='home-dashboard.css?v=20261006-notification-deck-1';
       l.setAttribute('data-home-dashboard','1');
       document.head.appendChild(l);
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20261006-client-alert-slot-1';
+      s.src='home-dashboard.js?v=20261006-notification-deck-1';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
           const x=document.createElement('script');
-          x.src='home-dashboard-sessions.js?v=20261006-diagnosis-delete-1';
+          x.src='home-dashboard-sessions.js?v=20261006-notification-deck-1';
           x.setAttribute('data-home-dashboard-sessions','1');
           document.body.appendChild(x);
         }
@@ -183,7 +183,7 @@
       document.body.appendChild(s);
     }else if(!document.querySelector('script[data-home-dashboard-sessions]')){
       const x=document.createElement('script');
-      x.src='home-dashboard-sessions.js?v=20261006-diagnosis-delete-1';
+      x.src='home-dashboard-sessions.js?v=20261006-notification-deck-1';
       x.setAttribute('data-home-dashboard-sessions','1');
       document.body.appendChild(x);
     }
