@@ -79,7 +79,7 @@
         return alert('Модуль сессий ещё загружается.');
       }
 
-      const removed=api.remove(s.id,{client:c,source:'session-editor-delete'});
+      const removed=api.remove(s.id,{client:c,source: 'session-editor-delete'});
       if(!removed){
         deleteBtn.dataset.deleting='0';
         deleteBtn.disabled=false;
