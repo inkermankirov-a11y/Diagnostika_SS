@@ -36,16 +36,6 @@
   const count=section.querySelector('#hdSessionsCount');
   const add=section.querySelector('#hdAddSession');
   const archiveBtn=section.querySelector('#hdSessionArchive');
-  const alertSlot=dashboard.querySelector('#hdClientAlertSlot');
-  let overdueNotice=dashboard.querySelector('#hdSessionOverdueNotice');
-  if(!overdueNotice){
-    overdueNotice=document.createElement('div');
-    overdueNotice.id='hdSessionOverdueNotice';
-    overdueNotice.className='hd-session-overdue-notice';
-    overdueNotice.hidden=true;
-    if(alertSlot)alertSlot.appendChild(overdueNotice);
-    else section.insertAdjacentElement('beforebegin',overdueNotice);
-  }
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const getClient=()=>window.DiagnostikaClients?.current?.()||null;
@@ -315,7 +305,6 @@
     const c=getClient();
     if(!c){
       section.hidden=true;
-      if(overdueNotice){overdueNotice.hidden=true;overdueNotice.innerHTML='';}
       emitSessionsRendered();
       return;
     }
@@ -333,18 +322,6 @@
     list.innerHTML='';
     updateDashboardSummary(c,r,display);
 
-    if(overdueNotice){
-      if(overdueItems.length){
-        const first=overdueItems[0]?.s;
-        const type=appointmentLabel(first);
-        const extra=overdueItems.length>1?` Ещё просрочено: ${overdueItems.length-1}.`:'';
-        overdueNotice.hidden=false;
-        overdueNotice.innerHTML=`<strong>⚠ Просроченная запись</strong><span>${esc(type)} · ${esc(scheduledLabel(first))}. Отметьте, была ли она проведена, или перенесите.${esc(extra)}</span>`;
-      }else{
-        overdueNotice.hidden=true;
-        overdueNotice.innerHTML='';
-      }
-    }
 
     if(!display.length){
       list.innerHTML='<div class="hd-sessions-empty">Сессий пока нет. Здесь будет вся история работы с клиентом.</div>';
@@ -360,7 +337,10 @@
       card.title='Открыть и редактировать сессию';
       const planned=isPlannedSession(s);
       const overdue=isOverduePlanned(s);
+      const type=appointmentLabel(s);
+      const diagnosis=/диагност/i.test(type);
       card.classList.toggle('is-planned',planned);
+      card.classList.toggle('is-diagnosis',diagnosis);
       card.classList.toggle('is-overdue',overdue);
       const notes=String(s.notes||'').trim();
       const plan=String(s.plan||'').trim();
@@ -371,7 +351,6 @@
       const plannedHtml=planned
         ?`<span class="hd-session-planned-badge">● ЗАПЛАНИРОВАНО</span><span class="${overdue?'hd-session-overdue-badge':'hd-session-not-done'}">${overdue?'⚠ ПРОСРОЧЕНО':'НЕ ПРОВЕДЕНА'}</span>`
         :'';
-      const type=appointmentLabel(s);
       const typeHtml=planned&&type&&type!=='Сессия'?`<span class="hd-session-type">${esc(type)}</span>`:'';
       const plannedActions=planned
         ?`<div class="hd-session-card-actions"><button type="button" class="hd-session-complete-btn">✓ Проведена</button><button type="button" class="hd-session-reschedule-btn">Перенести</button><button type="button" class="hd-session-delete-planned-btn">Удалить</button></div>`
@@ -471,14 +450,13 @@
     .hd-sessions-actions{display:flex;align-items:center;gap:8px}
     .hd-add-session,.hd-session-archive-btn{height:40px;padding:0 16px;font-size:13px}
     .hd-session-archive-btn{background:linear-gradient(#fff,#edf2f7)!important;color:#31536f!important;border:1px solid #c8d5e3!important}
-    .hd-client-alert-slot:empty{display:none}.hd-client-alert-slot{margin-top:14px}
-    .hd-session-overdue-notice{display:flex;align-items:flex-start;gap:10px;margin:0 0 12px;padding:11px 13px;border:1px solid #ef9a82;border-left:5px solid #dc4b32;border-radius:10px;background:#fff1ed;color:#8d2f20;box-shadow:0 3px 10px rgba(174,57,34,.08)}
-    .hd-session-overdue-notice[hidden]{display:none!important}.hd-session-overdue-notice strong{white-space:nowrap;font-size:12px}.hd-session-overdue-notice span{font-size:12px;line-height:1.4}
     .hd-sessions-list{display:grid;gap:11px;width:100%}
     .hd-session-card{border:2px solid #d2e1f0;border-left:5px solid #6ea4ef;border-radius:12px;background:#fff;box-shadow:0 4px 12px rgba(31,71,122,.06);overflow:hidden;transition:.15s ease}
     .hd-session-card-openable{cursor:pointer}.hd-session-card-openable:hover{border-color:#9ec2f3;box-shadow:0 5px 14px rgba(31,71,122,.10);transform:translateY(-1px)}
+    .hd-session-card.is-diagnosis{border-color:#f0c96b;border-left-color:#e5a20a;background:#fffdf4;box-shadow:0 4px 14px rgba(180,119,10,.09)}
+    .hd-session-card.is-diagnosis .hd-session-top{background:linear-gradient(180deg,#fff9df,#fff4c5)}
     .hd-session-card.is-planned{border-color:#f0c96b;border-left-color:#f59e0b;background:#fffdf6;box-shadow:0 4px 14px rgba(180,119,10,.10)}
-    .hd-session-card.is-planned:hover{border-color:#e9b840;box-shadow:0 7px 20px rgba(180,119,10,.16)}
+    .hd-session-card.is-planned:hover,.hd-session-card.is-diagnosis:hover{border-color:#e9b840;box-shadow:0 7px 20px rgba(180,119,10,.16)}
     .hd-session-card.is-overdue{border-color:#e68772;border-left-color:#d94b36;background:#fff9f7;box-shadow:0 5px 16px rgba(177,60,41,.12)}
     .hd-session-card.is-overdue:hover{border-color:#d86650;box-shadow:0 7px 20px rgba(177,60,41,.16)}
     .hd-session-card-openable:focus{outline:3px solid rgba(47,124,246,.16);outline-offset:2px}
@@ -500,7 +478,35 @@
   `;
   document.head.appendChild(style);
 
+  function actionContext(sessionId){
+    const c=getClient();
+    const s=(c?.sessions||[]).find(item=>String(item?.id||'')===String(sessionId||''));
+    if(!c||!s)return null;
+    const numbered=numberedSessions(c).find(item=>String(item.s?.id||'')===String(s.id));
+    return {c,s,number:numbered?.number||1};
+  }
+
+  async function completePlannedById(sessionId){
+    const ctx=actionContext(sessionId);
+    return ctx?markConducted(ctx.c,ctx.s):false;
+  }
+
+  function reschedulePlannedById(sessionId){
+    const ctx=actionContext(sessionId);
+    return ctx?reschedulePlanned(ctx.s):false;
+  }
+
+  async function deletePlannedById(sessionId){
+    const ctx=actionContext(sessionId);
+    return ctx?deletePlanned(ctx.c,ctx.s,ctx.number):false;
+  }
+
   render();
-  window.DiagnostikaDashboardSessions=Object.freeze({refresh:render});
+  window.DiagnostikaDashboardSessions=Object.freeze({
+    refresh:render,
+    completePlanned:completePlannedById,
+    reschedulePlanned:reschedulePlannedById,
+    deletePlanned:deletePlannedById
+  });
   window.dispatchEvent(new Event('diagnostika:dashboard-loaded'));
 })();
