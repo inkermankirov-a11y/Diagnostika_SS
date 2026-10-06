@@ -378,7 +378,7 @@
       <form method="dialog" class="hd-reminder-snooze-card">
         <div class="hd-reminder-snooze-head">
           <div>
-            <div class="hd-reminder-snooze-title">Отложить напоминание</div>
+            <div class="hd-reminder-snooze-title">Перенести напоминание</div>
             <div class="hd-reminder-snooze-sub">Выбери новую дату и время.</div>
           </div>
           <button type="button" class="hd-reminder-snooze-close" aria-label="Закрыть">×</button>
@@ -560,15 +560,14 @@
     card.dataset.notificationKey=item.key;
 
     const head=document.createElement('div');head.className='hd-hero-reminder-head hd-notification-head';
-    const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent=item.overdue?'● НАПОМИНАНИЕ · ПРОСРОЧЕНО':'● НАПОМИНАНИЕ';
-    const source=document.createElement('button');source.type='button';source.className='hd-hero-reminder-source';source.textContent='из календаря';source.onclick=e=>{e.stopPropagation();openReminderCalendar(event);};
-    head.append(badge,source);
+    const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent=item.overdue?'НАПОМИНАНИЕ · ПРОСРОЧЕНО':'НАПОМИНАНИЕ';
+    head.append(badge);
 
     const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=item.when;
     const text=document.createElement('div');text.className='hd-hero-reminder-text';text.textContent=item.text;
     const actions=document.createElement('div');actions.className='hd-hero-reminder-actions';
 
-    const snooze=document.createElement('button');snooze.type='button';snooze.className='hd-hero-reminder-snooze';snooze.textContent='⏰ Отложить';snooze.onclick=e=>{e.stopPropagation();notificationFanOpen=false;openReminderSnooze(event);};
+    const snooze=document.createElement('button');snooze.type='button';snooze.className='hd-hero-reminder-snooze';snooze.textContent='📅 Перенести';snooze.onclick=e=>{e.stopPropagation();notificationFanOpen=false;openReminderSnooze(event);};
     const done=document.createElement('button');done.type='button';done.className='hd-hero-reminder-done';done.textContent='✓ Выполнено';done.onclick=e=>{e.stopPropagation();done.disabled=true;notificationFanOpen=false;if(!completeReminder(event))done.disabled=false;};
     actions.append(snooze,done);
     card.append(head,when,text,actions);
@@ -583,14 +582,8 @@
 
     const head=document.createElement('div');head.className='hd-notification-head';
     const badge=document.createElement('span');badge.className='hd-notification-badge';
-    badge.textContent=item.overdue?'⚠ ПРОСРОЧЕНО':'● ЗАПЛАНИРОВАНО';
-    const source=document.createElement('button');source.type='button';source.className='hd-hero-reminder-source';source.textContent='из календаря';source.onclick=e=>{
-      e.stopPropagation();
-      const ui=window.DiagnostikaCalendarUI;
-      if(session?.calendarEventId&&typeof ui?.openEvent==='function')ui.openEvent(session.calendarEventId,{mode:'client'});
-      else if(typeof ui?.open==='function')ui.open({mode:'client'});
-    };
-    head.append(badge,source);
+    badge.textContent=item.overdue?'⚠ ПРОСРОЧЕНО':'ЗАПЛАНИРОВАНО';
+    head.append(badge);
 
     const title=document.createElement('div');title.className='hd-notification-title';title.textContent=item.title;
     const when=document.createElement('div');when.className='hd-notification-when';when.textContent=item.when;
@@ -598,7 +591,7 @@
     const actions=document.createElement('div');actions.className='hd-notification-actions';
 
     const done=document.createElement('button');done.type='button';done.className='hd-notification-complete';done.textContent='✓ Проведена';done.onclick=e=>{e.stopPropagation();sessionNotificationAction('completePlanned',session.id);};
-    const move=document.createElement('button');move.type='button';move.className='hd-notification-move';move.textContent='Перенести';move.onclick=e=>{e.stopPropagation();sessionNotificationAction('reschedulePlanned',session.id);};
+    const move=document.createElement('button');move.type='button';move.className='hd-notification-move';move.textContent='📅 Перенести';move.onclick=e=>{e.stopPropagation();sessionNotificationAction('reschedulePlanned',session.id);};
     const remove=document.createElement('button');remove.type='button';remove.className='hd-notification-delete';remove.textContent='Удалить';remove.onclick=e=>{e.stopPropagation();sessionNotificationAction('deletePlanned',session.id);};
     actions.append(done,move,remove);
     card.append(head,title,when,text,actions);
