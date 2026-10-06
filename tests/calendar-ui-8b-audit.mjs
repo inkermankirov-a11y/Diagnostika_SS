@@ -12,7 +12,7 @@ assert(indexSource.includes('modules/calendar/ui/calendar.js?v=20261005-open-eve
 assert(uiSource.includes(".cal-day.has-events.is-reminder{--cal-beacon:#8b5cf6"),'Reminder day beacon is not purple');
 assert(uiSource.includes("if(kinds.includes('reminder'))return 'reminder'"),'Reminder day kind priority is missing');
 assert(uiSource.includes("row.className=`cal-event is-${calendarEventKind(e)}`"),'Reminder day detail does not receive event type styling');
-assert(indexSource.includes('app-loader.js?v=20261004-theme-switcher-1'),'Global app-loader marker missing');
+assert(indexSource.includes('app-loader.js?v=20261006-number-by-type-1'),'Global app-loader marker missing');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade loader marker is stale');
 
 for(const forbidden of [
