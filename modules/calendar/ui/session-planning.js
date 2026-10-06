@@ -90,6 +90,7 @@
   function isPlannableType(value){return PLANNABLE_TYPES.has(String(value||'').trim());}
   function isPlannableEvent(e){
     if(!e?.clientId)return false;
+    if(e.sessionCompleted===true||String(e.status||'')==='completed')return false;
     if(e.plannedSessionSkeleton!==true&&!e.sessionId)return false;
     if(isSessionEvent(e))return true;
     return isPlannableType(e?.type||e?.title);
@@ -121,7 +122,12 @@
 
   function plannedSessionsFor(c,r){
     if(!c||!r)return[];
-    return events().filter(e=>String(e?.clientId||'')===String(c.id)&&isPlannableEvent(e)&&isSessionEvent(e)&&String((e?.requestId||requestForEvent(c,e)?.id)||'')===String(r.id));
+    return events().filter(e=>{
+      if(String(e?.clientId||'')!==String(c.id)||!isPlannableEvent(e)||!isSessionEvent(e))return false;
+      if(String((e?.requestId||requestForEvent(c,e)?.id)||'')!==String(r.id))return false;
+      const linked=sessionForEvent(c,e);
+      return !linked||isPlannedSkeleton(linked);
+    });
   }
 
   function nextSessionNumber(c,r){
