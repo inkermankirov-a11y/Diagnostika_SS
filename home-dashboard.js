@@ -582,7 +582,8 @@
 
     const head=document.createElement('div');head.className='hd-notification-head';
     const badge=document.createElement('span');badge.className='hd-notification-badge';
-    badge.textContent=item.overdue?'⚠ ПРОСРОЧЕНО':'ЗАПЛАНИРОВАНО';
+    const typeBadge=item.kind==='diagnosis'?'ДИАГНОСТИКА':item.kind==='session'?'СЕССИЯ':'ЗАПИСЬ';
+    badge.textContent=item.overdue?`${typeBadge} · ПРОСРОЧЕНО`:typeBadge;
     head.append(badge);
 
     const title=document.createElement('div');title.className='hd-notification-title';title.textContent=item.title;
