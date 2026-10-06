@@ -30,9 +30,9 @@ for(const token of [
   'ai-api.js?v=20260919-ai6d'
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
-  'modules/ai/ui/client-chat.js?v=20261003-readable-ai-1',
+  'modules/ai/ui/client-chat.js?v=20261006-synced-key-1',
   'client-ai-full-context.js?v=20260919-ai6d',
-  'modules/ai/ui/session-chat.js?v=20261001-modular-stage7-10'
+  'modules/ai/ui/session-chat.js?v=20261006-synced-key-1'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
 const aiBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
 const aiLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)&api=13d/);
@@ -77,7 +77,8 @@ const page=await context.newPage();
 const errors=[];
 page.on('pageerror',e=>errors.push('pageerror: '+(e.stack||e.message)));
 page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
-page.on('dialog',d=>d.accept().catch(()=>{}));
+let dialogs=0;
+page.on('dialog',d=>{dialogs++;d.dismiss().catch(()=>{});});
 
 const payloads=[];
 await page.route('https://lugovoyn8n.ru/**',async route=>{
@@ -167,6 +168,14 @@ await page.waitForFunction(()=>{
 assert.equal(payloads.length,1,'Expected one successful client AI transport request');
 const payload=payloads[0];
 assert.equal(payload.clientId,'ai-6d-client');
+assert.equal(payload.accessKey,'ai-6d-access-key-123456','AI transport did not use the synchronized key');
+assert.equal(dialogs,0,'AI transport opened a password/code prompt');
+const sharedConfig=await page.evaluate(()=>({
+  key:state?.aiConfig?.accessKey||'',
+  legacy:localStorage.getItem('diagnostika-ai-n8n-access-key')
+}));
+assert.equal(sharedConfig.key,'ai-6d-access-key-123456','AI key was not migrated to canonical state');
+assert.equal(sharedConfig.legacy,null,'Legacy browser-only AI key still exists');
 assert.equal(payload.clientContext?.freeConsultation?.pain,'Проверочная боль клиента','Full context was not explicitly enriched');
 assert.equal(typeof payload.clientContext?.contextInstruction,'string','Full context instruction missing');
 assert(payload.clientContext.contextInstruction.length>20,'Full context instruction is empty');

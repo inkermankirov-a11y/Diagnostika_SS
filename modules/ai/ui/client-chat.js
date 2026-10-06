@@ -155,8 +155,7 @@
   }
   function getAccessKey(){
     let key='';try{key=window.DiagnostikaRequestAI?.getConfig?.()?.key||'';}catch(_){}
-    if(!key){try{window.DiagnostikaRequestAI?.configure?.();key=window.DiagnostikaRequestAI?.getConfig?.()?.key||'';}catch(err){throw err;}}
-    if(!key)throw new Error('Для AI-чата нужен ключ доступа n8n.');
+    if(!key)throw new Error('ИИ ещё синхронизирует общий доступ. Подожди несколько секунд и повтори.');
     return key;
   }
   async function fetchJson(url,payload){

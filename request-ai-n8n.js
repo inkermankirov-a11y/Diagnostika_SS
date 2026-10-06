@@ -5,31 +5,99 @@
 
   const TEST_URL='https://lugovoyn8n.ru/webhook-test/diagnostika-ai-request-v2';
   const PRODUCTION_URL='https://lugovoyn8n.ru/webhook/diagnostika-ai-request-v2';
-  const ACCESS_KEY='diagnostika-ai-n8n-access-key';
+  const LEGACY_ACCESS_KEY='diagnostika-ai-n8n-access-key';
+  const CONFIG_FIELD='aiConfig';
+
+  const databaseApi=()=>window.DiagnostikaDB||window.DiagnostikaPlatform?.db||null;
+  const clone=value=>{
+    try{return typeof structuredClone==='function'?structuredClone(value):JSON.parse(JSON.stringify(value));}
+    catch(_){return value&&typeof value==='object'?{...value}:value;}
+  };
+
+  function runtimeState(){
+    try{return typeof state!=='undefined'&&state&&Array.isArray(state.clients)?state:null;}
+    catch(_){return null;}
+  }
+
+  function readDatabase(){
+    try{return databaseApi()?.readState?.({source:'ai-config-read'})||null;}
+    catch(_){return null;}
+  }
+
+  function syncedKey(){
+    const live=runtimeState();
+    const liveKey=String(live?.[CONFIG_FIELD]?.accessKey||'').trim();
+    if(liveKey)return liveKey;
+    const db=readDatabase();
+    return String(db?.[CONFIG_FIELD]?.accessKey||'').trim();
+  }
+
+  function persistSyncedKey(key,source='ai-config-save'){
+    const cleanKey=String(key||'').trim();
+    if(cleanKey&&cleanKey.length<12)throw new Error('Ключ доступа должен быть не короче 12 символов');
+    const current=readDatabase()||runtimeState();
+    if(!current||!Array.isArray(current.clients))return false;
+    const next=clone(current);
+    next[CONFIG_FIELD]={
+      ...(next[CONFIG_FIELD]&&typeof next[CONFIG_FIELD]==='object'?next[CONFIG_FIELD]:{}),
+      accessKey:cleanKey,
+      updatedAt:new Date().toISOString()
+    };
+    const ok=databaseApi()?.writeState?.(next,{source})===true;
+    if(!ok)return false;
+    const live=runtimeState();
+    if(live){
+      live[CONFIG_FIELD]=clone(next[CONFIG_FIELD]);
+    }
+    try{localStorage.removeItem(LEGACY_ACCESS_KEY);}catch(_){}
+    return true;
+  }
+
+  function migrateLegacyKey(){
+    const existing=syncedKey();
+    if(existing){
+      try{localStorage.removeItem(LEGACY_ACCESS_KEY);}catch(_){}
+      return existing;
+    }
+    let legacy='';
+    try{legacy=String(localStorage.getItem(LEGACY_ACCESS_KEY)||'').trim();}catch(_){}
+    if(!legacy)return '';
+    try{
+      if(persistSyncedKey(legacy,'ai-config-legacy-migration'))return legacy;
+    }catch(error){
+      console.warn('[AI config] legacy key migration failed',error);
+    }
+    return legacy;
+  }
 
   function getConfig(){
     return {
       testUrl:TEST_URL,
       productionUrl:PRODUCTION_URL,
-      key:(localStorage.getItem(ACCESS_KEY)||'').trim()
+      key:migrateLegacyKey()
     };
   }
 
   function saveConfig(key){
-    localStorage.setItem(ACCESS_KEY,String(key||'').trim());
+    return persistSyncedKey(key,'ai-config-save');
   }
 
   function clearConfig(){
-    localStorage.removeItem(ACCESS_KEY);
+    const current=readDatabase()||runtimeState();
+    if(current&&Array.isArray(current.clients)){
+      const next=clone(current);
+      next[CONFIG_FIELD]={...(next[CONFIG_FIELD]||{}),accessKey:'',updatedAt:new Date().toISOString()};
+      databaseApi()?.writeState?.(next,{source:'ai-config-clear'});
+      const live=runtimeState();if(live)live[CONFIG_FIELD]=clone(next[CONFIG_FIELD]);
+    }
+    try{localStorage.removeItem(LEGACY_ACCESS_KEY);}catch(_){}
   }
 
-  function configure(){
-    const old=getConfig();
-    const key=window.prompt('Введи ключ доступа, который указан в n8n:',old.key||'');
-    if(key===null)return null;
-    const cleanKey=String(key).trim();
+  function configure(key){
+    if(key===undefined)return getConfig();
+    const cleanKey=String(key||'').trim();
     if(cleanKey.length<12)throw new Error('Ключ доступа должен быть не короче 12 символов');
-    saveConfig(cleanKey);
+    if(!saveConfig(cleanKey))throw new Error('Не удалось сохранить общий ключ ИИ в синхронизируемой базе.');
     return {testUrl:TEST_URL,productionUrl:PRODUCTION_URL,key:cleanKey};
   }
 
@@ -157,11 +225,8 @@
   }
 
   async function generate(payload){
-    let cfg=getConfig();
-    if(!cfg.key){
-      cfg=configure();
-      if(!cfg)throw new Error('Настройка ИИ отменена');
-    }
+    const cfg=getConfig();
+    if(!cfg.key)throw new Error('ИИ ещё не получил общий ключ из синхронизируемой базы. Дождись синхронизации Google Drive и повтори.');
 
     const form=new URLSearchParams();
     form.set('accessKey',cfg.key);
@@ -215,6 +280,8 @@
     notify('production-active','Запрос обрабатывается опубликованным workflow n8n.');
     return parseSuccessfulResponse(prodAttempt.text,'production');
   }
+
+  migrateLegacyKey();
 
   window.DiagnostikaRequestAI={
     generate,

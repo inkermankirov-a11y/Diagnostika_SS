@@ -22,8 +22,8 @@ for(const token of [
   'ai-api.js?v=20260919-ai6d'
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
-  'modules/ai/ui/client-chat.js?v=20261001-modular-stage7-10',
-  'modules/ai/ui/session-chat.js?v=20261001-modular-stage7-10'
+  'modules/ai/ui/client-chat.js?v=20261006-synced-key-1',
+  'modules/ai/ui/session-chat.js?v=20261006-synced-key-1'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
 const aiBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
 const aiLoaderMatch=indexSource.match(/app-loader\.js\?v=([^"&]+)&api=13d/);
@@ -66,7 +66,8 @@ const page=await context.newPage();
 const errors=[];
 page.on('pageerror',e=>errors.push('pageerror: '+(e.stack||e.message)));
 page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
-page.on('dialog',d=>d.accept().catch(()=>{}));
+let dialogs=0;
+page.on('dialog',d=>{dialogs++;d.dismiss().catch(()=>{});});
 
 let chatRequests=0;
 await page.route('https://lugovoyn8n.ru/**',async route=>{
@@ -94,6 +95,16 @@ async function ready(){
 
 await page.goto(base,{waitUntil:'commit',timeout:10000});
 await ready();
+
+const migratedAiConfig=await page.evaluate(()=>({
+  key:window.DiagnostikaRequestAI?.getConfig?.()?.key||'',
+  stateKey:state?.aiConfig?.accessKey||'',
+  legacy:localStorage.getItem('diagnostika-ai-n8n-access-key')
+}));
+assert.equal(migratedAiConfig.key,'ai-6b-access-key-123456','AI key did not migrate into shared config');
+assert.equal(migratedAiConfig.stateKey,'ai-6b-access-key-123456','AI key is not stored in canonical database state');
+assert.equal(migratedAiConfig.legacy,null,'Legacy per-browser AI key was not removed');
+assert.equal(dialogs,0,'AI key migration opened a password/code prompt');
 
 await page.evaluate(()=>{
   window.__ai6bEvents=[];
