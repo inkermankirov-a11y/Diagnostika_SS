@@ -129,7 +129,7 @@ jobs:
               if token not in google:
                   errors.append('calendar 8D Google bridge hardening missing '+token)
           for token in [
-              'modules/calendar/ui/calendar.js?v=20261005-open-event-1',
+              'modules/calendar/ui/calendar.js?v=20261006-future-beacon-tooltip-1',
               'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
           ]:
               if token not in index:
