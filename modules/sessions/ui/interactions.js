@@ -37,6 +37,12 @@
     return window.DiagnostikaSessions?.moduleAware===true?window.DiagnostikaSessions:null;
   }
 
+  function calendarApi(){
+    return window.DiagnostikaCalendar?.moduleAware===true
+      ? window.DiagnostikaCalendar
+      : window.DiagnostikaPlatform?.services?.calendar||null;
+  }
+
   function deleteCurrentClient(){
     const api=clientsApi();
     const c=api?.current?.()||null;
