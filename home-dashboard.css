@@ -1944,7 +1944,7 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
   filter:saturate(.82);
 }
 .hd-notification-deck.is-fanned .hd-notification-card.is-stack-tab{
-  top:calc(10px + var(--stack-index) * 42px);
+  top:calc(118px + var(--stack-index) * 42px);
   height:38px;
   min-height:38px;
   transform:translateX(calc(var(--stack-index) * 5px));
