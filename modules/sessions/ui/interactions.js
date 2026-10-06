@@ -59,14 +59,17 @@
     const deleteBtn=document.createElement('button');
     deleteBtn.type='button';
     deleteBtn.className='session-delete-btn';
-    deleteBtn.textContent='Удалить сессию';
+    const recordType=String(s?.appointmentType||s?.calendarTitle||'Сессия').trim()||'Сессия';
+    deleteBtn.textContent=`Удалить: ${recordType}`;
     deleteBtn.onclick=async()=>{
-      if(!tripleConfirm('сессию',`№${number}`))return;
+      if(!tripleConfirm(recordType.toLowerCase(),`№${number}`))return;
       await deleteSessionMedia(s.id);
       const api=sessionsApi();
       if(!api?.remove)return alert('Модуль сессий ещё загружается.');
+      if(s.calendarEventId){try{calendarApi()?.remove?.(s.calendarEventId,{source:'session-editor-delete'});}catch(_){}}
       const removed=api.remove(s.id,{client:c,source: 'session-editor-delete'});
-      if(!removed)return alert('Не удалось удалить сессию.');
+      if(!removed)return alert(`Не удалось удалить: ${recordType.toLowerCase()}.`);
+      try{window.DiagnostikaCalendarSessionPlanning?.refresh?.();}catch(_){}
       try{
         if(typeof selectedSessionId!=='undefined'&&selectedSessionId===s.id)selectedSessionId=null;
       }catch(_){}
