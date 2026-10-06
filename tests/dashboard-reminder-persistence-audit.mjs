@@ -162,7 +162,7 @@ const snoozed=await page.evaluate(()=>({
 }));
 assert.equal(snoozed.visible,true,'Snoozed reminder disappeared');
 assert.equal(snoozed.overdue,false,'Snoozed reminder still looks overdue');
-assert(/45, 154, 97|43, 185, 119/.test(snoozed.doneBackground),'Completed action is not green');
+assert(/71, 187, 121|46, 155, 98|45, 154, 97|43, 185, 119/.test(snoozed.doneBackground),'Completed action is not green');
 
 await page.locator('#hdHeroReminder .hd-hero-reminder-done').click();
 await page.waitForFunction(()=>document.getElementById('hdHeroReminder')?.hidden===true,null,{timeout:5000});
