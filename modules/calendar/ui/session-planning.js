@@ -78,11 +78,21 @@
     return !!s&&(s.planned===true||String(s.status||'')==='planned')&&!!s.calendarEventId;
   }
 
+  function recordTypeLabel(s){
+    return String(s?.appointmentType||s?.calendarTitle||'').trim();
+  }
+
+  function isTherapySessionRecord(s){
+    const type=recordTypeLabel(s);
+    if(!type)return true;
+    return /^Сессия(?:\s*№\s*\d+)?$/i.test(type);
+  }
+
   function actualSessionsFor(c,r){
     if(!c||!r)return[];
     try{
       const rows=sessionsApi()?.forRequest?.(r.id,c);
-      return Array.isArray(rows)?rows.filter(s=>!isPlannedSkeleton(s)):[];
+      return Array.isArray(rows)?rows.filter(s=>!isPlannedSkeleton(s)&&isTherapySessionRecord(s)):[];
     }catch(_){return[];}
   }
 
