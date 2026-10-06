@@ -556,10 +556,14 @@
       sync.textContent='Синхронизирую…';
       try{
         const result=await safeSync(setStatus);
+        const accountLine=result.accountEmail?`Google аккаунт: ${result.accountEmail}\n`:'';
+        const copiesLine=(result.folderCount>1||result.remoteCopyCount>1)
+          ? `\nНайдено папок Diagnostika: ${result.folderCount}.\nНайдено database.json: ${result.remoteCopyCount}.\nВсе найденные облачные копии объединены и приведены к одной базе.`
+          : '';
         await notify(
           result.unchanged
-            ? `Локальная база и Google Drive уже совпадают. Клиентов: ${result.merged.clients?.length||0}.`
-            : `Готово.\nНа этом ПК было: ${result.localCount}.\nВ Google было: ${result.remoteCount}.\nПосле объединения: ${result.merged.clients?.length||0}.\nРезервные копии находятся в Diagnostika/Backups.${result.conflicts.length?`\nКонфликтов: ${result.conflicts.length}.`:''}\n\nПерезагрузка страницы не требуется.`,
+            ? `${accountLine}Локальная база и Google Drive уже совпадают.\nНа этом ПК: ${result.localCount}.\nВ Google: ${result.remoteCount}.${copiesLine}`
+            : `${accountLine}Готово.\nНа этом ПК было: ${result.localCount}.\nВ Google найдено: ${result.remoteCount}.\nПосле объединения: ${result.merged.clients?.length||0}.${copiesLine}\nРезервные копии находятся в Diagnostika/Backups.${result.conflicts.length?`\nКонфликтов: ${result.conflicts.length}.`:''}\n\nПерезагрузка страницы не требуется.`,
           'Синхронизация завершена'
         );
       }catch(error){
@@ -596,7 +600,7 @@
     });
 
     const note=card.querySelector('.gdrive-note');
-    if(note)note.textContent='Автосинхронизация включена: после изменений — примерно через 20 секунд, не чаще одного раза в 2 минуты; проверка Google Drive — каждые 5 минут. При реальных изменениях создаются резервные копии.';
+    if(note)note.textContent='Автосинхронизация включена. При каждой синхронизации программа проверяет все папки Diagnostika и все database.json, объединяет найденные облачные копии по ID и перед изменением создаёт резервные копии.';
     bindAutoSync();
     return true;
   }
