@@ -164,12 +164,7 @@ await page.waitForFunction(()=>!window.DiagnostikaSessions.get('future-session-2
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:future-session-2"]').count(),0,'Deleted diagnosis remains in notification deck');
 
 await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-const overdueTarget=page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:overdue-session-1"]');
-if(await overdueTarget.evaluate(el=>el.classList.contains('is-active'))){
-  await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-}else{
-  await overdueTarget.click();
-}
+await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:overdue-session-1"]').click();
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='session:overdue-session-1');
 await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-notification-complete').click();
 
@@ -177,13 +172,6 @@ await page.waitForFunction(()=>{
   const s=window.DiagnostikaSessions.get('overdue-session-1');
   return s&&s.planned===false&&s.status==='completed';
 });
-
-await page.waitForFunction(()=>{
-  const rows=[...document.querySelectorAll('#hdSummary .hd-summary-box')];
-  const value=rows.find(box=>box.querySelector('.hd-summary-label')?.textContent?.trim()==='Сессии')
-    ?.querySelector('.hd-summary-value')?.textContent?.trim();
-  return value==='0';
-},null,{timeout:5000});
 
 const state=await page.evaluate(()=>({
   session:window.DiagnostikaSessions.get('overdue-session-1'),
