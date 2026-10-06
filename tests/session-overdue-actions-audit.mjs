@@ -121,11 +121,38 @@ const futureStyle=await futureActive.evaluate(el=>({
 }));
 assert(/255, 253, 241|255, 244, 189/.test(futureStyle.bg)||futureStyle.animation.includes('hdDiagnosisNoticePulse'),'Future diagnosis is not using the yellow calendar theme');
 
+assert.equal(await futureActive.locator('.hd-hero-reminder-source').count(),0,'Diagnosis card still renders calendar source link');
+assert.equal((await futureActive.locator('.hd-notification-complete').textContent()).trim(),'✓ Проведена');
+assert.equal((await futureActive.locator('.hd-notification-move').textContent()).trim(),'📅 Перенести');
+assert.equal((await futureActive.locator('.hd-notification-delete').textContent()).trim(),'Удалить');
+const compactDiagnosis=await futureActive.evaluate(card=>{
+  const buttons=[...card.querySelectorAll('.hd-notification-actions button')];
+  const rects=buttons.map(button=>button.getBoundingClientRect());
+  const badge=card.querySelector('.hd-notification-badge');
+  const dot=getComputedStyle(badge,'::before');
+  return {
+    height:card.getBoundingClientRect().height,
+    tops:rects.map(r=>r.top),
+    bottoms:rects.map(r=>r.bottom),
+    widths:rects.map(r=>r.width),
+    dotWidth:dot.width,
+    dotHeight:dot.height
+  };
+});
+assert(compactDiagnosis.height<180,'Diagnosis notification card is not compact');
+assert(Math.max(...compactDiagnosis.tops)-Math.min(...compactDiagnosis.tops)<=1,'Diagnosis actions are not on one row');
+assert(Math.max(...compactDiagnosis.bottoms)-Math.min(...compactDiagnosis.bottoms)<=1,'Diagnosis action buttons have different heights');
+assert(compactDiagnosis.widths.every(width=>width>45),'Diagnosis action button collapsed');
+assert.equal(compactDiagnosis.dotWidth,'5px','Planned badge dot width is wrong');
+assert.equal(compactDiagnosis.dotHeight,'5px','Planned badge dot height is wrong');
+
 await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
 await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="reminder:reminder-future-1"]').click();
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='reminder:reminder-future-1');
 assert.match(await page.locator('#hdHeroReminder .hd-notification-card.is-active').innerText(),/Спросить про самочувствие/);
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active').evaluate(el=>el.classList.contains('is-reminder')),true);
+assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-hero-reminder-source').count(),0,'Reminder card still renders calendar source link');
+assert.equal((await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-hero-reminder-snooze').textContent()).trim(),'📅 Перенести');
 
 await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
 await futureTab.click();

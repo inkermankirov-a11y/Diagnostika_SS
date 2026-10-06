@@ -102,34 +102,29 @@ assert.equal(before.doneButton.trim(),'✓ Выполнено','Reminder has no 
 assert.equal(before.marker,true,'Expired reminder marker disappeared from the client row');
 assert.equal(before.persisted?.completedAt,undefined,'Reminder is completed before user action');
 
-const source=page.locator('#hdHeroReminder .hd-hero-reminder-source');
-assert.equal((await source.textContent()).trim(),'из календаря','Calendar source link text changed');
-const sourceLayout=await page.evaluate(()=>{
-  const card=document.getElementById('hdHeroReminder');
-  const source=card?.querySelector('.hd-hero-reminder-source');
+assert.equal(await page.locator('#hdHeroReminder .hd-hero-reminder-source').count(),0,'Calendar source link should not be rendered in reminder card');
+const reminderLayout=await page.evaluate(()=>{
+  const card=document.querySelector('#hdHeroReminder .hd-notification-card.is-reminder');
+  const move=card?.querySelector('.hd-hero-reminder-snooze');
+  const done=card?.querySelector('.hd-hero-reminder-done');
+  const badge=card?.querySelector('.hd-hero-reminder-badge');
+  const mr=move?.getBoundingClientRect();
+  const dr=done?.getBoundingClientRect();
   const cr=card?.getBoundingClientRect();
-  const sr=source?.getBoundingClientRect();
   return {
-    scrollWidth:source?.scrollWidth||0,
-    clientWidth:source?.clientWidth||0,
-    sourceRight:sr?.right||0,
-    cardRight:cr?.right||0
+    cardHeight:cr?.height||0,
+    moveTop:mr?.top||0,
+    doneTop:dr?.top||0,
+    moveBottom:mr?.bottom||0,
+    doneBottom:dr?.bottom||0
   };
 });
-assert(sourceLayout.scrollWidth<=sourceLayout.clientWidth+1,'Calendar source text is clipped');
-assert(sourceLayout.sourceRight<=sourceLayout.cardRight+1,'Calendar source link overflows the reminder card');
-
-await source.click();
-await page.waitForSelector('#diagnostikaCalendarOverlay[open]',{timeout:5000});
-const targeted=page.locator('#diagnostikaCalendarOverlay .cal-event[data-calendar-event-id="reminder-overdue-1"]');
-await targeted.waitFor({state:'visible',timeout:5000});
-assert.equal(await targeted.evaluate(el=>el.classList.contains('is-targeted')),true,'Calendar did not focus the clicked reminder');
-assert((await targeted.innerText()).includes('Ответить клиенту по сообщению'),'Focused calendar reminder is the wrong event');
-await page.locator('#diagnostikaCalendarOverlay .cal-close').click();
-await page.waitForFunction(()=>!document.getElementById('diagnostikaCalendarOverlay')?.open,null,{timeout:5000});
+assert(Math.abs(reminderLayout.moveTop-reminderLayout.doneTop)<=1,'Reminder actions are not on one row');
+assert(Math.abs(reminderLayout.moveBottom-reminderLayout.doneBottom)<=1,'Reminder action heights differ');
+assert(reminderLayout.cardHeight<180,'Reminder card is not compact');
 
 const snooze=page.locator('#hdHeroReminder .hd-hero-reminder-snooze');
-assert.equal((await snooze.textContent()).trim(),'⏰ Отложить','Snooze action is missing');
+assert.equal((await snooze.textContent()).trim(),'📅 Перенести','Reminder move action is wrong');
 await snooze.click();
 await page.waitForSelector('.hd-reminder-snooze-dialog[open]',{timeout:5000});
 await page.locator('.hd-reminder-snooze-date').fill(futureDate);

@@ -1944,7 +1944,7 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
   filter:saturate(.82);
 }
 .hd-notification-deck.is-fanned .hd-notification-card.is-stack-tab{
-  top:calc(10px + var(--stack-index) * 42px);
+  top:calc(118px + var(--stack-index) * 42px);
   height:38px;
   min-height:38px;
   transform:translateX(calc(var(--stack-index) * 5px));
@@ -2094,4 +2094,108 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
 }
 @media(prefers-reduced-motion:reduce){
   .hd-notification-card,.hd-notification-deck{transition:none!important;animation:none!important}
+}
+
+
+/* Compact notification cards: reminder / diagnosis / planned session share one visual rhythm. */
+.hd-reminder-slot{
+  min-height:154px!important;
+}
+.hd-reminder-slot .hd-notification-deck{
+  min-height:138px!important;
+}
+.hd-notification-card{
+  min-height:126px;
+  padding:10px 11px 11px;
+  border-radius:12px;
+}
+.hd-notification-head,
+.hd-hero-reminder-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  min-height:21px;
+}
+.hd-hero-reminder-source{
+  display:none!important;
+}
+.hd-notification-badge,
+.hd-hero-reminder-badge{
+  gap:5px;
+  padding:4px 8px;
+  line-height:1!important;
+}
+.hd-notification-card:not(.is-overdue) .hd-notification-badge::before,
+.hd-notification-card.is-reminder:not(.is-overdue) .hd-hero-reminder-badge::before{
+  content:'';
+  display:block;
+  width:5px;
+  height:5px;
+  flex:0 0 5px;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.92;
+  transform:none;
+}
+.hd-notification-title{
+  margin-top:7px;
+  font-size:14px;
+  line-height:1.18;
+}
+.hd-notification-when{
+  margin-top:3px;
+  font-size:11px;
+  line-height:1.2;
+}
+.hd-notification-text{
+  margin-top:4px;
+  font-size:10.5px;
+  line-height:1.28;
+}
+.hd-notification-actions{
+  display:grid!important;
+  grid-template-columns:1.05fr 1.25fr .8fr;
+  gap:5px!important;
+  margin-top:8px!important;
+}
+.hd-notification-actions button{
+  width:100%;
+  min-width:0;
+  height:29px;
+  padding:0 4px;
+  font-size:9.5px;
+  line-height:1;
+  white-space:nowrap;
+}
+.hd-hero-reminder-when{
+  margin-top:7px;
+  font-size:13px;
+  line-height:1.2;
+}
+.hd-hero-reminder-text{
+  margin-top:5px;
+  font-size:11px;
+  line-height:1.32;
+}
+.hd-hero-reminder-actions{
+  display:grid!important;
+  grid-template-columns:1fr 1fr;
+  gap:6px!important;
+  margin-top:8px!important;
+}
+.hd-hero-reminder-actions button{
+  width:100%;
+  min-width:0;
+  height:29px;
+  padding:0 7px;
+  font-size:10px;
+  line-height:1;
+  white-space:nowrap;
+}
+.hd-notification-card.is-stack-tab{
+  top:calc(146px + (var(--stack-index) - 1) * 9px);
+}
+@media(max-width:900px){
+  .hd-notification-card{min-height:126px}
 }
