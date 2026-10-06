@@ -16,9 +16,9 @@
   const MAX_BACKUPS=20;
   const FETCH_TIMEOUT=45000;
   const MERGE_TIMEOUT=45000;
-  const AUTO_SYNC_DEBOUNCE=20000;
-  const AUTO_SYNC_MIN_INTERVAL=120000;
-  const AUTO_SYNC_POLL_INTERVAL=300000;
+  const AUTO_SYNC_DEBOUNCE=5000;
+  const AUTO_SYNC_MIN_INTERVAL=15000;
+  const AUTO_SYNC_POLL_INTERVAL=60000;
   let active=false;
   let autoSyncTimer=null;
   let autoSyncPollTimer=null;
@@ -449,7 +449,10 @@
   }
 
   function scheduleAutoSync(delay=AUTO_SYNC_DEBOUNCE){
-    if(!token())return;
+    if(!token()){
+      if(rememberedConnection())autoSyncPending=true;
+      return;
+    }
     autoSyncPending=true;
     clearTimeout(autoSyncTimer);
     const sinceLast=Date.now()-lastAutoSyncAt;
@@ -460,7 +463,10 @@
   async function runAutoSync(){
     clearTimeout(autoSyncTimer);
     autoSyncTimer=null;
-    if(!token())return;
+    if(!token()){
+      if(rememberedConnection())autoSyncPending=true;
+      return;
+    }
     if(document.hidden){
       autoSyncPending=true;
       return;
@@ -503,12 +509,22 @@
     });
 
     document.addEventListener('visibilitychange',()=>{
-      if(!document.hidden&&(token()||rememberedConnection()))scheduleAutoSync(autoSyncPending?500:2000);
+      if(document.hidden)return;
+      if(token())scheduleAutoSync(autoSyncPending?250:750);
+      else if(rememberedConnection())autoSyncPending=true;
     });
     window.addEventListener('focus',()=>{
-      if(token())scheduleAutoSync(2000);
+      if(token())scheduleAutoSync(500);
+      else if(rememberedConnection())autoSyncPending=true;
     });
-    window.addEventListener('online',()=>scheduleAutoSync(1500));
+    window.addEventListener('online',()=>{
+      if(token())scheduleAutoSync(500);
+      else if(rememberedConnection())autoSyncPending=true;
+    });
+    window.addEventListener('diagnostika:google-drive-auth-restored',()=>{
+      autoSyncPending=true;
+      scheduleAutoSync(100);
+    });
 
     clearInterval(autoSyncPollTimer);
     autoSyncPollTimer=setInterval(()=>{
@@ -600,7 +616,7 @@
     });
 
     const note=card.querySelector('.gdrive-note');
-    if(note)note.textContent='Автосинхронизация включена. При каждой синхронизации программа проверяет все папки Diagnostika и все database.json, объединяет найденные облачные копии по ID и перед изменением создаёт резервные копии.';
+    if(note)note.textContent='Автосинхронизация включена для всех подключённых устройств. После изменений и при возврате в приложение база сверяется с Google Drive; доступ каждого компьютера восстанавливается независимо и подключение другого устройства его не отключает.';
     bindAutoSync();
     return true;
   }

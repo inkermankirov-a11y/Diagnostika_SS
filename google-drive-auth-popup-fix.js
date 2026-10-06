@@ -13,6 +13,8 @@
 
   let googlePromise = null;
   let ensurePromise = null;
+  let passiveRestoreBound = false;
+  let passiveRestoreBusy = false;
 
   function parse(raw) {
     try { return JSON.parse(raw || 'null'); }
@@ -175,11 +177,11 @@
       if (current) return current;
     }
     if (!CLIENT_ID) throw new Error('Google OAuth ещё не настроен');
-    // Google Identity Services may still flash an OAuth window even with prompt:''.
-    // Background/silent calls must never start OAuth UI. Reauthorization is
-    // allowed only from the explicit Google Drive connect/restore button.
-    if (!interactive) {
-      throw new Error('Доступ Google Drive нужно восстановить вручную.');
+    // Never open OAuth from timers/background jobs. A remembered connection may
+    // refresh itself from a real user gesture (pointer/key) without forcing
+    // another consent screen. This keeps each device independently authorized.
+    if (!interactive && !navigator.userActivation?.isActive) {
+      throw new Error('Доступ Google Drive будет восстановлен при следующем действии.');
     }
     if (ensurePromise) return ensurePromise;
 
@@ -225,6 +227,7 @@
 
               const user = await loadUser(accessToken);
               setCardConnected(user);
+              window.dispatchEvent(new CustomEvent('diagnostika:google-drive-auth-restored',{detail:{email:user?.email||''}}));
               finish(null, record);
             },
             error_callback: error => {
@@ -243,7 +246,7 @@
             }
           });
 
-          client.requestAccessToken({ prompt: interactive ? 'consent' : '' });
+          client.requestAccessToken({ prompt: '' });
         } catch (error) {
           finish(error);
         }
@@ -277,7 +280,7 @@
     if (validToken()) {
       setCardConnected(getStored(USER_KEY));
     } else if (rememberedConnection()) {
-      setCardNeedsAuth('Доступ Google Drive истёк. Нажмите «Восстановить Google Drive».');
+      setCardNeedsAuth('Google Drive подключён. Доступ восстановится автоматически при следующем действии.');
     }
 
     connect.onclick = async () => {
@@ -294,6 +297,26 @@
 
     return true;
   }
+
+  function installPassiveRestore(){
+    if(passiveRestoreBound)return;
+    passiveRestoreBound=true;
+    const restoreFromGesture=event=>{
+      if(passiveRestoreBusy||validToken()||!rememberedConnection())return;
+      if(event?.target?.closest?.('.gdrive-disconnect'))return;
+      passiveRestoreBusy=true;
+      ensureToken({interactive:false,force:true})
+        .catch(error=>{
+          const card=document.querySelector('.gdrive-card');
+          if(card)setCardNeedsAuth(error?.message||'Не удалось автоматически восстановить Google Drive.');
+        })
+        .finally(()=>{passiveRestoreBusy=false;});
+    };
+    document.addEventListener('pointerdown',restoreFromGesture,true);
+    document.addEventListener('keydown',restoreFromGesture,true);
+  }
+
+  installPassiveRestore();
 
   if (!install()) {
     let attempts = 0;
