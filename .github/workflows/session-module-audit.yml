@@ -2,7 +2,7 @@ name: Session module audit
 
 on:
   push:
-    branches: [main, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, feature-payment-5a, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*', 'feature-diagnosis-*' ]
+    branches: [main, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, 'feature-sessions-*', feature-payment-5a, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*', 'feature-diagnosis-*' ]
     paths:
       - 'modules/sessions/**'
       - 'session-api.js'
@@ -11,6 +11,8 @@ on:
       - 'tests/session-module-audit.mjs'
       - 'tests/session-ui-4b-audit.mjs'
       - 'tests/session-final-4c-audit.mjs'
+      - 'tests/session-overdue-actions-audit.mjs'
+      - 'modules/calendar/ui/session-planning.js'
       - 'test-data.js'
       - 'core/legacy-event-bridge.js'
       - 'core/bootstrap.js'
@@ -39,6 +41,8 @@ jobs:
           node --check tests/session-module-audit.mjs
           node --check tests/session-ui-4b-audit.mjs
           node --check tests/session-final-4c-audit.mjs
+          node --check tests/session-overdue-actions-audit.mjs
+          node --check modules/calendar/ui/session-planning.js
           node --check test-data.js
           node --check core/legacy-event-bridge.js
           node --check core/bootstrap.js
@@ -167,5 +171,6 @@ jobs:
           node tests/session-module-audit.mjs
           node tests/session-ui-4b-audit.mjs
           node tests/session-final-4c-audit.mjs
+          node tests/session-overdue-actions-audit.mjs
 
 # acceptance-ci-trigger: 20260918-sessions4c
