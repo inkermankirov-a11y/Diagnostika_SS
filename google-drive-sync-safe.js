@@ -6,6 +6,7 @@
 
   const TOKEN_KEY='diagnostika-google-drive-token-v2';
   const FOLDER_KEY='diagnostika-google-drive-folder-v2';
+  const USER_KEY='diagnostika-google-drive-user-v2';
   const CONNECTED_KEY='diagnostika-google-drive-connected-v1';
   const FOLDER_NAME='Diagnostika';
   const BACKUP_FOLDER_NAME='Backups';
@@ -46,6 +47,11 @@
       const raw=localStorage.getItem(key)||sessionStorage.getItem(key);
       return JSON.parse(raw||'null');
     }catch{return null;}
+  }
+  function setSession(key,value){
+    const raw=JSON.stringify(value);
+    try{localStorage.setItem(key,raw);}catch{}
+    try{sessionStorage.setItem(key,raw);}catch{}
   }
   function token(){
     const t=getSession(TOKEN_KEY);
@@ -106,22 +112,32 @@
   }
 
   function esc(value){return String(value).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
-  async function findFolder(parentId,name){
+  const remoteTime=value=>Date.parse(value?.modifiedTime||value?.createdTime||'')||0;
+
+  async function listFoldersByName(parentId,name){
     const parent=parentId?` and '${parentId}' in parents`:'';
     const q=encodeURIComponent(`name='${esc(name)}' and mimeType='application/vnd.google-apps.folder' and trashed=false${parent}`);
-    const data=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&spaces=drive&pageSize=20`);
-    return data?.files?.[0]||null;
+    const data=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,createdTime)&spaces=drive&orderBy=modifiedTime desc&pageSize=100`);
+    return Array.isArray(data?.files)?data.files:[];
+  }
+  async function findFolder(parentId,name){
+    return (await listFoldersByName(parentId,name))[0]||null;
   }
   async function createFolder(name,parentId){
     const body={name,mimeType:'application/vnd.google-apps.folder'};
     if(parentId)body.parents=[parentId];
-    return driveFetch('https://www.googleapis.com/drive/v3/files?fields=id,name',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return driveFetch('https://www.googleapis.com/drive/v3/files?fields=id,name,modifiedTime,createdTime',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   }
   async function ensureFolder(){
-    const cached=getSession(FOLDER_KEY);
-    if(cached?.id)return cached;
-    let folder=await findFolder(null,FOLDER_NAME);
-    if(!folder)folder=await createFolder(FOLDER_NAME);
+    const folders=await listFoldersByName(null,FOLDER_NAME);
+    if(folders.length){
+      const cached=getSession(FOLDER_KEY);
+      const folder=folders.find(item=>String(item.id)===String(cached?.id))||folders[0];
+      setSession(FOLDER_KEY,folder);
+      return folder;
+    }
+    const folder=await createFolder(FOLDER_NAME);
+    setSession(FOLDER_KEY,folder);
     return folder;
   }
   async function ensureBackupFolder(parentId){
@@ -129,10 +145,13 @@
     if(!folder)folder=await createFolder(BACKUP_FOLDER_NAME,parentId);
     return folder;
   }
-  async function findFile(folderId,name){
+  async function listNamedFiles(folderId,name){
     const q=encodeURIComponent(`name='${esc(name)}' and '${folderId}' in parents and trashed=false`);
-    const data=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,createdTime)&spaces=drive&pageSize=20`);
-    return data?.files?.[0]||null;
+    const data=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,createdTime)&spaces=drive&orderBy=modifiedTime desc&pageSize=100`);
+    return Array.isArray(data?.files)?data.files:[];
+  }
+  async function findFile(folderId,name){
+    return (await listNamedFiles(folderId,name))[0]||null;
   }
   async function listFiles(folderId){
     const q=encodeURIComponent(`'${folderId}' in parents and trashed=false`);
@@ -160,11 +179,65 @@
     try{return typeof text==='string'?JSON.parse(text):text;}
     catch{throw new Error('Файл database.json на Google Drive повреждён.');}
   }
+  async function googleAccountEmail(){
+    const cached=getSession(USER_KEY);
+    if(cached?.email)return cached.email;
+    try{
+      const user=await driveFetch('https://openidconnect.googleapis.com/v1/userinfo');
+      if(user?.email){setSession(USER_KEY,user);return user.email;}
+    }catch{}
+    return '';
+  }
   async function remoteDatabase(){
-    const folder=await ensureFolder();
-    const file=await findFile(folder.id,'database.json');
-    if(!file)return {folder,file:null,data:null};
-    return {folder,file,data:await downloadJson(file.id)};
+    let folders=await listFoldersByName(null,FOLDER_NAME);
+    if(!folders.length)folders=[await createFolder(FOLDER_NAME)];
+
+    const copies=[];
+    for(const folder of folders){
+      const files=await listNamedFiles(folder.id,'database.json');
+      for(const file of files){
+        try{
+          const data=await downloadJson(file.id);
+          if(data&&Array.isArray(data.clients))copies.push({folder,file,data});
+        }catch(error){
+          console.warn('[Google safe sync] skipped unreadable database.json',file?.id,error);
+        }
+      }
+    }
+
+    copies.sort((a,b)=>remoteTime(b.file)-remoteTime(a.file));
+    const cached=getSession(FOLDER_KEY);
+    const folder=copies[0]?.folder||folders.find(item=>String(item.id)===String(cached?.id))||folders[0];
+    setSession(FOLDER_KEY,folder);
+    const file=copies.find(item=>String(item.folder.id)===String(folder.id))?.file||null;
+
+    if(!copies.length)return {folder,file,data:null,copies:[],folders,cloudConflicts:[]};
+
+    let data=clone(copies[0].data);
+    const cloudConflicts=[];
+    for(let index=1;index<copies.length;index++){
+      const merged=await mergeInWorker(null,data,copies[index].data);
+      data=merged.merged;
+      cloudConflicts.push(...merged.conflicts);
+    }
+    return {folder,file,data,copies,folders,cloudConflicts};
+  }
+  async function convergeRemoteCopies(remote,data){
+    const folders=Array.isArray(remote?.folders)&&remote.folders.length?remote.folders:[remote.folder].filter(Boolean);
+    let writes=0;
+    for(const folder of folders){
+      const existing=(remote?.copies||[]).filter(copy=>String(copy.folder?.id)===String(folder.id));
+      if(existing.length){
+        for(const copy of existing){
+          await uploadJson(folder.id,'database.json',data,copy.file.id);
+          writes++;
+        }
+      }else{
+        await uploadJson(folder.id,'database.json',data,null);
+        writes++;
+      }
+    }
+    return writes;
   }
 
   function currentDatabase(){
