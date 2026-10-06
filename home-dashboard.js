@@ -565,10 +565,10 @@
 
     const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=item.when;
     const text=document.createElement('div');text.className='hd-hero-reminder-text';text.textContent=item.text;
-    const actions=document.createElement('div');actions.className='hd-hero-reminder-actions';
+    const actions=document.createElement('div');actions.className='hd-hero-reminder-actions hd-notification-actions';
 
-    const snooze=document.createElement('button');snooze.type='button';snooze.className='hd-hero-reminder-snooze';snooze.textContent='📅 Перенести';snooze.onclick=e=>{e.stopPropagation();notificationFanOpen=false;openReminderSnooze(event);};
-    const done=document.createElement('button');done.type='button';done.className='hd-hero-reminder-done';done.textContent='✓ Выполнено';done.onclick=e=>{e.stopPropagation();done.disabled=true;notificationFanOpen=false;if(!completeReminder(event))done.disabled=false;};
+    const snooze=document.createElement('button');snooze.type='button';snooze.className='hd-hero-reminder-snooze hd-notification-move hd-notification-icon-btn';snooze.setAttribute('aria-label','Перенести');snooze.title='Перенести';snooze.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 9.5h16M8 13h2M12 13h2M16 13h1M8 16h2M12 16h2"/></svg>';snooze.onclick=e=>{e.stopPropagation();notificationFanOpen=false;openReminderSnooze(event);};
+    const done=document.createElement('button');done.type='button';done.className='hd-hero-reminder-done hd-notification-complete hd-notification-icon-btn';done.setAttribute('aria-label','Выполнено');done.title='Выполнено';done.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7"/></svg>';done.onclick=e=>{e.stopPropagation();done.disabled=true;notificationFanOpen=false;if(!completeReminder(event))done.disabled=false;};
     actions.append(snooze,done);
     card.append(head,when,text,actions);
     return card;

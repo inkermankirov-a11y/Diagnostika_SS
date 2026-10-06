@@ -24,7 +24,16 @@ const fixture={version:4,clients:[{
     calendarTitle:'Диагностика'
   }],
   quickNotes:[],questionnaires:[]
-}],calendarEvents:[]};
+}],calendarEvents:[{
+  id:'compact-reminder-1',
+  clientId:'compact-client',
+  type:'Напоминание',
+  title:'Напоминание',
+  date,
+  time:'20:00',
+  note:'Напомнить, что нужно записаться на первую сессию.',
+  status:'planned'
+}]};
 
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:900}});
@@ -81,8 +90,34 @@ assert(state.height<150,`Diagnosis card is not compact: ${state.height}px`);
 assert(state.dotContent==='none'||state.dotContent==='normal'||state.dotContent==='""','Decorative badge dot still renders');
 assert(!state.text.includes('из календаря'),'Calendar source text is still visible');
 
+await page.locator('#hdHeroReminder .hd-notification-card.is-reminder').click();
+await page.locator('#hdHeroReminder .hd-notification-card.is-reminder .hd-hero-reminder-actions').waitFor({state:'visible',timeout:5000});
+const reminderState=await page.evaluate(()=>{
+  const card=document.querySelector('#hdHeroReminder .hd-notification-card.is-reminder');
+  const actions=[...card?.querySelectorAll('.hd-hero-reminder-actions button')||[]];
+  const rects=actions.map(b=>b.getBoundingClientRect());
+  return{
+    buttons:actions.map(x=>x.textContent.trim()),
+    labels:actions.map(x=>x.getAttribute('aria-label')||''),
+    titles:actions.map(x=>x.getAttribute('title')||''),
+    svgCount:actions.map(x=>x.querySelectorAll('svg').length),
+    tops:rects.map(r=>r.top),
+    widths:rects.map(r=>r.width),
+    heights:rects.map(r=>r.height)
+  };
+});
+assert.deepEqual(reminderState.buttons,['','']);
+assert.deepEqual(reminderState.labels,['Перенести','Выполнено']);
+assert.deepEqual(reminderState.titles,['Перенести','Выполнено']);
+assert.deepEqual(reminderState.svgCount,[1,1]);
+assert(Math.max(...reminderState.tops)-Math.min(...reminderState.tops)<=1,'Reminder action buttons are not on one row');
+assert(Math.max(...reminderState.widths)-Math.min(...reminderState.widths)<=1,'Reminder action buttons have different widths');
+assert(Math.max(...reminderState.heights)-Math.min(...reminderState.heights)<=1,'Reminder action buttons have different heights');
+assert(reminderState.widths.every((w,i)=>Math.abs(w-reminderState.heights[i])<=1),`Reminder action buttons are not square: ${reminderState.widths.join(',')} x ${reminderState.heights.join(',')}`);
+assert(reminderState.widths.every(w=>w<=30),`Reminder action buttons are too large: ${reminderState.widths.join(',')}`);
+
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
 
-console.log('DASHBOARD_NOTIFICATION_COMPACT_OK',JSON.stringify(state));
+console.log('DASHBOARD_NOTIFICATION_COMPACT_OK',JSON.stringify({diagnosis:state,reminder:reminderState}));
 await browser.close();
