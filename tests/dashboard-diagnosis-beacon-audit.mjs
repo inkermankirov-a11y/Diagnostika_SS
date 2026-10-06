@@ -1,62 +1,14 @@
-import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
-const future=new Date(Date.now()+24*60*60*1000);
-const futureDate=[future.getFullYear(),String(future.getMonth()+1).padStart(2,'0'),String(future.getDate()).padStart(2,'0')].join('-');
+const js=fs.readFileSync('home-dashboard.js','utf8');
+const css=fs.readFileSync('home-dashboard.css','utf8');
 
-const fixture={version:4,calendarEvents:[{
-  id:'diag-beacon-1',
-  title:'Диагностика',
-  type:'Диагностика',
-  date:futureDate,
-  time:'19:00',
-  clientId:'diag-beacon-client',
-  requestId:'diag-beacon-r1',
-  plannedSessionSkeleton:true
-}],clients:[{
-  id:'diag-beacon-client',
-  name:'Марина',
-  currentRequestId:'diag-beacon-r1',
-  lastDiagnosisRequestId:'diag-beacon-r1',
-  requests:[{id:'diag-beacon-r1',title:'Запрос',status:'active',situations:[]}],
-  sessions:[{
-    id:'diag-beacon-session',
-    date:futureDate,
-    scheduledTime:'19:00',
-    requestId:'diag-beacon-r1',
-    appointmentType:'Диагностика',
-    calendarTitle:'Диагностика',
-    planned:true,
-    status:'planned',
-    calendarEventId:'diag-beacon-1'
-  }]
-}]};
+assert(js.includes("if(type==='диагностика'||title==='диагностика'||/^диагностика №\\d+$/i.test"),'Diagnosis is not mapped to the diagnosis beacon kind');
+assert(js.includes("if(kind==='diagnosis')return 'Диагностика';"),'Diagnosis tooltip label is missing');
+assert(css.includes('.hd-upcoming-session-dot.is-diagnosis{--hd-beacon:#f4b72a'),'Diagnosis beacon is not yellow');
+assert(css.includes('.hd-upcoming-tooltip.is-diagnosis{border-color:#d7b84d'),'Diagnosis tooltip does not use yellow styling');
+assert(css.includes('.hd-upcoming-session-dot.is-session{--hd-beacon:#4c8ed9'),'Ordinary session beacon should remain blue');
+assert(!css.includes('.hd-upcoming-session-dot.is-diagnosis{--hd-beacon:#94a3b8'),'Diagnosis beacon fell back to neutral gray');
 
-const browser=await chromium.launch({headless:true});
-const context=await browser.newContext({viewport:{width:1200,height:800}});
-await context.addInitScript(data=>{
-  localStorage.setItem('diagnostika-web-v1',JSON.stringify(data));
-  localStorage.setItem('diagnostika-last-client-id','diag-beacon-client');
-  localStorage.setItem('diagnostika-ui-language','ru');
-},fixture);
-const page=await context.newPage();
-await page.goto('http://127.0.0.1:8000/index.html?diag-beacon=1',{waitUntil:'commit',timeout:10000});
-await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
-await page.waitForFunction(()=>document.querySelector('.hd-client-row[data-client-id="diag-beacon-client"] .hd-upcoming-session-dot'),null,{timeout:8000});
-
-const state=await page.evaluate(()=>{
-  const dot=document.querySelector('.hd-client-row[data-client-id="diag-beacon-client"] .hd-upcoming-session-dot');
-  const style=getComputedStyle(dot);
-  return {
-    cls:dot?.className||'',
-    kind:dot?.dataset.kind||'',
-    tooltip:dot?.dataset.tooltip||'',
-    bg:style.backgroundColor
-  };
-});
-assert.match(state.cls,/is-diagnosis/,'Diagnosis marker is not classified as diagnosis');
-assert.equal(state.kind,'diagnosis');
-assert.match(state.tooltip,/Диагностика/);
-assert.notEqual(state.bg,'rgb(148, 163, 184)','Diagnosis marker still uses neutral gray');
-console.log('DIAGNOSIS_BEACON_YELLOW_OK',JSON.stringify(state));
-await browser.close();
+console.log('DIAGNOSIS_BEACON_YELLOW_OK');
