@@ -91,6 +91,7 @@ async function ready(){
     && window.DiagnostikaPlatform?.services?.ai
     && typeof window.DiagnostikaClientAIChat?.send==='function',
     null,{timeout:15000});
+  await page.evaluate(id=>window.DiagnostikaHomeDashboard?.openClient?.(id),"ai-6b-client");
   await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:10000});
 }
 
