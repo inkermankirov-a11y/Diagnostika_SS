@@ -2194,7 +2194,7 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
   white-space:nowrap;
 }
 .hd-notification-card.is-stack-tab{
-  top:calc(132px + (var(--stack-index) - 1) * 9px);
+  top:calc(146px + (var(--stack-index) - 1) * 9px);
 }
 @media(max-width:900px){
   .hd-notification-card{min-height:126px}
