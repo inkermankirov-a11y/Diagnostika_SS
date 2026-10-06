@@ -194,9 +194,13 @@ assert.equal(await page.evaluate(id=>window.DiagnostikaSessions.get(id)?.notes,s
 let guardEvents=await page.evaluate(()=>window.__sessionUi4bEvents);
 assert.equal(guardEvents.filter(x=>x.type==='session:updated'&&x.detail.source==='session-editor-save').length,1,'unsaved guard save emitted wrong event count');
 
-await page.evaluate(()=>{window.__sessionUi4bEvents=[];});
+await page.evaluate(()=>{window.__sessionUi4bEvents=[];window.__sessionDeleteConfirms=0;const original=window.AppDialog.confirm;window.AppDialog.confirm=async(...args)=>{window.__sessionDeleteConfirms++;return original(...args);};});
 dlg=await openHistoricalSession();
 await dlg.locator('.session-delete-btn').click();
+const deleteConfirm=page.locator('dialog.app-message-dialog');
+await deleteConfirm.waitFor({state:'visible',timeout:5000});
+assert.equal(await page.evaluate(()=>window.__sessionDeleteConfirms),1,'session delete must ask exactly once');
+await deleteConfirm.locator('.app-message-yes').click();
 await dlg.waitFor({state:'hidden',timeout:5000});
 await page.waitForTimeout(150);
 
