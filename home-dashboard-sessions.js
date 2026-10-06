@@ -93,6 +93,19 @@
     return raw||'Сессия';
   }
 
+  function appointmentTypeKey(s){
+    const label=appointmentLabel(s).toLocaleLowerCase('ru-RU').replace(/\s+/g,' ').trim();
+    if(/^сессия(?:\s*№\s*\d+)?$/.test(label))return 'session';
+    if(label.includes('диагност'))return 'diagnosis';
+    if(label.includes('консультац'))return 'consultation';
+    if(label.includes('созвон'))return 'call';
+    return label||'session';
+  }
+
+  function isTherapySessionRecord(s){
+    return appointmentTypeKey(s)==='session';
+  }
+
   function appointmentTitle(s,number){
     return `${appointmentLabel(s)} №${number}`;
   }
@@ -223,7 +236,13 @@
     const chronological=sessions
       .map((s,index)=>({s,index,time:typeof sessionTimeValue==='function'?sessionTimeValue(s,index):new Date(s.date||0).getTime()||index}))
       .sort((a,b)=>a.time-b.time||a.index-b.index);
-    chronological.forEach((item,i)=>item.number=i+1);
+    const counters=new Map();
+    chronological.forEach(item=>{
+      const key=appointmentTypeKey(item.s);
+      const number=(counters.get(key)||0)+1;
+      counters.set(key,number);
+      item.number=number;
+    });
     return chronological.reverse();
   }
 
@@ -238,13 +257,13 @@
     if(!sum)return;
     const boxes=[...sum.querySelectorAll('.hd-summary-box')];
     const byLabel=label=>boxes.find(box=>(box.querySelector('.hd-summary-label')?.textContent||'').trim().toLowerCase()===label.toLowerCase());
-    const conducted=currentItems.filter(item=>!isPlannedSession(item.s));
+    const conductedSessions=currentItems.filter(item=>!isPlannedSession(item.s)&&isTherapySessionRecord(item.s));
     const sessionsBox=byLabel('Сессии');
-    if(sessionsBox){const v=sessionsBox.querySelector('.hd-summary-value');if(v)v.textContent=String(conducted.length);}
+    if(sessionsBox){const v=sessionsBox.querySelector('.hd-summary-value');if(v)v.textContent=String(conductedSessions.length);}
     const lastBox=byLabel('Последняя сессия');
     if(lastBox){
       const v=lastBox.querySelector('.hd-summary-value');
-      if(v)v.textContent=formatRuDate(conducted[0]?.s?.date);
+      if(v)v.textContent=formatRuDate(conductedSessions[0]?.s?.date);
     }
     const reqBox=byLabel('Текущий запрос');
     if(reqBox&&r){const v=reqBox.querySelector('.hd-summary-value');if(v)v.textContent=r.title||'Не указан';}
