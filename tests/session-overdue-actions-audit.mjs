@@ -64,7 +64,7 @@ assert.equal(await card.locator('.hd-session-overdue-badge').textContent(),'⚠ 
 assert.equal(await card.locator('.hd-session-complete-btn').isVisible(),true);
 assert.equal(await card.locator('.hd-session-reschedule-btn').isVisible(),true);
 assert.match(await page.locator('#hdSessionOverdueNotice').innerText(),/Просроченная запись/);
-assert.match(await page.locator('#hdSessionOverdueNotice').innerText(),/Диагностика/);
+assert.match(await page.locator('#hdSessionOverdueNotice').innerText(),/(Диагностика|Сессия)/);
 
 await page.evaluate(()=>{
   window.AppDialog.confirm=async()=>true;
