@@ -226,10 +226,14 @@
   }
 
   if(addFeelingBtn){
-    addFeelingBtn.onclick=()=>{
-      const selected=selection();
-      const belief=selected?.type==='belief'?selected.obj:findBeliefForObject(selected?.obj);
-      openBuilder(belief);
+    addFeelingBtn.onclick=async()=>{
+      const open=()=>{
+        const selected=selection();
+        const belief=selected?.type==='belief'?selected.obj:findBeliefForObject(selected?.obj);
+        openBuilder(belief);
+      };
+      const guard=window.DiagnostikaEditorGuard;
+      if(guard?.beforeLeave)await guard.beforeLeave(open);else open();
     };
   }
 
