@@ -2199,3 +2199,96 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
 @media(max-width:900px){
   .hd-notification-card{min-height:126px}
 }
+
+
+/* Notification cards v2 — compact, aligned, no decorative source/dot noise. */
+.hd-reminder-slot .hd-notification-card{
+  min-height:118px!important;
+  padding:9px 10px 10px!important;
+}
+.hd-hero-reminder-source{display:none!important}
+.hd-notification-card:not(.is-overdue) .hd-notification-badge::before,
+.hd-notification-card.is-reminder:not(.is-overdue) .hd-hero-reminder-badge::before{
+  content:none!important;
+  display:none!important;
+}
+.hd-notification-badge,
+.hd-hero-reminder-badge{
+  padding:4px 8px!important;
+  min-height:20px;
+  line-height:12px!important;
+  font-size:9.5px!important;
+  letter-spacing:.035em!important;
+}
+.hd-notification-title{
+  margin-top:6px!important;
+  font-size:13px!important;
+  line-height:1.15!important;
+}
+.hd-notification-when{
+  margin-top:2px!important;
+  font-size:10.5px!important;
+}
+.hd-notification-text{
+  margin-top:3px!important;
+  font-size:10px!important;
+  line-height:1.24!important;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.hd-notification-actions{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.18fr) minmax(0,.78fr)!important;
+  gap:5px!important;
+  align-items:stretch!important;
+  margin-top:7px!important;
+  flex-wrap:nowrap!important;
+}
+.hd-notification-actions button{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  min-width:0!important;
+  height:29px!important;
+  margin:0!important;
+  padding:0 5px!important;
+  font-size:9.5px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.hd-hero-reminder-when{
+  margin-top:6px!important;
+  font-size:12px!important;
+}
+.hd-hero-reminder-text{
+  margin-top:4px!important;
+  font-size:10.5px!important;
+  line-height:1.28!important;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.hd-hero-reminder-actions{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:5px!important;
+  align-items:stretch!important;
+  margin-top:7px!important;
+}
+.hd-hero-reminder-actions button{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  min-width:0!important;
+  height:29px!important;
+  margin:0!important;
+  padding:0 6px!important;
+  font-size:9.5px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
