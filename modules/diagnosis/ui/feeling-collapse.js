@@ -187,8 +187,8 @@
 
     const rows=[...root.querySelectorAll('.tree-row')];
     rows.forEach(row=>{
-      row.style.display='';
-      if(row.classList.contains('deep')||row.classList.contains('instinct'))row.style.display='none';
+      row.style.removeProperty('display');
+      if(row.classList.contains('deep')||row.classList.contains('instinct'))row.style.setProperty('display','none','important');
     });
 
     const selected=selection();
@@ -235,7 +235,10 @@
       };
       feelingRow.prepend(arrow);
 
-      children.forEach(child=>{child.style.display=isExpanded?'':'none';});
+      children.forEach(child=>{
+        if(isExpanded)child.style.removeProperty('display');
+        else child.style.setProperty('display','none','important');
+      });
     });
 
     syncTreeRowHeights(root);
