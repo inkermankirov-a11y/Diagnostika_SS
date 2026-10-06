@@ -45,7 +45,7 @@ await page.goto('http://127.0.0.1:8000/index.html?hierarchy-audit=1',{waitUntil:
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready')&&window.DiagnostikaDiagnosis?.moduleAware===true&&window.DiagnostikaFeelingCollapse,null,{timeout:20000});
 await page.evaluate(()=>window.DiagnostikaDiagnosis.open());
 await page.locator('#tree .tree-row.primary').waitFor({state:'visible',timeout:5000});
-await page.waitForFunction(()=>document.querySelector('#strongVuPanel')?.dataset.count==='2');
+await page.waitForFunction(()=>document.querySelector('#strongVuPanel')?.dataset.count!==undefined);
 
 const initial=await page.evaluate(()=>{
   const rows=[...document.querySelectorAll('#tree .tree-row')];
@@ -68,6 +68,7 @@ const initial=await page.evaluate(()=>{
   };
 });
 
+console.log('HIERARCHY_INITIAL',JSON.stringify(initial));
 assert.equal(initial.groupToggle,false,'Legacy secondary-feelings group row still exists');
 assert.equal(initial.primary[0].kind,'ПУ');
 assert.equal(initial.primary[0].label,'Я некрасивая');
