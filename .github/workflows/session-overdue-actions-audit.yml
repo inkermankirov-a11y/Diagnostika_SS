@@ -1,0 +1,40 @@
+name: Session overdue actions audit
+
+on:
+  push:
+    branches: [main, 'feature-sessions-*']
+    paths:
+      - 'home-dashboard-sessions.js'
+      - 'modules/sessions/ui/editor.js'
+      - 'modules/calendar/ui/session-planning.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/session-overdue-actions-audit.mjs'
+      - '.github/workflows/session-overdue-actions-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  overdue-actions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static checks
+        run: |
+          node --check home-dashboard-sessions.js
+          node --check modules/sessions/ui/editor.js
+          node --check modules/calendar/ui/session-planning.js
+          node --check tests/session-overdue-actions-audit.mjs
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify overdue session workflow
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/session-overdue-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 1
+          node tests/session-overdue-actions-audit.mjs
