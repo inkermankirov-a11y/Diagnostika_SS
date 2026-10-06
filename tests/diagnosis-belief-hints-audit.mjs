@@ -314,7 +314,6 @@ const visiblePrimary=page.locator('.belief-hint-item:visible');
 assert((await visiblePrimary.count())>0,'Primary hints search returned no results');
 await page.locator('.belief-hints-close').click();
 
-await page.locator('#tree .feeling-group-toggle').first().click();
 await page.locator('#tree .tree-row.feeling').first().waitFor({state:'visible',timeout:3000});
 await page.locator('#tree .tree-row.feeling .feeling-child-toggle').first().click();
 const deep=page.locator('#tree .tree-row.deep').first();
