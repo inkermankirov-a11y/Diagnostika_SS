@@ -90,6 +90,8 @@ const before=await page.evaluate(()=>{
     text:card?.innerText||'',
     overdue:card?.classList.contains('is-overdue')||false,
     doneButton:card?.querySelector('.hd-hero-reminder-done')?.textContent||'',
+    doneLabel:card?.querySelector('.hd-hero-reminder-done')?.getAttribute('aria-label')||'',
+    doneTitle:card?.querySelector('.hd-hero-reminder-done')?.getAttribute('title')||'',
     marker:Boolean(row?.querySelector('.hd-client-status-middle .hd-upcoming-session-dot.is-reminder')),
     persisted:JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}').calendarEvents?.find(x=>x.id==='reminder-overdue-1')||null
   };
@@ -98,7 +100,9 @@ const before=await page.evaluate(()=>{
 assert(before.text.includes('Ответить клиенту по сообщению'),'Expired reminder text disappeared');
 assert(before.text.includes('ПРОСРОЧЕНО'),'Expired reminder is not marked overdue');
 assert.equal(before.overdue,true,'Expired reminder card has no overdue state');
-assert.equal(before.doneButton.trim(),'✓ Выполнено','Reminder has no completion action');
+assert.equal(before.doneButton.trim(),'','Reminder completion action should be icon-only');
+assert.equal(before.doneLabel,'Выполнено','Reminder completion action label is missing');
+assert.equal(before.doneTitle,'Выполнено','Reminder completion hover hint is missing');
 assert.equal(before.marker,true,'Expired reminder marker disappeared from the client row');
 assert.equal(before.persisted?.completedAt,undefined,'Reminder is completed before user action');
 
@@ -116,15 +120,25 @@ const reminderLayout=await page.evaluate(()=>{
     moveTop:mr?.top||0,
     doneTop:dr?.top||0,
     moveBottom:mr?.bottom||0,
-    doneBottom:dr?.bottom||0
+    doneBottom:dr?.bottom||0,
+    moveWidth:mr?.width||0,
+    doneWidth:dr?.width||0,
+    moveHeight:mr?.height||0,
+    doneHeight:dr?.height||0
   };
 });
 assert(Math.abs(reminderLayout.moveTop-reminderLayout.doneTop)<=1,'Reminder actions are not on one row');
 assert(Math.abs(reminderLayout.moveBottom-reminderLayout.doneBottom)<=1,'Reminder action heights differ');
+assert(Math.abs(reminderLayout.moveWidth-reminderLayout.doneWidth)<=1,'Reminder action widths differ');
+assert(Math.abs(reminderLayout.moveHeight-reminderLayout.doneHeight)<=1,'Reminder action heights differ');
+assert(Math.abs(reminderLayout.moveWidth-reminderLayout.moveHeight)<=1,'Reminder move action is not square');
+assert(reminderLayout.moveWidth<=30&&reminderLayout.doneWidth<=30,'Reminder actions are not compact icon buttons');
 assert(reminderLayout.cardHeight<180,'Reminder card is not compact');
 
 const snooze=page.locator('#hdHeroReminder .hd-hero-reminder-snooze');
-assert.equal((await snooze.textContent()).trim(),'📅 Перенести','Reminder move action is wrong');
+assert.equal((await snooze.textContent()).trim(),'','Reminder move action should be icon-only');
+assert.equal(await snooze.getAttribute('aria-label'),'Перенести','Reminder move action label is wrong');
+assert.equal(await snooze.getAttribute('title'),'Перенести','Reminder move hover hint is wrong');
 await snooze.click();
 await page.waitForSelector('.hd-reminder-snooze-dialog[open]',{timeout:5000});
 await page.locator('.hd-reminder-snooze-date').fill(futureDate);
