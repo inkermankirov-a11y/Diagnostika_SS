@@ -172,6 +172,15 @@ function openSessionEditor(c,s,number){
   dlg.className='session-edit-dialog';
   const wrap=document.createElement('div');wrap.className='session-edit-card';
   const planned=s?.planned===true||String(s?.status||'')==='planned';
+  const overdue=(()=>{
+    if(!planned)return false;
+    const raw=String(s?.date||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(raw))return false;
+    const [y,m,d]=raw.split('-').map(Number);
+    const match=String(s?.scheduledTime||'').trim().match(/^(\d{1,2}):(\d{2})/);
+    const at=new Date(y,m-1,d,match?Number(match[1]):23,match?Number(match[2]):59,match?0:59,match?0:999).getTime();
+    return at<Date.now();
+  })();
   const h=document.createElement('div');h.className='session-edit-title';h.textContent=`Сессия №${number}`;
 
   const plannedBanner=document.createElement('div');
@@ -182,10 +191,10 @@ function openSessionEditor(c,s,number){
   const plannedTime=String(s?.scheduledTime||'').trim();
   const plannedBannerTop=document.createElement('div');plannedBannerTop.className='session-planned-banner-top';
   const plannedState=document.createElement('span');plannedState.className='session-planned-state';plannedState.textContent='● ЗАПЛАНИРОВАНО';
-  const plannedUndone=document.createElement('span');plannedUndone.className='session-planned-undone';plannedUndone.textContent='НЕ ПРОВЕДЕНА';
+  const plannedUndone=document.createElement('span');plannedUndone.className='session-planned-undone'+(overdue?' overdue':'');plannedUndone.textContent=overdue?'⚠ ПРОСРОЧЕНО':'НЕ ПРОВЕДЕНА';
   plannedBannerTop.append(plannedState,plannedUndone);
   const plannedWhen=document.createElement('div');plannedWhen.className='session-planned-when';plannedWhen.textContent=`${plannedDate}${plannedTime?' • '+plannedTime:''} • ${plannedType}`;
-  const plannedHint=document.createElement('div');plannedHint.className='session-planned-hint';plannedHint.textContent='Дата и время этой записи управляются из календаря. Здесь можно заранее подготовить план работы.';
+  const plannedHint=document.createElement('div');plannedHint.className='session-planned-hint';plannedHint.textContent=overdue?'Запись уже просрочена. На странице клиента отметьте её проведённой или перенесите через календарь.':'Дата и время этой записи управляются из календаря. Здесь можно заранее подготовить план работы.';
   plannedBanner.append(plannedBannerTop,plannedWhen,plannedHint);
 
   const grid=document.createElement('div');grid.className='session-edit-grid';
