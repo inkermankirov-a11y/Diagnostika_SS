@@ -26,7 +26,9 @@
 
     (request.situations||[]).forEach((situation,situationIndex)=>{
       (situation.beliefs||[]).forEach(belief=>{
+        if(!cleanText(belief?.text))return;
         (belief.feelings||[]).forEach(feeling=>{
+          if(!cleanText(feeling?.text))return;
           (feeling.deep||[]).forEach(deep=>{
             const text=cleanText(deep?.text);
             if(!text)return;
