@@ -21,7 +21,7 @@
     #appStartupStatus{margin:24px auto;padding:24px;max-width:640px;background:#fff;border:1px solid #d7dbe0;border-radius:12px}
   </style>
   <script src="app-startup.js?v=20260921-hardening19a" defer></script>
-  <link rel="stylesheet" href="styles.css?v=20261005-diagnosis-tree-grid-1">
+  <link rel="stylesheet" href="styles.css?v=20261006-hierarchy-strong-vu-1">
   <link rel="stylesheet" href="ui-fixes.css?v=20261003-planned-session-1">
   <link rel="stylesheet" href="session-attachments.css?v=20260917-payjitter2">
   <link rel="stylesheet" href="session-format.css?v=20260911-8">
@@ -94,13 +94,18 @@
       <div class="section-title right-title">РЕДАКТОР</div>
       <div id="elementEditor"><div id="editorType" class="editor-type">Элемент не выбран</div><textarea id="editorText" class="text-area editor-text"></textarea><label class="editor-label">Уровень 1–10<input id="editorLevel" class="level-input" type="number" min="1" max="10" value="5"></label><label class="editor-label">Комментарий / уточнение<textarea id="editorComment" class="text-area editor-comment"></textarea></label><button id="saveElementBtn" class="editor-save-btn">Сохранить элемент</button></div>
       <fieldset id="instinctFrame" class="instinct-frame hidden"><legend>ИНСТИНКТЫ — только для вторичного убеждения</legend><div id="instinctSelectedLabel" class="editor-type">Инстинкт 1</div><select id="instinctCombo"></select><label class="editor-label">Уровень 1–10<input id="instinctLevel" class="level-input" type="number" min="1" max="10" value="5"></label><label class="editor-label">Комментарий / уточнение<input id="instinctComment" class="entry"></label><div class="instinct-actions"><button id="saveInstinctBtn" class="editor-save-btn">Сохранить инстинкт</button><button id="addInstinctBtn" class="tk-btn">+ Добавить инстинкт</button></div></fieldset>
+      <section id="strongVuPanel" class="strong-vu-panel" aria-label="Сильные вторичные убеждения">
+        <div class="strong-vu-head"><div class="strong-vu-title">СИЛЬНЫЕ ВУ</div><div class="strong-vu-threshold">6+</div></div>
+        <div id="strongVuList" class="strong-vu-list"></div>
+        <button id="strongVuMore" type="button" class="strong-vu-more" hidden>Показать ещё</button>
+      </section>
     </aside>
   </main>
 </div>
 <dialog id="clientDialog" class="client-dialog"><form method="dialog" class="dialog-card"><div class="dialog-title">БАЗА КЛИЕНТОВ</div><div id="clientDatabaseList" class="client-database-list"></div><div class="dialog-actions"><button id="dialogAddClientBtn" type="button" class="tk-btn">+ Новый клиент</button><button value="cancel" class="tk-btn">Закрыть</button></div></form></dialog>
 <script defer src="i18n-observer-guard.js?v=20260921-hardening19a"></script>
 <script defer src="core/database.js?v=20260919-db14d" data-diagnostika-core-part="db"></script>
-<script defer src="app.js?v=20261006-unsaved-guard-1"></script>
+<script defer src="app.js?v=20261006-hierarchy-strong-vu-1"></script>
 <script defer src="core/bootstrap.js?v=20260919-db14d&api=13d&cleanup=24a"></script>
 <script defer src="core/shell-bridge.js?v=20260929-modular24a" data-diagnostika-core-part="shell"></script>
 <script defer src="app-loader.js?v=20261004-theme-switcher-1"></script>
@@ -141,7 +146,8 @@
 <script defer src="belief-hints-layout-fix.js?v=20260911-8"></script>
 <script defer src="modules/diagnosis/ui/secondary-feeling-hints.js?v=20261006-unsaved-guard-1"></script>
 <script defer src="feeling-tooltip-fix.js?v=20260911-8"></script>
-<script defer src="modules/diagnosis/ui/feeling-collapse.js?v=20261005-row-height-1"></script>
+<script defer src="modules/diagnosis/ui/feeling-collapse.js?v=20261006-accordion-1"></script>
+<script defer src="modules/diagnosis/ui/strong-vu-summary.js?v=20261006-1"></script>
 <script defer src="deep-belief-hints.js?v=20261004-belief-hints-restored-1"></script>
 <script defer src="dynamic-save-labels.js?v=20261004-belief-terms-1"></script>
 <script defer src="i18n.js?v=20261004-belief-terms-1"></script>
