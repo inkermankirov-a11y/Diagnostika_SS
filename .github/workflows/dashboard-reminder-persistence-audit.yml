@@ -2,7 +2,7 @@ name: Dashboard reminder persistence audit
 
 on:
   push:
-    branches: [main, 'feature-dashboard-*', 'feature-client-*', 'feature-diagnosis-*']
+    branches: [main, 'feature-dashboard-*', 'fix-dashboard-*', 'feature-client-*', 'feature-diagnosis-*']
     paths:
       - 'home-dashboard.js'
       - 'home-dashboard.css'
