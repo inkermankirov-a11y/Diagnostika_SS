@@ -154,14 +154,18 @@ assert(created.events.some(x=>x.detail?.source==='calendar-ui-create'),'Missing 
 const countBeforeMove=await page.evaluate(()=>window.DiagnostikaCalendar.list().length);
 await page.evaluate(id=>window.DiagnostikaCalendarUI.openEvent(id,{mode:'client'}),created.item.id);
 await dialog.locator('.cal-date').fill('2026-09-24');
+console.log('DEBUG_AFTER_DATE_FILL',await dialog.locator('.cal-date').inputValue(),await dialog.locator('.cal-save').innerText());
+await page.waitForTimeout(350);
+console.log('DEBUG_AFTER_DATE_WAIT',await dialog.locator('.cal-date').inputValue(),await dialog.locator('.cal-save').innerText());
 await dialog.locator('.cal-time').fill('20:15');
+console.log('DEBUG_AFTER_TIME_FILL',await dialog.locator('.cal-date').inputValue(),await dialog.locator('.cal-time').inputValue(),await dialog.locator('.cal-save').innerText());
+await page.waitForTimeout(350);
+console.log('DEBUG_BEFORE_SAVE',await dialog.locator('.cal-date').inputValue(),await dialog.locator('.cal-time').inputValue(),await dialog.locator('.cal-save').innerText());
 assert.equal(await dialog.locator('.cal-save').innerText(),'Сохранить изменения','Existing event did not open in edit mode');
 await dialog.locator('.cal-save').click();
-
-await page.waitForFunction(id=>{
-  const item=window.DiagnostikaCalendar.get(id);
-  return item?.date==='2026-09-24'&&item?.time==='20:15';
-},created.item.id,{timeout:5000});
+await page.waitForTimeout(600);
+console.log('DEBUG_AFTER_SAVE',JSON.stringify(await page.evaluate(id=>({item:window.DiagnostikaCalendar.get(id),form:{date:document.querySelector('#diagnostikaCalendarOverlay .cal-date')?.value,time:document.querySelector('#diagnostikaCalendarOverlay .cal-time')?.value,save:document.querySelector('#diagnostikaCalendarOverlay .cal-save')?.textContent}}),created.item.id)));
+throw new Error('debug stop');
 
 const moved=await page.evaluate(({id,countBefore})=>{
   const rows=window.DiagnostikaCalendar.list();
