@@ -388,7 +388,9 @@
       const retired=retireImplicitLegacyAppointments();
       const normalized=normalizePlannedSessions();
       const skeletons=syncPlannedSkeletons();
-      if(retired||normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
+      if((retired||normalized||skeletons)&&!overlay.classList.contains('editing-event')){
+        window.DiagnostikaCalendar?.refresh?.();
+      }
       updateForm();
       return retired||normalized||skeletons;
     }finally{
