@@ -100,7 +100,7 @@ jobs:
                   errors.append('calendar 8B UI service boundary missing '+token)
           if 'normalizePlannedSessions' not in planning:
               errors.append('calendar session planning baseline missing')
-          if "version:'8F'" not in planning:
+          if "version:'8G'" not in planning:
               errors.append('calendar session planning is not 8F')
           for token in [
               "sessionsApi()?.forRequest?.(r.id,c)",
@@ -110,7 +110,7 @@ jobs:
               "source:'calendar-planned-session-create'",
               "source:'calendar-planned-session-sync'",
               "source:'calendar-planned-session-orphan-remove'",
-              "source:'calendar-planned-session-migrate-existing'",
+              "source:'calendar-planned-session-retire-implicit'",
               "'calendar:event-created'","'calendar:event-updated'","'calendar:event-deleted'",
               "'session:created'","'session:updated'","'session:deleted'"
           ]:
@@ -119,7 +119,7 @@ jobs:
           for forbidden in ["typeof save==='function'", 'st.calendarEvents', 'e.sessionNumber=', 'e.requestId=']:
               if forbidden in planning:
                   errors.append('calendar 8F legacy mutation remains: '+forbidden)
-          if 'modules/calendar/ui/session-planning.js?v=20261006-number-by-type-1' not in index:
+          if 'modules/calendar/ui/session-planning.js?v=20261007-explicit-planning-1' not in index:
               errors.append('calendar session planning module marker is stale')
 
           for token in ["version:'8E'", 'window.DiagnostikaCalendarUI=ui', "if(window.DiagnostikaCalendar?.moduleAware!==true)window.DiagnostikaCalendar=ui", 'row.dataset.calendarEventId']:
@@ -129,7 +129,7 @@ jobs:
               if token not in google:
                   errors.append('calendar 8D Google bridge hardening missing '+token)
           for token in [
-              'modules/calendar/ui/calendar.js?v=20261007-reschedule-update-1',
+              'modules/calendar/ui/calendar.js?v=20261007-explicit-planning-1',
               'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
           ]:
               if token not in index:
