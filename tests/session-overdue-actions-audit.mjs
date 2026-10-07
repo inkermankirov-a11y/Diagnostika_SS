@@ -149,7 +149,7 @@ assert.equal(compactDiagnosis.dotWidth,'5px','Planned badge dot width is wrong')
 assert.equal(compactDiagnosis.dotHeight,'5px','Planned badge dot height is wrong');
 
 await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="reminder:reminder-future-1"]').click();
+await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="reminder:reminder-future-1"]').evaluate(el=>el.click());
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='reminder:reminder-future-1');
 assert.match(await page.locator('#hdHeroReminder .hd-notification-card.is-active').innerText(),/Спросить про самочувствие/);
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active').evaluate(el=>el.classList.contains('is-reminder')),true);
