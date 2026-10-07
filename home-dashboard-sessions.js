@@ -213,16 +213,90 @@
     }
   }
 
-  function reschedulePlanned(s){
-    if(!s)return false;
-    if(s.calendarEventId&&window.DiagnostikaCalendarUI?.openEvent){
-      return window.DiagnostikaCalendarUI.openEvent(s.calendarEventId,{mode:'client'})!==false;
+  function linkedCalendarEvent(c,s){
+    if(!c||!s)return null;
+    const cal=calendarApi();
+    const sessions=sessionsApi();
+    if(!cal)return null;
+
+    let event=null;
+    const directId=String(s.calendarEventId||'').trim();
+    if(directId&&typeof cal.get==='function'){
+      try{event=cal.get(directId);}catch(_){}
     }
-    if(window.DiagnostikaCalendarUI?.open){
-      window.DiagnostikaCalendarUI.open({mode:'client'});
-      return true;
+
+    let rows=[];
+    if(!event&&typeof cal.list==='function'){
+      try{
+        const listed=cal.list({clientId:c.id});
+        rows=Array.isArray(listed)?listed:[];
+      }catch(_){rows=[];}
+
+      event=rows.find(e=>String(e?.sessionId||'')===String(s.id||''))||null;
+
+      if(!event){
+        const date=String(s.date||'').slice(0,10);
+        const time=String(s.scheduledTime||'').trim();
+        const requestId=sessionRequestId(s);
+        const typeKey=appointmentTypeKey(s);
+        const candidates=rows.filter(e=>{
+          if(!e?.id)return false;
+          if(date&&String(e.date||'').slice(0,10)!==date)return false;
+          if(time&&String(e.time||'').trim()!==time)return false;
+          if(requestId&&String(e.requestId||'')&&String(e.requestId)!==requestId)return false;
+          const eventType=String(e.type||e.title||'').toLocaleLowerCase('ru-RU').replace(/\s+/g,' ').trim();
+          if(typeKey==='diagnosis'&&!eventType.includes('диагност'))return false;
+          if(typeKey==='consultation'&&!eventType.includes('консультац'))return false;
+          if(typeKey==='call'&&!eventType.includes('созвон'))return false;
+          if(typeKey==='session'&&!/^сессия(?:\s*№\s*\d+)?$/.test(eventType))return false;
+          return true;
+        });
+        if(candidates.length===1)event=candidates[0];
+      }
     }
-    return false;
+
+    if(!event&&typeof cal.create==='function'){
+      const type=appointmentLabel(s);
+      try{
+        event=cal.create({
+          date:String(s.date||'').slice(0,10),
+          time:String(s.scheduledTime||'').trim(),
+          clientId:c.id,
+          clientName:c.name||'',
+          requestId:sessionRequestId(s)||'',
+          sessionId:s.id,
+          type,
+          title:String(s.calendarTitle||type).trim()||type,
+          note:'',
+          plannedSessionSkeleton:true
+        },{source:'home-dashboard-session-calendar-repair'});
+      }catch(_){event=null;}
+    }
+
+    if(!event?.id)return null;
+
+    if(String(s.calendarEventId||'')!==String(event.id)&&typeof sessions?.update==='function'){
+      try{
+        sessions.update(s.id,{calendarEventId:event.id},{client:c,source:'home-dashboard-session-calendar-link-repair',render:false});
+        s.calendarEventId=event.id;
+      }catch(_){}
+    }
+
+    const eventPatch={};
+    if(String(event.sessionId||'')!==String(s.id||''))eventPatch.sessionId=s.id;
+    if(event.plannedSessionSkeleton!==true)eventPatch.plannedSessionSkeleton=true;
+    if(sessionRequestId(s)&&String(event.requestId||'')!==sessionRequestId(s))eventPatch.requestId=sessionRequestId(s);
+    if(Object.keys(eventPatch).length&&typeof cal.update==='function'){
+      try{event=cal.update(event.id,eventPatch,{source:'home-dashboard-session-calendar-link-repair'})||event;}catch(_){}
+    }
+    return event;
+  }
+
+  function reschedulePlanned(c,s){
+    if(!c||!s)return false;
+    const event=linkedCalendarEvent(c,s);
+    if(!event?.id||!window.DiagnostikaCalendarUI?.openEvent)return false;
+    return window.DiagnostikaCalendarUI.openEvent(event.id,{mode:'client'})!==false;
   }
 
   function formatRuDate(value,fallback='—'){
@@ -408,7 +482,7 @@
       });
       card.querySelector('.hd-session-reschedule-btn')?.addEventListener('click',e=>{
         e.preventDefault();e.stopPropagation();
-        if(!reschedulePlanned(s))openEditor(c,s,number);
+        if(!reschedulePlanned(c,s))openEditor(c,s,number);
       });
       card.querySelector('.hd-session-delete-planned-btn')?.addEventListener('click',async e=>{
         e.preventDefault();e.stopPropagation();
@@ -534,7 +608,7 @@
 
   function reschedulePlannedById(sessionId){
     const ctx=actionContext(sessionId);
-    return ctx?reschedulePlanned(ctx.s):false;
+    return ctx?reschedulePlanned(ctx.c,ctx.s):false;
   }
 
   async function deletePlannedById(sessionId){
