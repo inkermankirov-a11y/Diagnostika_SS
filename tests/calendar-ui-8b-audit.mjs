@@ -8,7 +8,7 @@ const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
 assert(apiSource.includes("version:'8D'"),'Calendar facade version is not 8D');
-assert(indexSource.includes('modules/calendar/ui/calendar.js?v=20261006-future-beacon-tooltip-1'),'Calendar UI cache marker is stale');
+assert(indexSource.includes('modules/calendar/ui/calendar.js?v=20261007-reschedule-update-1'),'Calendar UI cache marker is stale');
 assert(uiSource.includes(".cal-day.has-events.is-reminder{--cal-beacon:#8b5cf6"),'Reminder day beacon is not purple');
 assert(uiSource.includes("if(kinds.includes('reminder'))return 'reminder'"),'Reminder day kind priority is missing');
 assert(uiSource.includes("row.className=`cal-event is-${calendarEventKind(e)}`"),'Reminder day detail does not receive event type styling');
@@ -29,8 +29,10 @@ for(const forbidden of [
 
 for(const token of [
   "source:'calendar-ui-create'",
+  "source:'calendar-ui-update'",
   "source:'calendar-ui-delete'",
   "api.create(item",
+  "api.update(eventId,changes",
   "api.remove(e.id"
 ])assert(uiSource.includes(token),'Calendar UI service boundary missing '+token);
 
@@ -149,6 +151,34 @@ assert(created.item,'Calendar UI create did not reach CalendarService');
 assert.equal(created.stored?.note,'Создано UI Calendar 8B');
 assert(created.events.some(x=>x.detail?.source==='calendar-ui-create'),'Missing calendar-ui-create service event');
 
+const countBeforeMove=await page.evaluate(()=>window.DiagnostikaCalendar.list().length);
+await page.evaluate(id=>window.DiagnostikaCalendarUI.openEvent(id,{mode:'client'}),created.item.id);
+await dialog.locator('.cal-date').fill('2026-09-24');
+await dialog.locator('.cal-time').fill('20:15');
+assert.equal(await dialog.locator('.cal-save').innerText(),'Сохранить изменения','Existing event did not open in edit mode');
+await dialog.locator('.cal-save').click();
+
+await page.waitForFunction(id=>{
+  const item=window.DiagnostikaCalendar.get(id);
+  return item?.date==='2026-09-24'&&item?.time==='20:15';
+},created.item.id,{timeout:5000});
+
+const moved=await page.evaluate(({id,countBefore})=>{
+  const rows=window.DiagnostikaCalendar.list();
+  const item=window.DiagnostikaCalendar.get(id);
+  return {
+    item,
+    count:rows.length,
+    duplicateCount:rows.filter(e=>e.note==='Создано UI Calendar 8B').length,
+    events:window.__calendar8bEvents,
+    countBefore
+  };
+},{id:created.item.id,countBefore:countBeforeMove});
+assert.equal(moved.item?.id,created.item.id,'Reschedule changed calendar event id');
+assert.equal(moved.count,moved.countBefore,'Reschedule created a second calendar event');
+assert.equal(moved.duplicateCount,1,'Reschedule duplicated the existing calendar record');
+assert(moved.events.some(x=>x.detail?.source==='calendar-ui-update'&&String(x.detail?.id||'')===String(created.item.id)),'Missing calendar-ui-update service event');
+
 const rows=dialog.locator('.cal-event');
 await rows.first().waitFor({state:'visible'});
 const targetRow=rows.filter({hasText:'Созвон'}).filter({hasText:'Создано UI Calendar 8B'}).first();
@@ -175,6 +205,7 @@ assert.deepEqual(serious,[],'Unexpected runtime errors');
 
 console.log('CALENDAR_8B_SUCCESS',JSON.stringify({
   createdSource:created.events.some(x=>x.detail?.source==='calendar-ui-create'),
+  updatedSource:moved.events.some(x=>x.detail?.source==='calendar-ui-update'),
   deletedSource:removed.events.some(x=>x.detail?.source==='calendar-ui-delete'),
   persistedAfterDelete:removed.storedExists
 }));
