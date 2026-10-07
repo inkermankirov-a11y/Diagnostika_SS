@@ -1099,12 +1099,16 @@
     heroActions.append(card);
 
     const currentReq=requestsApi()?.current?.()||(c.requests||[])[0]||null;
-    const lastSession=(c.sessions||[]).filter(s=>!(s?.planned===true||String(s?.status||'')==='planned')).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
+    const therapySessions=(c.sessions||[]).filter(s=>
+      !(s?.planned===true||String(s?.status||'')==='planned')
+      &&notificationRecordTypeKey(s)==='session'
+    );
+    const lastSession=therapySessions.slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
     const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
     const desiredResult=desiredResults.length?desiredResults[desiredResults.length-1]:'Не указан';
     const items=[
       ['Текущий запрос',currentReq?.title||'Не указан','hd-summary-current'],
-      ['Сессии',String((c.sessions||[]).length),'hd-summary-sessions'],
+      ['Сессии',String(therapySessions.length),'hd-summary-sessions'],
       ['Последняя сессия',formatRuDate(lastSession?.date),'hd-summary-last'],
       ['Желаемый результат',desiredResult,'hd-summary-result']
     ];
