@@ -498,7 +498,7 @@
 
   function renderDayDetails(){
     selectedDateLabel.textContent=humanDate(selected);
-    dateInput.value=selected;
+    if(!editingEventId)dateInput.value=selected;
     const evs=eventsOn(selected);
     eventsBox.innerHTML='';
     if(!evs.length){eventsBox.innerHTML='<div class="cal-empty">На этот день записей нет</div>';return;}
@@ -592,6 +592,7 @@
       }
       cell.onclick=()=>{
         selected=ds;
+        if(editingEventId)dateInput.value=ds;
         if(d.getMonth()!==m)cursor=new Date(d.getFullYear(),d.getMonth(),1);
         render();
       };
