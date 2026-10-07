@@ -158,10 +158,13 @@ await dialog.locator('.cal-time').fill('20:15');
 assert.equal(await dialog.locator('.cal-save').innerText(),'Сохранить изменения','Existing event did not open in edit mode');
 await dialog.locator('.cal-save').click();
 
-await page.waitForFunction(id=>{
-  const item=window.DiagnostikaCalendar.get(id);
-  return item?.date==='2099-09-24'&&item?.time==='20:15';
-},created.item.id,{timeout:5000});
+await page.waitForTimeout(350);
+const editProbe=await page.evaluate(id=>({
+  item:window.DiagnostikaCalendar.get(id),
+  all:window.DiagnostikaCalendar.list().map(e=>({id:e.id,date:e.date,time:e.time,type:e.type,title:e.title,note:e.note,sessionId:e.sessionId||'',plannedSessionSkeleton:e.plannedSessionSkeleton}))
+}),created.item.id);
+assert.equal(editProbe.item?.date,'2099-09-24','Calendar edit date did not persist: '+JSON.stringify(editProbe));
+assert.equal(editProbe.item?.time,'20:15','Calendar edit time did not persist: '+JSON.stringify(editProbe));
 
 const moved=await page.evaluate(({id,countBefore})=>{
   const rows=window.DiagnostikaCalendar.list();
