@@ -101,7 +101,7 @@ jobs:
           if 'normalizePlannedSessions' not in planning:
               errors.append('calendar session planning baseline missing')
           if "version:'8G'" not in planning:
-              errors.append('calendar session planning is not 8F')
+              errors.append('calendar session planning is not 8G')
           for token in [
               "sessionsApi()?.forRequest?.(r.id,c)",
               "api.list({clientId:c.id})",
@@ -115,10 +115,10 @@ jobs:
               "'session:created'","'session:updated'","'session:deleted'"
           ]:
               if token not in planning:
-                  errors.append('calendar 8F session linkage missing '+token)
+                  errors.append('calendar 8G session linkage missing '+token)
           for forbidden in ["typeof save==='function'", 'st.calendarEvents', 'e.sessionNumber=', 'e.requestId=']:
               if forbidden in planning:
-                  errors.append('calendar 8F legacy mutation remains: '+forbidden)
+                  errors.append('calendar 8G legacy mutation remains: '+forbidden)
           if 'modules/calendar/ui/session-planning.js?v=20261007-explicit-planning-1' not in index:
               errors.append('calendar session planning module marker is stale')
 
