@@ -101,7 +101,10 @@
   function isPlannableEvent(e){
     if(!e?.clientId)return false;
     if(e.sessionCompleted===true||String(e.status||'')==='completed')return false;
-    if(e.plannedSessionSkeleton!==true&&!e.sessionId)return false;
+    const explicit=e.plannedSessionExplicit===true
+      ||(e.plannedSessionSkeleton===true&&e.plannedSessionMigrated!==true)
+      ||Boolean(e.sessionId);
+    if(!explicit)return false;
     if(isSessionEvent(e))return true;
     return isPlannableType(e?.type||e?.title);
   }
@@ -199,24 +202,28 @@
     ensureCommentForRequest(r);
   }
 
-  function migrateExistingFutureAppointments(){
-    const api=calendarApi();
-    if(!api?.list||!api?.update)return false;
+  function retireImplicitLegacyAppointments(){
+    const cal=calendarApi();
+    const sessions=sessionsApi();
+    if(!cal?.list||!cal?.update||!sessions?.remove)return false;
 
     let changed=false;
     const clientMap=new Map(clients().map(c=>[String(c?.id||''),c]));
-    api.list().forEach(e=>{
-      if(!e?.id||!e?.clientId||e.plannedSessionSkeleton===true||e.sessionId)return;
-      if(!isFutureAppointment(e))return;
-      if(!isSessionEvent(e)&&!isPlannableType(e?.type||e?.title))return;
+    cal.list().forEach(e=>{
+      if(!e?.id||e.plannedSessionMigrated!==true||e.plannedSessionExplicit===true)return;
+      const c=clientMap.get(String(e.clientId||''));
+      const linked=c?sessionForEvent(c,e):null;
 
-      const c=clientMap.get(String(e.clientId));
-      if(!c||!requestForEvent(c,e))return;
+      if(linked&&isPlannedSkeleton(linked)){
+        if(sessions.remove(linked.id,{client:c,source:'calendar-planned-session-retire-implicit',render:false}))changed=true;
+      }
 
-      const updated=api.update(e.id,{
-        plannedSessionSkeleton:true,
-        plannedSessionMigrated:true
-      },{source:'calendar-planned-session-migrate-existing'});
+      const updated=cal.update(e.id,{
+        plannedSessionSkeleton:false,
+        plannedSessionMigrated:false,
+        plannedSessionExplicit:false,
+        sessionId:''
+      },{source:'calendar-planned-session-retire-implicit'});
       if(updated)changed=true;
     });
     return changed;
@@ -363,12 +370,12 @@
     if(syncing)return false;
     syncing=true;
     try{
-      const migrated=migrateExistingFutureAppointments();
+      const retired=retireImplicitLegacyAppointments();
       const normalized=normalizePlannedSessions();
       const skeletons=syncPlannedSkeletons();
-      if(migrated||normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
+      if(retired||normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
       updateForm();
-      return migrated||normalized||skeletons;
+      return retired||normalized||skeletons;
     }finally{
       syncing=false;
     }
@@ -404,7 +411,7 @@
   setTimeout(refreshLinkage,0);
 
   window.DiagnostikaCalendarSessionPlanning=Object.freeze({
-    version:'8F',
+    version:'8G',
     moduleAware:true,
     refresh:refreshLinkage,
     nextSessionNumber,
