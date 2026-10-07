@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const planningSource=fs.readFileSync('modules/calendar/ui/session-planning.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(planningSource.includes("version:'8G'"),'Calendar session planning version is not 8F');
+assert(planningSource.includes("version:'8G'"),'Calendar session planning version is not 8G');
 assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261007-explicit-planning-1'),'Calendar session planner module marker is stale');
 
 for(const forbidden of [
@@ -13,7 +13,7 @@ for(const forbidden of [
   'st.calendarEvents',
   'e.sessionNumber=',
   'e.requestId='
-])assert.equal(planningSource.includes(forbidden),false,'Calendar 8C still mutates legacy calendar persistence: '+forbidden);
+])assert.equal(planningSource.includes(forbidden),false,'Calendar 8G still mutates legacy calendar persistence: '+forbidden);
 
 for(const token of [
   "sessionsApi()?.forRequest?.(r.id,c)",
@@ -30,7 +30,7 @@ for(const token of [
   "'session:created'",
   "'session:updated'",
   "'session:deleted'"
-])assert(planningSource.includes(token),'Calendar 8E service/event linkage missing '+token);
+])assert(planningSource.includes(token),'Calendar 8G service/event linkage missing '+token);
 
 const fixture={
   version:4,
@@ -134,7 +134,7 @@ await page.goto('http://127.0.0.1:8000/index.html?calendar-8c=1',{waitUntil:'com
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
 await page.waitForFunction(()=>window.DiagnostikaCalendar?.moduleAware===true
   && window.DiagnostikaSessions?.moduleAware===true
-  && window.DiagnostikaCalendarSessionPlanning?.version==='8F',
+  && window.DiagnostikaCalendarSessionPlanning?.version==='8G',
   null,{timeout:15000});
 
 const diagnosisOnlyNumber=await page.evaluate(()=>{
