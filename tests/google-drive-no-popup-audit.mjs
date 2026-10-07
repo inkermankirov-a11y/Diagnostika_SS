@@ -35,4 +35,4 @@ assert(safe.includes('DiagnostikaRequestAI?.migrateLegacyKey?.()'),'Google sync 
 
 assert(worker.includes('merged.archivedClients=(merged.archivedClients||[]).filter'),'Permanent deletion is not applied to archived cloud clients');
 
-console.log('GOOGLE_DRIVE_MULTIDEVICE_SESSION_AUDIT_OK');
+console.log('GOOGLE_DRIVE_EXPLICIT_OAUTH_ONLY_AUDIT_OK');
