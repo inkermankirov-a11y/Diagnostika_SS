@@ -13,8 +13,6 @@
 
   let googlePromise = null;
   let ensurePromise = null;
-  let passiveRestoreBound = false;
-  let passiveRestoreBusy = false;
 
   function parse(raw) {
     try { return JSON.parse(raw || 'null'); }
@@ -177,11 +175,11 @@
       if (current) return current;
     }
     if (!CLIENT_ID) throw new Error('Google OAuth ещё не настроен');
-    // Never open OAuth from timers/background jobs. A remembered connection may
-    // refresh itself from a real user gesture (pointer/key) without forcing
-    // another consent screen. This keeps each device independently authorized.
-    if (!interactive && !navigator.userActivation?.isActive) {
-      throw new Error('Доступ Google Drive будет восстановлен при следующем действии.');
+    // OAuth UI is allowed only after an explicit click on the Google Drive
+    // connect/restore button. Ordinary clicks, key presses, timers, focus,
+    // visibility changes and background sync must never trigger Google UI.
+    if (!interactive) {
+      throw new Error('Доступ Google Drive истёк. Откройте «Хранилище» и нажмите «Восстановить Google Drive».');
     }
     if (ensurePromise) return ensurePromise;
 
@@ -280,7 +278,7 @@
     if (validToken()) {
       setCardConnected(getStored(USER_KEY));
     } else if (rememberedConnection()) {
-      setCardNeedsAuth('Google Drive подключён. Доступ восстановится автоматически при следующем действии.');
+      setCardNeedsAuth('Доступ Google Drive истёк. Нажмите «Восстановить Google Drive».');
     }
 
     connect.onclick = async () => {
@@ -297,26 +295,6 @@
 
     return true;
   }
-
-  function installPassiveRestore(){
-    if(passiveRestoreBound)return;
-    passiveRestoreBound=true;
-    const restoreFromGesture=event=>{
-      if(passiveRestoreBusy||validToken()||!rememberedConnection())return;
-      if(event?.target?.closest?.('.gdrive-disconnect'))return;
-      passiveRestoreBusy=true;
-      ensureToken({interactive:false,force:true})
-        .catch(error=>{
-          const card=document.querySelector('.gdrive-card');
-          if(card)setCardNeedsAuth(error?.message||'Не удалось автоматически восстановить Google Drive.');
-        })
-        .finally(()=>{passiveRestoreBusy=false;});
-    };
-    document.addEventListener('pointerdown',restoreFromGesture,true);
-    document.addEventListener('keydown',restoreFromGesture,true);
-  }
-
-  installPassiveRestore();
 
   if (!install()) {
     let attempts = 0;
