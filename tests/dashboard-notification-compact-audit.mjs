@@ -33,6 +33,15 @@ const fixture={version:4,clients:[{
   time:'20:00',
   note:'Напомнить, что нужно записаться на первую сессию.',
   status:'planned'
+},{
+  id:'compact-reminder-2',
+  clientId:'compact-client',
+  type:'Напоминание',
+  title:'Напоминание',
+  date,
+  time:'21:00',
+  note:'Второе напоминание.',
+  status:'planned'
 }]};
 
 const browser=await chromium.launch({headless:true});
@@ -90,7 +99,12 @@ assert(state.height<150,`Diagnosis card is not compact: ${state.height}px`);
 assert(state.dotContent==='none'||state.dotContent==='normal'||state.dotContent==='""','Decorative badge dot still renders');
 assert(!state.text.includes('из календаря'),'Calendar source text is still visible');
 
-await page.locator('#hdHeroReminder .hd-notification-card.is-reminder').click();
+const tabs=page.locator('#hdHeroReminder .hd-notification-type-tab');
+assert.equal(await tabs.count(),2,'Expected one tab per notification type');
+const reminderTab=page.locator('#hdHeroReminder .hd-notification-type-tab.is-reminder');
+assert.equal(await reminderTab.locator('.hd-notification-type-count').innerText(),'2','Two reminders should share one violet tab with count 2');
+assert.equal(await page.locator('#hdHeroReminder .hd-notification-card').count(),1,'Carousel should render exactly one full notification card');
+await reminderTab.click();
 await page.locator('#hdHeroReminder .hd-notification-card.is-reminder .hd-hero-reminder-actions').waitFor({state:'visible',timeout:5000});
 const reminderState=await page.evaluate(()=>{
   const card=document.querySelector('#hdHeroReminder .hd-notification-card.is-reminder');
@@ -115,6 +129,9 @@ assert(Math.max(...reminderState.widths)-Math.min(...reminderState.widths)<=1,'R
 assert(Math.max(...reminderState.heights)-Math.min(...reminderState.heights)<=1,'Reminder action buttons have different heights');
 assert(reminderState.widths.every((w,i)=>Math.abs(w-reminderState.heights[i])<=1),`Reminder action buttons are not square: ${reminderState.widths.join(',')} x ${reminderState.heights.join(',')}`);
 assert(reminderState.widths.every(w=>w<=30),`Reminder action buttons are too large: ${reminderState.widths.join(',')}`);
+assert.equal(await page.locator('#hdHeroReminder .hd-notification-group-pos').innerText(),'1 / 2','Reminder pager is missing');
+await page.locator('#hdHeroReminder .hd-notification-group-next').click();
+assert.match(await page.locator('#hdHeroReminder .hd-notification-card.is-reminder').innerText(),/Второе напоминание/,'Reminder pager did not switch within the same type');
 
 const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon'));
 assert.deepEqual(serious,[],'Unexpected runtime errors');
