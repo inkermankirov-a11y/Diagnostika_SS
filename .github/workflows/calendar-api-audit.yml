@@ -95,7 +95,7 @@ jobs:
           for token in ['customEvents().push(item)', '.splice(idx,1)', "typeof save==='function'"]:
               if token in ui:
                   errors.append('calendar UI direct writer remains: '+token)
-          for token in ["source:'calendar-ui-create'","source:'calendar-ui-delete'","api.create(item","api.remove(e.id"]:
+          for token in ["source:'calendar-ui-create'","source:'calendar-ui-update'","source:'calendar-ui-delete'","api.create(item","api.update(eventId,changes","api.remove(e.id"]:
               if token not in ui:
                   errors.append('calendar 8B UI service boundary missing '+token)
           if 'normalizePlannedSessions' not in planning:
@@ -129,7 +129,7 @@ jobs:
               if token not in google:
                   errors.append('calendar 8D Google bridge hardening missing '+token)
           for token in [
-              'modules/calendar/ui/calendar.js?v=20261006-future-beacon-tooltip-1',
+              'modules/calendar/ui/calendar.js?v=20261007-reschedule-update-1',
               'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
           ]:
               if token not in index:
