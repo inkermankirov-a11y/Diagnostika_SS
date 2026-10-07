@@ -1,3 +1,4 @@
+// validation: explicit calendar planning v3
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
