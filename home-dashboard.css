@@ -2464,3 +2464,105 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
 .hd-notification-card.is-consultation{--notification-type-accent:#16a085}
 .hd-notification-card.is-call{--notification-type-accent:#27ae60}
 .hd-notification-card.is-appointment{--notification-type-accent:#4c8ed9}
+
+
+/* Header brand interaction v2 — restrained glow, no white ghost panel. */
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger{
+  position:relative;
+  isolation:isolate;
+  overflow:visible;
+  background:transparent!important;
+  border:1px solid transparent;
+  box-shadow:none!important;
+  color:#f5f9ff!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.36),0 0 8px rgba(214,234,255,.05);
+  transform:translateY(0);
+  transition:
+    transform .22s cubic-bezier(.2,.78,.2,1),
+    background .22s ease,
+    border-color .22s ease,
+    box-shadow .22s ease,
+    color .22s ease,
+    text-shadow .22s ease!important;
+  will-change:transform;
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger::after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:-3px -6px;
+  border-radius:14px;
+  background:
+    radial-gradient(105% 130% at 18% 35%,rgba(255,255,255,.075),rgba(255,255,255,.025) 46%,rgba(255,255,255,0) 76%),
+    linear-gradient(135deg,rgba(178,216,255,.045),rgba(255,255,255,.018));
+  box-shadow:0 0 16px rgba(207,231,255,.055);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .22s ease,box-shadow .22s ease;
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger .app-title-text{
+  display:inline-flex;
+  flex-direction:column;
+  transform:translateY(0);
+  transition:transform .22s cubic-bezier(.2,.78,.2,1),text-shadow .22s ease;
+  will-change:transform;
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger::before{
+  transform:translateY(0) scale(1);
+  transition:
+    transform .22s cubic-bezier(.2,.78,.2,1),
+    box-shadow .22s ease,
+    filter .22s ease!important;
+  will-change:transform;
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:hover{
+  background:rgba(255,255,255,.032)!important;
+  border-color:rgba(255,255,255,.075);
+  color:#fff!important;
+  transform:translateY(-1px);
+  text-shadow:0 2px 4px rgba(0,0,0,.34),0 0 9px rgba(220,239,255,.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.075),
+    0 7px 18px rgba(2,8,18,.16),
+    0 0 15px rgba(197,227,255,.07)!important;
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:hover::after{
+  opacity:1;
+  box-shadow:0 0 18px rgba(207,231,255,.075);
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:hover .app-title-text{
+  transform:translateY(-2px);
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:hover::before{
+  transform:translateY(-1px) scale(1.018);
+  filter:brightness(1.025) saturate(1.02);
+  box-shadow:
+    0 6px 15px rgba(7,24,46,.18),
+    0 0 11px rgba(219,239,255,.11)!important;
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:active{
+  transform:translateY(0) scale(.992);
+  background:rgba(255,255,255,.022)!important;
+  box-shadow:
+    inset 0 1px 3px rgba(2,8,18,.14),
+    0 2px 7px rgba(2,8,18,.13)!important;
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:active .app-title-text{
+  transform:translateY(0);
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:active::before{
+  transform:translateY(0) scale(.992);
+}
+body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:focus-visible{
+  outline:1px solid rgba(174,215,255,.58)!important;
+  outline-offset:3px!important;
+  background:rgba(255,255,255,.026)!important;
+}
+@media(prefers-reduced-motion:reduce){
+  body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger,
+  body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger::after,
+  body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger::before,
+  body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger .app-title-text{
+    transition:none!important;
+  }
+}
