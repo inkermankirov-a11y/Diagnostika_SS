@@ -44,6 +44,7 @@ const fixture={version:4,calendarEvents:[{
     plan:'',
     status:'planned',
     planned:true,
+    calendarEventId:'cal-overdue-1',
     appointmentType:'Диагностика',
     calendarTitle:'Диагностика'
   },{
@@ -157,13 +158,42 @@ assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active
 assert.equal((await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-hero-reminder-snooze').textContent()).trim(),'');
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-hero-reminder-snooze').getAttribute('aria-label'),'Перенести');
 
+await page.evaluate(()=>{
+  window.DiagnostikaSessions.create({
+    id:'legacy-reschedule-session',
+    date:'2000-01-02',
+    scheduledTime:'10:00',
+    requestId:'overdue-r1',
+    notes:'',
+    plan:'',
+    status:'planned',
+    planned:true,
+    appointmentType:'Диагностика',
+    calendarTitle:'Диагностика'
+  },{clientId:'overdue-client',requestId:'overdue-r1',source:'reschedule-regression-fixture',render:false});
+  window.DiagnostikaCalendar.create({
+    id:'legacy-reschedule-event',
+    title:'Диагностика',
+    type:'Диагностика',
+    date:'2000-01-02',
+    time:'10:00',
+    clientId:'overdue-client',
+    requestId:'overdue-r1',
+    sessionId:'legacy-reschedule-session',
+    plannedSessionSkeleton:true
+  },{source:'reschedule-regression-fixture'});
+  window.DiagnostikaDashboardSessions.refresh();
+});
+await page.waitForFunction(()=>document.querySelector('.hd-session-card[data-session-id="legacy-reschedule-session"]'));
+
 const beforeReschedule=await page.evaluate(()=>({
   sessions:window.DiagnostikaSessions.list('overdue-client').map(s=>({id:s.id,date:s.date,scheduledTime:s.scheduledTime,calendarEventId:s.calendarEventId||''})),
   events:window.DiagnostikaCalendar.list().map(e=>({id:e.id,sessionId:e.sessionId||'',date:e.date,time:e.time}))
 }));
-assert.equal(beforeReschedule.sessions.filter(s=>s.id==='overdue-session-1').length,1,'Legacy overdue card is already duplicated before reschedule');
+assert.equal(beforeReschedule.sessions.filter(s=>s.id==='legacy-reschedule-session').length,1,'Regression session is duplicated before reschedule');
+assert.equal(beforeReschedule.sessions.find(s=>s.id==='legacy-reschedule-session')?.calendarEventId,'','Regression fixture unexpectedly has a forward calendar link');
 
-const overdueListCard=page.locator('.hd-session-card[data-session-id="overdue-session-1"]');
+const overdueListCard=page.locator('.hd-session-card[data-session-id="legacy-reschedule-session"]');
 await overdueListCard.locator('.hd-session-reschedule-btn').click();
 const calendarDialog=page.locator('#diagnostikaCalendarOverlay');
 await calendarDialog.waitFor({state:'visible',timeout:5000});
@@ -174,8 +204,8 @@ await calendarDialog.locator('.cal-save').click();
 
 await page.waitForFunction(()=>{
   const rows=window.DiagnostikaSessions.list('overdue-client');
-  const s=rows.find(x=>x.id==='overdue-session-1');
-  return rows.length===2&&s?.date==='2099-01-05'&&s?.scheduledTime==='20:30'&&s?.calendarEventId==='cal-overdue-1';
+  const s=rows.find(x=>x.id==='legacy-reschedule-session');
+  return s?.date==='2099-01-05'&&s?.scheduledTime==='20:30'&&s?.calendarEventId==='legacy-reschedule-event';
 },null,{timeout:5000});
 
 const afterReschedule=await page.evaluate(()=>({
@@ -183,14 +213,20 @@ const afterReschedule=await page.evaluate(()=>({
   events:window.DiagnostikaCalendar.list().map(e=>({id:e.id,sessionId:e.sessionId||'',date:e.date,time:e.time}))
 }));
 assert.equal(afterReschedule.sessions.length,beforeReschedule.sessions.length,'Reschedule created a new session card');
-assert.equal(afterReschedule.sessions.filter(s=>s.id==='overdue-session-1').length,1,'Original session card was duplicated');
+assert.equal(afterReschedule.sessions.filter(s=>s.id==='legacy-reschedule-session').length,1,'Original session card was duplicated');
 assert.equal(afterReschedule.events.length,beforeReschedule.events.length,'Reschedule created a new calendar event');
-assert.equal(afterReschedule.events.find(e=>e.id==='cal-overdue-1')?.date,'2099-01-05');
-assert.equal(afterReschedule.events.find(e=>e.id==='cal-overdue-1')?.time,'20:30');
-assert.equal(afterReschedule.events.find(e=>e.id==='cal-overdue-1')?.sessionId,'overdue-session-1');
+assert.equal(afterReschedule.events.find(e=>e.id==='legacy-reschedule-event')?.date,'2099-01-05');
+assert.equal(afterReschedule.events.find(e=>e.id==='legacy-reschedule-event')?.time,'20:30');
+assert.equal(afterReschedule.events.find(e=>e.id==='legacy-reschedule-event')?.sessionId,'legacy-reschedule-session');
 
-calendarDialog.locator('.cal-close').click();
+await calendarDialog.locator('.cal-close').click();
 await calendarDialog.waitFor({state:'hidden',timeout:5000});
+await page.evaluate(()=>{
+  window.DiagnostikaCalendar.remove('legacy-reschedule-event',{source:'reschedule-regression-cleanup'});
+  window.DiagnostikaSessions.remove('legacy-reschedule-session',{clientId:'overdue-client',source:'reschedule-regression-cleanup',render:false});
+  window.DiagnostikaDashboardSessions.refresh();
+});
+await page.waitForFunction(()=>!window.DiagnostikaSessions.get('legacy-reschedule-session')&&!window.DiagnostikaCalendar.get('legacy-reschedule-event'));
 
 await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
 await futureTab.click();
