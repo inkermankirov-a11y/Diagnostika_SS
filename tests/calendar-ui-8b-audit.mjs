@@ -177,7 +177,7 @@ const moved=await page.evaluate(({id,countBefore})=>{
 assert.equal(moved.item?.id,created.item.id,'Reschedule changed calendar event id');
 assert.equal(moved.count,moved.countBefore,'Reschedule created a second calendar event');
 assert.equal(moved.duplicateCount,1,'Reschedule duplicated the existing calendar record');
-assert(moved.events.some(x=>x.detail?.source==='calendar-ui-update'&&String(x.detail?.id||'')===String(created.item.id)),'Missing calendar-ui-update service event');
+assert(moved.events.some(x=>x.detail?.source==='calendar-ui-update'&&String(x.detail?.eventId||'')===String(created.item.id)),'Missing calendar-ui-update service event');
 
 const rows=dialog.locator('.cal-event');
 await rows.first().waitFor({state:'visible'});
