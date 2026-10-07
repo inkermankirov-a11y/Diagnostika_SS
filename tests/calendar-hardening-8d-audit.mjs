@@ -20,7 +20,7 @@ for(const marker of [
   'modules/calendar/ui/calendar.js?v=20261007-reschedule-update-1',
   'modules/calendar/ui/google-link.js?v=20261001-modular-stage8-8'
 ])assert(indexSource.includes(marker),'Calendar 8D marker missing '+marker);
-assert(indexSource.includes('app-loader.js?v=20261007-session-reschedule-same-card-1'),'Calendar global app-loader marker missing');
+assert(indexSource.includes('app-loader.js?v=20261007-tab-carousel-1'),'Calendar global app-loader marker missing');
 
 const fixture={version:4,calendarEvents:[{
   id:'cal-8d-existing',

@@ -2351,3 +2351,116 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
   min-height:26px!important;
   padding:0!important;
 }
+
+
+/* Notification carousel v4 — one card with left-side type tabs. */
+.hd-reminder-slot{min-height:154px!important}
+.hd-reminder-slot .hd-notification-deck{
+  position:relative!important;
+  min-height:138px!important;
+  height:138px!important;
+  overflow:visible!important;
+}
+.hd-notification-deck .hd-notification-card{
+  position:absolute!important;
+  top:0!important;
+  left:20px!important;
+  right:0!important;
+  width:calc(100% - 20px)!important;
+  height:auto!important;
+  min-height:118px!important;
+  transform:none!important;
+  opacity:1!important;
+  z-index:20!important;
+}
+.hd-notification-card.is-stack-tab,
+.hd-notification-stack-count{display:none!important}
+.hd-notification-tab-rail{
+  position:absolute;
+  z-index:30;
+  left:0;
+  top:8px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:5px;
+  pointer-events:auto;
+}
+.hd-notification-type-tab{
+  position:relative;
+  width:30px;
+  height:28px;
+  margin:0;
+  padding:0 7px 0 5px;
+  border:1px solid rgba(15,23,42,.10);
+  border-right:0;
+  border-radius:8px 0 0 8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  color:#fff;
+  font:900 9px/1 "Segoe UI",Arial,sans-serif;
+  cursor:pointer;
+  box-shadow:0 3px 9px rgba(15,23,42,.12);
+  transform:translateX(0);
+  transition:width .14s ease,transform .14s ease,filter .14s ease;
+}
+.hd-notification-type-tab:hover,
+.hd-notification-type-tab:focus-visible{width:34px;transform:translateX(-3px);filter:brightness(1.05)}
+.hd-notification-type-tab.is-active{width:36px;transform:translateX(-5px);box-shadow:0 4px 12px rgba(15,23,42,.18)}
+.hd-notification-type-tab.is-reminder{background:#8b5cf6}
+.hd-notification-type-tab.is-session{background:#e3aa17;color:#4a3606}
+.hd-notification-type-tab.is-diagnosis{background:#e67e22}
+.hd-notification-type-tab.is-consultation{background:#16a085}
+.hd-notification-type-tab.is-call{background:#27ae60}
+.hd-notification-type-tab.is-appointment{background:#4c8ed9}
+.hd-notification-type-mark{display:block;min-width:9px;text-align:center}
+.hd-notification-type-count{
+  min-width:13px;
+  height:13px;
+  padding:0 3px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,.92);
+  color:#243447;
+  font-size:8px;
+  line-height:1;
+}
+.hd-notification-head,.hd-hero-reminder-head{justify-content:space-between!important}
+.hd-notification-group-nav{
+  margin-left:auto;
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  flex:0 0 auto;
+}
+.hd-notification-group-nav button{
+  width:20px;
+  height:20px;
+  padding:0;
+  border:1px solid rgba(69,88,115,.18);
+  border-radius:6px;
+  background:rgba(255,255,255,.78);
+  color:#35506f;
+  font:900 14px/1 "Segoe UI",Arial,sans-serif;
+  cursor:pointer;
+}
+.hd-notification-group-pos{
+  min-width:30px;
+  text-align:center;
+  color:#66758a;
+  font:800 9px/1 "Segoe UI",Arial,sans-serif;
+}
+.hd-notification-card.is-overdue{
+  border-color:#e27a64!important;
+  border-left-color:var(--notification-type-accent,#d94b36)!important;
+}
+.hd-notification-card.is-reminder{--notification-type-accent:#8b5cf6}
+.hd-notification-card.is-session{--notification-type-accent:#e3aa17}
+.hd-notification-card.is-diagnosis{--notification-type-accent:#e67e22}
+.hd-notification-card.is-consultation{--notification-type-accent:#16a085}
+.hd-notification-card.is-call{--notification-type-accent:#27ae60}
+.hd-notification-card.is-appointment{--notification-type-accent:#4c8ed9}
