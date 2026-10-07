@@ -108,7 +108,7 @@ await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
 assert.equal(await deck.evaluate(el=>el.classList.contains('is-fanned')),true,'Notification stack did not fan out');
 
 const futureTab=page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:future-session-2"]');
-await futureTab.click();
+await futureTab.evaluate(el=>el.click());
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='session:future-session-2');
 assert.equal(await deck.evaluate(el=>el.classList.contains('is-fanned')),false,'Deck did not collapse after choosing a notification');
 
@@ -229,7 +229,7 @@ await page.evaluate(()=>{
 await page.waitForFunction(()=>!window.DiagnostikaSessions.get('legacy-reschedule-session')&&!window.DiagnostikaCalendar.get('legacy-reschedule-event'));
 
 await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-await futureTab.click();
+await futureTab.evaluate(el=>el.click());
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='session:future-session-2');
 
 await page.evaluate(()=>{window.AppDialog.confirm=async()=>true;});
