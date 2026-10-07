@@ -485,6 +485,27 @@
     return map;
   }
 
+  function notificationKindFromLabel(label){
+    const lower=String(label||'').toLocaleLowerCase('ru-RU').replace(/\s+/g,' ').trim();
+    if(lower.includes('диагност'))return 'diagnosis';
+    if(/^сессия(?:\s*№\s*\d+)?$/.test(lower)||lower.includes('сесс'))return 'session';
+    if(lower.includes('консультац'))return 'consultation';
+    if(lower.includes('созвон'))return 'call';
+    return 'appointment';
+  }
+
+  function notificationKindMeta(kind){
+    const map={
+      reminder:{label:'Напоминание',short:'Н',badge:'НАПОМИНАНИЕ'},
+      session:{label:'Сессия',short:'С',badge:'СЕССИЯ'},
+      diagnosis:{label:'Диагностика',short:'Д',badge:'ДИАГНОСТИКА'},
+      consultation:{label:'Консультация',short:'К',badge:'КОНСУЛЬТАЦИЯ'},
+      call:{label:'Созвон',short:'З',badge:'СОЗВОН'},
+      appointment:{label:'Запись',short:'З',badge:'ЗАПИСЬ'}
+    };
+    return map[kind]||map.appointment;
+  }
+
   function clientNotificationItems(c){
     if(!c)return[];
     const now=Date.now();
@@ -513,8 +534,7 @@
       const time=plannedSessionStartTime(session);
       if(!Number.isFinite(time))continue;
       const label=sessionAppointmentLabel(session);
-      const lower=label.toLocaleLowerCase('ru-RU');
-      const kind=lower.includes('диагност')?'diagnosis':(lower.includes('сесс')?'session':'appointment');
+      const kind=notificationKindFromLabel(label);
       const request=(c.requests||[]).find(r=>String(r?.id||'')===String(session?.requestId||''));
       const number=ordinals.get(String(session?.id||''))||1;
       items.push({
@@ -537,6 +557,21 @@
     });
   }
 
+  function notificationGroups(items){
+    const order=['reminder','session','diagnosis','consultation','call','appointment'];
+    const map=new Map();
+    for(const item of items){
+      if(!map.has(item.kind))map.set(item.kind,[]);
+      map.get(item.kind).push(item);
+    }
+    return [...map.entries()]
+      .sort((a,b)=>{
+        const ai=order.indexOf(a[0]),bi=order.indexOf(b[0]);
+        return (ai<0?99:ai)-(bi<0?99:bi);
+      })
+      .map(([kind,rows])=>({kind,items:rows}));
+  }
+
   function activateNotification(key){
     notificationActiveKey=String(key||'');
     notificationFanOpen=false;
@@ -553,7 +588,20 @@
     return api[method](sessionId);
   }
 
-  function buildReminderNotificationCard(item){
+  function buildGroupPager(item,group){
+    if(!group||group.items.length<2)return null;
+    const wrap=document.createElement('div');wrap.className='hd-notification-group-nav';
+    const current=Math.max(0,group.items.findIndex(x=>x.key===item.key));
+    const prev=document.createElement('button');prev.type='button';prev.className='hd-notification-group-prev';prev.textContent='‹';prev.title='Предыдущее';
+    const pos=document.createElement('span');pos.className='hd-notification-group-pos';pos.textContent=`${current+1} / ${group.items.length}`;
+    const next=document.createElement('button');next.type='button';next.className='hd-notification-group-next';next.textContent='›';next.title='Следующее';
+    prev.onclick=e=>{e.stopPropagation();activateNotification(group.items[(current-1+group.items.length)%group.items.length].key);};
+    next.onclick=e=>{e.stopPropagation();activateNotification(group.items[(current+1)%group.items.length].key);};
+    wrap.append(prev,pos,next);
+    return wrap;
+  }
+
+  function buildReminderNotificationCard(item,group){
     const event=item.event;
     const card=document.createElement('article');
     card.className='hd-notification-card is-reminder'+(item.overdue?' is-overdue':'');
@@ -562,6 +610,7 @@
     const head=document.createElement('div');head.className='hd-hero-reminder-head hd-notification-head';
     const badge=document.createElement('span');badge.className='hd-hero-reminder-badge';badge.textContent=item.overdue?'НАПОМИНАНИЕ · ПРОСРОЧЕНО':'НАПОМИНАНИЕ';
     head.append(badge);
+    const pager=buildGroupPager(item,group);if(pager)head.append(pager);
 
     const when=document.createElement('div');when.className='hd-hero-reminder-when';when.textContent=item.when;
     const text=document.createElement('div');text.className='hd-hero-reminder-text';text.textContent=item.text;
@@ -574,7 +623,7 @@
     return card;
   }
 
-  function buildSessionNotificationCard(item){
+  function buildSessionNotificationCard(item,group){
     const session=item.session;
     const card=document.createElement('article');
     card.className=`hd-notification-card is-${item.kind}${item.overdue?' is-overdue':''}`;
@@ -582,9 +631,10 @@
 
     const head=document.createElement('div');head.className='hd-notification-head';
     const badge=document.createElement('span');badge.className='hd-notification-badge';
-    const typeBadge=item.kind==='diagnosis'?'ДИАГНОСТИКА':item.kind==='session'?'СЕССИЯ':'ЗАПИСЬ';
-    badge.textContent=item.overdue?`${typeBadge} · ПРОСРОЧЕНО`:typeBadge;
+    const meta=notificationKindMeta(item.kind);
+    badge.textContent=item.overdue?`${meta.badge} · ПРОСРОЧЕНО`:meta.badge;
     head.append(badge);
+    const pager=buildGroupPager(item,group);if(pager)head.append(pager);
 
     const title=document.createElement('div');title.className='hd-notification-title';title.textContent=item.title;
     const when=document.createElement('div');when.className='hd-notification-when';when.textContent=item.when;
@@ -615,44 +665,34 @@
 
     if(!items.some(item=>item.key===notificationActiveKey))notificationActiveKey=items[0].key;
     const active=items.find(item=>item.key===notificationActiveKey)||items[0];
-    const ordered=[active,...items.filter(item=>item!==active)];
+    const groups=notificationGroups(items);
+    const activeGroup=groups.find(group=>group.kind===active.kind)||groups[0];
 
     heroReminder.classList.toggle('is-overdue',Boolean(active.overdue));
-    heroReminder.classList.toggle('is-fanned',notificationFanOpen);
     heroReminder.style.setProperty('--notification-count',String(items.length));
-    heroReminder.style.height=`${Math.min(150+Math.max(0,items.length-1)*(notificationFanOpen?42:9),620)}px`;
+    heroReminder.style.height='138px';
 
-    ordered.forEach((item,index)=>{
-      const card=item.kind==='reminder'?buildReminderNotificationCard(item):buildSessionNotificationCard(item);
-      card.classList.toggle('is-active',index===0);
-      card.style.setProperty('--stack-index',String(index));
-      card.style.zIndex=String(index===0?40:30-index);
-      if(index>0){
-        card.classList.add('is-stack-tab');
-        card.onclick=e=>{
-          if(e.target.closest('button'))return;
-          activateNotification(item.key);
-        };
-      }else{
-        card.querySelector('.hd-notification-head')?.addEventListener('click',e=>{
-          if(items.length<2||e.target.closest('button'))return;
-          notificationFanOpen=!notificationFanOpen;
-          renderHeroReminder(c);
-        });
+    const rail=document.createElement('div');rail.className='hd-notification-tab-rail';
+    for(const group of groups){
+      const meta=notificationKindMeta(group.kind);
+      const tab=document.createElement('button');
+      tab.type='button';
+      tab.className=`hd-notification-type-tab is-${group.kind}${group.kind===active.kind?' is-active':''}`;
+      tab.setAttribute('aria-label',`${meta.label}: ${group.items.length}`);
+      tab.title=group.items.length>1?`${meta.label}: ${group.items.length}`:meta.label;
+      const mark=document.createElement('span');mark.className='hd-notification-type-mark';mark.textContent=meta.short;
+      tab.append(mark);
+      if(group.items.length>1){
+        const count=document.createElement('span');count.className='hd-notification-type-count';count.textContent=String(group.items.length);tab.append(count);
       }
-      heroReminder.appendChild(card);
-    });
-
-    if(items.length>1){
-      const count=document.createElement('button');
-      count.type='button';
-      count.className='hd-notification-stack-count';
-      count.textContent=String(items.length);
-      count.title=notificationFanOpen?'Свернуть уведомления':'Показать все уведомления';
-      count.onclick=e=>{e.stopPropagation();notificationFanOpen=!notificationFanOpen;renderHeroReminder(c);};
-      heroReminder.appendChild(count);
+      tab.onclick=e=>{e.stopPropagation();activateNotification(group.items[0].key);};
+      rail.append(tab);
     }
 
+    const card=active.kind==='reminder'?buildReminderNotificationCard(active,activeGroup):buildSessionNotificationCard(active,activeGroup);
+    card.classList.add('is-active');
+
+    heroReminder.append(rail,card);
     heroReminder.hidden=false;
   }
 
