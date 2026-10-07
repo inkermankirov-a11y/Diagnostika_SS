@@ -241,6 +241,10 @@ await page.waitForFunction(()=>{
   const s=window.DiagnostikaSessions.get('overdue-session-1');
   return s&&s.planned===false&&s.status==='completed';
 });
+await page.waitForFunction(()=>{
+  const box=[...document.querySelectorAll('#hdSummary .hd-summary-box')].find(box=>box.querySelector('.hd-summary-label')?.textContent?.trim()==='Сессии');
+  return box?.querySelector('.hd-summary-value')?.textContent?.trim()==='0';
+},null,{timeout:5000});
 
 const state=await page.evaluate(()=>({
   session:window.DiagnostikaSessions.get('overdue-session-1'),

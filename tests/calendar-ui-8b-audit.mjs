@@ -127,7 +127,7 @@ await hover.waitFor({state:'visible',timeout:3000});
 const diagnosisRow=hover.locator('.cal-day-tooltip-row.is-diagnosis');
 assert.equal(await diagnosisRow.locator('.cal-day-tooltip-action').innerText(),'Диагностика');
 assert.equal(await diagnosisRow.locator('.cal-day-tooltip-note').innerText(),'Повторная диагностика');
-await dialog.locator('.cal-date').fill('2026-09-22');
+await dialog.locator('.cal-date').fill('2099-09-22');
 await dialog.locator('.cal-time').fill('18:30');
 await dialog.locator('.cal-client').selectOption('cal-8b-client');
 await dialog.locator('.cal-type').selectOption({label:'Созвон'});
@@ -135,11 +135,11 @@ await dialog.locator('.cal-note').fill('Создано UI Calendar 8B');
 await dialog.locator('.cal-save').click();
 
 await page.waitForFunction(()=>window.DiagnostikaCalendar.list().some(e=>
-  e.date==='2026-09-22'&&e.time==='18:30'&&e.note==='Создано UI Calendar 8B'
+  e.date==='2099-09-22'&&e.time==='18:30'&&e.note==='Создано UI Calendar 8B'
 ),null,{timeout:5000});
 
 const created=await page.evaluate(()=>{
-  const item=window.DiagnostikaCalendar.list().find(e=>e.date==='2026-09-22'&&e.time==='18:30');
+  const item=window.DiagnostikaCalendar.list().find(e=>e.date==='2099-09-22'&&e.time==='18:30');
   const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}');
   return {
     item,
@@ -153,15 +153,18 @@ assert(created.events.some(x=>x.detail?.source==='calendar-ui-create'),'Missing 
 
 const countBeforeMove=await page.evaluate(()=>window.DiagnostikaCalendar.list().length);
 await page.evaluate(id=>window.DiagnostikaCalendarUI.openEvent(id,{mode:'client'}),created.item.id);
-await dialog.locator('.cal-date').fill('2026-09-24');
+await dialog.locator('.cal-date').fill('2099-09-24');
 await dialog.locator('.cal-time').fill('20:15');
 assert.equal(await dialog.locator('.cal-save').innerText(),'Сохранить изменения','Existing event did not open in edit mode');
 await dialog.locator('.cal-save').click();
 
-await page.waitForFunction(id=>{
-  const item=window.DiagnostikaCalendar.get(id);
-  return item?.date==='2026-09-24'&&item?.time==='20:15';
-},created.item.id,{timeout:5000});
+await page.waitForTimeout(350);
+const editProbe=await page.evaluate(id=>({
+  item:window.DiagnostikaCalendar.get(id),
+  all:window.DiagnostikaCalendar.list().map(e=>({id:e.id,date:e.date,time:e.time,type:e.type,title:e.title,note:e.note,sessionId:e.sessionId||'',plannedSessionSkeleton:e.plannedSessionSkeleton}))
+}),created.item.id);
+assert.equal(editProbe.item?.date,'2099-09-24','Calendar edit date did not persist: '+JSON.stringify(editProbe));
+assert.equal(editProbe.item?.time,'20:15','Calendar edit time did not persist: '+JSON.stringify(editProbe));
 
 const moved=await page.evaluate(({id,countBefore})=>{
   const rows=window.DiagnostikaCalendar.list();
