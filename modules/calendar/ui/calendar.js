@@ -220,6 +220,8 @@
   const clientTimePreview=overlay.querySelector('.cal-client-time-preview');
   const typeSelect=overlay.querySelector('.cal-type');
   const noteInput=overlay.querySelector('.cal-note');
+  const formTitle=overlay.querySelector('.cal-form-title');
+  const saveButton=overlay.querySelector('.cal-save');
 
   let cursor=new Date();cursor.setDate(1);
   let selected=todayIso();
@@ -227,6 +229,7 @@
   let viewMode='month';
   let assignOpen=false;
   let targetedEventId='';
+  let editingEventId='';
   let locationCatalogPromise=null;
   let clientTimePreviewRequest=0;
 
@@ -779,6 +782,31 @@
     if(quick)quick.textContent=assignOpen?'Скрыть назначение':'＋ Выбрать и назначить';
   }
 
+  function setCalendarFormMode(event=null){
+    editingEventId=event?.id!==undefined&&event?.id!==null?String(event.id):'';
+    overlay.classList.toggle('editing-event',Boolean(editingEventId));
+    if(formTitle)formTitle.textContent=editingEventId?'Редактировать запись':'+ Добавить запись';
+    if(saveButton)saveButton.textContent=editingEventId?'Сохранить изменения':'Сохранить запись';
+    if(!editingEventId)return;
+
+    const date=String(event?.date||selected||'').slice(0,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(date))dateInput.value=date;
+    timeInput.value=String(event?.time||'');
+    const clientId=String(event?.clientId||'');
+    if(clientId&&[...clientSelect.options].some(option=>String(option.value)===clientId))clientSelect.value=clientId;
+    const type=String(event?.type||event?.title||'').trim();
+    if(type&&[...typeSelect.options].some(option=>String(option.value)===type))typeSelect.value=type;
+    noteInput.value=String(event?.note||'');
+    noteInput.dataset.autoRequestText='';
+    updateClientTimePreview();
+  }
+
+  function editingEvent(){
+    if(!editingEventId)return null;
+    const api=calendarApi();
+    try{return api?.get?.(editingEventId)||null;}catch(_){return null;}
+  }
+
   function focusTargetedEvent(){
     if(!targetedEventId)return;
     requestAnimationFrame(()=>{
@@ -828,6 +856,7 @@
 
     if(openMode==='overview')clientSelect.value='';
     render();
+    setCalendarFormMode(target);
     if(!overlay.open)overlay.showModal();
     document.documentElement.style.overflow='hidden';
     return true;
@@ -837,7 +866,7 @@
     if(eventId===undefined||eventId===null||eventId==='')return false;
     return openCalendar({...options,eventId:String(eventId)});
   }
-  function closeCalendar(){hideHoverTooltip();if(overlay.open)overlay.close();document.documentElement.style.overflow='';}
+  function closeCalendar(){hideHoverTooltip();setCalendarFormMode(null);targetedEventId='';if(overlay.open)overlay.close();document.documentElement.style.overflow='';}
 
   overlay.querySelector('.cal-close').onclick=closeCalendar;
   overlay.querySelector('.cal-prev').onclick=()=>{
@@ -877,8 +906,37 @@
     const type=typeSelect.value||'Запись';
     const note=noteInput.value.trim();
     const api=calendarApi();
-    if(typeof api?.create!=='function')return;
     const plannedSessionSkeleton=['Сессия','Диагностика','Бесплатная консультация','Созвон','Другое'].includes(type);
+
+    if(editingEventId){
+      if(typeof api?.update!=='function')return;
+      const current=editingEvent();
+      if(!current){setCalendarFormMode(null);return;}
+      const sameType=String(current.type||'').trim()===String(type).trim();
+      const changes={
+        date,
+        time:timeInput.value||'',
+        clientId:clientIdValue,
+        clientName:c?.name||current.clientName||'',
+        type,
+        title:sameType?(current.title||type):type,
+        note,
+        plannedSessionSkeleton
+      };
+      const eventId=editingEventId;
+      if(!api.update(eventId,changes,{source:'calendar-ui-update'}))return;
+      targetedEventId=eventId;
+      setCalendarFormMode(null);
+      noteInput.value='';
+      selected=date;
+      const d=new Date(date+'T12:00:00');cursor=new Date(d.getFullYear(),d.getMonth(),1);
+      if(openMode==='overview')assignOpen=false;
+      render();
+      setTimeout(()=>window.DiagnostikaCalendarSessionPlanning?.refresh?.(),0);
+      return;
+    }
+
+    if(typeof api?.create!=='function')return;
     const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,plannedSessionSkeleton};
     if(!api.create(item,{source:'calendar-ui-create'}))return;
     noteInput.value='';
