@@ -157,7 +157,7 @@ assert.equal(legacyFuture.item?.note,'Старая запись должна с�
 
 const repairedPhantom=await page.evaluate(()=>({
   item:window.DiagnostikaCalendar.get('cal-8c-auto-migrated-phantom'),
-  session:window.DiagnostikaSessions.get('cal-8c-phantom-session','cal-8c-client')
+  session:window.DiagnostikaSessions.list('cal-8c-client').find(s=>s.id==='cal-8c-phantom-session')||null
 }));
 assert.equal(repairedPhantom.session,null,'Previously auto-migrated phantom planned card was not removed');
 assert.equal(repairedPhantom.item?.plannedSessionSkeleton,false,'Previously auto-migrated calendar event still behaves as a planned card');
