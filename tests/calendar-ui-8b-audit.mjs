@@ -8,11 +8,11 @@ const loaderSource=fs.readFileSync('app-loader.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
 assert(apiSource.includes("version:'8D'"),'Calendar facade version is not 8D');
-assert(indexSource.includes('modules/calendar/ui/calendar.js?v=20261007-reschedule-update-1'),'Calendar UI cache marker is stale');
+assert(indexSource.includes('modules/calendar/ui/calendar.js?v=20261007-explicit-planning-1'),'Calendar UI cache marker is stale');
 assert(uiSource.includes(".cal-day.has-events.is-reminder{--cal-beacon:#8b5cf6"),'Reminder day beacon is not purple');
 assert(uiSource.includes("if(kinds.includes('reminder'))return 'reminder'"),'Reminder day kind priority is missing');
 assert(uiSource.includes("row.className=`cal-event is-${calendarEventKind(e)}`"),'Reminder day detail does not receive event type styling');
-assert(indexSource.includes('app-loader.js?v=20261007-session-reschedule-same-card-1'),'Global app-loader marker missing');
+assert(indexSource.includes('app-loader.js?v=20261007-notification-tabs-1'),'Global app-loader marker missing');
 assert(loaderSource.includes('calendar-api.js?v=20260919-calendar8d'),'Calendar facade loader marker is stale');
 assert(uiSource.includes('function eventShouldSignal(event,now=new Date())'),'Future-only calendar signal filter is missing');
 assert(uiSource.includes('event?.sessionCompleted===true'),'Completed calendar records still signal');
