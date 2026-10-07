@@ -199,24 +199,26 @@
     ensureCommentForRequest(r);
   }
 
-  function migrateExistingFutureAppointments(){
-    const api=calendarApi();
-    if(!api?.list||!api?.update)return false;
+  function repairAutoMigratedAppointments(){
+    const cal=calendarApi();
+    const sessions=sessionsApi();
+    if(!cal?.list||!cal?.update||!sessions?.remove)return false;
 
     let changed=false;
     const clientMap=new Map(clients().map(c=>[String(c?.id||''),c]));
-    api.list().forEach(e=>{
-      if(!e?.id||!e?.clientId||e.plannedSessionSkeleton===true||e.sessionId)return;
-      if(!isFutureAppointment(e))return;
-      if(!isSessionEvent(e)&&!isPlannableType(e?.type||e?.title))return;
-
-      const c=clientMap.get(String(e.clientId));
-      if(!c||!requestForEvent(c,e))return;
-
-      const updated=api.update(e.id,{
-        plannedSessionSkeleton:true,
-        plannedSessionMigrated:true
-      },{source:'calendar-planned-session-migrate-existing'});
+    cal.list().filter(e=>e?.plannedSessionMigrated===true).forEach(e=>{
+      const c=clientMap.get(String(e?.clientId||''));
+      if(c){
+        const linked=sessionForEvent(c,e);
+        if(linked&&isPlannedSkeleton(linked)){
+          if(sessions.remove(linked.id,{client:c,source:'calendar-auto-migration-repair',render:false}))changed=true;
+        }
+      }
+      const updated=cal.update(e.id,{
+        plannedSessionSkeleton:false,
+        plannedSessionMigrated:false,
+        sessionId:''
+      },{source:'calendar-auto-migration-repair'});
       if(updated)changed=true;
     });
     return changed;
@@ -363,12 +365,12 @@
     if(syncing)return false;
     syncing=true;
     try{
-      const migrated=migrateExistingFutureAppointments();
+      const repaired=repairAutoMigratedAppointments();
       const normalized=normalizePlannedSessions();
       const skeletons=syncPlannedSkeletons();
-      if(migrated||normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
+      if(repaired||normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
       updateForm();
-      return migrated||normalized||skeletons;
+      return repaired||normalized||skeletons;
     }finally{
       syncing=false;
     }
@@ -404,7 +406,7 @@
   setTimeout(refreshLinkage,0);
 
   window.DiagnostikaCalendarSessionPlanning=Object.freeze({
-    version:'8F',
+    version:'8G',
     moduleAware:true,
     refresh:refreshLinkage,
     nextSessionNumber,
