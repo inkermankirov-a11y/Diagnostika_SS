@@ -907,6 +907,7 @@
     const note=noteInput.value.trim();
     const api=calendarApi();
     const plannedSessionSkeleton=['Сессия','Диагностика','Бесплатная консультация','Созвон','Другое'].includes(type);
+    const plannedSessionExplicit=plannedSessionSkeleton;
 
     if(editingEventId){
       if(typeof api?.update!=='function')return;
@@ -921,7 +922,8 @@
         type,
         title:sameType?(current.title||type):type,
         note,
-        plannedSessionSkeleton
+        plannedSessionSkeleton,
+        plannedSessionExplicit
       };
       const eventId=editingEventId;
       if(!api.update(eventId,changes,{source:'calendar-ui-update'}))return;
@@ -937,7 +939,7 @@
     }
 
     if(typeof api?.create!=='function')return;
-    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,plannedSessionSkeleton};
+    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,plannedSessionSkeleton,plannedSessionExplicit};
     if(!api.create(item,{source:'calendar-ui-create'}))return;
     noteInput.value='';
     selected=date;
