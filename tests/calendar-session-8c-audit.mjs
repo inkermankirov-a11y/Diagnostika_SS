@@ -45,6 +45,20 @@ const fixture={
     title:'Диагностика',
     note:'Старая запись должна сохраниться',
     createdAt:'2026-09-01T10:00:00.000Z'
+  },{
+    id:'cal-8c-phantom-migrated',
+    date:'2099-01-04',
+    time:'19:00',
+    clientId:'cal-8c-client',
+    clientName:'Calendar 8C Client',
+    requestId:'cal-8c-r1',
+    type:'Диагностика',
+    title:'Диагностика',
+    note:'',
+    plannedSessionSkeleton:true,
+    plannedSessionMigrated:true,
+    sessionId:'cal-8c-phantom-session',
+    createdAt:'2026-09-01T11:00:00.000Z'
   }],
   clients:[{
     id:'cal-8c-client',
@@ -62,6 +76,18 @@ const fixture={
       date:'2026-09-20',
       requestId:'cal-8c-r1',
       notes:''
+    },{
+      id:'cal-8c-phantom-session',
+      date:'2099-01-04',
+      scheduledTime:'19:00',
+      requestId:'cal-8c-r1',
+      notes:'',
+      plan:'',
+      status:'planned',
+      planned:true,
+      calendarEventId:'cal-8c-phantom-migrated',
+      appointmentType:'Диагностика',
+      calendarTitle:'Диагностика'
     }],
     quickNotes:[],
     questionnaires:[]
@@ -130,6 +156,20 @@ assert.equal(legacyUntouched.item?.sessionId,undefined,'Legacy calendar record r
 assert.equal(legacyUntouched.item?.title,'Диагностика');
 assert.equal(legacyUntouched.item?.note,'Старая запись должна сохраниться');
 assert.equal(legacyUntouched.skeleton,null,'Legacy calendar record created a phantom planned session');
+
+await page.waitForFunction(()=>
+  !window.DiagnostikaSessions.get('cal-8c-phantom-session')
+  &&window.DiagnostikaCalendar.get('cal-8c-phantom-migrated')?.sessionId===''
+  &&window.DiagnostikaCalendar.get('cal-8c-phantom-migrated')?.plannedSessionSkeleton===false
+  &&window.DiagnostikaCalendar.get('cal-8c-phantom-migrated')?.plannedSessionMigrated===false
+,null,{timeout:5000});
+const retiredPhantom=await page.evaluate(()=>({
+  event:window.DiagnostikaCalendar.get('cal-8c-phantom-migrated'),
+  session:window.DiagnostikaSessions.get('cal-8c-phantom-session')
+}));
+assert.equal(retiredPhantom.session,null,'Previously auto-migrated phantom planned card was not removed');
+assert.equal(retiredPhantom.event?.title,'Диагностика','Retiring phantom card must preserve the original calendar record');
+assert.equal(retiredPhantom.event?.plannedSessionExplicit,false);
 
 await page.evaluate(()=>{
   window.__calendar8cEvents=[];
