@@ -5,8 +5,8 @@ import fs from 'node:fs';
 const planningSource=fs.readFileSync('modules/calendar/ui/session-planning.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(planningSource.includes("version:'8F'"),'Calendar session planning version is not 8F');
-assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261006-number-by-type-1'),'Calendar session planner module marker is stale');
+assert(planningSource.includes("version:'8G'"),'Calendar session planning version is not 8F');
+assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261007-no-phantom-migration-1'),'Calendar session planner module marker is stale');
 
 for(const forbidden of [
   "typeof save==='function'",
@@ -23,7 +23,7 @@ for(const token of [
   "source:'calendar-planned-session-create'",
   "source:'calendar-planned-session-sync'",
   "source:'calendar-planned-session-orphan-remove'",
-  "source:'calendar-planned-session-migrate-existing'",
+  "source:'calendar-auto-migration-repair'",
   "'calendar:event-created'",
   "'calendar:event-updated'",
   "'calendar:event-deleted'",
@@ -118,16 +118,19 @@ const diagnosisOnlyNumber=await page.evaluate(()=>{
 });
 assert.equal(diagnosisOnlyNumber,1,'Conducted diagnosis incorrectly increments therapy session number');
 
-await page.waitForFunction(()=>window.DiagnostikaSessions.list('cal-8c-client').some(s=>
-  s.calendarEventId==='cal-8c-existing-future'
-  && s.date==='2099-01-02'
-  && s.scheduledTime==='17:45'
-  && s.appointmentType==='Диагностика'
-  && s.status==='planned'
-  && s.planned===true
-),null,{timeout:5000});
+await page.waitForTimeout(200);
+const legacyFuture=await page.evaluate(()=>({
+  item:window.DiagnostikaCalendar.get('cal-8c-existing-future'),
+  skeleton:window.DiagnostikaSessions.list('cal-8c-client').find(s=>s.calendarEventId==='cal-8c-existing-future')||null
+}));
+assert.equal(legacyFuture.item?.plannedSessionSkeleton,undefined,'Legacy calendar diagnosis was auto-promoted into a planned card');
+assert.equal(legacyFuture.item?.plannedSessionMigrated,undefined,'Legacy calendar diagnosis was marked as auto-migrated');
+assert.equal(legacyFuture.item?.sessionId,undefined,'Legacy calendar diagnosis was linked to a synthetic session');
+assert.equal(legacyFuture.skeleton,null,'Legacy calendar diagnosis created a phantom planned session card');
+assert.equal(legacyFuture.item?.title,'Диагностика');
+assert.equal(legacyFuture.item?.note,'Старая запись должна сохраниться');
 
-const migratedExisting=await page.evaluate(()=>{
+await page.evaluate(()=>{
   const item=window.DiagnostikaCalendar.get('cal-8c-existing-future');
   const skeleton=window.DiagnostikaSessions.list('cal-8c-client').find(s=>s.calendarEventId==='cal-8c-existing-future')||null;
   return {item,skeleton};
