@@ -1,3 +1,4 @@
+// validation: notification bookmark tabs v2
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
