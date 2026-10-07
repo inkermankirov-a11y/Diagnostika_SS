@@ -498,7 +498,7 @@
 
   function renderDayDetails(){
     selectedDateLabel.textContent=humanDate(selected);
-    dateInput.value=selected;
+    if(!editingEventId)dateInput.value=selected;
     const evs=eventsOn(selected);
     eventsBox.innerHTML='';
     if(!evs.length){eventsBox.innerHTML='<div class="cal-empty">На этот день записей нет</div>';return;}
@@ -592,6 +592,7 @@
       }
       cell.onclick=()=>{
         selected=ds;
+        if(editingEventId)dateInput.value=ds;
         if(d.getMonth()!==m)cursor=new Date(d.getFullYear(),d.getMonth(),1);
         render();
       };
@@ -907,6 +908,7 @@
     const note=noteInput.value.trim();
     const api=calendarApi();
     const plannedSessionSkeleton=['Сессия','Диагностика','Бесплатная консультация','Созвон','Другое'].includes(type);
+    const plannedSessionExplicit=plannedSessionSkeleton;
 
     if(editingEventId){
       if(typeof api?.update!=='function')return;
@@ -921,7 +923,8 @@
         type,
         title:sameType?(current.title||type):type,
         note,
-        plannedSessionSkeleton
+        plannedSessionSkeleton,
+        plannedSessionExplicit
       };
       const eventId=editingEventId;
       if(!api.update(eventId,changes,{source:'calendar-ui-update'}))return;
@@ -937,7 +940,7 @@
     }
 
     if(typeof api?.create!=='function')return;
-    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,plannedSessionSkeleton};
+    const item={date,time:timeInput.value||'',clientId:clientIdValue,clientName:c?.name||'',type,title:type,note,plannedSessionSkeleton,plannedSessionExplicit};
     if(!api.create(item,{source:'calendar-ui-create'}))return;
     noteInput.value='';
     selected=date;
@@ -966,7 +969,10 @@
     if(!bus?.on)return false;
     ['calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced'].forEach(type=>{
       bus.on(type,()=>{
-        if(overlay.open)setTimeout(render,0);
+        // Do not repaint the calendar form while an existing record is being edited.
+        // Background linkage updates used to reset a freshly chosen reschedule date
+        // before the user pressed "Сохранить изменения".
+        if(overlay.open&&!editingEventId)setTimeout(render,0);
       });
     });
     eventRefreshBound=true;

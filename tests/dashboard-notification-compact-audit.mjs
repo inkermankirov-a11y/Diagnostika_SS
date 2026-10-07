@@ -33,6 +33,15 @@ const fixture={version:4,clients:[{
   time:'20:00',
   note:'Напомнить, что нужно записаться на первую сессию.',
   status:'planned'
+},{
+  id:'compact-reminder-2',
+  clientId:'compact-client',
+  type:'Напоминание',
+  title:'Напоминание',
+  date,
+  time:'21:00',
+  note:'Второе напоминание для проверки закладки.',
+  status:'planned'
 }]};
 
 const browser=await chromium.launch({headless:true});
@@ -52,6 +61,7 @@ await page.goto('http://127.0.0.1:8000/index.html?notification-compact=1',{waitU
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready')&&window.DiagnostikaHomeDashboard,null,{timeout:20000});
 await page.evaluate(()=>window.DiagnostikaHomeDashboard.openClient('compact-client'));
 await page.locator('#hdHeroReminder:not([hidden]) .hd-notification-card.is-diagnosis').waitFor({state:'visible',timeout:5000});
+await page.waitForFunction(()=>document.querySelectorAll('#hdHeroReminder .hd-notification-card').length===1);
 
 const state=await page.evaluate(()=>{
   const card=document.querySelector('#hdHeroReminder .hd-notification-card.is-diagnosis');
@@ -90,8 +100,31 @@ assert(state.height<150,`Diagnosis card is not compact: ${state.height}px`);
 assert(state.dotContent==='none'||state.dotContent==='normal'||state.dotContent==='""','Decorative badge dot still renders');
 assert(!state.text.includes('из календаря'),'Calendar source text is still visible');
 
-await page.locator('#hdHeroReminder .hd-notification-card.is-reminder').click();
+const tabsState=await page.evaluate(()=>({
+  cardCount:document.querySelectorAll('#hdHeroReminder .hd-notification-card').length,
+  stackCount:document.querySelectorAll('#hdHeroReminder .hd-notification-stack-count').length,
+  tabs:[...document.querySelectorAll('#hdHeroReminder .hd-notification-tab')].map(tab=>({
+    kind:tab.dataset.kind,
+    count:tab.dataset.count,
+    text:tab.textContent.trim(),
+    selected:tab.getAttribute('aria-selected')
+  }))
+}));
+assert.equal(tabsState.cardCount,1,'Notification carousel renders more than one full card');
+assert.equal(tabsState.stackCount,0,'Legacy notification stack counter is still rendered');
+assert.deepEqual(tabsState.tabs.map(x=>x.kind),['reminder','diagnosis']);
+assert.equal(tabsState.tabs.find(x=>x.kind==='reminder')?.count,'2');
+assert.equal(tabsState.tabs.find(x=>x.kind==='reminder')?.text,'2');
+assert.equal(tabsState.tabs.find(x=>x.kind==='diagnosis')?.count,'1');
+
+await page.locator('#hdHeroReminder .hd-notification-tab.is-reminder').click();
+await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-reminder'));
 await page.locator('#hdHeroReminder .hd-notification-card.is-reminder .hd-hero-reminder-actions').waitFor({state:'visible',timeout:5000});
+assert.equal(await page.locator('#hdHeroReminder .hd-notification-page-count').textContent(),'1/2');
+assert.match(await page.locator('#hdHeroReminder .hd-notification-card.is-reminder').innerText(),/Напомнить, что нужно записаться/);
+await page.locator('#hdHeroReminder .hd-notification-page-btn[aria-label="Следующее уведомление"]').click();
+await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-reminder')?.innerText.includes('Второе напоминание'));
+assert.equal(await page.locator('#hdHeroReminder .hd-notification-page-count').textContent(),'2/2');
 const reminderState=await page.evaluate(()=>{
   const card=document.querySelector('#hdHeroReminder .hd-notification-card.is-reminder');
   const actions=[...card?.querySelectorAll('.hd-hero-reminder-actions button')||[]];

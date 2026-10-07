@@ -513,8 +513,8 @@
       const time=plannedSessionStartTime(session);
       if(!Number.isFinite(time))continue;
       const label=sessionAppointmentLabel(session);
-      const lower=label.toLocaleLowerCase('ru-RU');
-      const kind=lower.includes('диагност')?'diagnosis':(lower.includes('сесс')?'session':'appointment');
+      const typeKey=notificationRecordTypeKey(session);
+      const kind=['diagnosis','session','consultation','call'].includes(typeKey)?typeKey:'appointment';
       const request=(c.requests||[]).find(r=>String(r?.id||'')===String(session?.requestId||''));
       const number=ordinals.get(String(session?.id||''))||1;
       items.push({
@@ -537,10 +537,77 @@
     });
   }
 
+  const NOTIFICATION_KIND_META=Object.freeze({
+    reminder:{label:'Напоминание',short:'Н'},
+    session:{label:'Сессия',short:'С'},
+    diagnosis:{label:'Диагностика',short:'Д'},
+    consultation:{label:'Консультация',short:'К'},
+    call:{label:'Созвон',short:'З'},
+    appointment:{label:'Запись',short:'•'}
+  });
+  const NOTIFICATION_KIND_ORDER=['reminder','session','diagnosis','consultation','call','appointment'];
+
+  function notificationKindMeta(kind){
+    return NOTIFICATION_KIND_META[kind]||NOTIFICATION_KIND_META.appointment;
+  }
+
+  function notificationGroups(items){
+    const map=new Map();
+    for(const item of items){
+      const kind=NOTIFICATION_KIND_META[item.kind]?item.kind:'appointment';
+      if(!map.has(kind))map.set(kind,[]);
+      map.get(kind).push(item);
+    }
+    return NOTIFICATION_KIND_ORDER
+      .filter(kind=>map.has(kind))
+      .map(kind=>({kind,items:map.get(kind)}));
+  }
+
   function activateNotification(key){
     notificationActiveKey=String(key||'');
     notificationFanOpen=false;
     renderHeroReminder(currentClient());
+  }
+
+  function appendNotificationPager(card,group,active){
+    if(!card||!group||group.items.length<2)return;
+    const index=Math.max(0,group.items.findIndex(item=>item.key===active.key));
+    const head=card.querySelector('.hd-notification-head,.hd-hero-reminder-head');
+    if(!head)return;
+
+    const pager=document.createElement('div');
+    pager.className='hd-notification-pager';
+
+    const prev=document.createElement('button');
+    prev.type='button';
+    prev.className='hd-notification-page-btn';
+    prev.setAttribute('aria-label','Предыдущее уведомление');
+    prev.title='Предыдущее';
+    prev.textContent='‹';
+    prev.onclick=e=>{
+      e.stopPropagation();
+      const nextIndex=(index-1+group.items.length)%group.items.length;
+      activateNotification(group.items[nextIndex].key);
+    };
+
+    const count=document.createElement('span');
+    count.className='hd-notification-page-count';
+    count.textContent=`${index+1}/${group.items.length}`;
+
+    const next=document.createElement('button');
+    next.type='button';
+    next.className='hd-notification-page-btn';
+    next.setAttribute('aria-label','Следующее уведомление');
+    next.title='Следующее';
+    next.textContent='›';
+    next.onclick=e=>{
+      e.stopPropagation();
+      const nextIndex=(index+1)%group.items.length;
+      activateNotification(group.items[nextIndex].key);
+    };
+
+    pager.append(prev,count,next);
+    head.appendChild(pager);
   }
 
   function sessionNotificationAction(method,sessionId){
@@ -582,7 +649,11 @@
 
     const head=document.createElement('div');head.className='hd-notification-head';
     const badge=document.createElement('span');badge.className='hd-notification-badge';
-    const typeBadge=item.kind==='diagnosis'?'ДИАГНОСТИКА':item.kind==='session'?'СЕССИЯ':'ЗАПИСЬ';
+    const typeBadge=item.kind==='diagnosis'?'ДИАГНОСТИКА'
+      :item.kind==='session'?'СЕССИЯ'
+      :item.kind==='consultation'?'КОНСУЛЬТАЦИЯ'
+      :item.kind==='call'?'СОЗВОН'
+      :'ЗАПИСЬ';
     badge.textContent=item.overdue?`${typeBadge} · ПРОСРОЧЕНО`:typeBadge;
     head.append(badge);
 
@@ -604,6 +675,7 @@
     heroReminder.hidden=true;
     heroReminder.classList.remove('is-overdue','is-fanned');
     heroReminder.replaceChildren();
+    heroReminder.style.removeProperty('height');
     if(!c)return;
 
     const items=clientNotificationItems(c);
@@ -615,44 +687,53 @@
 
     if(!items.some(item=>item.key===notificationActiveKey))notificationActiveKey=items[0].key;
     const active=items.find(item=>item.key===notificationActiveKey)||items[0];
-    const ordered=[active,...items.filter(item=>item!==active)];
+    const groups=notificationGroups(items);
+    const activeGroup=groups.find(group=>group.items.some(item=>item.key===active.key))
+      ||groups[0];
 
     heroReminder.classList.toggle('is-overdue',Boolean(active.overdue));
-    heroReminder.classList.toggle('is-fanned',notificationFanOpen);
+    heroReminder.dataset.activeKind=active.kind;
     heroReminder.style.setProperty('--notification-count',String(items.length));
-    heroReminder.style.height=`${Math.min(150+Math.max(0,items.length-1)*(notificationFanOpen?42:9),620)}px`;
 
-    ordered.forEach((item,index)=>{
-      const card=item.kind==='reminder'?buildReminderNotificationCard(item):buildSessionNotificationCard(item);
-      card.classList.toggle('is-active',index===0);
-      card.style.setProperty('--stack-index',String(index));
-      card.style.zIndex=String(index===0?40:30-index);
-      if(index>0){
-        card.classList.add('is-stack-tab');
-        card.onclick=e=>{
-          if(e.target.closest('button'))return;
-          activateNotification(item.key);
-        };
-      }else{
-        card.querySelector('.hd-notification-head')?.addEventListener('click',e=>{
-          if(items.length<2||e.target.closest('button'))return;
-          notificationFanOpen=!notificationFanOpen;
-          renderHeroReminder(c);
-        });
-      }
-      heroReminder.appendChild(card);
-    });
+    const card=active.kind==='reminder'?buildReminderNotificationCard(active):buildSessionNotificationCard(active);
+    card.classList.add('is-active');
+    card.style.zIndex='40';
+    appendNotificationPager(card,activeGroup,active);
+    heroReminder.appendChild(card);
 
-    if(items.length>1){
-      const count=document.createElement('button');
-      count.type='button';
-      count.className='hd-notification-stack-count';
-      count.textContent=String(items.length);
-      count.title=notificationFanOpen?'Свернуть уведомления':'Показать все уведомления';
-      count.onclick=e=>{e.stopPropagation();notificationFanOpen=!notificationFanOpen;renderHeroReminder(c);};
-      heroReminder.appendChild(count);
+    const tabs=document.createElement('div');
+    tabs.className='hd-notification-tabs';
+    tabs.setAttribute('role','tablist');
+    tabs.setAttribute('aria-label','Запланированные события клиента');
+
+    for(const group of groups){
+      const meta=notificationKindMeta(group.kind);
+      const tab=document.createElement('button');
+      tab.type='button';
+      tab.className=`hd-notification-tab is-${group.kind}`;
+      tab.dataset.kind=group.kind;
+      tab.dataset.count=String(group.items.length);
+      const selected=group===activeGroup;
+      tab.classList.toggle('is-active',selected);
+      tab.setAttribute('role','tab');
+      tab.setAttribute('aria-selected',selected?'true':'false');
+      tab.setAttribute('aria-label',`${meta.label}: ${group.items.length}`);
+      tab.title=group.items.length>1?`${meta.label} · ${group.items.length}`:meta.label;
+
+      const mark=document.createElement('span');
+      mark.className='hd-notification-tab-mark';
+      mark.textContent=group.items.length>1?String(group.items.length):meta.short;
+      tab.appendChild(mark);
+
+      tab.onclick=e=>{
+        e.stopPropagation();
+        if(selected)return;
+        activateNotification(group.items[0].key);
+      };
+      tabs.appendChild(tab);
     }
 
+    heroReminder.appendChild(tabs);
     heroReminder.hidden=false;
   }
 
@@ -1018,12 +1099,16 @@
     heroActions.append(card);
 
     const currentReq=requestsApi()?.current?.()||(c.requests||[])[0]||null;
-    const lastSession=(c.sessions||[]).filter(s=>!(s?.planned===true||String(s?.status||'')==='planned')).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
+    const therapySessions=(c.sessions||[]).filter(s=>
+      !(s?.planned===true||String(s?.status||'')==='planned')
+      &&notificationRecordTypeKey(s)==='session'
+    );
+    const lastSession=therapySessions.slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
     const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
     const desiredResult=desiredResults.length?desiredResults[desiredResults.length-1]:'Не указан';
     const items=[
       ['Текущий запрос',currentReq?.title||'Не указан','hd-summary-current'],
-      ['Сессии',String((c.sessions||[]).length),'hd-summary-sessions'],
+      ['Сессии',String(therapySessions.length),'hd-summary-sessions'],
       ['Последняя сессия',formatRuDate(lastSession?.date),'hd-summary-last'],
       ['Желаемый результат',desiredResult,'hd-summary-result']
     ];

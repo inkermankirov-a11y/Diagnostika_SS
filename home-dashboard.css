@@ -2351,3 +2351,133 @@ html[data-dashboard-theme="theme-4"] .home-dashboard{
   min-height:26px!important;
   padding:0!important;
 }
+
+
+/* Notification rail v4 — one active card with grouped bookmark tabs on the left. */
+.hd-reminder-slot{
+  overflow:visible!important;
+  padding-left:30px!important;
+}
+.hd-reminder-slot .hd-notification-deck{
+  min-height:126px!important;
+  height:126px!important;
+  overflow:visible!important;
+}
+.hd-reminder-slot .hd-notification-card{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:118px!important;
+  opacity:1!important;
+  transform:none!important;
+}
+.hd-notification-tabs{
+  position:absolute;
+  z-index:55;
+  left:-29px;
+  top:8px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:5px;
+  width:30px;
+}
+.hd-notification-tab{
+  --hd-notification-tab:#94a3b8;
+  appearance:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:27px;
+  height:29px;
+  margin:0;
+  padding:0 3px 0 1px;
+  border:1px solid color-mix(in srgb,var(--hd-notification-tab) 78%,#1f2937 22%);
+  border-right:0;
+  border-radius:9px 0 0 9px;
+  background:var(--hd-notification-tab);
+  color:#fff;
+  font:900 10px/1 "Segoe UI",Arial,sans-serif;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(30,41,59,.15);
+  transform:translateX(4px);
+  transition:width .14s ease,transform .14s ease,filter .14s ease;
+}
+.hd-notification-tab:hover,
+.hd-notification-tab:focus-visible{
+  filter:brightness(1.05);
+  transform:translateX(1px);
+  outline:none;
+}
+.hd-notification-tab.is-active{
+  width:31px;
+  transform:translateX(0);
+  box-shadow:0 5px 12px rgba(30,41,59,.20);
+}
+.hd-notification-tab.is-reminder{--hd-notification-tab:#8b5cf6}
+.hd-notification-tab.is-session{--hd-notification-tab:#e5a20a}
+.hd-notification-tab.is-diagnosis{--hd-notification-tab:#e96b35}
+.hd-notification-tab.is-consultation{--hd-notification-tab:#28a866}
+.hd-notification-tab.is-call{--hd-notification-tab:#3b82f6}
+.hd-notification-tab.is-appointment{--hd-notification-tab:#64748b}
+.hd-notification-tab-mark{
+  display:grid;
+  place-items:center;
+  min-width:16px;
+  height:16px;
+  padding:0 2px;
+  border-radius:6px;
+  background:rgba(255,255,255,.16);
+  color:#fff;
+  line-height:16px;
+}
+.hd-notification-pager{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  margin-left:auto;
+  padding-left:5px;
+}
+.hd-notification-page-btn{
+  appearance:none;
+  display:grid!important;
+  place-items:center!important;
+  width:20px!important;
+  min-width:20px!important;
+  max-width:20px!important;
+  height:20px!important;
+  min-height:20px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid rgba(66,84,110,.24)!important;
+  border-radius:6px!important;
+  background:rgba(255,255,255,.72)!important;
+  color:inherit!important;
+  font:900 16px/18px "Segoe UI",Arial,sans-serif!important;
+  cursor:pointer;
+  box-shadow:none!important;
+}
+.hd-notification-page-btn:hover{background:#fff!important}
+.hd-notification-page-count{
+  min-width:25px;
+  text-align:center;
+  font-size:9px;
+  font-weight:900;
+  color:inherit;
+  opacity:.78;
+}
+.hd-notification-stack-count{display:none!important}
+.hd-notification-deck.is-fanned .hd-notification-card,
+.hd-notification-card.is-stack-tab{
+  top:0!important;
+  height:auto!important;
+  min-height:118px!important;
+  transform:none!important;
+  opacity:1!important;
+  filter:none!important;
+}
+@media(max-width:900px){
+  .hd-reminder-slot{padding-left:27px!important}
+  .hd-notification-tabs{left:-26px}
+}

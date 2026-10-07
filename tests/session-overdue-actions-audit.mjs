@@ -85,7 +85,8 @@ await page.evaluate(()=>window.DiagnostikaHomeDashboard.openClient('overdue-clie
 
 const deck=page.locator('#hdHeroReminder');
 await deck.waitFor({state:'visible',timeout:8000});
-await page.waitForFunction(()=>document.querySelectorAll('#hdHeroReminder .hd-notification-card').length===3);
+await page.waitForFunction(()=>document.querySelectorAll('#hdHeroReminder .hd-notification-card').length===1
+  &&document.querySelectorAll('#hdHeroReminder .hd-notification-tab').length===2);
 
 assert.equal(await page.locator('#hdClientAlertSlot').innerText(),'','Standalone client alert area should be empty');
 assert.equal(await page.locator('#hdSessionOverdueNotice').count(),0,'Legacy overdue notice still exists');
@@ -94,23 +95,26 @@ const initial=await page.evaluate(()=>({
   count:document.querySelectorAll('#hdHeroReminder .hd-notification-card').length,
   activeKey:document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey||'',
   activeText:document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.innerText||'',
-  countBadge:document.querySelector('#hdHeroReminder .hd-notification-stack-count')?.textContent||'',
-  fan:document.querySelector('#hdHeroReminder')?.classList.contains('is-fanned')||false
+  stackCount:document.querySelectorAll('#hdHeroReminder .hd-notification-stack-count').length,
+  tabs:[...document.querySelectorAll('#hdHeroReminder .hd-notification-tab')].map(tab=>({
+    kind:tab.dataset.kind,
+    count:tab.dataset.count,
+    selected:tab.getAttribute('aria-selected')
+  }))
 }));
-assert.equal(initial.count,3);
+assert.equal(initial.count,1,'Notification rail should render only one full card');
 assert.equal(initial.activeKey,'session:overdue-session-1','Oldest overdue item should be the main notification');
 assert.match(initial.activeText,/Диагностика №1/);
 assert.match(initial.activeText,/ПРОСРОЧЕНО/);
-assert.equal(initial.countBadge,'3');
-assert.equal(initial.fan,false);
+assert.equal(initial.stackCount,0,'Legacy stack counter is still rendered');
+assert.deepEqual(initial.tabs.map(x=>x.kind),['reminder','diagnosis']);
+assert.equal(initial.tabs.find(x=>x.kind==='diagnosis')?.count,'2');
+assert.equal(initial.tabs.find(x=>x.kind==='reminder')?.count,'1');
+assert.equal(initial.tabs.find(x=>x.kind==='diagnosis')?.selected,'true');
+assert.equal(await page.locator('#hdHeroReminder .hd-notification-page-count').textContent(),'1/2');
 
-await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-assert.equal(await deck.evaluate(el=>el.classList.contains('is-fanned')),true,'Notification stack did not fan out');
-
-const futureTab=page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:future-session-2"]');
-await futureTab.evaluate(el=>el.click());
+await page.locator('#hdHeroReminder .hd-notification-page-btn[aria-label="Следующее уведомление"]').click();
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='session:future-session-2');
-assert.equal(await deck.evaluate(el=>el.classList.contains('is-fanned')),false,'Deck did not collapse after choosing a notification');
 
 const futureActive=page.locator('#hdHeroReminder .hd-notification-card.is-active');
 assert.equal(await futureActive.evaluate(el=>el.classList.contains('is-diagnosis')),true);
@@ -149,8 +153,7 @@ assert(compactDiagnosis.widths.every(width=>width<=30),'Diagnosis action button 
 assert.equal(compactDiagnosis.dotWidth,'5px','Planned badge dot width is wrong');
 assert.equal(compactDiagnosis.dotHeight,'5px','Planned badge dot height is wrong');
 
-await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="reminder:reminder-future-1"]').evaluate(el=>el.click());
+await page.locator('#hdHeroReminder .hd-notification-tab.is-reminder').click();
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='reminder:reminder-future-1');
 assert.match(await page.locator('#hdHeroReminder .hd-notification-card.is-active').innerText(),/Спросить про самочувствие/);
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active').evaluate(el=>el.classList.contains('is-reminder')),true);
@@ -228,8 +231,9 @@ await page.evaluate(()=>{
 });
 await page.waitForFunction(()=>!window.DiagnostikaSessions.get('legacy-reschedule-session')&&!window.DiagnostikaCalendar.get('legacy-reschedule-event'));
 
-await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-await futureTab.evaluate(el=>el.click());
+await page.locator('#hdHeroReminder .hd-notification-tab.is-diagnosis').click();
+await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='session:overdue-session-1');
+await page.locator('#hdHeroReminder .hd-notification-page-btn[aria-label="Следующее уведомление"]').click();
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='session:future-session-2');
 
 await page.evaluate(()=>{window.AppDialog.confirm=async()=>true;});
@@ -237,8 +241,6 @@ await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-notifica
 await page.waitForFunction(()=>!window.DiagnostikaSessions.get('future-session-2')&&!window.DiagnostikaCalendar.get('cal-future-2'));
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:future-session-2"]').count(),0,'Deleted diagnosis remains in notification deck');
 
-await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
-await page.locator('#hdHeroReminder .hd-notification-card[data-notification-key="session:overdue-session-1"]').click();
 await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notification-card.is-active')?.dataset.notificationKey==='session:overdue-session-1');
 await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-notification-complete').click();
 

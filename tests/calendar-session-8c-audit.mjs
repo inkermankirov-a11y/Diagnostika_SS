@@ -5,15 +5,15 @@ import fs from 'node:fs';
 const planningSource=fs.readFileSync('modules/calendar/ui/session-planning.js','utf8');
 const indexSource=fs.readFileSync('index.html','utf8');
 
-assert(planningSource.includes("version:'8F'"),'Calendar session planning version is not 8F');
-assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261006-number-by-type-1'),'Calendar session planner module marker is stale');
+assert(planningSource.includes("version:'8G'"),'Calendar session planning version is not 8G');
+assert(indexSource.includes('modules/calendar/ui/session-planning.js?v=20261007-explicit-planning-1'),'Calendar session planner module marker is stale');
 
 for(const forbidden of [
   "typeof save==='function'",
   'st.calendarEvents',
   'e.sessionNumber=',
   'e.requestId='
-])assert.equal(planningSource.includes(forbidden),false,'Calendar 8C still mutates legacy calendar persistence: '+forbidden);
+])assert.equal(planningSource.includes(forbidden),false,'Calendar 8G still mutates legacy calendar persistence: '+forbidden);
 
 for(const token of [
   "sessionsApi()?.forRequest?.(r.id,c)",
@@ -23,14 +23,14 @@ for(const token of [
   "source:'calendar-planned-session-create'",
   "source:'calendar-planned-session-sync'",
   "source:'calendar-planned-session-orphan-remove'",
-  "source:'calendar-planned-session-migrate-existing'",
+  "source:'calendar-planned-session-retire-implicit'",
   "'calendar:event-created'",
   "'calendar:event-updated'",
   "'calendar:event-deleted'",
   "'session:created'",
   "'session:updated'",
   "'session:deleted'"
-])assert(planningSource.includes(token),'Calendar 8E service/event linkage missing '+token);
+])assert(planningSource.includes(token),'Calendar 8G service/event linkage missing '+token);
 
 const fixture={
   version:4,
@@ -45,6 +45,20 @@ const fixture={
     title:'Диагностика',
     note:'Старая запись должна сохраниться',
     createdAt:'2026-09-01T10:00:00.000Z'
+  },{
+    id:'cal-8c-phantom-migrated',
+    date:'2099-01-04',
+    time:'19:00',
+    clientId:'cal-8c-client',
+    clientName:'Calendar 8C Client',
+    requestId:'cal-8c-r1',
+    type:'Диагностика',
+    title:'Диагностика',
+    note:'',
+    plannedSessionSkeleton:true,
+    plannedSessionMigrated:true,
+    sessionId:'cal-8c-phantom-session',
+    createdAt:'2026-09-01T11:00:00.000Z'
   }],
   clients:[{
     id:'cal-8c-client',
@@ -62,6 +76,18 @@ const fixture={
       date:'2026-09-20',
       requestId:'cal-8c-r1',
       notes:''
+    },{
+      id:'cal-8c-phantom-session',
+      date:'2099-01-04',
+      scheduledTime:'19:00',
+      requestId:'cal-8c-r1',
+      notes:'',
+      plan:'',
+      status:'planned',
+      planned:true,
+      calendarEventId:'cal-8c-phantom-migrated',
+      appointmentType:'Диагностика',
+      calendarTitle:'Диагностика'
     }],
     quickNotes:[],
     questionnaires:[]
@@ -108,7 +134,7 @@ await page.goto('http://127.0.0.1:8000/index.html?calendar-8c=1',{waitUntil:'com
 await page.waitForFunction(()=>document.documentElement.classList.contains('diagnostika-dashboard-ready'),null,{timeout:20000});
 await page.waitForFunction(()=>window.DiagnostikaCalendar?.moduleAware===true
   && window.DiagnostikaSessions?.moduleAware===true
-  && window.DiagnostikaCalendarSessionPlanning?.version==='8F',
+  && window.DiagnostikaCalendarSessionPlanning?.version==='8G',
   null,{timeout:15000});
 
 const diagnosisOnlyNumber=await page.evaluate(()=>{
@@ -118,27 +144,32 @@ const diagnosisOnlyNumber=await page.evaluate(()=>{
 });
 assert.equal(diagnosisOnlyNumber,1,'Conducted diagnosis incorrectly increments therapy session number');
 
-await page.waitForFunction(()=>window.DiagnostikaSessions.list('cal-8c-client').some(s=>
-  s.calendarEventId==='cal-8c-existing-future'
-  && s.date==='2099-01-02'
-  && s.scheduledTime==='17:45'
-  && s.appointmentType==='Диагностика'
-  && s.status==='planned'
-  && s.planned===true
-),null,{timeout:5000});
-
-const migratedExisting=await page.evaluate(()=>{
+await page.waitForTimeout(250);
+const legacyUntouched=await page.evaluate(()=>{
   const item=window.DiagnostikaCalendar.get('cal-8c-existing-future');
   const skeleton=window.DiagnostikaSessions.list('cal-8c-client').find(s=>s.calendarEventId==='cal-8c-existing-future')||null;
   return {item,skeleton};
 });
-assert.equal(migratedExisting.item?.plannedSessionSkeleton,true);
-assert.equal(migratedExisting.item?.plannedSessionMigrated,true);
-assert(migratedExisting.item?.sessionId,'Existing future calendar record was not linked to its skeleton');
-assert.equal(migratedExisting.item?.title,'Диагностика');
-assert.equal(migratedExisting.item?.note,'Старая запись должна сохраниться');
-assert.equal(migratedExisting.skeleton?.appointmentType,'Диагностика');
-assert.equal(migratedExisting.skeleton?.plan,'');
+assert.equal(legacyUntouched.item?.plannedSessionSkeleton,undefined,'Legacy calendar record was silently promoted into a planned card');
+assert.equal(legacyUntouched.item?.plannedSessionMigrated,undefined,'Legacy calendar record was silently marked as migrated');
+assert.equal(legacyUntouched.item?.sessionId,undefined,'Legacy calendar record received a phantom session link');
+assert.equal(legacyUntouched.item?.title,'Диагностика');
+assert.equal(legacyUntouched.item?.note,'Старая запись должна сохраниться');
+assert.equal(legacyUntouched.skeleton,null,'Legacy calendar record created a phantom planned session');
+
+await page.waitForFunction(()=>
+  !window.DiagnostikaSessions.get('cal-8c-phantom-session')
+  &&window.DiagnostikaCalendar.get('cal-8c-phantom-migrated')?.sessionId===''
+  &&window.DiagnostikaCalendar.get('cal-8c-phantom-migrated')?.plannedSessionSkeleton===false
+  &&window.DiagnostikaCalendar.get('cal-8c-phantom-migrated')?.plannedSessionMigrated===false
+,null,{timeout:5000});
+const retiredPhantom=await page.evaluate(()=>({
+  event:window.DiagnostikaCalendar.get('cal-8c-phantom-migrated'),
+  session:window.DiagnostikaSessions.get('cal-8c-phantom-session')
+}));
+assert.equal(retiredPhantom.session,null,'Previously auto-migrated phantom planned card was not removed');
+assert.equal(retiredPhantom.event?.title,'Диагностика','Retiring phantom card must preserve the original calendar record');
+assert.equal(retiredPhantom.event?.plannedSessionExplicit,false);
 
 await page.evaluate(()=>{
   window.__calendar8cEvents=[];
