@@ -44,7 +44,6 @@ const fixture={version:4,calendarEvents:[{
     plan:'',
     status:'planned',
     planned:true,
-    calendarEventId:'cal-overdue-1',
     appointmentType:'Диагностика',
     calendarTitle:'Диагностика'
   },{
@@ -122,9 +121,12 @@ const futureStyle=await futureActive.evaluate(el=>({
 assert(/255, 253, 241|255, 244, 189/.test(futureStyle.bg)||futureStyle.animation.includes('hdDiagnosisNoticePulse'),'Future diagnosis is not using the yellow calendar theme');
 
 assert.equal(await futureActive.locator('.hd-hero-reminder-source').count(),0,'Diagnosis card still renders calendar source link');
-assert.equal((await futureActive.locator('.hd-notification-complete').textContent()).trim(),'✓ Проведена');
-assert.equal((await futureActive.locator('.hd-notification-move').textContent()).trim(),'📅 Перенести');
-assert.equal((await futureActive.locator('.hd-notification-delete').textContent()).trim(),'Удалить');
+assert.equal((await futureActive.locator('.hd-notification-complete').textContent()).trim(),'');
+assert.equal(await futureActive.locator('.hd-notification-complete').getAttribute('aria-label'),'Проведено');
+assert.equal((await futureActive.locator('.hd-notification-move').textContent()).trim(),'');
+assert.equal(await futureActive.locator('.hd-notification-move').getAttribute('aria-label'),'Перенести');
+assert.equal((await futureActive.locator('.hd-notification-delete').textContent()).trim(),'');
+assert.equal(await futureActive.locator('.hd-notification-delete').getAttribute('aria-label'),'Удалить');
 const compactDiagnosis=await futureActive.evaluate(card=>{
   const buttons=[...card.querySelectorAll('.hd-notification-actions button')];
   const rects=buttons.map(button=>button.getBoundingClientRect());
@@ -142,7 +144,7 @@ const compactDiagnosis=await futureActive.evaluate(card=>{
 assert(compactDiagnosis.height<180,'Diagnosis notification card is not compact');
 assert(Math.max(...compactDiagnosis.tops)-Math.min(...compactDiagnosis.tops)<=1,'Diagnosis actions are not on one row');
 assert(Math.max(...compactDiagnosis.bottoms)-Math.min(...compactDiagnosis.bottoms)<=1,'Diagnosis action buttons have different heights');
-assert(compactDiagnosis.widths.every(width=>width>45),'Diagnosis action button collapsed');
+assert(compactDiagnosis.widths.every(width=>width<=30),'Diagnosis action button is not compact');
 assert.equal(compactDiagnosis.dotWidth,'5px','Planned badge dot width is wrong');
 assert.equal(compactDiagnosis.dotHeight,'5px','Planned badge dot height is wrong');
 
@@ -152,7 +154,43 @@ await page.waitForFunction(()=>document.querySelector('#hdHeroReminder .hd-notif
 assert.match(await page.locator('#hdHeroReminder .hd-notification-card.is-active').innerText(),/Спросить про самочувствие/);
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active').evaluate(el=>el.classList.contains('is-reminder')),true);
 assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-hero-reminder-source').count(),0,'Reminder card still renders calendar source link');
-assert.equal((await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-hero-reminder-snooze').textContent()).trim(),'📅 Перенести');
+assert.equal((await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-hero-reminder-snooze').textContent()).trim(),'');
+assert.equal(await page.locator('#hdHeroReminder .hd-notification-card.is-active .hd-hero-reminder-snooze').getAttribute('aria-label'),'Перенести');
+
+const beforeReschedule=await page.evaluate(()=>({
+  sessions:window.DiagnostikaSessions.list('overdue-client').map(s=>({id:s.id,date:s.date,scheduledTime:s.scheduledTime,calendarEventId:s.calendarEventId||''})),
+  events:window.DiagnostikaCalendar.list().map(e=>({id:e.id,sessionId:e.sessionId||'',date:e.date,time:e.time}))
+}));
+assert.equal(beforeReschedule.sessions.filter(s=>s.id==='overdue-session-1').length,1,'Legacy overdue card is already duplicated before reschedule');
+
+const overdueListCard=page.locator('.hd-session-card[data-session-id="overdue-session-1"]');
+await overdueListCard.locator('.hd-session-reschedule-btn').click();
+const calendarDialog=page.locator('#diagnostikaCalendarOverlay');
+await calendarDialog.waitFor({state:'visible',timeout:5000});
+assert.equal(await calendarDialog.locator('.cal-save').innerText(),'Сохранить изменения','Reschedule did not open the existing calendar event in edit mode');
+await calendarDialog.locator('.cal-date').fill('2099-01-05');
+await calendarDialog.locator('.cal-time').fill('20:30');
+await calendarDialog.locator('.cal-save').click();
+
+await page.waitForFunction(()=>{
+  const rows=window.DiagnostikaSessions.list('overdue-client');
+  const s=rows.find(x=>x.id==='overdue-session-1');
+  return rows.length===2&&s?.date==='2099-01-05'&&s?.scheduledTime==='20:30'&&s?.calendarEventId==='cal-overdue-1';
+},null,{timeout:5000});
+
+const afterReschedule=await page.evaluate(()=>({
+  sessions:window.DiagnostikaSessions.list('overdue-client').map(s=>({id:s.id,date:s.date,scheduledTime:s.scheduledTime,calendarEventId:s.calendarEventId||''})),
+  events:window.DiagnostikaCalendar.list().map(e=>({id:e.id,sessionId:e.sessionId||'',date:e.date,time:e.time}))
+}));
+assert.equal(afterReschedule.sessions.length,beforeReschedule.sessions.length,'Reschedule created a new session card');
+assert.equal(afterReschedule.sessions.filter(s=>s.id==='overdue-session-1').length,1,'Original session card was duplicated');
+assert.equal(afterReschedule.events.length,beforeReschedule.events.length,'Reschedule created a new calendar event');
+assert.equal(afterReschedule.events.find(e=>e.id==='cal-overdue-1')?.date,'2099-01-05');
+assert.equal(afterReschedule.events.find(e=>e.id==='cal-overdue-1')?.time,'20:30');
+assert.equal(afterReschedule.events.find(e=>e.id==='cal-overdue-1')?.sessionId,'overdue-session-1');
+
+calendarDialog.locator('.cal-close').click();
+await calendarDialog.waitFor({state:'hidden',timeout:5000});
 
 await page.locator('#hdHeroReminder .hd-notification-stack-count').click();
 await futureTab.click();
