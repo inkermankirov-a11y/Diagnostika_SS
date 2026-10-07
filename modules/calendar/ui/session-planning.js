@@ -213,8 +213,23 @@
       if(!e?.id||e.plannedSessionMigrated!==true||e.plannedSessionExplicit===true)return;
       const c=clientMap.get(String(e.clientId||''));
       const linked=c?sessionForEvent(c,e):null;
+      const untouchedAutoSkeleton=linked
+        &&isPlannedSkeleton(linked)
+        &&!String(linked.plan||'').trim()
+        &&!String(linked.notes||'').trim();
 
-      if(linked&&isPlannedSkeleton(linked)){
+      if(linked&&!untouchedAutoSkeleton){
+        const preserved=cal.update(e.id,{
+          plannedSessionSkeleton:true,
+          plannedSessionMigrated:false,
+          plannedSessionExplicit:true,
+          sessionId:linked.id
+        },{source:'calendar-planned-session-preserve-edited'});
+        if(preserved)changed=true;
+        return;
+      }
+
+      if(untouchedAutoSkeleton){
         if(sessions.remove(linked.id,{client:c,source:'calendar-planned-session-retire-implicit',render:false}))changed=true;
       }
 
