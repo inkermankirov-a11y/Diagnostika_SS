@@ -968,7 +968,10 @@
     if(!bus?.on)return false;
     ['calendar:event-created','calendar:event-updated','calendar:event-deleted','calendar:events-replaced'].forEach(type=>{
       bus.on(type,()=>{
-        if(overlay.open)setTimeout(render,0);
+        // Do not repaint the calendar form while an existing record is being edited.
+        // Background linkage updates used to reset a freshly chosen reschedule date
+        // before the user pressed "Сохранить изменения".
+        if(overlay.open&&!editingEventId)setTimeout(render,0);
       });
     });
     eventRefreshBound=true;
