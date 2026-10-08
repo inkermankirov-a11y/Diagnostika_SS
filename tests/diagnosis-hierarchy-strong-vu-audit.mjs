@@ -138,6 +138,13 @@ assert.deepEqual(
   'Hypothesis must receive all and only the visible Strong VU groups'
 );
 assert.equal(hypothesisInput.vu.length,2);
+assert.deepEqual(
+  await page.evaluate(()=>window.DiagnostikaHypothesis.expandedParagraphs(
+    'В основе лежат убеждения. К ним приходишь через страх.\n\nЭто проявляется в запросе.'
+  )),
+  ['В основе лежат убеждения. К ним приходишь через страх. Это проявляется в запросе.'],
+  'Expanded hypothesis must render as one paragraph even for older multiline responses'
+);
 const allGroups=await page.evaluate(()=>{
   const names=['Слабая','Ненужная','Грустная','Бессильная','Лживая','Живая','Беспомощная','Нереализованная','Отвергнутая'];
   const request={
