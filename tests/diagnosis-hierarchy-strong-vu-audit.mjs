@@ -138,6 +138,22 @@ assert.deepEqual(
   'Hypothesis must receive all and only the visible Strong VU groups'
 );
 assert.equal(hypothesisInput.vu.length,2);
+const allGroups=await page.evaluate(()=>{
+  const names=['Слабая','Ненужная','Грустная','Бессильная','Лживая','Живая','Беспомощная','Нереализованная','Отвергнутая'];
+  const request={
+    situations:[{
+      id:'all-strong-situation',name:'Все сильные ВУ',
+      beliefs:[{id:'all-strong-belief',text:'Я не справляюсь',feelings:[{
+        id:'all-strong-feeling',text:'Страх',
+        deep:names.map((name,index)=>({id:'all-strong-'+index,text:name,level:index<5?10:6}))
+      }]}]
+    }]
+  };
+  return window.DiagnostikaStrongVuSummary.collectForRequest(request).map(g=>g.displayText);
+});
+assert.equal(allGroups.length,9,'Strong VU grouping is incorrectly capped at seven entries');
+assert(allGroups.includes('Нереализованная'),'Hidden Strong VU must be available to AI');
+
 assert.equal(hypothesisInput.vu[0].ветки.length,2,'Repeated belief branches missing');
 assert(hypothesisInput.vu[0].ветки.some(v=>v.ситуация==='Ситуация 1'&&v.первичное_убеждение==='Я некрасивая'&&v.вторичное_чувство==='Злость'));
 assert.equal(hypothesisInput.vu[1].максимальный_уровень,10);
