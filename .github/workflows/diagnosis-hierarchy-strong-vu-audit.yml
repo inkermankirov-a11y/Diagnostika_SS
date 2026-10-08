@@ -10,6 +10,9 @@ on:
       - 'modules/diagnosis/ui/feeling-collapse.js'
       - 'modules/diagnosis/ui/strong-vu-summary.js'
       - 'tests/diagnosis-hierarchy-strong-vu-audit.mjs'
+      - 'tests/n8n-hypothesis-contract-audit.mjs'
+      - 'n8n/diagnostika-hypothesis-v1.json'
+      - 'modules/diagnosis/ui/hypothesis.js'
       - '.github/workflows/diagnosis-hierarchy-strong-vu-audit.yml'
   workflow_dispatch:
 
@@ -28,6 +31,8 @@ jobs:
           node --check modules/diagnosis/ui/feeling-collapse.js
           node --check modules/diagnosis/ui/strong-vu-summary.js
           node --check tests/diagnosis-hierarchy-strong-vu-audit.mjs
+          node --check tests/n8n-hypothesis-contract-audit.mjs
+          node tests/n8n-hypothesis-contract-audit.mjs
       - name: Install browser
         run: |
           npm install --no-save playwright
