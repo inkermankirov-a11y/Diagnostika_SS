@@ -120,6 +120,29 @@ assert.equal(initial.summary[1].text,'Беспомощная');
 assert.equal(initial.summary[1].level,'10');
 assert.equal(initial.summary[1].repeat,false);
 
+// The exact complete column, not merely the first displayed entries, must be
+// sent with diagnostic data for the selected request.
+const hypothesisInput=await page.evaluate(()=>{
+  const request=window.DiagnostikaPlatform.shell.currentRequest();
+  const groups=window.DiagnostikaStrongVuSummary.collectForRequest(request);
+  const payload=window.DiagnostikaHypothesis.buildDiagnosticData();
+  return {
+    groups:groups.map(g=>({text:g.displayText,level:g.maxLevel,count:g.count})),
+    vu:payload?.сильные_ВУ||[],
+    situations:payload?.ситуации?.length||0
+  };
+});
+assert.deepEqual(
+  hypothesisInput.vu.map(g=>({text:g.убеждение,level:g.максимальный_уровень,count:g.повторений})),
+  hypothesisInput.groups,
+  'Hypothesis must receive all and only the visible Strong VU groups'
+);
+assert.equal(hypothesisInput.vu.length,2);
+assert.equal(hypothesisInput.vu[0].ветки.length,2,'Repeated belief branches missing');
+assert(hypothesisInput.vu[0].ветки.some(v=>v.ситуация==='Ситуация 1'&&v.первичное_убеждение==='Я некрасивая'&&v.вторичное_чувство==='Злость'));
+assert.equal(hypothesisInput.vu[1].максимальный_уровень,10);
+assert(!JSON.stringify(hypothesisInput.vu).includes('Какая-то не такая'),'Below-threshold belief incorrectly included as Strong VU');
+
 await page.locator('.strong-vu-row.is-repeat').click();
 await page.waitForFunction(()=>window.DiagnostikaPlatform?.shell?.currentSituationId?.()==='s1');
 await page.waitForFunction(()=>window.DiagnostikaPlatform?.shell?.currentSelection?.()?.obj?.id==='d1');
