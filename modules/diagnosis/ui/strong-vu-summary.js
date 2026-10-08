@@ -19,8 +19,8 @@
       .trim();
   }
 
-  function collect(){
-    const request=shell()?.currentRequest?.();
+  // One source of truth for the visible Strong VU column and hypothesis input.
+  function collectForRequest(request){
     if(!request)return[];
     const groups=new Map();
 
@@ -39,6 +39,7 @@
               text,
               level,
               deepId:deep.id,
+              beliefId:belief.id,
               feelingId:feeling.id,
               situationId:situation.id,
               situationIndex
@@ -66,6 +67,10 @@
         const br=b.count>1?1:0;
         return br-ar||b.count-a.count||b.maxLevel-a.maxLevel||a.displayText.localeCompare(b.displayText,'ru');
       });
+  }
+
+  function collect(){
+    return collectForRequest(shell()?.currentRequest?.());
   }
 
   async function openGroup(group){
@@ -164,6 +169,8 @@
     expanded=!expanded;
     render();
   });
+
+  window.DiagnostikaStrongVuSummary=Object.freeze({collectForRequest});
 
   document.addEventListener('diagnostika:diagnosis-tree-rendered',render);
   document.addEventListener('diagnostika:diagnosis-editor-rendered',render);
