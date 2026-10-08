@@ -39,8 +39,32 @@
       ? snapshot.situations
       : Array.isArray(r.situations)?r.situations:[];
 
+    // Include every Strong VU shown in the sidebar (level >= 6), not just
+    // one or two chosen by the model. Use the column's exact grouping,
+    // normalization and ordering, including entries behind "Показать ещё".
+    const strongVuGroups=window.DiagnostikaStrongVuSummary?.collectForRequest?.({situations})||[];
+    const strongVu=strongVuGroups.map(group=>({
+      убеждение:group.displayText,
+      максимальный_уровень:group.maxLevel,
+      повторений:group.count,
+      ветки:group.occurrences.map(occurrence=>{
+        const s=situations.find(x=>String(x?.id||'')===String(occurrence.situationId||''));
+        const b=(s?.beliefs||[]).find(x=>String(x?.id||'')===String(occurrence.beliefId||''));
+        const f=(b?.feelings||[]).find(x=>String(x?.id||'')===String(occurrence.feelingId||''));
+        const d=(f?.deep||[]).find(x=>String(x?.id||'')===String(occurrence.deepId||''));
+        return {
+          ситуация:cleanText(s?.name),
+          первичное_убеждение:cleanText(b?.text),
+          вторичное_чувство:cleanText(f?.text),
+          уровень_ВУ:occurrence.level,
+          реакции:(d?.instincts||[]).map(x=>cleanText(x?.name)).filter(Boolean)
+        };
+      })
+    }));
+
     return {
       клиент:{имя:cleanText(c.name)},
+      сильные_ВУ:strongVu,
       исходный_запрос:{
         id:String(r.id||''),
         формулировка:cleanText(r.title),
