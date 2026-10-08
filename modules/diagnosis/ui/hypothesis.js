@@ -190,35 +190,16 @@
   }
 
   function expandedParagraphs(text){
-    let source=String(text||'').trim();
-    if(!source)return [];
-
-    // Backward-compatible cleanup for answers produced by the previous
-    // four-heading prompt. We keep the text but never show those headings.
-    source=source.replace(/^(Глубинная конструкция|Что запускается|Как это проявляется|Связь с запросом)\s*:\s*/gim,'').trim();
-
-    let paragraphs=source.split(/\n\s*\n+/).map(x=>x.trim()).filter(Boolean);
-    if(paragraphs.length>1)return paragraphs.slice(0,3);
-
-    const sentences=(source.match(/[^.!?…]+[.!?…]+(?:[»”"']+)?|[^.!?…]+$/g)||[])
-      .map(x=>x.trim())
-      .filter(Boolean);
-    if(sentences.length<=2)return [source];
-
-    const count=sentences.length>=6?3:2;
-    const result=[];
-    let cursor=0;
-    for(let i=0;i<count;i++){
-      const remaining=sentences.length-cursor;
-      const groupsLeft=count-i;
-      const take=Math.ceil(remaining/groupsLeft);
-      result.push(sentences.slice(cursor,cursor+take).join(' '));
-      cursor+=take;
-    }
-    return result.filter(Boolean);
+    // One coherent block is an explicit requirement of the hypothesis format.
+    // Legacy multi-paragraph results are displayed as one paragraph too.
+    const source=String(text||'').trim()
+      .replace(/^(Глубинная конструкция|Что запускается|Как это проявляется|Связь с запросом)\s*:\s*/gim,'')
+      .replace(/\s+/g,' ')
+      .trim();
+    return source?[source]:[];
   }
 
-  function expandedHtml(text){
+    function expandedHtml(text){
     return expandedParagraphs(text)
       .map(p=>`<p>${esc(p).replace(/\n/g,'<br>')}</p>`)
       .join('');
