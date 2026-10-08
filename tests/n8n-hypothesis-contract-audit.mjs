@@ -49,6 +49,12 @@ const fallback=execute({body:{
     }]}]
   }
 }})[0].json;
+const parsedBody=execute({body:JSON.stringify({
+  requestId:'test-request',
+  addressMode:'ty',
+  diagnosticData
+})})[0].json;
+assert.equal(parsedBody.strongVuNames.length,9,'Stringified webhook body omitted strong beliefs');
 assert.deepEqual(fallback.strongVuNames,['ненужная','слабая'],'Fallback must reproduce the visible Strong VU threshold');
 assert.equal(fallback.strongVuNames.includes('какая-то не такая'),false,'Below-threshold belief treated as strong');
 console.log('N8N_HYPOTHESIS_STRICT_CHAIN_ALL_STRONG_VU_OK');
