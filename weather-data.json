@@ -1,12 +1,12 @@
 {
-  "_updated_utc": "2026-10-12T00:45:44Z",
+  "_updated_utc": "2026-10-12T06:35:10Z",
   "current": {
-    "time": "2026-10-12T03:45",
+    "time": "2026-10-12T09:30",
     "interval": 900,
-    "temperature_2m": 7.2,
-    "apparent_temperature": 5.7,
+    "temperature_2m": 7.6,
+    "apparent_temperature": 5.8,
     "weather_code": 61,
-    "is_day": 0
+    "is_day": 1
   },
   "daily": {
     "time": [
@@ -22,28 +22,28 @@
       61,
       3,
       3,
-      61,
       3,
-      3,
-      3
+      45,
+      45,
+      61
     ],
     "temperature_2m_max": [
-      10.3,
-      14.7,
-      16.2,
+      10.6,
+      14.9,
+      16.4,
+      15.2,
       12.8,
-      6.7,
-      8.1,
-      8.5
+      12.1,
+      12.4
     ],
     "temperature_2m_min": [
-      6.9,
-      8.9,
-      10.3,
-      4.4,
-      3.4,
-      2.4,
-      3.5
+      6.5,
+      9.0,
+      10.0,
+      9.8,
+      8.2,
+      7.8,
+      8.4
     ],
     "precipitation_probability_max": [
       68,
@@ -55,13 +55,13 @@
       18
     ],
     "wind_speed_10m_max": [
-      7.4,
-      7.9,
-      12.2,
-      9.0,
-      5.9,
-      6.5,
-      11.0
+      6.4,
+      8.4,
+      12.1,
+      7.1,
+      4.7,
+      8.9,
+      13.3
     ]
   },
   "cities": [
@@ -77,12 +77,12 @@
       "longitude": 49.668,
       "timezone": "Europe/Kirov",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 7.2,
-        "apparent_temperature": 5.7,
+        "temperature_2m": 7.6,
+        "apparent_temperature": 5.8,
         "weather_code": 61,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -98,28 +98,28 @@
           61,
           3,
           3,
-          61,
           3,
-          3,
-          3
+          45,
+          45,
+          61
         ],
         "temperature_2m_max": [
-          10.3,
-          14.7,
-          16.2,
+          10.6,
+          14.9,
+          16.4,
+          15.2,
           12.8,
-          6.7,
-          8.1,
-          8.5
+          12.1,
+          12.4
         ],
         "temperature_2m_min": [
-          6.9,
-          8.9,
-          10.3,
-          4.4,
-          3.4,
-          2.4,
-          3.5
+          6.5,
+          9.0,
+          10.0,
+          9.8,
+          8.2,
+          7.8,
+          8.4
         ],
         "precipitation_probability_max": [
           68,
@@ -131,13 +131,13 @@
           18
         ],
         "wind_speed_10m_max": [
-          7.4,
-          7.9,
-          12.2,
-          9.0,
-          5.9,
-          6.5,
-          11.0
+          6.4,
+          8.4,
+          12.1,
+          7.1,
+          4.7,
+          8.9,
+          13.3
         ]
       }
     },
@@ -152,12 +152,12 @@
       "longitude": 37.6173,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 11.8,
-        "apparent_temperature": 9.5,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 12.2,
+        "apparent_temperature": 10.9,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -173,28 +173,28 @@
           80,
           61,
           61,
-          3,
-          3,
-          3,
-          3
+          61,
+          45,
+          61,
+          61
         ],
         "temperature_2m_max": [
-          14.3,
-          12.4,
-          12.1,
-          10.2,
-          10.4,
-          11.4,
-          12.3
+          15.0,
+          12.3,
+          9.3,
+          11.9,
+          16.7,
+          14.6,
+          11.8
         ],
         "temperature_2m_min": [
           11.2,
-          9.1,
-          7.6,
-          5.5,
-          7.3,
-          9.2,
-          9.1
+          9.3,
+          8.5,
+          8.6,
+          11.4,
+          9.5,
+          8.2
         ],
         "precipitation_probability_max": [
           78,
@@ -206,13 +206,13 @@
           12
         ],
         "wind_speed_10m_max": [
-          9.5,
-          7.7,
-          6.4,
-          8.6,
-          7.9,
-          5.6,
-          10.0
+          9.2,
+          8.4,
+          8.0,
+          6.7,
+          4.8,
+          6.8,
+          9.7
         ]
       }
     },
@@ -229,12 +229,12 @@
       "longitude": 30.3351,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 8.2,
-        "apparent_temperature": 5.9,
+        "temperature_2m": 8.8,
+        "apparent_temperature": 5.8,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -247,8 +247,8 @@
           "2026-10-18"
         ],
         "weather_code": [
-          63,
-          53,
+          61,
+          61,
           3,
           3,
           3,
@@ -256,21 +256,21 @@
           51
         ],
         "temperature_2m_max": [
-          9.0,
+          9.2,
           7.1,
-          9.5,
-          12.0,
-          12.6,
-          12.6,
+          10.1,
+          12.2,
+          12.4,
+          14.2,
           9.7
         ],
         "temperature_2m_min": [
           7.1,
+          5.3,
           5.0,
-          5.0,
-          4.6,
-          5.5,
-          5.1,
+          5.3,
+          7.0,
+          7.0,
           3.9
         ],
         "precipitation_probability_max": [
@@ -283,12 +283,12 @@
           27
         ],
         "wind_speed_10m_max": [
-          18.7,
-          14.4,
+          19.8,
           17.3,
-          13.7,
-          13.2,
-          11.4,
+          21.6,
+          15.4,
+          16.8,
+          16.1,
           13.9
         ]
       }
@@ -304,12 +304,12 @@
       "longitude": 43.9361,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 10.3,
-        "apparent_temperature": 8.2,
-        "weather_code": 1,
-        "is_day": 0
+        "temperature_2m": 11.9,
+        "apparent_temperature": 9.2,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -326,27 +326,27 @@
           3,
           3,
           3,
-          45,
           3,
-          61
+          3,
+          80
         ],
         "temperature_2m_max": [
-          17.1,
-          19.3,
-          18.5,
-          12.8,
-          11.2,
-          10.4,
-          10.1
+          17.5,
+          19.1,
+          18.1,
+          16.9,
+          16.1,
+          16.5,
+          13.0
         ],
         "temperature_2m_min": [
+          9.5,
+          12.3,
+          12.5,
+          12.8,
+          10.3,
           9.3,
-          12.0,
-          11.8,
-          8.6,
-          8.0,
-          4.5,
-          2.8
+          10.7
         ],
         "precipitation_probability_max": [
           48,
@@ -359,12 +359,12 @@
         ],
         "wind_speed_10m_max": [
           11.5,
-          9.8,
-          8.2,
-          8.3,
-          7.7,
-          7.2,
-          5.2
+          9.4,
+          9.1,
+          6.4,
+          5.5,
+          8.7,
+          10.0
         ]
       }
     },
@@ -379,12 +379,12 @@
       "longitude": 49.1064,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 8.2,
-        "apparent_temperature": 6.4,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 10.9,
+        "apparent_temperature": 8.9,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -402,26 +402,26 @@
           3,
           3,
           3,
-          2,
-          3
+          3,
+          61
         ],
         "temperature_2m_max": [
-          16.4,
-          19.5,
-          18.4,
-          16.8,
-          14.2,
-          9.0,
-          11.0
+          16.5,
+          19.2,
+          17.7,
+          15.6,
+          16.5,
+          16.3,
+          13.4
         ],
         "temperature_2m_min": [
-          7.3,
-          11.8,
-          11.4,
-          12.3,
-          8.4,
-          4.3,
-          5.2
+          7.2,
+          11.5,
+          11.2,
+          12.6,
+          11.2,
+          8.5,
+          8.8
         ],
         "precipitation_probability_max": [
           10,
@@ -433,13 +433,13 @@
           16
         ],
         "wind_speed_10m_max": [
-          10.5,
-          13.2,
+          10.8,
+          12.6,
           13.4,
-          6.8,
-          9.4,
-          10.6,
-          8.0
+          8.4,
+          3.3,
+          9.8,
+          15.5
         ]
       }
     },
@@ -454,12 +454,12 @@
       "longitude": 50.1002,
       "timezone": "Europe/Samara",
       "current": {
-        "time": "2026-10-12T04:45",
+        "time": "2026-10-12T10:30",
         "interval": 900,
-        "temperature_2m": 5.0,
-        "apparent_temperature": 3.4,
-        "weather_code": 45,
-        "is_day": 0
+        "temperature_2m": 9.6,
+        "apparent_temperature": 8.1,
+        "weather_code": 0,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -476,27 +476,27 @@
           3,
           3,
           3,
-          2,
+          3,
           3,
           3
         ],
         "temperature_2m_max": [
-          19.1,
-          21.7,
-          21.8,
-          18.7,
           18.8,
-          12.1,
-          15.5
+          21.5,
+          21.7,
+          17.9,
+          18.0,
+          18.9,
+          15.3
         ],
         "temperature_2m_min": [
-          4.4,
-          8.3,
-          9.1,
-          12.2,
-          10.1,
-          6.5,
-          3.9
+          4.2,
+          8.4,
+          9.3,
+          12.3,
+          9.6,
+          7.6,
+          9.3
         ],
         "precipitation_probability_max": [
           0,
@@ -508,13 +508,13 @@
           10
         ],
         "wind_speed_10m_max": [
-          7.2,
-          10.9,
-          11.7,
           8.0,
-          8.8,
-          13.2,
-          7.2
+          10.9,
+          12.7,
+          11.2,
+          7.2,
+          8.6,
+          11.2
         ]
       }
     },
@@ -529,12 +529,12 @@
       "longitude": 55.9721,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 4.2,
-        "apparent_temperature": 1.8,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 10.0,
+        "apparent_temperature": 7.6,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -552,26 +552,26 @@
           3,
           3,
           3,
-          3,
-          2
+          45,
+          3
         ],
         "temperature_2m_max": [
           15.3,
-          20.7,
-          20.7,
-          17.8,
-          16.7,
-          13.4,
-          13.0
+          20.4,
+          20.1,
+          17.7,
+          16.9,
+          15.5,
+          12.7
         ],
         "temperature_2m_min": [
-          3.6,
-          7.0,
-          8.0,
-          10.0,
-          7.6,
-          4.1,
-          5.2
+          3.4,
+          7.2,
+          8.1,
+          11.0,
+          9.1,
+          5.1,
+          5.4
         ],
         "precipitation_probability_max": [
           5,
@@ -583,13 +583,13 @@
           10
         ],
         "wind_speed_10m_max": [
-          9.2,
-          10.0,
-          8.1,
-          9.8,
-          5.5,
-          10.5,
-          9.1
+          9.4,
+          8.9,
+          7.9,
+          8.8,
+          4.7,
+          6.1,
+          15.5
         ]
       }
     },
@@ -604,12 +604,12 @@
       "longitude": 56.2502,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 5.7,
-        "apparent_temperature": 3.3,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 9.1,
+        "apparent_temperature": 6.8,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -624,29 +624,29 @@
         "weather_code": [
           61,
           61,
-          45,
+          3,
           3,
           3,
           3,
           3
         ],
         "temperature_2m_max": [
-          9.0,
-          13.1,
-          15.2,
-          14.7,
-          10.4,
-          7.2,
-          9.4
+          9.9,
+          12.9,
+          14.6,
+          15.0,
+          11.8,
+          8.4,
+          11.8
         ],
         "temperature_2m_min": [
-          5.1,
-          7.9,
-          8.4,
-          10.9,
-          4.7,
-          2.6,
-          0.5
+          5.6,
+          8.8,
+          9.0,
+          11.0,
+          5.8,
+          4.2,
+          3.1
         ],
         "precipitation_probability_max": [
           38,
@@ -659,12 +659,12 @@
         ],
         "wind_speed_10m_max": [
           11.3,
-          5.2,
-          11.4,
-          9.2,
-          11.2,
+          4.7,
+          12.0,
+          7.5,
+          8.2,
           5.9,
-          8.2
+          9.6
         ]
       }
     },
@@ -680,12 +680,12 @@
       "longitude": 60.6057,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 6.4,
-        "apparent_temperature": 3.6,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 10.0,
+        "apparent_temperature": 6.3,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -701,28 +701,28 @@
           3,
           61,
           61,
+          45,
           3,
-          3,
-          3,
+          45,
           3
         ],
         "temperature_2m_max": [
-          11.3,
+          12.2,
           13.5,
           8.1,
-          14.2,
-          11.0,
-          6.4,
-          8.1
+          14.1,
+          13.2,
+          7.2,
+          10.6
         ],
         "temperature_2m_min": [
-          5.9,
-          7.9,
+          6.3,
+          8.0,
+          6.7,
           6.9,
-          7.0,
-          4.2,
-          2.6,
-          3.3
+          5.8,
+          1.5,
+          2.0
         ],
         "precipitation_probability_max": [
           5,
@@ -734,13 +734,13 @@
           9
         ],
         "wind_speed_10m_max": [
-          14.1,
-          7.4,
+          15.3,
+          6.4,
           11.2,
-          10.3,
-          10.8,
-          9.0,
-          8.9
+          9.5,
+          9.2,
+          4.6,
+          8.0
         ]
       }
     },
@@ -755,12 +755,12 @@
       "longitude": 61.4368,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 6.9,
-        "apparent_temperature": 4.1,
+        "temperature_2m": 10.7,
+        "apparent_temperature": 7.6,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -774,29 +774,29 @@
         ],
         "weather_code": [
           3,
-          61,
-          45,
+          3,
+          80,
           3,
           3,
-          61,
+          3,
           3
         ],
         "temperature_2m_max": [
-          13.4,
-          15.7,
-          14.2,
-          11.4,
-          14.9,
-          8.7,
-          8.4
+          13.9,
+          16.1,
+          12.6,
+          12.3,
+          16.5,
+          9.5,
+          10.0
         ],
         "temperature_2m_min": [
-          6.7,
-          6.7,
-          8.2,
-          6.8,
-          6.1,
-          5.6,
+          6.6,
+          7.0,
+          8.4,
+          6.4,
+          8.8,
+          4.6,
           4.9
         ],
         "precipitation_probability_max": [
@@ -809,13 +809,13 @@
           6
         ],
         "wind_speed_10m_max": [
-          11.2,
-          7.5,
-          9.1,
-          9.9,
-          10.9,
-          13.6,
-          6.8
+          11.5,
+          7.3,
+          8.0,
+          7.6,
+          10.2,
+          10.0,
+          12.6
         ]
       }
     },
@@ -830,12 +830,12 @@
       "longitude": 65.5343,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 7.4,
-        "apparent_temperature": 3.6,
-        "weather_code": 0,
-        "is_day": 0
+        "temperature_2m": 11.0,
+        "apparent_temperature": 6.4,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -850,28 +850,28 @@
         "weather_code": [
           3,
           53,
-          3,
+          51,
           3,
           51,
           3,
           3
         ],
         "temperature_2m_max": [
-          11.1,
-          8.6,
-          7.5,
-          10.2,
-          10.6,
-          7.7,
+          11.2,
+          7.4,
+          7.6,
+          9.6,
+          11.7,
+          14.3,
           9.3
         ],
         "temperature_2m_min": [
-          6.7,
-          4.2,
-          1.1,
-          0.2,
-          5.4,
-          2.6,
+          7.0,
+          4.8,
+          0.8,
+          -0.2,
+          7.2,
+          8.3,
           0.9
         ],
         "precipitation_probability_max": [
@@ -884,12 +884,12 @@
           6
         ],
         "wind_speed_10m_max": [
-          23.7,
-          11.8,
-          8.5,
-          14.8,
-          13.6,
-          8.5,
+          23.1,
+          8.1,
+          9.9,
+          15.8,
+          15.5,
+          11.5,
           16.3
         ]
       }
@@ -905,12 +905,12 @@
       "longitude": 73.3242,
       "timezone": "Asia/Omsk",
       "current": {
-        "time": "2026-10-12T06:45",
+        "time": "2026-10-12T12:30",
         "interval": 900,
-        "temperature_2m": 5.8,
-        "apparent_temperature": 2.0,
-        "weather_code": 1,
-        "is_day": 0
+        "temperature_2m": 8.6,
+        "apparent_temperature": 5.6,
+        "weather_code": 2,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -923,31 +923,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          3,
+          53,
           51,
           3,
           3,
-          55,
+          53,
           51,
           3
         ],
         "temperature_2m_max": [
-          13.4,
-          9.5,
-          6.7,
-          6.5,
-          6.2,
-          6.1,
+          13.6,
+          8.7,
+          7.2,
+          6.4,
+          9.2,
+          6.4,
           6.1
         ],
         "temperature_2m_min": [
-          5.5,
-          3.3,
-          0.2,
-          -1.7,
-          2.5,
-          3.9,
-          4.1
+          4.9,
+          4.1,
+          0.4,
+          -1.8,
+          0.6,
+          1.8,
+          1.5
         ],
         "precipitation_probability_max": [
           25,
@@ -959,12 +959,12 @@
           14
         ],
         "wind_speed_10m_max": [
-          16.0,
-          13.9,
-          18.0,
-          11.8,
-          10.3,
-          12.0,
+          17.3,
+          13.1,
+          18.4,
+          12.8,
+          14.8,
+          12.2,
           5.9
         ]
       }
@@ -980,12 +980,12 @@
       "longitude": 82.9357,
       "timezone": "Asia/Novosibirsk",
       "current": {
-        "time": "2026-10-12T07:45",
+        "time": "2026-10-12T13:30",
         "interval": 900,
-        "temperature_2m": 1.6,
-        "apparent_temperature": -2.1,
-        "weather_code": 0,
-        "is_day": 0
+        "temperature_2m": 7.5,
+        "apparent_temperature": 3.9,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -1003,25 +1003,25 @@
           3,
           85,
           3,
-          3,
+          71,
           3
         ],
         "temperature_2m_max": [
-          9.3,
-          7.4,
-          4.2,
-          3.3,
-          1.5,
-          4.3,
+          8.9,
+          7.1,
+          4.9,
+          3.1,
+          1.8,
+          2.3,
           4.1
         ],
         "temperature_2m_min": [
-          1.6,
-          4.0,
-          -0.7,
-          -0.4,
-          -2.8,
-          -2.0,
+          1.2,
+          3.7,
+          0.1,
+          -1.0,
+          -4.0,
+          0.5,
           -2.8
         ],
         "precipitation_probability_max": [
@@ -1034,12 +1034,12 @@
           23
         ],
         "wind_speed_10m_max": [
-          11.7,
-          20.5,
-          11.4,
-          13.1,
-          7.2,
-          10.0,
+          12.1,
+          18.5,
+          11.1,
+          15.2,
+          10.5,
+          13.2,
           6.5
         ]
       }
@@ -1055,11 +1055,11 @@
       "longitude": 84.9476,
       "timezone": "Asia/Tomsk",
       "current": {
-        "time": "2026-10-12T07:45",
+        "time": "2026-10-12T13:30",
         "interval": 900,
-        "temperature_2m": 2.2,
-        "apparent_temperature": -2.0,
-        "weather_code": 0,
+        "temperature_2m": 8.5,
+        "apparent_temperature": 4.1,
+        "weather_code": 3,
         "is_day": 1
       },
       "daily": {
@@ -1077,26 +1077,26 @@
           53,
           85,
           85,
-          3,
+          2,
           3,
           3
         ],
         "temperature_2m_max": [
-          9.6,
+          9.0,
           6.3,
-          4.7,
-          2.3,
-          1.9,
-          3.6,
+          4.8,
+          2.5,
+          1.7,
+          2.7,
           3.8
         ],
         "temperature_2m_min": [
-          2.2,
-          2.7,
-          0.1,
-          -1.5,
-          -4.0,
-          -1.7,
+          1.8,
+          2.3,
+          0.4,
+          -0.7,
+          -4.2,
+          -3.3,
           -3.5
         ],
         "precipitation_probability_max": [
@@ -1110,11 +1110,11 @@
         ],
         "wind_speed_10m_max": [
           16.2,
-          17.4,
-          14.9,
-          14.0,
-          8.2,
-          7.4,
+          17.5,
+          14.3,
+          15.1,
+          11.2,
+          11.2,
           11.8
         ]
       }
@@ -1130,11 +1130,11 @@
       "longitude": 86.0873,
       "timezone": "Asia/Novokuznetsk",
       "current": {
-        "time": "2026-10-12T07:45",
+        "time": "2026-10-12T13:30",
         "interval": 900,
-        "temperature_2m": 0.3,
-        "apparent_temperature": -3.2,
-        "weather_code": 0,
+        "temperature_2m": 8.1,
+        "apparent_temperature": 4.5,
+        "weather_code": 3,
         "is_day": 1
       },
       "daily": {
@@ -1149,29 +1149,29 @@
         ],
         "weather_code": [
           3,
-          55,
-          3,
+          53,
+          51,
           85,
           3,
           3,
           3
         ],
         "temperature_2m_max": [
-          9.8,
-          7.0,
-          5.6,
-          3.7,
-          2.1,
-          3.4,
+          9.3,
+          6.7,
+          4.9,
+          3.2,
+          2.4,
+          2.7,
           3.9
         ],
         "temperature_2m_min": [
-          0.3,
-          2.6,
-          0.0,
-          -1.1,
-          -2.7,
-          -2.0,
+          -0.2,
+          2.1,
+          0.8,
+          -1.0,
+          -1.9,
+          -3.2,
           -3.8
         ],
         "precipitation_probability_max": [
@@ -1184,12 +1184,12 @@
           25
         ],
         "wind_speed_10m_max": [
-          11.6,
-          20.2,
-          13.8,
-          13.5,
+          12.3,
+          20.4,
+          14.6,
+          12.5,
           9.7,
-          6.3,
+          11.9,
           9.1
         ]
       }
@@ -1205,85 +1205,10 @@
       "longitude": 83.7784,
       "timezone": "Asia/Barnaul",
       "current": {
-        "time": "2026-10-12T07:45",
+        "time": "2026-10-12T13:30",
         "interval": 900,
-        "temperature_2m": -0.3,
-        "apparent_temperature": -3.2,
-        "weather_code": 0,
-        "is_day": 1
-      },
-      "daily": {
-        "time": [
-          "2026-10-12",
-          "2026-10-13",
-          "2026-10-14",
-          "2026-10-15",
-          "2026-10-16",
-          "2026-10-17",
-          "2026-10-18"
-        ],
-        "weather_code": [
-          3,
-          51,
-          3,
-          85,
-          3,
-          3,
-          3
-        ],
-        "temperature_2m_max": [
-          11.9,
-          10.1,
-          7.4,
-          4.2,
-          3.3,
-          5.7,
-          5.1
-        ],
-        "temperature_2m_min": [
-          -0.3,
-          6.7,
-          0.4,
-          -0.5,
-          -1.6,
-          -3.1,
-          -4.0
-        ],
-        "precipitation_probability_max": [
-          0,
-          57,
-          31,
-          25,
-          15,
-          31,
-          29
-        ],
-        "wind_speed_10m_max": [
-          9.9,
-          24.2,
-          16.0,
-          14.1,
-          8.7,
-          7.1,
-          4.9
-        ]
-      }
-    },
-    {
-      "id": "krasnoyarsk",
-      "name": "Красноярск",
-      "aliases": [
-        "Krasnoyarsk"
-      ],
-      "country": "Россия",
-      "latitude": 56.0153,
-      "longitude": 92.8932,
-      "timezone": "Asia/Krasnoyarsk",
-      "current": {
-        "time": "2026-10-12T07:45",
-        "interval": 900,
-        "temperature_2m": 0.7,
-        "apparent_temperature": -2.0,
+        "temperature_2m": 10.2,
+        "apparent_temperature": 7.5,
         "weather_code": 3,
         "is_day": 1
       },
@@ -1300,29 +1225,104 @@
         "weather_code": [
           3,
           51,
-          85,
-          85,
           3,
           85,
-          85
+          3,
+          71,
+          3
         ],
         "temperature_2m_max": [
-          10.7,
-          10.5,
+          11.7,
+          9.2,
+          7.2,
           4.2,
-          2.7,
-          2.3,
-          2.7,
+          3.8,
+          3.2,
+          5.1
+        ],
+        "temperature_2m_min": [
+          -0.8,
+          6.4,
+          0.5,
+          0.1,
+          -1.9,
+          -1.5,
+          -4.0
+        ],
+        "precipitation_probability_max": [
+          0,
+          57,
+          31,
+          25,
+          15,
+          31,
+          29
+        ],
+        "wind_speed_10m_max": [
+          9.5,
+          20.5,
+          12.8,
+          14.8,
+          8.0,
+          12.5,
+          7.3
+        ]
+      }
+    },
+    {
+      "id": "krasnoyarsk",
+      "name": "Красноярск",
+      "aliases": [
+        "Krasnoyarsk"
+      ],
+      "country": "Россия",
+      "latitude": 56.0153,
+      "longitude": 92.8932,
+      "timezone": "Asia/Krasnoyarsk",
+      "current": {
+        "time": "2026-10-12T13:30",
+        "interval": 900,
+        "temperature_2m": 9.2,
+        "apparent_temperature": 6.4,
+        "weather_code": 0,
+        "is_day": 1
+      },
+      "daily": {
+        "time": [
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-17",
+          "2026-10-18"
+        ],
+        "weather_code": [
+          3,
+          55,
+          51,
+          85,
+          85,
+          85,
+          3
+        ],
+        "temperature_2m_max": [
+          10.4,
+          10.3,
+          4.3,
+          3.3,
+          1.3,
+          0.5,
           3.0
         ],
         "temperature_2m_min": [
-          0.5,
-          4.0,
-          0.6,
-          -1.4,
-          -2.0,
-          -1.5,
-          -2.0
+          -0.0,
+          3.3,
+          1.3,
+          -0.9,
+          -0.6,
+          -3.6,
+          -4.1
         ],
         "precipitation_probability_max": [
           0,
@@ -1334,12 +1334,12 @@
           24
         ],
         "wind_speed_10m_max": [
-          6.3,
-          18.4,
-          19.0,
-          13.2,
-          7.5,
-          6.2,
+          6.0,
+          17.7,
+          18.5,
+          13.0,
+          12.3,
+          8.0,
           13.0
         ]
       }
@@ -1355,11 +1355,11 @@
       "longitude": 104.2807,
       "timezone": "Asia/Irkutsk",
       "current": {
-        "time": "2026-10-12T08:45",
+        "time": "2026-10-12T14:30",
         "interval": 900,
-        "temperature_2m": 0.2,
-        "apparent_temperature": -2.5,
-        "weather_code": 3,
+        "temperature_2m": 5.2,
+        "apparent_temperature": 2.3,
+        "weather_code": 0,
         "is_day": 1
       },
       "daily": {
@@ -1373,30 +1373,30 @@
           "2026-10-18"
         ],
         "weather_code": [
+          71,
           3,
+          86,
           3,
           85,
-          51,
-          85,
-          85,
+          3,
           85
         ],
         "temperature_2m_max": [
-          5.8,
-          11.3,
-          8.1,
-          4.6,
-          3.0,
-          1.5,
+          5.7,
+          11.2,
+          7.7,
+          4.7,
+          1.9,
+          1.8,
           0.7
         ],
         "temperature_2m_min": [
-          -0.7,
+          -0.6,
           0.4,
-          1.2,
-          -1.7,
-          -1.0,
-          -1.2,
+          1.4,
+          -1.4,
+          -1.4,
+          -2.0,
           -2.6
         ],
         "precipitation_probability_max": [
@@ -1410,11 +1410,11 @@
         ],
         "wind_speed_10m_max": [
           10.8,
-          9.1,
-          24.2,
-          16.3,
+          9.6,
+          20.4,
           13.6,
-          24.9,
+          15.9,
+          16.2,
           20.7
         ]
       }
@@ -1430,11 +1430,11 @@
       "longitude": 107.5841,
       "timezone": "Asia/Irkutsk",
       "current": {
-        "time": "2026-10-12T08:45",
+        "time": "2026-10-12T14:30",
         "interval": 900,
-        "temperature_2m": 2.4,
-        "apparent_temperature": -2.2,
-        "weather_code": 2,
+        "temperature_2m": 6.1,
+        "apparent_temperature": 0.6,
+        "weather_code": 1,
         "is_day": 1
       },
       "daily": {
@@ -1450,28 +1450,28 @@
         "weather_code": [
           2,
           3,
-          51,
+          85,
           85,
           73,
-          73,
-          71
+          3,
+          3
         ],
         "temperature_2m_max": [
-          6.5,
-          7.6,
-          4.1,
+          6.1,
+          7.5,
+          3.9,
           3.7,
-          2.2,
-          1.5,
-          -0.5
+          2.3,
+          1.7,
+          -0.4
         ],
         "temperature_2m_min": [
-          -0.7,
+          -0.8,
           -1.9,
-          0.4,
-          -1.8,
-          -1.9,
-          -0.3,
+          0.2,
+          -2.7,
+          -2.7,
+          -0.6,
           -2.6
         ],
         "precipitation_probability_max": [
@@ -1484,12 +1484,12 @@
           11
         ],
         "wind_speed_10m_max": [
-          17.1,
-          10.5,
-          9.6,
-          12.8,
-          7.4,
-          21.6,
+          17.3,
+          9.5,
+          9.3,
+          14.2,
+          8.3,
+          13.9,
           17.8
         ]
       }
@@ -1505,11 +1505,11 @@
       "longitude": 113.4994,
       "timezone": "Asia/Chita",
       "current": {
-        "time": "2026-10-12T09:45",
+        "time": "2026-10-12T15:30",
         "interval": 900,
-        "temperature_2m": 2.2,
-        "apparent_temperature": -1.8,
-        "weather_code": 0,
+        "temperature_2m": 5.8,
+        "apparent_temperature": 0.3,
+        "weather_code": 3,
         "is_day": 1
       },
       "daily": {
@@ -1526,26 +1526,26 @@
           3,
           3,
           3,
-          3,
-          71,
-          75,
+          85,
+          85,
+          73,
           85
         ],
         "temperature_2m_max": [
-          6.5,
-          4.1,
-          3.5,
+          6.3,
+          3.9,
+          3.4,
+          5.1,
           4.9,
-          5.9,
           1.4,
           0.8
         ],
         "temperature_2m_min": [
-          -0.9,
-          -3.0,
-          -4.5,
-          -1.7,
-          -0.2,
+          -0.7,
+          -3.1,
+          -4.7,
+          -1.3,
+          -3.2,
           0.1,
           -2.2
         ],
@@ -1559,12 +1559,12 @@
           21
         ],
         "wind_speed_10m_max": [
-          17.5,
-          9.7,
-          8.6,
-          7.3,
-          9.2,
-          16.1,
+          17.7,
+          9.1,
+          8.5,
+          9.3,
+          9.9,
+          6.5,
           14.3
         ]
       }
@@ -1580,11 +1580,11 @@
       "longitude": 129.6755,
       "timezone": "Asia/Yakutsk",
       "current": {
-        "time": "2026-10-12T09:45",
+        "time": "2026-10-12T15:30",
         "interval": 900,
-        "temperature_2m": -9.3,
-        "apparent_temperature": -13.0,
-        "weather_code": 3,
+        "temperature_2m": -6.5,
+        "apparent_temperature": -10.4,
+        "weather_code": 0,
         "is_day": 1
       },
       "daily": {
@@ -1600,28 +1600,28 @@
         "weather_code": [
           3,
           3,
+          71,
           3,
           1,
-          3,
           3,
           3
         ],
         "temperature_2m_max": [
-          -5.0,
-          -3.8,
-          -0.7,
-          -0.9,
-          -1.1,
-          -1.2,
+          -6.5,
+          -4.6,
+          -2.7,
+          -1.9,
+          -0.5,
+          -0.5,
           0.8
         ],
         "temperature_2m_min": [
-          -10.7,
-          -9.9,
-          -7.7,
-          -9.9,
-          -6.5,
-          -6.0,
+          -12.5,
+          -11.1,
+          -9.1,
+          -8.6,
+          -6.9,
+          -6.9,
           -7.5
         ],
         "precipitation_probability_max": [
@@ -1634,13 +1634,13 @@
           2
         ],
         "wind_speed_10m_max": [
-          5.4,
-          4.3,
-          6.9,
-          11.1,
-          23.0,
-          20.0,
-          12.1
+          5.3,
+          5.0,
+          5.0,
+          10.8,
+          20.2,
+          18.7,
+          12.5
         ]
       }
     },
@@ -1655,10 +1655,10 @@
       "longitude": 131.8855,
       "timezone": "Asia/Vladivostok",
       "current": {
-        "time": "2026-10-12T10:45",
+        "time": "2026-10-12T16:30",
         "interval": 900,
         "temperature_2m": 16.1,
-        "apparent_temperature": 14.4,
+        "apparent_temperature": 14.2,
         "weather_code": 3,
         "is_day": 1
       },
@@ -1675,29 +1675,29 @@
         "weather_code": [
           51,
           81,
+          55,
           3,
-          3,
+          0,
           2,
-          1,
           51
         ],
         "temperature_2m_max": [
-          16.6,
+          16.3,
           16.2,
           13.2,
-          12.4,
-          13.2,
-          15.0,
+          12.0,
+          13.1,
+          14.4,
           12.7
         ],
         "temperature_2m_min": [
           14.0,
-          8.0,
-          7.8,
+          6.6,
+          6.2,
+          7.4,
+          6.2,
           7.7,
-          6.1,
-          8.0,
-          10.1
+          9.8
         ],
         "precipitation_probability_max": [
           63,
@@ -1709,12 +1709,12 @@
           20
         ],
         "wind_speed_10m_max": [
-          24.2,
-          38.3,
-          32.6,
-          17.7,
-          16.6,
-          15.1,
+          24.8,
+          40.2,
+          40.2,
+          16.8,
+          16.2,
+          13.4,
           25.6
         ]
       }
@@ -1730,11 +1730,11 @@
       "longitude": 135.0719,
       "timezone": "Asia/Vladivostok",
       "current": {
-        "time": "2026-10-12T10:45",
+        "time": "2026-10-12T16:30",
         "interval": 900,
-        "temperature_2m": 11.2,
-        "apparent_temperature": 8.2,
-        "weather_code": 2,
+        "temperature_2m": 16.2,
+        "apparent_temperature": 13.1,
+        "weather_code": 3,
         "is_day": 1
       },
       "daily": {
@@ -1748,31 +1748,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          53,
+          80,
           51,
-          55,
-          3,
-          2,
+          61,
+          51,
+          1,
           0,
           51
         ],
         "temperature_2m_max": [
-          16.9,
-          13.9,
-          7.3,
-          8.6,
-          9.4,
-          9.3,
+          16.5,
+          12.8,
+          7.2,
+          8.1,
+          9.1,
+          8.8,
           9.9
         ],
         "temperature_2m_min": [
-          4.9,
-          7.7,
-          4.5,
-          2.1,
-          2.4,
-          2.0,
-          1.9
+          4.1,
+          7.5,
+          4.2,
+          1.7,
+          1.9,
+          1.9,
+          1.8
         ],
         "precipitation_probability_max": [
           21,
@@ -1784,12 +1784,12 @@
           19
         ],
         "wind_speed_10m_max": [
-          26.7,
-          23.2,
-          18.5,
-          26.4,
-          24.1,
-          21.1,
+          23.8,
+          21.6,
+          19.6,
+          27.1,
+          24.0,
+          22.8,
           13.1
         ]
       }
@@ -1805,11 +1805,11 @@
       "longitude": 127.5272,
       "timezone": "Asia/Yakutsk",
       "current": {
-        "time": "2026-10-12T09:45",
+        "time": "2026-10-12T15:30",
         "interval": 900,
-        "temperature_2m": 6.7,
-        "apparent_temperature": 4.0,
-        "weather_code": 80,
+        "temperature_2m": 10.9,
+        "apparent_temperature": 5.9,
+        "weather_code": 3,
         "is_day": 1
       },
       "daily": {
@@ -1823,31 +1823,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          95,
+          80,
           3,
-          51,
           3,
-          0,
+          2,
+          2,
           3,
           51
         ],
         "temperature_2m_max": [
-          11.7,
+          13.6,
           9.1,
-          4.2,
-          7.4,
-          9.4,
-          8.5,
+          3.8,
+          7.2,
+          9.5,
+          8.2,
           7.6
         ],
         "temperature_2m_min": [
           4.7,
-          1.5,
+          2.4,
+          -1.6,
+          -1.9,
           -1.3,
-          -1.1,
-          -1.1,
-          -0.6,
-          2.7
+          -1.0,
+          2.0
         ],
         "precipitation_probability_max": [
           88,
@@ -1859,12 +1859,12 @@
           24
         ],
         "wind_speed_10m_max": [
-          23.8,
+          25.0,
           16.6,
-          16.0,
-          12.9,
-          16.4,
-          13.5,
+          15.9,
+          12.2,
+          14.5,
+          12.4,
           12.5
         ]
       }
@@ -1880,10 +1880,10 @@
       "longitude": 142.738,
       "timezone": "Asia/Sakhalin",
       "current": {
-        "time": "2026-10-12T11:45",
+        "time": "2026-10-12T17:30",
         "interval": 900,
-        "temperature_2m": 12.6,
-        "apparent_temperature": 10.3,
+        "temperature_2m": 11.4,
+        "apparent_temperature": 8.9,
         "weather_code": 0,
         "is_day": 1
       },
@@ -1900,29 +1900,29 @@
         "weather_code": [
           3,
           51,
-          55,
+          95,
           53,
-          85,
+          51,
           3,
           3
         ],
         "temperature_2m_max": [
-          13.9,
-          17.1,
-          15.7,
-          9.5,
-          7.9,
-          8.6,
+          14.0,
+          16.7,
+          15.3,
+          9.4,
+          7.2,
+          8.8,
           8.8
         ],
         "temperature_2m_min": [
-          4.7,
-          8.5,
+          4.3,
+          8.2,
           9.0,
-          3.4,
+          4.1,
           3.5,
-          2.0,
-          1.2
+          1.7,
+          0.2
         ],
         "precipitation_probability_max": [
           0,
@@ -1934,13 +1934,13 @@
           24
         ],
         "wind_speed_10m_max": [
-          12.5,
-          19.3,
-          24.6,
-          32.2,
-          24.2,
-          18.4,
-          10.1
+          12.7,
+          19.4,
+          26.2,
+          32.3,
+          23.9,
+          21.1,
+          10.7
         ]
       }
     },
@@ -1955,11 +1955,11 @@
       "longitude": 158.6483,
       "timezone": "Asia/Kamchatka",
       "current": {
-        "time": "2026-10-12T12:45",
+        "time": "2026-10-12T18:30",
         "interval": 900,
-        "temperature_2m": 6.0,
-        "apparent_temperature": -0.3,
-        "weather_code": 1,
+        "temperature_2m": 4.3,
+        "apparent_temperature": -1.5,
+        "weather_code": 0,
         "is_day": 1
       },
       "daily": {
@@ -1975,29 +1975,29 @@
         "weather_code": [
           2,
           3,
-          53,
+          51,
           81,
-          81,
           53,
+          85,
           3
         ],
         "temperature_2m_max": [
           6.6,
-          7.4,
-          10.9,
-          7.8,
-          8.7,
-          7.1,
+          7.3,
+          11.1,
+          8.1,
+          8.5,
+          6.9,
           6.5
         ],
         "temperature_2m_min": [
           1.5,
           0.8,
-          4.0,
-          6.2,
-          3.4,
-          1.8,
-          0.9
+          4.1,
+          6.3,
+          3.5,
+          1.1,
+          -0.0
         ],
         "precipitation_probability_max": [
           0,
@@ -2009,12 +2009,12 @@
           8
         ],
         "wind_speed_10m_max": [
-          28.3,
-          14.3,
-          14.4,
-          31.2,
-          21.4,
-          10.9,
+          27.4,
+          15.3,
+          13.9,
+          27.9,
+          13.4,
+          16.5,
           21.6
         ]
       }
@@ -2030,10 +2030,10 @@
       "longitude": 150.8085,
       "timezone": "Asia/Magadan",
       "current": {
-        "time": "2026-10-12T11:45",
+        "time": "2026-10-12T17:30",
         "interval": 900,
-        "temperature_2m": 1.6,
-        "apparent_temperature": -3.1,
+        "temperature_2m": 0.8,
+        "apparent_temperature": -2.6,
         "weather_code": 3,
         "is_day": 1
       },
@@ -2049,29 +2049,29 @@
         ],
         "weather_code": [
           3,
-          3,
+          71,
           71,
           73,
-          71,
+          73,
           73,
           3
         ],
         "temperature_2m_max": [
-          2.6,
-          2.1,
-          2.1,
-          1.0,
-          3.1,
+          2.2,
           2.3,
+          2.5,
+          0.8,
+          3.4,
+          1.5,
           -0.2
         ],
         "temperature_2m_min": [
-          -3.8,
-          -3.2,
-          -1.5,
-          -1.8,
-          1.3,
-          -1.0,
+          -4.5,
+          -3.3,
+          -1.1,
+          -1.2,
+          1.0,
+          -3.7,
           -6.1
         ],
         "precipitation_probability_max": [
@@ -2084,13 +2084,13 @@
           14
         ],
         "wind_speed_10m_max": [
-          14.6,
-          31.7,
-          32.5,
-          42.8,
-          36.4,
-          19.3,
-          13.2
+          14.9,
+          30.3,
+          31.5,
+          39.9,
+          34.4,
+          22.0,
+          12.1
         ]
       }
     },
@@ -2105,12 +2105,12 @@
       "longitude": 177.5089,
       "timezone": "Asia/Anadyr",
       "current": {
-        "time": "2026-10-12T12:45",
+        "time": "2026-10-12T18:30",
         "interval": 900,
-        "temperature_2m": 2.2,
-        "apparent_temperature": -3.8,
-        "weather_code": 1,
-        "is_day": 1
+        "temperature_2m": -0.7,
+        "apparent_temperature": -6.7,
+        "weather_code": 2,
+        "is_day": 0
       },
       "daily": {
         "time": [
@@ -2124,7 +2124,7 @@
         ],
         "weather_code": [
           71,
-          73,
+          71,
           2,
           0,
           2,
@@ -2132,22 +2132,22 @@
           3
         ],
         "temperature_2m_max": [
-          2.2,
-          -1.5,
-          -1.2,
+          2.0,
           -1.3,
-          -3.4,
-          -2.1,
+          -0.3,
+          -0.9,
+          -3.2,
+          -1.9,
           -0.1
         ],
         "temperature_2m_min": [
-          -1.2,
-          -5.3,
-          -5.6,
+          -1.1,
+          -4.9,
+          -4.9,
           -5.2,
-          -6.5,
-          -6.7,
-          -5.5
+          -5.8,
+          -6.3,
+          -5.9
         ],
         "precipitation_probability_max": [
           63,
@@ -2159,12 +2159,12 @@
           29
         ],
         "wind_speed_10m_max": [
-          27.2,
-          27.2,
-          19.8,
-          12.0,
-          11.1,
-          7.5,
+          26.0,
+          24.6,
+          20.5,
+          11.3,
+          9.4,
+          5.5,
           14.1
         ]
       }
@@ -2180,12 +2180,12 @@
       "longitude": 33.0827,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": -1.1,
-        "apparent_temperature": -4.3,
+        "temperature_2m": -0.6,
+        "apparent_temperature": -4.1,
         "weather_code": 1,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2200,27 +2200,27 @@
         "weather_code": [
           3,
           0,
-          3,
-          71,
           51,
-          53,
+          61,
+          61,
+          0,
           71
         ],
         "temperature_2m_max": [
-          2.6,
-          1.8,
-          1.6,
-          5.4,
-          7.6,
-          4.0,
+          2.7,
+          1.9,
+          1.7,
+          5.2,
+          6.8,
+          2.8,
           1.6
         ],
         "temperature_2m_min": [
-          -1.9,
+          -1.8,
           -3.0,
-          -2.3,
-          1.2,
-          3.3,
+          -1.8,
+          1.3,
+          2.2,
           -1.8,
           -2.4
         ],
@@ -2234,12 +2234,12 @@
           20
         ],
         "wind_speed_10m_max": [
-          9.0,
-          12.2,
-          20.2,
-          28.4,
-          26.0,
-          11.0,
+          8.3,
+          14.0,
+          18.9,
+          28.7,
+          27.8,
+          15.9,
           16.1
         ]
       }
@@ -2255,12 +2255,12 @@
       "longitude": 40.5158,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": -0.2,
-        "apparent_temperature": -2.9,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 1.1,
+        "apparent_temperature": -1.1,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2279,25 +2279,25 @@
           3,
           3,
           3,
-          80
+          61
         ],
         "temperature_2m_max": [
-          4.4,
-          3.0,
-          5.2,
-          6.3,
+          4.5,
+          2.9,
+          4.5,
+          5.0,
+          5.9,
           10.3,
-          9.3,
-          10.3
+          9.2
         ],
         "temperature_2m_min": [
-          -0.3,
+          -0.9,
           -1.0,
-          1.5,
-          1.4,
-          5.7,
-          4.6,
-          2.5
+          1.2,
+          -0.6,
+          2.5,
+          5.2,
+          5.2
         ],
         "precipitation_probability_max": [
           3,
@@ -2309,13 +2309,13 @@
           28
         ],
         "wind_speed_10m_max": [
-          9.5,
-          17.7,
-          13.0,
-          17.3,
-          16.9,
-          15.0,
-          19.9
+          8.7,
+          16.6,
+          13.4,
+          13.9,
+          17.0,
+          16.4,
+          14.7
         ]
       }
     },
@@ -2330,12 +2330,12 @@
       "longitude": 34.3469,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 6.2,
-        "apparent_temperature": 1.3,
+        "temperature_2m": 5.6,
+        "apparent_temperature": 0.4,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2350,28 +2350,28 @@
         "weather_code": [
           51,
           61,
+          53,
+          3,
+          3,
           55,
-          3,
-          3,
-          3,
           51
         ],
         "temperature_2m_max": [
           6.6,
-          4.5,
-          7.0,
-          10.7,
-          10.4,
-          11.5,
+          4.2,
+          6.0,
+          11.0,
+          10.2,
+          11.2,
           7.6
         ],
         "temperature_2m_min": [
-          4.7,
-          2.5,
-          2.2,
-          3.0,
-          4.7,
-          5.2,
+          4.3,
+          1.7,
+          1.7,
+          3.2,
+          6.9,
+          5.7,
           1.7
         ],
         "precipitation_probability_max": [
@@ -2384,12 +2384,12 @@
           22
         ],
         "wind_speed_10m_max": [
-          23.8,
-          19.8,
-          15.9,
-          16.0,
-          16.6,
-          14.7,
+          23.0,
+          19.1,
+          12.0,
+          16.3,
+          21.6,
+          21.3,
           17.1
         ]
       }
@@ -2405,12 +2405,12 @@
       "longitude": 39.8915,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.0,
-        "apparent_temperature": 7.3,
-        "weather_code": 61,
-        "is_day": 0
+        "temperature_2m": 9.4,
+        "apparent_temperature": 7.6,
+        "weather_code": 63,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2429,25 +2429,25 @@
           45,
           45,
           3,
-          61
+          53
         ],
         "temperature_2m_max": [
-          10.1,
-          10.2,
-          10.3,
-          6.9,
-          6.8,
-          8.3,
-          10.1
+          9.9,
+          10.4,
+          9.1,
+          7.2,
+          11.7,
+          13.1,
+          9.9
         ],
         "temperature_2m_min": [
-          7.3,
-          7.3,
-          6.1,
-          3.8,
-          2.2,
-          6.9,
-          4.4
+          6.7,
+          6.7,
+          5.4,
+          3.0,
+          7.2,
+          8.6,
+          4.0
         ],
         "precipitation_probability_max": [
           75,
@@ -2459,13 +2459,13 @@
           20
         ],
         "wind_speed_10m_max": [
-          10.1,
-          8.2,
-          6.0,
-          3.8,
-          6.9,
-          10.8,
-          12.6
+          11.2,
+          8.4,
+          3.7,
+          8.4,
+          4.8,
+          10.4,
+          10.8
         ]
       }
     },
@@ -2480,12 +2480,12 @@
       "longitude": 50.8356,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 0.4,
-        "apparent_temperature": -2.6,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 1.4,
+        "apparent_temperature": -1.7,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2502,27 +2502,27 @@
           61,
           61,
           61,
-          3,
           45,
+          3,
           61
         ],
         "temperature_2m_max": [
-          3.8,
+          3.4,
           3.2,
-          11.7,
-          8.8,
-          6.8,
-          5.7,
-          6.1
+          11.6,
+          9.3,
+          6.4,
+          11.1,
+          10.3
         ],
         "temperature_2m_min": [
-          -0.2,
-          0.1,
-          3.0,
-          4.3,
-          1.7,
-          0.4,
-          1.2
+          -0.5,
+          -0.3,
+          2.9,
+          3.4,
+          2.4,
+          6.7,
+          8.5
         ],
         "precipitation_probability_max": [
           11,
@@ -2534,13 +2534,13 @@
           22
         ],
         "wind_speed_10m_max": [
-          7.1,
-          15.2,
-          13.4,
-          17.4,
-          13.4,
-          10.3,
-          16.5
+          7.6,
+          15.6,
+          14.0,
+          8.9,
+          5.5,
+          11.1,
+          14.4
         ]
       }
     },
@@ -2555,12 +2555,12 @@
       "longitude": 39.8845,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.7,
-        "apparent_temperature": 8.6,
-        "weather_code": 61,
-        "is_day": 0
+        "temperature_2m": 10.4,
+        "apparent_temperature": 8.7,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2573,31 +2573,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          61,
           80,
           61,
-          45,
-          45,
+          61,
+          61,
           3,
-          3
+          61,
+          61
         ],
         "temperature_2m_max": [
-          12.6,
-          12.2,
-          9.5,
-          7.0,
-          8.0,
-          10.7,
-          11.1
+          11.9,
+          11.7,
+          9.7,
+          10.9,
+          15.6,
+          14.2,
+          10.8
         ],
         "temperature_2m_min": [
-          9.3,
+          9.5,
           9.1,
-          5.0,
-          3.8,
-          2.8,
-          7.3,
-          7.4
+          8.3,
+          7.9,
+          10.6,
+          8.1,
+          7.1
         ],
         "precipitation_probability_max": [
           83,
@@ -2609,13 +2609,13 @@
           20
         ],
         "wind_speed_10m_max": [
-          10.0,
-          7.6,
-          7.1,
-          5.6,
-          4.4,
-          7.0,
-          7.1
+          7.5,
+          7.5,
+          7.3,
+          6.5,
+          4.2,
+          7.2,
+          9.5
         ]
       }
     },
@@ -2630,12 +2630,12 @@
       "longitude": 40.9264,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.8,
-        "apparent_temperature": 8.4,
-        "weather_code": 61,
-        "is_day": 0
+        "temperature_2m": 10.2,
+        "apparent_temperature": 8.0,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2649,30 +2649,30 @@
         ],
         "weather_code": [
           61,
+          80,
           61,
-          61,
-          45,
+          53,
           3,
-          45,
-          3
+          3,
+          61
         ],
         "temperature_2m_max": [
-          12.1,
-          13.5,
-          11.0,
-          6.6,
-          6.9,
-          10.3,
-          10.8
+          12.0,
+          12.4,
+          10.6,
+          13.4,
+          16.1,
+          14.6,
+          11.2
         ],
         "temperature_2m_min": [
-          9.2,
-          11.1,
-          4.8,
-          3.9,
-          3.3,
-          6.9,
-          7.1
+          9.5,
+          10.8,
+          8.7,
+          8.5,
+          10.1,
+          8.5,
+          7.8
         ],
         "precipitation_probability_max": [
           85,
@@ -2684,13 +2684,13 @@
           20
         ],
         "wind_speed_10m_max": [
-          11.5,
-          4.7,
-          7.3,
-          6.6,
-          4.7,
-          8.2,
-          9.2
+          10.9,
+          5.4,
+          8.0,
+          7.4,
+          6.0,
+          9.2,
+          9.8
         ]
       }
     },
@@ -2705,12 +2705,12 @@
       "longitude": 40.9728,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.8,
-        "apparent_temperature": 8.0,
-        "weather_code": 61,
-        "is_day": 0
+        "temperature_2m": 11.5,
+        "apparent_temperature": 8.8,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2724,30 +2724,30 @@
         ],
         "weather_code": [
           61,
-          80,
+          45,
+          63,
           61,
           3,
-          45,
-          45,
-          3
+          3,
+          61
         ],
         "temperature_2m_max": [
-          14.0,
           15.0,
-          10.6,
-          9.1,
-          8.3,
-          10.9,
-          11.0
+          14.3,
+          11.7,
+          13.9,
+          16.6,
+          15.5,
+          12.1
         ],
         "temperature_2m_min": [
           9.3,
+          10.9,
           10.3,
-          5.8,
-          4.8,
-          5.3,
-          7.5,
-          6.4
+          10.0,
+          10.5,
+          8.3,
+          7.9
         ],
         "precipitation_probability_max": [
           88,
@@ -2759,13 +2759,13 @@
           18
         ],
         "wind_speed_10m_max": [
-          10.9,
+          10.4,
+          3.9,
           5.2,
-          7.4,
-          7.9,
-          5.9,
-          6.8,
-          6.1
+          5.2,
+          5.4,
+          7.3,
+          7.7
         ]
       }
     },
@@ -2780,12 +2780,12 @@
       "longitude": 40.407,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.6,
-        "apparent_temperature": 7.5,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 11.5,
+        "apparent_temperature": 9.0,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2799,28 +2799,28 @@
         ],
         "weather_code": [
           3,
-          3,
-          61,
-          61,
+          80,
           45,
+          61,
           3,
-          3
+          3,
+          61
         ],
         "temperature_2m_max": [
+          17.2,
+          15.5,
+          14.7,
+          14.0,
           16.6,
-          15.9,
-          10.8,
-          8.3,
-          9.1,
-          10.5,
-          11.1
+          15.2,
+          12.6
         ],
         "temperature_2m_min": [
-          9.5,
+          9.3,
+          11.4,
+          10.7,
           10.9,
-          7.0,
-          5.6,
-          6.7,
+          10.9,
           8.4,
           8.5
         ],
@@ -2834,13 +2834,13 @@
           20
         ],
         "wind_speed_10m_max": [
-          11.9,
+          11.5,
+          4.1,
           6.1,
-          8.4,
-          10.7,
-          7.9,
-          7.4,
-          6.6
+          7.3,
+          5.8,
+          7.6,
+          11.0
         ]
       }
     },
@@ -2855,12 +2855,12 @@
       "longitude": 35.9176,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 10.2,
-        "apparent_temperature": 9.0,
-        "weather_code": 63,
-        "is_day": 0
+        "temperature_2m": 11.5,
+        "apparent_temperature": 10.5,
+        "weather_code": 61,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2873,31 +2873,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          80,
+          63,
           3,
-          3,
-          2,
           45,
-          3,
-          3
+          61,
+          45,
+          61,
+          61
         ],
         "temperature_2m_max": [
           14.0,
           10.6,
-          11.8,
-          11.1,
-          9.3,
-          10.1,
-          10.9
+          11.2,
+          8.3,
+          11.3,
+          12.4,
+          10.1
         ],
         "temperature_2m_min": [
-          9.9,
-          7.1,
-          5.6,
-          5.1,
-          4.9,
-          8.9,
-          5.3
+          10.2,
+          6.9,
+          5.2,
+          6.6,
+          8.4,
+          9.3,
+          5.6
         ],
         "precipitation_probability_max": [
           86,
@@ -2909,13 +2909,13 @@
           16
         ],
         "wind_speed_10m_max": [
-          8.0,
+          8.9,
+          5.8,
           4.7,
-          5.7,
-          6.1,
-          4.6,
-          6.4,
-          10.0
+          7.3,
+          3.4,
+          4.9,
+          10.1
         ]
       }
     },
@@ -2930,12 +2930,12 @@
       "longitude": 31.2699,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 8.6,
-        "apparent_temperature": 6.5,
+        "temperature_2m": 8.8,
+        "apparent_temperature": 6.9,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -2948,30 +2948,30 @@
           "2026-10-18"
         ],
         "weather_code": [
-          55,
+          53,
           51,
           51,
           3,
-          1,
+          3,
           3,
           51
         ],
         "temperature_2m_max": [
+          9.7,
+          9.4,
           10.0,
-          10.2,
-          10.6,
-          11.8,
-          11.9,
-          13.9,
+          11.3,
+          12.8,
+          11.1,
           10.2
         ],
         "temperature_2m_min": [
-          8.5,
-          6.4,
-          4.4,
-          6.3,
-          4.9,
+          8.4,
+          5.4,
           5.8,
+          6.3,
+          6.9,
+          5.9,
           3.6
         ],
         "precipitation_probability_max": [
@@ -2984,12 +2984,12 @@
           21
         ],
         "wind_speed_10m_max": [
-          13.7,
-          11.2,
-          15.7,
+          14.4,
+          11.5,
+          16.1,
+          13.1,
+          14.3,
           11.0,
-          7.8,
-          5.6,
           15.9
         ]
       }
@@ -3005,12 +3005,12 @@
       "longitude": 28.3318,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.5,
-        "apparent_temperature": 7.4,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 9.6,
+        "apparent_temperature": 8.0,
+        "weather_code": 61,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3023,8 +3023,8 @@
           "2026-10-18"
         ],
         "weather_code": [
-          63,
-          51,
+          61,
+          3,
           51,
           3,
           3,
@@ -3032,21 +3032,21 @@
           3
         ],
         "temperature_2m_max": [
-          12.7,
-          9.1,
-          10.9,
-          13.0,
-          12.8,
-          15.0,
+          12.1,
+          8.9,
+          10.4,
+          12.3,
+          13.5,
+          13.3,
           11.4
         ],
         "temperature_2m_min": [
-          9.1,
-          7.3,
-          6.5,
+          8.8,
           7.0,
-          4.4,
-          4.0,
+          6.2,
+          8.2,
+          5.5,
+          5.2,
           3.5
         ],
         "precipitation_probability_max": [
@@ -3059,12 +3059,12 @@
           22
         ],
         "wind_speed_10m_max": [
-          12.6,
-          14.4,
-          18.4,
-          12.9,
-          9.4,
-          6.2,
+          13.0,
+          11.2,
+          19.1,
+          14.2,
+          14.7,
+          12.3,
           16.4
         ]
       }
@@ -3080,12 +3080,12 @@
       "longitude": 32.0453,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 11.7,
-        "apparent_temperature": 10.7,
+        "temperature_2m": 10.7,
+        "apparent_temperature": 9.6,
         "weather_code": 61,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3099,30 +3099,30 @@
         ],
         "weather_code": [
           61,
-          45,
-          45,
           3,
           3,
+          3,
+          61,
           45,
           3
         ],
         "temperature_2m_max": [
           12.3,
+          12.0,
           11.7,
+          10.1,
           8.8,
-          10.5,
-          11.3,
-          11.5,
-          10.0
+          14.2,
+          9.0
         ],
         "temperature_2m_min": [
           7.2,
-          4.9,
-          3.1,
-          1.3,
-          7.4,
-          8.5,
-          6.2
+          5.3,
+          4.3,
+          3.8,
+          6.6,
+          8.9,
+          4.6
         ],
         "precipitation_probability_max": [
           90,
@@ -3134,13 +3134,13 @@
           22
         ],
         "wind_speed_10m_max": [
-          10.1,
-          7.0,
-          6.5,
-          8.1,
-          7.8,
-          5.6,
-          10.3
+          9.7,
+          6.1,
+          5.1,
+          7.6,
+          5.1,
+          7.9,
+          11.2
         ]
       }
     },
@@ -3155,12 +3155,12 @@
       "longitude": 34.3717,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 13.5,
-        "apparent_temperature": 12.0,
+        "temperature_2m": 14.1,
+        "apparent_temperature": 13.1,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3173,31 +3173,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          80,
-          61,
+          3,
           61,
           61,
           3,
           3,
-          61
+          61,
+          3
         ],
         "temperature_2m_max": [
-          15.8,
-          11.3,
-          13.0,
-          8.9,
-          12.5,
-          14.5,
-          11.5
+          15.9,
+          10.7,
+          9.3,
+          9.7,
+          17.3,
+          12.4,
+          11.7
         ],
         "temperature_2m_min": [
-          10.5,
-          8.9,
-          7.0,
-          7.4,
+          10.9,
           9.0,
-          8.6,
-          7.6
+          8.2,
+          8.0,
+          9.8,
+          10.8,
+          7.8
         ],
         "precipitation_probability_max": [
           60,
@@ -3210,12 +3210,12 @@
         ],
         "wind_speed_10m_max": [
           11.8,
+          9.5,
           9.3,
-          8.0,
-          9.4,
-          10.1,
-          6.9,
-          5.9
+          7.9,
+          8.4,
+          4.7,
+          8.0
         ]
       }
     },
@@ -3230,12 +3230,12 @@
       "longitude": 36.2523,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 12.4,
-        "apparent_temperature": 9.9,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 13.6,
+        "apparent_temperature": 12.1,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3248,31 +3248,31 @@
           "2026-10-18"
         ],
         "weather_code": [
+          3,
           61,
           61,
           61,
           3,
-          3,
-          3,
-          45
+          61,
+          3
         ],
         "temperature_2m_max": [
-          15.8,
-          11.7,
-          12.2,
-          9.0,
-          11.2,
-          12.6,
-          12.8
+          16.7,
+          11.4,
+          8.9,
+          11.4,
+          17.0,
+          13.7,
+          11.7
         ],
         "temperature_2m_min": [
-          12.1,
-          8.7,
-          6.7,
-          6.4,
-          8.3,
-          8.8,
-          6.3
+          11.7,
+          9.0,
+          8.2,
+          8.2,
+          11.6,
+          10.1,
+          7.9
         ],
         "precipitation_probability_max": [
           62,
@@ -3285,12 +3285,12 @@
         ],
         "wind_speed_10m_max": [
           14.1,
-          9.7,
-          7.5,
-          11.2,
-          10.3,
+          9.8,
+          9.0,
           7.6,
-          8.0
+          7.2,
+          5.5,
+          9.6
         ]
       }
     },
@@ -3305,12 +3305,12 @@
       "longitude": 37.6175,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 12.0,
-        "apparent_temperature": 9.2,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 14.2,
+        "apparent_temperature": 12.5,
+        "weather_code": 0,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3324,30 +3324,30 @@
         ],
         "weather_code": [
           3,
-          45,
-          61,
-          61,
           3,
+          80,
+          51,
           3,
-          45
+          61,
+          61
         ],
         "temperature_2m_max": [
-          20.6,
-          16.7,
-          10.5,
-          9.6,
-          12.2,
-          12.9,
-          12.8
+          20.8,
+          16.6,
+          11.8,
+          16.4,
+          18.4,
+          15.1,
+          13.2
         ],
         "temperature_2m_min": [
-          11.6,
-          10.6,
-          8.9,
-          7.9,
-          9.1,
-          9.3,
-          7.5
+          11.5,
+          10.5,
+          10.0,
+          10.4,
+          11.1,
+          9.5,
+          9.4
         ],
         "precipitation_probability_max": [
           40,
@@ -3359,13 +3359,13 @@
           18
         ],
         "wind_speed_10m_max": [
-          12.3,
-          9.2,
+          11.4,
+          7.7,
+          6.5,
+          6.3,
           8.0,
-          8.4,
-          9.9,
-          8.0,
-          4.0
+          8.2,
+          8.3
         ]
       }
     },
@@ -3380,12 +3380,12 @@
       "longitude": 39.7425,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 10.4,
-        "apparent_temperature": 7.8,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 13.0,
+        "apparent_temperature": 10.8,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3401,28 +3401,28 @@
           3,
           3,
           61,
+          80,
+          3,
           61,
-          3,
-          3,
-          61
+          80
         ],
         "temperature_2m_max": [
-          20.9,
-          19.1,
-          11.2,
-          11.5,
-          11.7,
-          12.3,
-          12.9
+          20.6,
+          19.4,
+          18.4,
+          15.8,
+          17.7,
+          15.0,
+          13.4
         ],
         "temperature_2m_min": [
-          10.1,
-          10.5,
-          9.1,
-          9.2,
-          8.5,
           9.5,
-          7.3
+          10.8,
+          10.6,
+          12.9,
+          9.9,
+          8.0,
+          10.4
         ],
         "precipitation_probability_max": [
           28,
@@ -3434,13 +3434,13 @@
           19
         ],
         "wind_speed_10m_max": [
-          13.0,
-          9.3,
-          8.5,
-          9.3,
+          12.6,
+          8.2,
+          6.9,
           7.9,
-          8.3,
-          4.7
+          8.0,
+          9.0,
+          7.7
         ]
       }
     },
@@ -3456,12 +3456,12 @@
       "longitude": 36.0638,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 12.5,
-        "apparent_temperature": 10.6,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 14.7,
+        "apparent_temperature": 12.8,
+        "weather_code": 0,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3475,30 +3475,30 @@
         ],
         "weather_code": [
           3,
-          61,
+          3,
           80,
           61,
           3,
-          3,
-          3
+          61,
+          61
         ],
         "temperature_2m_max": [
-          21.4,
-          13.7,
-          11.1,
-          11.1,
-          13.5,
-          15.4,
-          15.1
+          21.3,
+          14.4,
+          10.8,
+          12.5,
+          18.8,
+          14.0,
+          13.4
         ],
         "temperature_2m_min": [
-          12.1,
-          10.1,
-          8.9,
-          8.4,
-          10.0,
-          9.1,
-          8.5
+          11.7,
+          10.2,
+          9.2,
+          9.0,
+          12.2,
+          11.6,
+          9.9
         ],
         "precipitation_probability_max": [
           33,
@@ -3510,13 +3510,13 @@
           17
         ],
         "wind_speed_10m_max": [
-          12.6,
-          8.7,
-          9.1,
-          9.8,
-          11.6,
-          9.3,
-          7.3
+          12.3,
+          8.3,
+          8.9,
+          7.5,
+          9.7,
+          7.5,
+          8.8
         ]
       }
     },
@@ -3531,12 +3531,12 @@
       "longitude": 36.1926,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 10.9,
-        "apparent_temperature": 9.9,
+        "temperature_2m": 14.3,
+        "apparent_temperature": 13.1,
         "weather_code": 0,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3559,21 +3559,21 @@
         ],
         "temperature_2m_max": [
           23.0,
-          17.6,
-          10.8,
-          13.0,
-          15.3,
-          16.0,
-          14.3
+          18.5,
+          15.7,
+          16.1,
+          18.8,
+          13.4,
+          15.4
         ],
         "temperature_2m_min": [
-          9.8,
-          9.3,
-          9.9,
-          9.6,
-          10.5,
-          8.2,
-          9.2
+          9.2,
+          9.4,
+          10.2,
+          9.7,
+          12.3,
+          11.5,
+          12.3
         ],
         "precipitation_probability_max": [
           8,
@@ -3585,13 +3585,13 @@
           15
         ],
         "wind_speed_10m_max": [
-          13.0,
-          9.2,
-          10.7,
-          8.8,
-          12.7,
-          9.7,
-          7.2
+          12.3,
+          8.4,
+          8.3,
+          7.1,
+          11.4,
+          8.5,
+          5.8
         ]
       }
     },
@@ -3606,12 +3606,12 @@
       "longitude": 36.5873,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 10.9,
-        "apparent_temperature": 10.1,
+        "temperature_2m": 15.7,
+        "apparent_temperature": 14.4,
         "weather_code": 0,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3626,29 +3626,29 @@
         "weather_code": [
           3,
           3,
-          63,
-          3,
-          3,
           61,
-          3
+          45,
+          61,
+          80,
+          61
         ],
         "temperature_2m_max": [
           23.7,
           21.9,
-          16.3,
-          17.8,
-          19.2,
-          13.8,
-          17.7
+          16.9,
+          19.3,
+          17.6,
+          16.1,
+          16.8
         ],
         "temperature_2m_min": [
-          10.9,
-          9.7,
-          11.9,
-          11.8,
+          10.2,
+          9.6,
+          12.7,
           12.1,
-          8.1,
-          10.2
+          12.9,
+          12.3,
+          11.4
         ],
         "precipitation_probability_max": [
           0,
@@ -3660,13 +3660,13 @@
           22
         ],
         "wind_speed_10m_max": [
-          12.6,
-          8.6,
+          11.9,
+          5.5,
+          6.9,
+          8.7,
+          11.1,
           9.0,
-          8.1,
-          13.9,
-          10.7,
-          8.5
+          5.6
         ]
       }
     },
@@ -3681,12 +3681,12 @@
       "longitude": 39.2003,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 10.7,
-        "apparent_temperature": 8.8,
+        "temperature_2m": 14.9,
+        "apparent_temperature": 13.8,
         "weather_code": 2,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3699,31 +3699,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          2,
           3,
-          61,
+          3,
+          80,
           80,
           3,
-          3,
-          61
+          61,
+          3
         ],
         "temperature_2m_max": [
           23.1,
-          21.1,
-          17.4,
-          18.3,
+          20.8,
+          17.6,
+          18.6,
           19.0,
-          16.6,
-          15.0
+          15.9,
+          18.7
         ],
         "temperature_2m_min": [
-          10.3,
-          9.4,
-          10.0,
-          13.5,
+          9.7,
+          9.8,
+          11.9,
+          13.9,
           10.5,
-          6.8,
-          10.6
+          11.1,
+          10.7
         ],
         "precipitation_probability_max": [
           0,
@@ -3735,13 +3735,13 @@
           16
         ],
         "wind_speed_10m_max": [
-          14.1,
+          13.2,
           10.5,
-          5.3,
-          7.6,
-          12.2,
-          10.4,
-          6.9
+          8.4,
+          7.0,
+          10.2,
+          9.3,
+          8.5
         ]
       }
     },
@@ -3756,12 +3756,12 @@
       "longitude": 39.5981,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.9,
-        "apparent_temperature": 7.9,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 13.7,
+        "apparent_temperature": 12.4,
+        "weather_code": 2,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3776,29 +3776,29 @@
         "weather_code": [
           3,
           3,
-          61,
-          61,
+          80,
+          51,
           3,
-          3,
-          61
+          61,
+          45
         ],
         "temperature_2m_max": [
-          22.8,
+          22.9,
           20.8,
-          17.6,
-          17.0,
-          15.9,
-          17.7,
-          13.1
+          18.3,
+          18.1,
+          19.0,
+          14.7,
+          18.4
         ],
         "temperature_2m_min": [
+          9.0,
           9.7,
+          10.7,
+          13.5,
+          9.6,
           9.3,
-          10.8,
-          12.1,
-          9.4,
-          7.0,
-          9.9
+          9.5
         ],
         "precipitation_probability_max": [
           3,
@@ -3810,13 +3810,13 @@
           18
         ],
         "wind_speed_10m_max": [
-          12.6,
-          10.8,
-          8.2,
-          8.2,
-          12.2,
+          12.3,
+          10.3,
+          7.3,
+          7.4,
           10.6,
-          5.1
+          8.8,
+          7.1
         ]
       }
     },
@@ -3831,12 +3831,12 @@
       "longitude": 41.4523,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 7.2,
-        "apparent_temperature": 5.1,
-        "weather_code": 1,
-        "is_day": 0
+        "temperature_2m": 13.0,
+        "apparent_temperature": 11.1,
+        "weather_code": 2,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3851,29 +3851,29 @@
         "weather_code": [
           2,
           3,
+          61,
           3,
           3,
           3,
-          3,
-          61
+          3
         ],
         "temperature_2m_max": [
           22.8,
-          20.3,
-          18.9,
-          19.7,
-          18.2,
-          17.3,
-          13.6
+          20.2,
+          18.5,
+          19.5,
+          20.1,
+          14.0,
+          18.5
         ],
         "temperature_2m_min": [
-          7.3,
-          9.9,
-          12.2,
-          11.4,
-          10.7,
-          7.4,
-          9.6
+          6.8,
+          10.0,
+          12.9,
+          11.9,
+          8.7,
+          9.3,
+          10.2
         ],
         "precipitation_probability_max": [
           0,
@@ -3886,12 +3886,12 @@
         ],
         "wind_speed_10m_max": [
           14.1,
-          14.8,
-          7.8,
-          10.1,
-          11.7,
-          11.6,
-          5.7
+          15.5,
+          11.0,
+          8.7,
+          11.4,
+          10.5,
+          10.0
         ]
       }
     },
@@ -3906,12 +3906,12 @@
       "longitude": 45.0183,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 2.8,
-        "apparent_temperature": 0.7,
-        "weather_code": 45,
-        "is_day": 0
+        "temperature_2m": 12.4,
+        "apparent_temperature": 10.6,
+        "weather_code": 0,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -3926,7 +3926,7 @@
         "weather_code": [
           45,
           3,
-          3,
+          61,
           61,
           45,
           3,
@@ -3934,21 +3934,21 @@
         ],
         "temperature_2m_max": [
           21.2,
-          21.6,
-          19.9,
-          15.0,
-          18.8,
-          13.6,
-          15.2
+          21.5,
+          18.3,
+          18.9,
+          20.2,
+          17.5,
+          18.8
         ],
         "temperature_2m_min": [
-          2.4,
-          8.3,
-          9.2,
-          9.7,
-          7.5,
-          8.8,
-          7.0
+          1.7,
+          8.2,
+          9.9,
+          8.2,
+          4.0,
+          6.4,
+          9.0
         ],
         "precipitation_probability_max": [
           0,
@@ -3960,13 +3960,13 @@
           22
         ],
         "wind_speed_10m_max": [
-          9.7,
-          15.4,
-          11.7,
-          7.1,
-          8.4,
+          9.8,
+          14.8,
+          12.8,
           10.0,
-          6.6
+          8.9,
+          9.2,
+          11.7
         ]
       }
     },
@@ -3981,12 +3981,12 @@
       "longitude": 45.1839,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 4.1,
-        "apparent_temperature": 1.7,
+        "temperature_2m": 12.2,
+        "apparent_temperature": 10.0,
         "weather_code": 0,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4002,28 +4002,28 @@
           3,
           3,
           3,
-          61,
+          45,
+          45,
           3,
-          3,
-          45
+          3
         ],
         "temperature_2m_max": [
           18.5,
           20.5,
           18.9,
-          15.6,
-          17.8,
-          12.7,
-          11.9
+          16.9,
+          18.4,
+          17.0,
+          16.8
         ],
         "temperature_2m_min": [
+          3.4,
+          8.7,
+          9.4,
+          7.9,
           4.0,
-          8.9,
-          9.9,
-          10.7,
-          7.5,
-          5.0,
-          2.2
+          3.8,
+          11.1
         ],
         "precipitation_probability_max": [
           0,
@@ -4035,13 +4035,13 @@
           22
         ],
         "wind_speed_10m_max": [
-          11.7,
-          14.1,
-          10.5,
-          6.7,
-          8.8,
-          11.4,
-          5.5
+          11.8,
+          14.5,
+          11.9,
+          9.5,
+          7.6,
+          8.4,
+          14.1
         ]
       }
     },
@@ -4056,12 +4056,12 @@
       "longitude": 48.4031,
       "timezone": "Europe/Ulyanovsk",
       "current": {
-        "time": "2026-10-12T04:45",
+        "time": "2026-10-12T10:30",
         "interval": 900,
-        "temperature_2m": 4.5,
-        "apparent_temperature": 2.2,
+        "temperature_2m": 10.6,
+        "apparent_temperature": 8.6,
         "weather_code": 0,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4074,31 +4074,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          3,
-          3,
-          3,
-          3,
           2,
           3,
-          3
+          3,
+          61,
+          2,
+          3,
+          61
         ],
         "temperature_2m_max": [
           17.1,
           19.5,
-          16.6,
+          15.9,
+          14.9,
           15.5,
-          15.6,
-          9.9,
-          10.2
+          15.5,
+          12.4
         ],
         "temperature_2m_min": [
-          4.5,
-          9.5,
+          3.3,
+          9.4,
           10.1,
-          10.9,
-          8.7,
-          5.7,
-          3.7
+          11.6,
+          9.3,
+          7.4,
+          9.4
         ],
         "precipitation_probability_max": [
           0,
@@ -4110,13 +4110,13 @@
           13
         ],
         "wind_speed_10m_max": [
-          9.3,
-          12.3,
-          12.7,
-          5.1,
-          10.0,
-          12.0,
-          5.2
+          9.0,
+          11.4,
+          12.2,
+          6.5,
+          5.2,
+          6.9,
+          15.5
         ]
       }
     },
@@ -4131,12 +4131,12 @@
       "longitude": 46.0343,
       "timezone": "Europe/Saratov",
       "current": {
-        "time": "2026-10-12T04:45",
+        "time": "2026-10-12T10:30",
         "interval": 900,
-        "temperature_2m": 9.5,
-        "apparent_temperature": 7.8,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 13.6,
+        "apparent_temperature": 12.6,
+        "weather_code": 0,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4158,22 +4158,22 @@
           3
         ],
         "temperature_2m_max": [
+          22.1,
           22.4,
-          22.6,
-          21.1,
-          18.2,
-          18.7,
-          15.8,
-          16.1
+          20.0,
+          20.1,
+          19.8,
+          17.4,
+          17.4
         ],
         "temperature_2m_min": [
-          9.5,
-          10.7,
-          9.7,
-          12.7,
-          12.1,
-          11.1,
-          9.0
+          9.3,
+          10.5,
+          10.1,
+          12.8,
+          10.3,
+          10.9,
+          11.9
         ],
         "precipitation_probability_max": [
           0,
@@ -4185,13 +4185,13 @@
           18
         ],
         "wind_speed_10m_max": [
+          12.7,
+          12.6,
+          9.9,
+          11.3,
           13.4,
-          13.6,
-          10.2,
-          9.0,
-          13.1,
-          16.6,
-          12.7
+          9.4,
+          7.9
         ]
       }
     },
@@ -4206,12 +4206,12 @@
       "longitude": 44.5133,
       "timezone": "Europe/Volgograd",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 12.5,
-        "apparent_temperature": 11.2,
+        "temperature_2m": 15.0,
+        "apparent_temperature": 13.3,
         "weather_code": 0,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4229,26 +4229,26 @@
           61,
           3,
           61,
-          61,
+          3,
           3
         ],
         "temperature_2m_max": [
-          24.2,
-          22.6,
-          18.2,
-          20.5,
-          19.3,
-          18.3,
-          20.9
+          24.1,
+          22.2,
+          17.9,
+          22.9,
+          20.4,
+          21.2,
+          22.0
         ],
         "temperature_2m_min": [
-          10.4,
-          11.8,
-          14.5,
-          12.9,
-          11.8,
-          13.4,
-          13.0
+          10.7,
+          11.9,
+          14.7,
+          12.3,
+          12.7,
+          13.1,
+          12.3
         ],
         "precipitation_probability_max": [
           0,
@@ -4260,13 +4260,13 @@
           14
         ],
         "wind_speed_10m_max": [
-          12.7,
-          15.9,
-          9.2,
-          11.2,
-          13.3,
-          15.1,
-          14.2
+          13.2,
+          16.8,
+          10.5,
+          14.2,
+          12.0,
+          11.7,
+          7.4
         ]
       }
     },
@@ -4281,12 +4281,12 @@
       "longitude": 48.0336,
       "timezone": "Europe/Astrakhan",
       "current": {
-        "time": "2026-10-12T04:45",
+        "time": "2026-10-12T10:30",
         "interval": 900,
-        "temperature_2m": 12.3,
-        "apparent_temperature": 11.4,
+        "temperature_2m": 20.1,
+        "apparent_temperature": 19.5,
         "weather_code": 0,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4299,31 +4299,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          2,
+          1,
+          3,
+          61,
           3,
           3,
           3,
-          3,
-          3,
-          3
+          2
         ],
         "temperature_2m_max": [
-          24.1,
-          22.5,
-          21.7,
-          23.7,
-          22.3,
-          23.4,
-          21.4
+          24.3,
+          22.6,
+          20.6,
+          23.5,
+          22.9,
+          23.1,
+          23.7
         ],
         "temperature_2m_min": [
-          12.2,
-          14.3,
-          15.2,
-          12.2,
+          12.3,
+          14.1,
+          14.9,
+          13.5,
+          14.6,
           13.3,
-          12.4,
-          12.8
+          11.2
         ],
         "precipitation_probability_max": [
           0,
@@ -4335,13 +4335,13 @@
           14
         ],
         "wind_speed_10m_max": [
-          19.4,
-          20.4,
-          15.3,
+          19.1,
+          20.6,
           14.1,
-          15.5,
-          16.0,
-          19.1
+          16.2,
+          18.0,
+          11.7,
+          10.9
         ]
       }
     },
@@ -4356,12 +4356,12 @@
       "longitude": 39.7015,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 13.4,
-        "apparent_temperature": 11.5,
-        "weather_code": 0,
-        "is_day": 0
+        "temperature_2m": 16.3,
+        "apparent_temperature": 13.8,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4374,31 +4374,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          1,
+          2,
           3,
           3,
           3,
-          80,
-          80,
-          61
+          61,
+          3,
+          45
         ],
         "temperature_2m_max": [
           25.4,
-          23.0,
-          22.6,
           22.7,
-          19.1,
-          18.2,
-          20.2
+          23.8,
+          23.7,
+          19.5,
+          21.8,
+          23.9
         ],
         "temperature_2m_min": [
-          12.6,
-          13.0,
-          15.1,
-          14.3,
-          13.4,
-          12.5,
-          13.0
+          12.8,
+          13.3,
+          14.9,
+          14.7,
+          14.4,
+          13.8,
+          12.5
         ],
         "precipitation_probability_max": [
           0,
@@ -4410,13 +4410,13 @@
           31
         ],
         "wind_speed_10m_max": [
-          14.7,
-          13.9,
-          8.4,
-          16.1,
-          16.1,
-          12.3,
-          15.5
+          14.8,
+          14.5,
+          9.8,
+          18.3,
+          13.0,
+          6.8,
+          11.5
         ]
       }
     },
@@ -4431,12 +4431,12 @@
       "longitude": 38.9753,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 13.5,
-        "apparent_temperature": 13.0,
-        "weather_code": 0,
-        "is_day": 0
+        "temperature_2m": 18.6,
+        "apparent_temperature": 17.6,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4449,31 +4449,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          3,
-          3,
+          2,
           80,
-          80,
-          95,
+          3,
+          61,
+          3,
           45,
-          80
+          45
         ],
         "temperature_2m_max": [
           28.5,
-          25.5,
-          24.5,
-          25.9,
-          22.4,
-          22.2,
-          18.2
+          24.8,
+          25.0,
+          25.2,
+          24.3,
+          22.0,
+          24.3
         ],
         "temperature_2m_min": [
-          12.3,
-          13.2,
-          16.7,
-          14.9,
-          15.7,
-          14.4,
-          14.1
+          12.0,
+          13.3,
+          16.2,
+          16.8,
+          16.6,
+          13.6,
+          14.4
         ],
         "precipitation_probability_max": [
           2,
@@ -4485,13 +4485,13 @@
           44
         ],
         "wind_speed_10m_max": [
-          11.6,
-          7.1,
-          5.9,
-          14.6,
-          11.7,
-          11.6,
-          5.4
+          12.0,
+          7.8,
+          10.1,
+          10.8,
+          10.1,
+          7.6,
+          7.6
         ]
       }
     },
@@ -4506,12 +4506,12 @@
       "longitude": 39.7342,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 16.5,
-        "apparent_temperature": 13.9,
-        "weather_code": 0,
-        "is_day": 0
+        "temperature_2m": 23.1,
+        "apparent_temperature": 23.2,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4533,22 +4533,22 @@
           80
         ],
         "temperature_2m_max": [
-          25.9,
+          25.4,
+          25.3,
+          27.0,
           26.3,
-          26.5,
-          26.1,
-          24.6,
           22.5,
-          18.7
+          22.2,
+          24.2
         ],
         "temperature_2m_min": [
           15.6,
-          17.5,
-          18.0,
-          20.2,
-          16.1,
-          15.7,
-          12.2
+          17.4,
+          17.8,
+          21.3,
+          18.2,
+          16.6,
+          16.3
         ],
         "precipitation_probability_max": [
           0,
@@ -4560,13 +4560,13 @@
           57
         ],
         "wind_speed_10m_max": [
+          10.0,
           9.4,
-          9.7,
-          8.9,
-          10.6,
-          8.9,
-          6.3,
-          7.6
+          8.2,
+          9.3,
+          7.2,
+          7.9,
+          8.2
         ]
       }
     },
@@ -4581,12 +4581,12 @@
       "longitude": 41.9734,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 11.6,
-        "apparent_temperature": 10.0,
-        "weather_code": 1,
-        "is_day": 0
+        "temperature_2m": 14.2,
+        "apparent_temperature": 12.7,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4601,29 +4601,29 @@
         "weather_code": [
           3,
           45,
+          61,
+          3,
+          61,
           80,
-          3,
-          3,
-          45,
-          61
+          3
         ],
         "temperature_2m_max": [
-          19.7,
-          23.2,
-          22.0,
-          21.0,
-          19.9,
-          19.3,
-          18.9
+          19.8,
+          23.0,
+          23.0,
+          20.2,
+          21.3,
+          19.6,
+          22.0
         ],
         "temperature_2m_min": [
-          10.5,
           10.7,
-          14.6,
-          13.7,
-          13.1,
-          12.5,
-          11.4
+          12.4,
+          14.7,
+          14.2,
+          14.7,
+          13.5,
+          12.5
         ],
         "precipitation_probability_max": [
           0,
@@ -4635,13 +4635,13 @@
           31
         ],
         "wind_speed_10m_max": [
-          14.2,
-          12.0,
-          8.7,
-          23.1,
-          12.1,
-          11.6,
-          10.1
+          14.9,
+          12.4,
+          9.7,
+          23.5,
+          9.0,
+          7.0,
+          12.7
         ]
       }
     },
@@ -4656,12 +4656,12 @@
       "longitude": 47.5047,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 18.2,
-        "apparent_temperature": 17.0,
-        "weather_code": 1,
-        "is_day": 0
+        "temperature_2m": 20.6,
+        "apparent_temperature": 18.5,
+        "weather_code": 2,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4678,27 +4678,27 @@
           3,
           3,
           3,
+          45,
           3,
-          3,
-          2
+          45
         ],
         "temperature_2m_max": [
-          21.8,
-          22.0,
-          24.3,
-          20.7,
-          23.4,
           21.6,
-          23.4
+          22.4,
+          24.4,
+          21.9,
+          23.9,
+          24.3,
+          23.5
         ],
         "temperature_2m_min": [
           18.1,
-          18.2,
-          17.9,
-          16.3,
-          18.5,
-          17.9,
-          15.5
+          18.4,
+          18.1,
+          17.3,
+          18.1,
+          17.6,
+          15.2
         ],
         "precipitation_probability_max": [
           0,
@@ -4710,13 +4710,13 @@
           13
         ],
         "wind_speed_10m_max": [
-          32.2,
-          15.9,
-          17.3,
-          15.1,
-          16.3,
-          8.4,
-          8.4
+          32.6,
+          17.7,
+          14.3,
+          22.1,
+          18.7,
+          9.8,
+          6.8
         ]
       }
     },
@@ -4731,12 +4731,12 @@
       "longitude": 45.698,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 12.5,
-        "apparent_temperature": 12.8,
-        "weather_code": 45,
-        "is_day": 0
+        "temperature_2m": 15.9,
+        "apparent_temperature": 16.4,
+        "weather_code": 2,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4751,7 +4751,7 @@
         "weather_code": [
           45,
           45,
-          45,
+          3,
           45,
           45,
           45,
@@ -4759,21 +4759,21 @@
         ],
         "temperature_2m_max": [
           22.6,
-          22.6,
+          22.4,
+          24.8,
+          22.9,
           24.6,
-          23.0,
-          23.2,
-          19.9,
-          22.2
+          23.7,
+          23.3
         ],
         "temperature_2m_min": [
-          12.1,
-          13.2,
-          14.0,
-          12.0,
-          15.7,
+          12.2,
           13.7,
-          11.4
+          14.5,
+          13.3,
+          16.5,
+          15.1,
+          12.8
         ],
         "precipitation_probability_max": [
           0,
@@ -4785,13 +4785,13 @@
           18
         ],
         "wind_speed_10m_max": [
-          5.8,
-          6.3,
-          5.8,
-          14.9,
-          10.5,
-          4.1,
-          9.4
+          6.5,
+          7.0,
+          5.6,
+          11.2,
+          10.8,
+          10.7,
+          8.9
         ]
       }
     },
@@ -4806,12 +4806,12 @@
       "longitude": 44.6819,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 8.3,
-        "apparent_temperature": 5.9,
+        "temperature_2m": 16.5,
+        "apparent_temperature": 15.7,
         "weather_code": 1,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4827,28 +4827,28 @@
           3,
           45,
           45,
+          3,
           45,
           45,
-          61,
-          80
+          45
         ],
         "temperature_2m_max": [
           21.0,
-          22.6,
-          22.8,
-          21.9,
-          20.7,
-          18.1,
-          20.3
+          22.9,
+          23.2,
+          20.9,
+          21.7,
+          20.2,
+          22.2
         ],
         "temperature_2m_min": [
-          8.2,
-          11.3,
-          11.6,
-          11.0,
-          12.7,
-          12.6,
-          11.1
+          8.0,
+          11.4,
+          12.0,
+          12.4,
+          13.2,
+          11.8,
+          12.2
         ],
         "precipitation_probability_max": [
           0,
@@ -4861,12 +4861,12 @@
         ],
         "wind_speed_10m_max": [
           7.6,
-          7.2,
           7.3,
-          6.7,
-          6.0,
-          8.7,
-          8.1
+          7.3,
+          6.5,
+          6.9,
+          6.4,
+          7.2
         ]
       }
     },
@@ -4881,12 +4881,12 @@
       "longitude": 43.6071,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.0,
-        "apparent_temperature": 7.6,
+        "temperature_2m": 14.5,
+        "apparent_temperature": 13.8,
         "weather_code": 2,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4901,29 +4901,29 @@
         "weather_code": [
           45,
           45,
-          45,
+          3,
           3,
           45,
           45,
-          61
+          45
         ],
         "temperature_2m_max": [
           18.9,
-          21.2,
-          23.6,
-          21.2,
-          21.2,
-          18.1,
-          19.9
+          21.1,
+          24.3,
+          19.9,
+          23.1,
+          21.9,
+          22.6
         ],
         "temperature_2m_min": [
-          8.2,
-          9.8,
-          11.8,
-          11.2,
-          15.0,
-          14.6,
-          12.2
+          7.9,
+          9.4,
+          12.2,
+          12.5,
+          14.0,
+          13.4,
+          10.5
         ],
         "precipitation_probability_max": [
           0,
@@ -4935,13 +4935,13 @@
           47
         ],
         "wind_speed_10m_max": [
+          7.7,
+          7.2,
+          9.4,
+          8.9,
           7.9,
-          7.8,
-          9.0,
-          10.4,
-          8.2,
-          8.5,
-          9.7
+          7.7,
+          11.2
         ]
       }
     },
@@ -4956,12 +4956,12 @@
       "longitude": 44.2558,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.7,
-        "apparent_temperature": 7.9,
+        "temperature_2m": 17.1,
+        "apparent_temperature": 15.0,
         "weather_code": 0,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -4984,21 +4984,21 @@
         ],
         "temperature_2m_max": [
           24.8,
-          24.7,
-          22.2,
-          22.4,
-          19.6,
-          20.4,
-          22.3
+          24.6,
+          22.0,
+          23.0,
+          22.0,
+          23.6,
+          23.6
         ],
         "temperature_2m_min": [
-          8.9,
+          9.1,
           15.2,
-          13.7,
-          13.0,
-          11.6,
-          10.3,
-          11.0
+          14.0,
+          12.5,
+          13.4,
+          13.3,
+          12.2
         ],
         "precipitation_probability_max": [
           0,
@@ -5010,13 +5010,13 @@
           12
         ],
         "wind_speed_10m_max": [
-          28.0,
-          20.7,
+          27.8,
+          21.1,
+          12.8,
+          21.3,
+          15.5,
           11.0,
-          18.5,
-          14.2,
-          14.1,
-          19.1
+          7.9
         ]
       }
     },
@@ -5031,12 +5031,12 @@
       "longitude": 55.0969,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 1.7,
-        "apparent_temperature": -0.8,
+        "temperature_2m": 11.9,
+        "apparent_temperature": 10.2,
         "weather_code": 0,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5058,22 +5058,22 @@
           2
         ],
         "temperature_2m_max": [
+          19.2,
+          23.4,
+          23.8,
           19.4,
-          23.6,
-          23.7,
-          19.8,
+          19.6,
           19.1,
-          17.7,
-          15.2
+          14.1
         ],
         "temperature_2m_min": [
-          0.9,
-          4.4,
-          7.5,
-          8.6,
-          7.4,
-          5.1,
-          5.5
+          1.9,
+          4.9,
+          7.9,
+          9.2,
+          7.9,
+          3.2,
+          3.7
         ],
         "precipitation_probability_max": [
           0,
@@ -5085,13 +5085,13 @@
           8
         ],
         "wind_speed_10m_max": [
-          6.4,
-          5.3,
-          10.2,
-          14.0,
-          8.3,
-          10.8,
-          15.0
+          5.9,
+          5.5,
+          10.5,
+          13.7,
+          8.1,
+          10.5,
+          14.4
         ]
       }
     },
@@ -5106,12 +5106,12 @@
       "longitude": 53.2115,
       "timezone": "Europe/Samara",
       "current": {
-        "time": "2026-10-12T04:45",
+        "time": "2026-10-12T10:30",
         "interval": 900,
-        "temperature_2m": 6.8,
-        "apparent_temperature": 5.0,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 9.6,
+        "apparent_temperature": 7.5,
+        "weather_code": 2,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5125,30 +5125,30 @@
         ],
         "weather_code": [
           3,
-          61,
           3,
           3,
           3,
           3,
-          45
+          45,
+          61
         ],
         "temperature_2m_max": [
-          14.2,
-          14.8,
-          16.9,
-          15.8,
-          11.3,
-          8.3,
-          10.2
+          14.3,
+          14.9,
+          17.0,
+          16.0,
+          16.1,
+          9.3,
+          12.6
         ],
         "temperature_2m_min": [
-          6.5,
-          9.5,
-          9.2,
-          10.6,
-          3.8,
-          2.9,
-          2.1
+          6.3,
+          8.7,
+          9.0,
+          11.7,
+          8.4,
+          5.8,
+          5.9
         ],
         "precipitation_probability_max": [
           44,
@@ -5160,13 +5160,13 @@
           13
         ],
         "wind_speed_10m_max": [
-          9.0,
-          6.9,
-          9.0,
-          7.0,
+          9.4,
+          6.6,
+          9.2,
           7.6,
-          9.3,
-          7.7
+          4.5,
+          8.9,
+          12.7
         ]
       }
     },
@@ -5181,12 +5181,12 @@
       "longitude": 47.8999,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.6,
-        "apparent_temperature": 7.6,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 12.3,
+        "apparent_temperature": 9.9,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5203,27 +5203,27 @@
           3,
           3,
           3,
-          45,
-          3,
+          2,
+          2,
           3
         ],
         "temperature_2m_max": [
-          16.2,
-          20.4,
-          18.4,
-          15.7,
-          11.9,
-          8.8,
-          11.2
+          16.8,
+          20.5,
+          18.5,
+          16.0,
+          16.8,
+          16.0,
+          13.7
         ],
         "temperature_2m_min": [
           9.0,
-          11.7,
-          10.8,
-          9.5,
-          3.9,
-          2.4,
-          3.1
+          11.4,
+          10.5,
+          11.4,
+          8.4,
+          7.3,
+          8.7
         ],
         "precipitation_probability_max": [
           28,
@@ -5235,13 +5235,13 @@
           17
         ],
         "wind_speed_10m_max": [
-          12.2,
-          10.8,
-          13.1,
-          8.0,
-          8.7,
-          8.0,
-          9.4
+          13.0,
+          10.6,
+          12.8,
+          7.8,
+          4.8,
+          9.1,
+          14.8
         ]
       }
     },
@@ -5256,12 +5256,12 @@
       "longitude": 47.2489,
       "timezone": "Europe/Moscow",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 9.1,
-        "apparent_temperature": 6.8,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 12.1,
+        "apparent_temperature": 9.4,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5277,28 +5277,28 @@
           3,
           3,
           3,
+          61,
+          2,
           3,
-          45,
-          45,
-          45
+          80
         ],
         "temperature_2m_max": [
-          17.1,
-          20.7,
-          19.0,
-          16.7,
-          11.9,
-          8.4,
-          11.1
+          17.4,
+          20.8,
+          18.8,
+          15.1,
+          16.6,
+          16.1,
+          14.0
         ],
         "temperature_2m_min": [
-          9.0,
-          13.0,
+          8.3,
+          13.3,
+          11.9,
           12.0,
-          11.4,
-          8.0,
-          4.5,
-          3.0
+          10.3,
+          8.2,
+          11.0
         ],
         "precipitation_probability_max": [
           23,
@@ -5310,13 +5310,13 @@
           17
         ],
         "wind_speed_10m_max": [
-          13.4,
-          11.6,
-          13.4,
-          7.2,
-          7.2,
-          9.1,
-          8.7
+          13.8,
+          12.0,
+          13.1,
+          9.2,
+          5.4,
+          9.5,
+          13.6
         ]
       }
     },
@@ -5331,12 +5331,12 @@
       "longitude": 66.6019,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 3.7,
-        "apparent_temperature": -3.0,
+        "temperature_2m": 4.4,
+        "apparent_temperature": -2.4,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5351,28 +5351,28 @@
         "weather_code": [
           51,
           3,
-          2,
-          71,
           3,
+          51,
           3,
+          51,
           73
         ],
         "temperature_2m_max": [
-          4.7,
-          3.6,
+          4.8,
           3.7,
-          1.7,
-          3.6,
-          6.8,
+          3.5,
+          3.0,
+          3.9,
+          4.4,
           7.3
         ],
         "temperature_2m_min": [
           3.5,
-          1.1,
-          0.2,
-          0.0,
+          1.2,
+          0.3,
+          0.3,
+          1.3,
           1.5,
-          1.0,
           1.3
         ],
         "precipitation_probability_max": [
@@ -5385,12 +5385,12 @@
           22
         ],
         "wind_speed_10m_max": [
-          32.1,
-          24.2,
-          13.3,
-          17.8,
-          18.5,
-          23.9,
+          31.9,
+          24.1,
+          15.6,
+          20.5,
+          15.7,
+          21.0,
           23.3
         ]
       }
@@ -5406,12 +5406,12 @@
       "longitude": 69.0019,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 6.4,
-        "apparent_temperature": 3.2,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 6.2,
+        "apparent_temperature": 0.8,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5426,28 +5426,28 @@
         "weather_code": [
           51,
           3,
-          2,
-          51,
+          1,
+          55,
           3,
           3,
           3
         ],
         "temperature_2m_max": [
-          7.6,
-          6.0,
-          4.5,
-          4.5,
+          7.9,
+          5.9,
+          4.7,
           5.2,
           5.6,
+          7.0,
           7.3
         ],
         "temperature_2m_min": [
-          3.1,
-          1.0,
-          -0.3,
-          -1.7,
-          2.7,
-          -0.7,
+          3.6,
+          1.1,
+          -1.4,
+          -1.5,
+          0.9,
+          -0.2,
           1.4
         ],
         "precipitation_probability_max": [
@@ -5460,12 +5460,12 @@
           14
         ],
         "wind_speed_10m_max": [
-          24.6,
-          19.8,
-          13.0,
-          16.9,
-          14.8,
-          16.3,
+          25.1,
+          18.5,
+          12.9,
+          24.0,
+          14.4,
+          17.1,
           17.4
         ]
       }
@@ -5481,12 +5481,12 @@
       "longitude": 73.3962,
       "timezone": "Asia/Yekaterinburg",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 6.7,
-        "apparent_temperature": 3.3,
-        "weather_code": 51,
-        "is_day": 0
+        "temperature_2m": 7.0,
+        "apparent_temperature": 3.2,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5501,28 +5501,28 @@
         "weather_code": [
           51,
           3,
-          3,
-          53,
+          51,
+          51,
           53,
           3,
           3
         ],
         "temperature_2m_max": [
-          8.1,
-          5.1,
-          4.8,
-          3.6,
-          3.9,
-          3.9,
+          8.3,
+          5.0,
+          4.4,
+          4.0,
+          4.2,
+          5.9,
           6.7
         ],
         "temperature_2m_min": [
-          4.5,
-          1.4,
-          1.6,
+          4.6,
+          1.8,
+          0.6,
           -1.8,
-          2.0,
-          1.7,
+          2.3,
+          0.0,
           0.8
         ],
         "precipitation_probability_max": [
@@ -5535,12 +5535,12 @@
           18
         ],
         "wind_speed_10m_max": [
+          20.8,
+          24.2,
           20.7,
-          24.0,
-          19.0,
-          13.7,
-          12.5,
-          17.0,
+          17.7,
+          16.8,
+          16.6,
           19.7
         ]
       }
@@ -5556,11 +5556,11 @@
       "longitude": 85.9603,
       "timezone": "Asia/Barnaul",
       "current": {
-        "time": "2026-10-12T07:45",
+        "time": "2026-10-12T13:30",
         "interval": 900,
-        "temperature_2m": 0.7,
-        "apparent_temperature": -3.0,
-        "weather_code": 0,
+        "temperature_2m": 14.7,
+        "apparent_temperature": 12.2,
+        "weather_code": 1,
         "is_day": 1
       },
       "daily": {
@@ -5577,27 +5577,27 @@
           3,
           80,
           80,
-          86,
+          85,
           85,
           3,
-          2
+          3
         ],
         "temperature_2m_max": [
-          15.2,
-          10.8,
-          7.1,
-          2.9,
-          0.9,
-          3.6,
+          14.9,
+          11.0,
+          6.1,
+          3.1,
+          1.6,
+          1.8,
           3.9
         ],
         "temperature_2m_min": [
-          -0.5,
-          3.9,
-          2.5,
-          -0.9,
-          -4.9,
-          -8.5,
+          -1.0,
+          4.4,
+          3.1,
+          -1.6,
+          -5.3,
+          -6.3,
           -8.6
         ],
         "precipitation_probability_max": [
@@ -5610,12 +5610,12 @@
           41
         ],
         "wind_speed_10m_max": [
-          9.2,
-          20.4,
+          8.7,
+          18.9,
           12.4,
-          12.8,
-          10.0,
-          8.1,
+          13.4,
+          6.4,
+          8.3,
           6.5
         ]
       }
@@ -5631,11 +5631,11 @@
       "longitude": 91.4424,
       "timezone": "Asia/Krasnoyarsk",
       "current": {
-        "time": "2026-10-12T07:45",
+        "time": "2026-10-12T13:30",
         "interval": 900,
-        "temperature_2m": -0.2,
-        "apparent_temperature": -3.0,
-        "weather_code": 3,
+        "temperature_2m": 6.7,
+        "apparent_temperature": 3.9,
+        "weather_code": 1,
         "is_day": 1
       },
       "daily": {
@@ -5650,29 +5650,29 @@
         ],
         "weather_code": [
           3,
-          55,
+          53,
+          53,
           85,
           71,
-          3,
-          3,
+          71,
           3
         ],
         "temperature_2m_max": [
-          8.8,
-          10.5,
-          5.8,
-          3.8,
-          2.7,
-          2.5,
+          8.3,
+          10.6,
+          5.3,
+          4.3,
+          1.9,
+          2.9,
           2.9
         ],
         "temperature_2m_min": [
-          -0.4,
-          1.1,
-          0.4,
-          -0.8,
-          -2.2,
-          -3.1,
+          -1.0,
+          0.9,
+          0.3,
+          -0.1,
+          -0.7,
+          -2.6,
           -2.8
         ],
         "precipitation_probability_max": [
@@ -5686,11 +5686,11 @@
         ],
         "wind_speed_10m_max": [
           7.3,
-          22.7,
-          17.3,
-          11.3,
-          10.2,
-          2.2,
+          20.4,
+          15.0,
+          9.7,
+          8.9,
+          7.7,
           7.2
         ]
       }
@@ -5706,11 +5706,11 @@
       "longitude": 94.4378,
       "timezone": "Asia/Krasnoyarsk",
       "current": {
-        "time": "2026-10-12T07:45",
+        "time": "2026-10-12T13:30",
         "interval": 900,
-        "temperature_2m": -1.5,
-        "apparent_temperature": -4.0,
-        "weather_code": 3,
+        "temperature_2m": 6.5,
+        "apparent_temperature": 3.3,
+        "weather_code": 1,
         "is_day": 1
       },
       "daily": {
@@ -5725,29 +5725,29 @@
         ],
         "weather_code": [
           3,
-          51,
-          86,
+          85,
+          85,
           3,
           3,
           3,
-          0
+          3
         ],
         "temperature_2m_max": [
-          8.3,
-          5.7,
+          7.1,
+          5.5,
           5.2,
-          4.2,
-          2.8,
-          1.9,
+          4.1,
+          2.7,
+          1.3,
           1.5
         ],
         "temperature_2m_min": [
-          -1.8,
-          0.2,
-          -3.1,
-          -2.6,
-          -5.0,
-          -3.7,
+          -2.0,
+          -0.1,
+          -3.4,
+          -3.6,
+          -4.4,
+          -5.1,
           -6.0
         ],
         "precipitation_probability_max": [
@@ -5760,12 +5760,12 @@
           20
         ],
         "wind_speed_10m_max": [
-          5.2,
-          5.8,
-          11.7,
-          18.0,
+          4.9,
+          5.1,
           10.6,
-          9.3,
+          20.1,
+          14.2,
+          4.0,
           3.8
         ]
       }
@@ -5781,11 +5781,11 @@
       "longitude": 132.9217,
       "timezone": "Asia/Vladivostok",
       "current": {
-        "time": "2026-10-12T10:45",
+        "time": "2026-10-12T16:30",
         "interval": 900,
-        "temperature_2m": 8.2,
-        "apparent_temperature": 5.4,
-        "weather_code": 2,
+        "temperature_2m": 17.8,
+        "apparent_temperature": 14.3,
+        "weather_code": 3,
         "is_day": 1
       },
       "daily": {
@@ -5803,27 +5803,27 @@
           3,
           3,
           2,
-          1,
-          1,
+          2,
+          0,
           53
         ],
         "temperature_2m_max": [
-          18.2,
+          17.8,
           12.5,
-          10.3,
-          8.7,
+          10.2,
+          8.8,
           10.8,
-          10.6,
+          10.4,
           7.8
         ],
         "temperature_2m_min": [
-          0.1,
-          4.4,
-          2.6,
-          0.8,
-          -0.2,
-          1.2,
-          -0.6
+          -0.3,
+          4.3,
+          3.2,
+          0.9,
+          -0.6,
+          1.1,
+          -0.5
         ],
         "precipitation_probability_max": [
           56,
@@ -5835,13 +5835,13 @@
           20
         ],
         "wind_speed_10m_max": [
-          17.9,
-          11.9,
-          19.3,
-          23.8,
-          21.5,
-          18.8,
-          8.4
+          18.3,
+          13.3,
+          19.6,
+          24.0,
+          20.5,
+          17.7,
+          7.9
         ]
       }
     },
@@ -5857,12 +5857,12 @@
       "longitude": 8.6821,
       "timezone": "Europe/Berlin",
       "current": {
-        "time": "2026-10-12T02:45",
+        "time": "2026-10-12T08:30",
         "interval": 900,
-        "temperature_2m": 5.9,
-        "apparent_temperature": 4.2,
-        "weather_code": 0,
-        "is_day": 0
+        "temperature_2m": 5.4,
+        "apparent_temperature": 3.9,
+        "weather_code": 45,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5877,29 +5877,29 @@
         "weather_code": [
           45,
           61,
-          3,
+          45,
+          45,
           45,
           61,
-          2,
           3
         ],
         "temperature_2m_max": [
-          15.5,
-          12.1,
-          17.9,
-          16.5,
-          15.3,
-          14.8,
-          13.1
+          15.2,
+          12.7,
+          17.4,
+          16.7,
+          16.9,
+          13.4,
+          13.5
         ],
         "temperature_2m_min": [
-          3.5,
-          7.4,
-          10.3,
-          6.1,
-          6.5,
-          7.2,
-          4.6
+          4.5,
+          7.7,
+          9.7,
+          4.5,
+          7.0,
+          8.1,
+          4.7
         ],
         "precipitation_probability_max": [
           5,
@@ -5911,13 +5911,13 @@
           18
         ],
         "wind_speed_10m_max": [
-          6.1,
-          7.7,
-          6.8,
-          3.7,
-          12.1,
-          10.5,
-          5.3
+          6.0,
+          9.4,
+          9.0,
+          5.4,
+          5.9,
+          14.2,
+          8.8
         ]
       }
     },
@@ -5932,12 +5932,12 @@
       "longitude": 13.405,
       "timezone": "Europe/Berlin",
       "current": {
-        "time": "2026-10-12T02:45",
+        "time": "2026-10-12T08:30",
         "interval": 900,
-        "temperature_2m": 9.4,
-        "apparent_temperature": 7.2,
-        "weather_code": 2,
-        "is_day": 0
+        "temperature_2m": 7.0,
+        "apparent_temperature": 4.2,
+        "weather_code": 0,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -5952,29 +5952,29 @@
         "weather_code": [
           3,
           61,
+          80,
+          3,
+          3,
           61,
-          3,
-          3,
-          3,
           3
         ],
         "temperature_2m_max": [
-          13.9,
+          13.7,
+          15.4,
           16.2,
-          16.4,
-          16.7,
-          17.1,
-          14.2,
-          12.8
+          15.4,
+          19.0,
+          13.8,
+          12.7
         ],
         "temperature_2m_min": [
-          7.0,
-          5.4,
-          10.9,
+          6.8,
+          4.9,
+          10.5,
+          6.7,
           6.9,
-          7.4,
-          8.6,
-          5.5
+          7.9,
+          5.6
         ],
         "precipitation_probability_max": [
           32,
@@ -5986,13 +5986,13 @@
           12
         ],
         "wind_speed_10m_max": [
-          13.5,
-          11.2,
-          15.6,
+          14.1,
+          12.4,
+          16.7,
           5.5,
-          15.0,
-          14.3,
-          6.8
+          7.2,
+          11.3,
+          12.7
         ]
       }
     },
@@ -6008,12 +6008,12 @@
       "longitude": 11.582,
       "timezone": "Europe/Berlin",
       "current": {
-        "time": "2026-10-12T02:45",
+        "time": "2026-10-12T08:30",
         "interval": 900,
-        "temperature_2m": 8.8,
-        "apparent_temperature": 7.1,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 7.0,
+        "apparent_temperature": 5.5,
+        "weather_code": 0,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6028,29 +6028,29 @@
         "weather_code": [
           3,
           61,
-          61,
+          80,
           45,
           45,
-          61,
-          45
+          45,
+          3
         ],
         "temperature_2m_max": [
-          13.8,
+          13.6,
           16.3,
-          16.9,
-          16.3,
-          16.7,
-          13.5,
+          17.0,
+          17.4,
+          17.6,
+          15.0,
           10.6
         ],
         "temperature_2m_min": [
-          6.6,
-          3.6,
-          10.5,
-          6.7,
+          6.9,
+          3.5,
+          11.0,
+          7.1,
+          8.1,
           8.6,
-          7.6,
-          2.8
+          6.1
         ],
         "precipitation_probability_max": [
           10,
@@ -6062,13 +6062,13 @@
           22
         ],
         "wind_speed_10m_max": [
-          6.6,
-          10.3,
-          10.0,
-          6.7,
-          6.4,
-          15.0,
-          9.7
+          7.4,
+          9.8,
+          10.7,
+          4.6,
+          4.9,
+          12.2,
+          11.4
         ]
       }
     },
@@ -6084,12 +6084,12 @@
       "longitude": 21.0122,
       "timezone": "Europe/Warsaw",
       "current": {
-        "time": "2026-10-12T02:45",
+        "time": "2026-10-12T08:30",
         "interval": 900,
-        "temperature_2m": 8.4,
-        "apparent_temperature": 5.5,
-        "weather_code": 0,
-        "is_day": 0
+        "temperature_2m": 8.0,
+        "apparent_temperature": 5.1,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6107,25 +6107,25 @@
           51,
           3,
           3,
-          51,
+          3,
           3
         ],
         "temperature_2m_max": [
-          11.0,
-          12.4,
-          13.6,
-          12.8,
-          13.4,
-          12.1,
+          11.6,
+          11.9,
+          13.1,
+          11.5,
+          11.8,
+          14.6,
           13.7
         ],
         "temperature_2m_min": [
-          7.2,
-          7.5,
-          6.9,
-          6.3,
-          3.5,
-          9.0,
+          7.3,
+          7.7,
+          8.6,
+          5.9,
+          3.1,
+          3.2,
           9.3
         ],
         "precipitation_probability_max": [
@@ -6138,11 +6138,11 @@
           14
         ],
         "wind_speed_10m_max": [
-          16.6,
-          11.5,
-          13.6,
-          11.5,
-          5.2,
+          15.1,
+          13.3,
+          15.1,
+          11.2,
+          6.2,
           9.4,
           14.1
         ]
@@ -6160,12 +6160,12 @@
       "longitude": 14.4378,
       "timezone": "Europe/Prague",
       "current": {
-        "time": "2026-10-12T02:45",
+        "time": "2026-10-12T08:30",
         "interval": 900,
-        "temperature_2m": 7.8,
-        "apparent_temperature": 4.8,
+        "temperature_2m": 7.3,
+        "apparent_temperature": 4.9,
         "weather_code": 2,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6183,26 +6183,26 @@
           61,
           3,
           45,
-          63,
-          3
+          3,
+          61
         ],
         "temperature_2m_max": [
-          14.4,
+          13.5,
           14.8,
           15.9,
-          15.4,
-          15.0,
-          12.4,
-          10.9
+          14.7,
+          17.3,
+          11.2,
+          10.5
         ],
         "temperature_2m_min": [
-          6.7,
-          4.5,
-          9.2,
-          5.3,
-          4.1,
           7.1,
-          5.7
+          4.0,
+          9.2,
+          5.1,
+          4.4,
+          6.4,
+          6.2
         ],
         "precipitation_probability_max": [
           21,
@@ -6214,13 +6214,13 @@
           14
         ],
         "wind_speed_10m_max": [
-          12.2,
-          6.1,
-          11.6,
+          12.6,
+          5.7,
+          14.7,
           3.6,
-          5.2,
-          17.0,
-          10.5
+          5.1,
+          15.9,
+          13.0
         ]
       }
     },
@@ -6235,12 +6235,12 @@
       "longitude": 24.9384,
       "timezone": "Europe/Helsinki",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 7.1,
-        "apparent_temperature": 2.7,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 6.4,
+        "apparent_temperature": 1.5,
+        "weather_code": 53,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6253,30 +6253,30 @@
           "2026-10-18"
         ],
         "weather_code": [
-          61,
+          55,
           3,
           55,
           51,
           51,
-          3,
+          51,
           3
         ],
         "temperature_2m_max": [
           7.3,
-          8.0,
-          10.6,
-          11.4,
+          7.5,
+          11.2,
+          12.1,
           13.1,
           13.3,
           9.2
         ],
         "temperature_2m_min": [
-          6.1,
-          4.1,
-          8.2,
-          9.5,
-          10.7,
+          5.6,
+          3.9,
+          7.6,
           9.6,
+          11.7,
+          8.1,
           5.5
         ],
         "precipitation_probability_max": [
@@ -6289,12 +6289,12 @@
           14
         ],
         "wind_speed_10m_max": [
-          27.4,
-          22.3,
-          33.5,
-          19.0,
-          26.7,
-          22.3,
+          27.7,
+          20.2,
+          37.8,
+          23.8,
+          28.0,
+          24.6,
           17.4
         ]
       }
@@ -6310,12 +6310,12 @@
       "longitude": 27.559,
       "timezone": "Europe/Minsk",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 10.5,
-        "apparent_temperature": 8.8,
+        "temperature_2m": 8.7,
+        "apparent_temperature": 6.9,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6330,28 +6330,28 @@
         "weather_code": [
           45,
           3,
-          51,
-          51,
           3,
+          51,
+          2,
           3,
           51
         ],
         "temperature_2m_max": [
-          13.1,
-          11.0,
-          10.3,
-          11.7,
-          16.4,
-          16.4,
+          12.9,
+          12.0,
+          10.1,
+          11.5,
+          12.9,
+          13.3,
           14.1
         ],
         "temperature_2m_min": [
-          8.5,
-          7.7,
-          6.9,
-          6.1,
-          8.2,
-          8.0,
+          8.6,
+          8.4,
+          6.0,
+          6.5,
+          4.2,
+          4.2,
           8.2
         ],
         "precipitation_probability_max": [
@@ -6364,11 +6364,11 @@
           24
         ],
         "wind_speed_10m_max": [
-          11.5,
-          11.5,
-          12.8,
-          11.9,
-          13.5,
+          10.8,
+          9.7,
+          12.1,
+          8.6,
+          7.8,
           11.6,
           16.4
         ]
@@ -6385,12 +6385,12 @@
       "longitude": 71.4491,
       "timezone": "Asia/Almaty",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 3.2,
-        "apparent_temperature": -0.2,
+        "temperature_2m": 13.1,
+        "apparent_temperature": 9.5,
         "weather_code": 1,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6403,30 +6403,30 @@
           "2026-10-18"
         ],
         "weather_code": [
-          1,
+          2,
           3,
           3,
           1,
           3,
-          85,
+          51,
           3
         ],
         "temperature_2m_max": [
-          16.0,
+          15.6,
           14.4,
-          14.9,
+          15.1,
           6.4,
-          9.3,
-          6.8,
+          8.0,
+          9.6,
           8.3
         ],
         "temperature_2m_min": [
+          2.4,
+          3.6,
           2.8,
-          3.7,
-          2.8,
-          -1.3,
-          0.6,
-          4.5,
+          -1.4,
+          -0.5,
+          1.2,
           3.5
         ],
         "precipitation_probability_max": [
@@ -6439,12 +6439,12 @@
           8
         ],
         "wind_speed_10m_max": [
-          17.7,
-          12.1,
-          22.0,
-          11.3,
-          13.2,
-          13.3,
+          17.8,
+          11.5,
+          23.0,
+          13.0,
+          10.3,
+          13.5,
           14.1
         ]
       }
@@ -6460,12 +6460,12 @@
       "longitude": 76.8512,
       "timezone": "Asia/Almaty",
       "current": {
-        "time": "2026-10-12T05:45",
+        "time": "2026-10-12T11:30",
         "interval": 900,
-        "temperature_2m": 14.5,
-        "apparent_temperature": 12.7,
+        "temperature_2m": 20.0,
+        "apparent_temperature": 18.5,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6478,30 +6478,30 @@
           "2026-10-18"
         ],
         "weather_code": [
-          55,
-          51,
+          3,
+          3,
           1,
           2,
           3,
-          3,
+          1,
           3
         ],
         "temperature_2m_max": [
-          20.0,
+          20.1,
           17.4,
-          17.8,
-          16.3,
-          10.5,
-          12.0,
+          17.5,
+          17.0,
+          10.4,
+          11.7,
           11.2
         ],
         "temperature_2m_min": [
-          12.0,
-          12.2,
-          9.7,
-          6.6,
-          3.1,
-          2.7,
+          13.7,
+          11.2,
+          9.1,
+          6.7,
+          3.0,
+          2.3,
           6.8
         ],
         "precipitation_probability_max": [
@@ -6515,11 +6515,11 @@
         ],
         "wind_speed_10m_max": [
           9.1,
-          4.5,
           4.9,
-          4.7,
-          5.2,
-          5.5,
+          5.0,
+          6.7,
+          4.9,
+          5.7,
           4.9
         ]
       }
@@ -6535,12 +6535,12 @@
       "longitude": 44.8271,
       "timezone": "Asia/Tbilisi",
       "current": {
-        "time": "2026-10-12T04:45",
+        "time": "2026-10-12T10:30",
         "interval": 900,
-        "temperature_2m": 11.7,
-        "apparent_temperature": 11.7,
-        "weather_code": 45,
-        "is_day": 0
+        "temperature_2m": 16.8,
+        "apparent_temperature": 16.7,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6556,28 +6556,28 @@
           45,
           80,
           45,
-          3,
-          45,
           61,
-          45
+          3,
+          80,
+          3
         ],
         "temperature_2m_max": [
-          21.1,
-          22.6,
-          25.5,
-          23.4,
-          27.0,
-          22.7,
-          24.5
+          20.8,
+          22.3,
+          25.7,
+          22.8,
+          24.8,
+          25.8,
+          25.1
         ],
         "temperature_2m_min": [
-          11.7,
-          11.4,
-          11.0,
-          13.4,
-          13.6,
-          14.0,
-          11.6
+          12.2,
+          10.9,
+          11.3,
+          14.5,
+          13.2,
+          14.9,
+          14.2
         ],
         "precipitation_probability_max": [
           11,
@@ -6589,13 +6589,13 @@
           35
         ],
         "wind_speed_10m_max": [
-          14.8,
-          13.8,
-          5.0,
-          12.7,
-          12.4,
-          9.3,
-          16.3
+          15.3,
+          14.6,
+          4.1,
+          8.2,
+          8.0,
+          9.0,
+          7.6
         ]
       }
     },
@@ -6610,12 +6610,12 @@
       "longitude": 44.4991,
       "timezone": "Asia/Yerevan",
       "current": {
-        "time": "2026-10-12T04:45",
+        "time": "2026-10-12T10:30",
         "interval": 900,
-        "temperature_2m": 10.6,
-        "apparent_temperature": 7.4,
-        "weather_code": 1,
-        "is_day": 0
+        "temperature_2m": 16.2,
+        "apparent_temperature": 14.4,
+        "weather_code": 3,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6629,30 +6629,30 @@
         ],
         "weather_code": [
           3,
-          80,
-          3,
           61,
           3,
-          95,
-          45
+          80,
+          61,
+          45,
+          3
         ],
         "temperature_2m_max": [
-          22.9,
-          22.6,
-          23.2,
-          18.1,
-          21.6,
-          20.3,
-          21.2
+          22.3,
+          21.5,
+          22.1,
+          18.9,
+          20.0,
+          22.8,
+          23.2
         ],
         "temperature_2m_min": [
-          10.0,
-          12.6,
-          11.4,
+          9.4,
+          11.3,
+          11.7,
           14.3,
-          11.9,
-          13.3,
-          9.0
+          11.1,
+          9.9,
+          8.9
         ],
         "precipitation_probability_max": [
           5,
@@ -6664,13 +6664,13 @@
           14
         ],
         "wind_speed_10m_max": [
-          10.5,
-          17.7,
-          12.2,
           10.2,
-          5.9,
-          9.2,
-          7.4
+          10.8,
+          13.3,
+          9.7,
+          8.5,
+          7.0,
+          8.2
         ]
       }
     },
@@ -6685,12 +6685,12 @@
       "longitude": 28.9784,
       "timezone": "Europe/Istanbul",
       "current": {
-        "time": "2026-10-12T03:45",
+        "time": "2026-10-12T09:30",
         "interval": 900,
-        "temperature_2m": 18.7,
-        "apparent_temperature": 19.0,
-        "weather_code": 3,
-        "is_day": 0
+        "temperature_2m": 20.0,
+        "apparent_temperature": 21.6,
+        "weather_code": 1,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6705,29 +6705,29 @@
         "weather_code": [
           3,
           80,
-          80,
-          63,
           61,
           63,
-          63
+          61,
+          80,
+          80
         ],
         "temperature_2m_max": [
-          25.7,
-          19.6,
-          18.0,
-          17.2,
-          15.8,
-          12.8,
-          15.2
+          24.7,
+          19.2,
+          16.7,
+          15.9,
+          16.6,
+          16.2,
+          14.9
         ],
         "temperature_2m_min": [
-          17.9,
-          16.4,
-          16.3,
-          15.5,
-          12.7,
-          11.7,
-          11.7
+          17.6,
+          16.0,
+          16.0,
+          14.0,
+          12.0,
+          13.6,
+          12.4
         ],
         "precipitation_probability_max": [
           26,
@@ -6739,13 +6739,13 @@
           32
         ],
         "wind_speed_10m_max": [
-          13.5,
-          22.0,
-          33.9,
-          33.8,
-          14.8,
-          15.6,
-          19.1
+          11.6,
+          18.3,
+          32.4,
+          38.5,
+          17.0,
+          23.0,
+          23.7
         ]
       }
     },
@@ -6760,12 +6760,12 @@
       "longitude": 2.3522,
       "timezone": "Europe/Paris",
       "current": {
-        "time": "2026-10-12T02:45",
+        "time": "2026-10-12T08:30",
         "interval": 900,
-        "temperature_2m": 10.8,
-        "apparent_temperature": 9.5,
-        "weather_code": 1,
-        "is_day": 0
+        "temperature_2m": 8.6,
+        "apparent_temperature": 6.7,
+        "weather_code": 2,
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6778,31 +6778,31 @@
           "2026-10-18"
         ],
         "weather_code": [
-          3,
-          80,
+          61,
+          81,
           45,
           45,
           61,
           2,
-          3
+          1
         ],
         "temperature_2m_max": [
-          17.1,
-          24.5,
-          20.3,
-          23.4,
-          20.8,
-          15.9,
-          15.4
+          17.6,
+          23.7,
+          20.0,
+          22.7,
+          16.1,
+          15.7,
+          14.9
         ],
         "temperature_2m_min": [
+          8.6,
+          16.0,
+          10.8,
           9.3,
-          15.8,
-          10.4,
-          9.0,
-          10.9,
-          8.4,
-          7.4
+          11.8,
+          8.9,
+          6.3
         ],
         "precipitation_probability_max": [
           16,
@@ -6814,13 +6814,13 @@
           10
         ],
         "wind_speed_10m_max": [
-          11.3,
-          15.6,
-          6.1,
-          7.8,
-          16.2,
-          17.2,
-          10.7
+          11.0,
+          13.3,
+          7.3,
+          8.7,
+          13.8,
+          19.5,
+          17.3
         ]
       }
     },
@@ -6835,12 +6835,12 @@
       "longitude": -0.1278,
       "timezone": "Europe/London",
       "current": {
-        "time": "2026-10-12T01:45",
+        "time": "2026-10-12T07:30",
         "interval": 900,
-        "temperature_2m": 13.6,
-        "apparent_temperature": 12.6,
+        "temperature_2m": 14.5,
+        "apparent_temperature": 13.0,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6853,8 +6853,8 @@
           "2026-10-18"
         ],
         "weather_code": [
-          61,
-          55,
+          51,
+          53,
           3,
           3,
           61,
@@ -6862,8 +6862,8 @@
           3
         ],
         "temperature_2m_max": [
-          16.7,
-          20.2,
+          16.8,
+          20.4,
           18.7,
           19.3,
           16.9,
@@ -6871,9 +6871,9 @@
           15.3
         ],
         "temperature_2m_min": [
-          13.4,
-          14.8,
-          11.2,
+          13.1,
+          14.5,
+          10.8,
           15.1,
           10.8,
           7.6,
@@ -6889,8 +6889,8 @@
           11
         ],
         "wind_speed_10m_max": [
-          13.7,
-          20.9,
+          15.5,
+          21.2,
           21.6,
           20.9,
           15.1,
@@ -6911,12 +6911,12 @@
       "longitude": 12.4964,
       "timezone": "Europe/Rome",
       "current": {
-        "time": "2026-10-12T02:45",
+        "time": "2026-10-12T08:30",
         "interval": 900,
-        "temperature_2m": 17.5,
-        "apparent_temperature": 18.5,
+        "temperature_2m": 17.2,
+        "apparent_temperature": 18.2,
         "weather_code": 3,
-        "is_day": 0
+        "is_day": 1
       },
       "daily": {
         "time": [
@@ -6931,29 +6931,29 @@
         "weather_code": [
           80,
           1,
-          1,
           3,
+          2,
           45,
-          45,
+          3,
           3
         ],
         "temperature_2m_max": [
           23.8,
-          23.3,
-          25.1,
+          23.1,
+          24.3,
+          25.3,
           25.4,
-          23.9,
-          25.1,
-          21.2
+          22.5,
+          23.2
         ],
         "temperature_2m_min": [
-          16.9,
-          13.3,
-          11.4,
-          11.7,
+          16.8,
+          12.8,
+          10.7,
+          11.9,
+          12.6,
           13.7,
-          13.1,
-          16.2
+          10.4
         ],
         "precipitation_probability_max": [
           0,
@@ -6965,13 +6965,13 @@
           27
         ],
         "wind_speed_10m_max": [
-          14.1,
-          14.1,
-          8.1,
-          9.5,
-          10.6,
-          5.1,
-          8.4
+          13.2,
+          16.9,
+          4.4,
+          8.4,
+          6.6,
+          5.4,
+          6.1
         ]
       }
     }
