@@ -262,3 +262,5 @@ console.log('AI_MODULE_6D_SUCCESS',JSON.stringify({
 
 await context.close();
 await browser.close();
+
+// Modal portal regression runs on feature-ai branches before merge.
