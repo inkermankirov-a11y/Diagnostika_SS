@@ -5,6 +5,13 @@
   window.__diagnostikaClientAiChatViewReady = true;
 
   const MODE_KEY='diagnostika-client-ai-answer-mode-v1';
+  const HEIGHT_KEY='diagnostika-client-ai-messages-height-v1';
+  const DEFAULT_MESSAGES_HEIGHT=320;
+  function savedMessagesHeight(){
+    try{const value=Number(localStorage.getItem(HEIGHT_KEY));return Number.isFinite(value)&&value>=150?Math.min(value,1600):DEFAULT_MESSAGES_HEIGHT;}catch(_){return DEFAULT_MESSAGES_HEIGHT;}
+  }
+  let messagesHeight=savedMessagesHeight();
+  function applyMessagesHeight(){if(widget)widget.style.setProperty('--hd-ai-custom-messages-height',messagesHeight+'px');}
   let attempts=0;
   let widget=null;
   let backdrop=null;
@@ -125,7 +132,12 @@
     @media(max-height:520px){body > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded:not(.hd-ai-fullscreen){top:8px!important;bottom:8px!important;max-height:calc(100dvh - 16px)!important}}
     #hdClientAiWidget.hd-ai-expanded .hd-widget-title{font-size:17px!important;margin-bottom:8px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-client{display:block!important;font-size:13px!important;line-height:1.4!important;margin:4px 0 12px!important;padding-left:2px!important}
-    #hdClientAiWidget.hd-ai-expanded .hd-ai-messages{height:auto!important;min-height:0!important;flex:1 1 auto!important;font-size:14px!important;padding:12px!important;gap:10px!important}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-messages{height:var(--hd-ai-custom-messages-height,320px)!important;min-height:100px!important;max-height:calc(100dvh - 270px)!important;flex:0 1 auto!important;font-size:14px!important;padding:12px!important;gap:10px!important}
+    #hdClientAiWidget .hd-ai-resize-handle{display:none;align-items:center;justify-content:center;flex:0 0 14px;cursor:ns-resize;touch-action:none;user-select:none;border-radius:7px;color:#8da0b8}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-resize-handle{display:flex}
+    #hdClientAiWidget .hd-ai-resize-handle::after{content:'';display:block;width:58px;height:4px;background:#bac9db;border-radius:10px}
+    #hdClientAiWidget .hd-ai-resize-handle:hover::after,#hdClientAiWidget .hd-ai-resize-handle:focus-visible::after{background:#2f7cf6}
+    #hdClientAiWidget.hd-ai-fullscreen .hd-ai-messages{max-height:calc(100dvh - 190px)!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-msg{font-size:14.5px!important;line-height:1.62!important;padding:13px 15px!important;max-width:90%!important;font-weight:500!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-msg.assistant{max-width:92%!important;color:#1f3348!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-section-title{font-size:13px!important;margin:13px 0 6px!important}
@@ -312,6 +324,26 @@
     return true;
   }
 
+  function installResizeHandle(){
+    if(!widget)return;
+    applyMessagesHeight();
+    const messages=widget.querySelector('.hd-ai-messages');
+    if(!messages||widget.querySelector('.hd-ai-resize-handle'))return;
+    const handle=document.createElement('div');
+    handle.className='hd-ai-resize-handle';handle.setAttribute('role','separator');handle.setAttribute('aria-orientation','horizontal');handle.setAttribute('aria-label','Изменить высоту переписки');handle.setAttribute('tabindex','0');handle.title='Потяните вверх или вниз, чтобы изменить высоту переписки';
+    messages.after(handle);
+    handle.addEventListener('pointerdown',event=>{
+      if(!widget.classList.contains('hd-ai-expanded')||event.button!==0)return;
+      event.preventDefault();
+      const startY=event.clientY,startHeight=messages.getBoundingClientRect().height;
+      handle.setPointerCapture(event.pointerId);
+      const onMove=e=>{if(e.pointerId!==event.pointerId)return;const max=Math.max(150,window.innerHeight-(widget.classList.contains('hd-ai-fullscreen')?190:270));messagesHeight=Math.max(150,Math.min(max,Math.round(startHeight+e.clientY-startY)));applyMessagesHeight();};
+      const onEnd=e=>{if(e.pointerId!==event.pointerId)return;handle.removeEventListener('pointermove',onMove);handle.removeEventListener('pointerup',onEnd);handle.removeEventListener('pointercancel',onEnd);try{localStorage.setItem(HEIGHT_KEY,String(messagesHeight));}catch(_){}};
+      handle.addEventListener('pointermove',onMove);handle.addEventListener('pointerup',onEnd);handle.addEventListener('pointercancel',onEnd);
+    });
+    handle.addEventListener('keydown',event=>{if(event.key!=='ArrowUp'&&event.key!=='ArrowDown')return;event.preventDefault();messagesHeight=Math.max(150,Math.min(1600,messagesHeight+(event.key==='ArrowDown'?30:-30)));applyMessagesHeight();try{localStorage.setItem(HEIGHT_KEY,String(messagesHeight));}catch(_){}});
+  }
+
   function install(){
     widget=document.getElementById('hdClientAiWidget');
     if(!widget)return false;
@@ -334,6 +366,7 @@
 
     normalizeHeader();
     installFooterControls();
+    installResizeHandle();
 
     // Re-installation after a chat update must not close an already expanded modal.
     if(!widget.classList.contains('hd-ai-expanded'))setExpanded(false);
