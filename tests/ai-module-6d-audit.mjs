@@ -203,6 +203,43 @@ assert(String(viewCheck.prepared.message).includes('РЕЖИМ КОРОТКО'))
 assert(String(viewCheck.prepared.message).includes('ОФОРМЛЕНИЕ:'),'Structured response instruction is missing');
 await page.locator('#hdClientAiWidget .hd-ai-msg.assistant .hd-ai-rich').last().waitFor({state:'visible',timeout:5000});
 
+const chatWidget=page.locator('#hdClientAiWidget');
+const chatExpand=chatWidget.locator('.hd-ai-expand-btn');
+await chatExpand.waitFor({state:'visible',timeout:5000});
+await chatExpand.click();
+const modalCheck=await page.evaluate(()=>{
+  const el=document.getElementById('hdClientAiWidget');
+  const backdrop=document.querySelector('.hd-ai-backdrop');
+  const rect=el.getBoundingClientRect();
+  const front=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);
+  return {
+    isPortal:el.parentNode===document.body,
+    isExpanded:el.classList.contains('hd-ai-expanded'),
+    topmost:front===el||el.contains(front),
+    modal:el.getAttribute('aria-modal'),
+    backdropVisible:!!backdrop&&!backdrop.hidden,
+    x:rect.left,width:rect.width,
+    historyPresent:el.textContent.includes('AI 6D transport answer')
+  };
+});
+assert.equal(modalCheck.isPortal,true,'Expanded client AI chat must escape clipped right rail');
+assert.equal(modalCheck.isExpanded,true,'Client AI chat failed to expand');
+assert.equal(modalCheck.topmost,true,'Client AI chat is hidden behind backdrop');
+assert.equal(modalCheck.modal,'true','Expanded AI chat is not identified as a modal');
+assert.equal(modalCheck.backdropVisible,true,'AI backdrop missing');
+assert(modalCheck.x>=0&&modalCheck.x+modalCheck.width<=1441,'Expanded AI chat is outside viewport');
+assert.equal(modalCheck.historyPresent,true,'Chat history disappeared while expanding');
+await page.evaluate(()=>window.dispatchEvent(new CustomEvent('diagnostika-client-ai-chat-changed')));
+await page.waitForTimeout(100);
+assert.equal(await chatWidget.evaluate(el=>el.classList.contains('hd-ai-expanded')),true,'Chat refresh closed expanded AI window');
+await chatExpand.click();
+assert.equal(await chatWidget.evaluate(el=>el.parentNode?.classList.contains('hd-right')),true,'AI chat did not restore to right rail');
+assert.equal(await page.locator('.hd-ai-backdrop').evaluate(el=>el.hidden),true,'AI backdrop remained after collapse');
+await chatExpand.click();
+await page.keyboard.press('Escape');
+assert.equal(await chatWidget.evaluate(el=>el.parentNode?.classList.contains('hd-right')),true,'Escape did not collapse and restore client AI chat');
+
+
 const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem('diagnostika-web-v1')||'{}'));
 const persistedClient=persisted.clients.find(x=>x.id==='ai-6d-client');
 assert.equal(persistedClient.currentRequestId,'ai-6d-r2');
