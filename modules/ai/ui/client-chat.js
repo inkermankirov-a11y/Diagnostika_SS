@@ -26,12 +26,23 @@
     }
   }
   function notesOf(c){if(!c)return[];if(!Array.isArray(c.quickNotes))c.quickNotes=[];return c.quickNotes;}
+  const CHAT_BACKUP_PREFIX='diagnostika-ai-chat-backup-v1:';
+  function backupKey(id){return CHAT_BACKUP_PREFIX+encodeURIComponent(String(id));}
+  function readBackup(id){
+    try{const rows=JSON.parse(localStorage.getItem(backupKey(id))||'[]');return Array.isArray(rows)?rows.filter(m=>m&&m.id&&m.text&&['user','assistant'].includes(m.role)):[];}catch(_){return[];}
+  }
+  function backupMessage(id,message){
+    const rows=readBackup(id);
+    if(!rows.some(m=>String(m.id)===String(message.id)))rows.push(message);
+    try{localStorage.setItem(backupKey(id),JSON.stringify(rows.slice(-300)));return true;}catch(err){console.warn('AI chat backup failed',err);return false;}
+  }
   function chatOf(c){
     if(!c)return[];
-    try{
-      const chat=window.DiagnostikaAI?.clientChat?.(c.id);
-      return Array.isArray(chat)?chat:[];
-    }catch(_){return[];}
+    let primary=[];
+    try{const chat=window.DiagnostikaAI?.clientChat?.(c.id);primary=Array.isArray(chat)?chat:[];}catch(_){}
+    const merged=new Map();
+    for(const m of [...primary,...readBackup(c.id)])if(m&&m.id&&m.text)merged.set(String(m.id),m);
+    return [...merged.values()].sort((a,b)=>Number(a.createdAt||0)-Number(b.createdAt||0));
   }
   function fmt(ts){try{return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(ts));}catch(_){return'';}}
 
@@ -244,7 +255,7 @@
     }
     const history=chatOf(c);
     if(!history.length){messages.innerHTML='<div class="hd-ai-empty">Здесь будет отдельный AI-диалог по этому клиенту. Контекст других клиентов не отправляется.</div>';return;}
-    history.slice(-30).forEach(m=>{const div=document.createElement('div');const assistant=m.role==='assistant';div.className=`hd-ai-msg ${assistant?'assistant':'user'}`;div.innerHTML=assistant?`<div class="hd-ai-rich">${formatAssistantText(m.text)}</div><span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`:`${esc(m.text)}<span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`;messages.appendChild(div);});messages.scrollTop=messages.scrollHeight;
+    history.slice(-100).forEach(m=>{const div=document.createElement('div');const assistant=m.role==='assistant';div.className=`hd-ai-msg ${assistant?'assistant':'user'}`;div.innerHTML=assistant?`<div class="hd-ai-rich">${formatAssistantText(m.text)}</div><span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`:`${esc(m.text)}<span class="hd-ai-msg-time">${esc(fmt(m.createdAt))}</span>`;messages.appendChild(div);});messages.scrollTop=messages.scrollHeight;
   }
   function setStatus(text,kind=''){if(!widget)return;const s=widget.querySelector('.hd-ai-status');s.textContent=text||'';s.className=`hd-ai-status ${kind}`.trim();}
   async function send(raw){
@@ -258,30 +269,24 @@
     }
 
     const input=widget.querySelector('.hd-ai-input');
-    input.value='';
-    const userMessage=api.appendClientMessage(c.id,{
-      id:uid('chat'),
-      role:'user',
-      text:message,
-      createdAt:Date.now()
-    },{client:c,source:'client-ai-chat-user'});
-    if(!userMessage){
-      setStatus('Не удалось сохранить сообщение клиента.','error');
+    const outgoing={id:uid('chat'),role:'user',text:message,createdAt:Date.now()};
+    const backedUp=backupMessage(c.id,outgoing);
+    const userMessage=api.appendClientMessage(c.id,outgoing,{client:c,source:'client-ai-chat-user'});
+    if(!userMessage&&!backedUp){
+      setStatus('Не удалось сохранить сообщение. Проверьте место в хранилище браузера.','error');
       return;
     }
+    input.value='';
 
     sending=true;
     renderChat();
     setStatus('AI анализирует данные выбранного клиента…','busy');
     try{
       const answer=await askAi(c,message);
-      const assistantMessage=api.appendClientMessage(c.id,{
-        id:uid('chat'),
-        role:'assistant',
-        text:answer,
-        createdAt:Date.now()
-      },{client:c,source:'client-ai-chat-assistant'});
-      if(!assistantMessage)throw new Error('Не удалось сохранить ответ AI.');
+      const incoming={id:uid('chat'),role:'assistant',text:answer,createdAt:Date.now()};
+      const answerBackedUp=backupMessage(c.id,incoming);
+      const assistantMessage=api.appendClientMessage(c.id,incoming,{client:c,source:'client-ai-chat-assistant'});
+      if(!assistantMessage&&!answerBackedUp)throw new Error('Не удалось сохранить ответ AI.');
       setStatus('');
     }
     catch(err){
@@ -306,6 +311,9 @@
     const events=window.DiagnostikaPlatform?.events;
     if(!events?.on)return false;
     events.on('ai-client-chat:updated',detail=>{
+      if(detail?.change==='replace'&&Array.isArray(detail.after)&&detail.after.length===0&&detail.clientId!=null){
+        try{localStorage.removeItem(backupKey(detail.clientId));}catch(_){}
+      }
       const c=currentClient();
       if(!c||String(detail?.clientId)!==String(c.id))return;
       setTimeout(refresh,0);
