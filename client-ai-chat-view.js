@@ -90,6 +90,8 @@
     .hd-ai-title-actions{margin-left:auto;display:flex;align-items:center;gap:5px}
     .hd-ai-expand-btn{width:28px;height:28px;border:1px solid #d7e0ea;border-radius:9px;background:#fff;color:#536b82;display:grid;place-items:center;cursor:pointer;font-size:15px;line-height:1;padding:0;box-shadow:none}
     .hd-ai-expand-btn:hover{background:#f6f8fb}
+    .hd-ai-fullscreen-btn{display:none}
+    #hdClientAiWidget.hd-ai-expanded .hd-ai-fullscreen-btn{display:grid}
     .hd-ai-backdrop{position:fixed;inset:0;z-index:13990;background:rgba(15,23,42,.28);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
     .hd-ai-backdrop[hidden]{display:none!important}
 
@@ -118,7 +120,8 @@
     .hd-ai-mode-btn.active{background:#fff;color:#2563eb;box-shadow:0 1px 3px rgba(15,23,42,.10)}
     .hd-ai-mode-btn:hover{color:#334155}
 
-    body > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded{position:fixed!important;z-index:14000!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(880px,calc(100vw - 56px))!important;min-width:0!important;max-width:880px!important;height:min(76vh,720px)!important;min-height:520px!important;max-height:calc(100vh - 48px)!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:18px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 28px 80px rgba(15,23,42,.38)!important}
+    body > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded{position:fixed!important;z-index:14000!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(880px,calc(100vw - 56px))!important;min-width:0!important;max-width:880px!important;height:min(90dvh,920px)!important;min-height:0!important;max-height:calc(100dvh - 32px)!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:18px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 28px 80px rgba(15,23,42,.38)!important}
+    body > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded.hd-ai-fullscreen{inset:0!important;left:0!important;top:0!important;transform:none!important;width:100vw!important;min-width:0!important;max-width:none!important;height:100dvh!important;min-height:0!important;max-height:none!important;border-radius:0!important;padding:clamp(12px,2vw,24px)!important}
     #hdClientAiWidget.hd-ai-expanded .hd-widget-title{font-size:17px!important;margin-bottom:8px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-client{display:block!important;font-size:13px!important;line-height:1.4!important;margin:4px 0 12px!important;padding-left:2px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-messages{height:auto!important;min-height:0!important;flex:1 1 auto!important;font-size:14px!important;padding:12px!important;gap:10px!important}
@@ -135,7 +138,7 @@
     #hdClientAiWidget.hd-ai-expanded .hd-ai-compose{grid-template-columns:1fr 44px!important;gap:8px!important;margin-top:8px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-input{height:44px!important;font-size:14px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-send{width:44px!important;height:44px!important}
-    @media(max-width:760px){body > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded{width:calc(100vw - 20px)!important;max-width:none!important;height:calc(100vh - 20px)!important;min-height:0!important;max-height:none!important;padding:12px!important}#hdClientAiWidget.hd-ai-expanded .hd-ai-msg{max-width:92%!important}}
+    @media(max-width:760px){body > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded{width:calc(100vw - 20px)!important;max-width:none!important;height:calc(100dvh - 20px)!important;min-height:0!important;max-height:none!important;padding:12px!important}#hdClientAiWidget.hd-ai-expanded .hd-ai-msg{max-width:92%!important}}
   `;
   document.head.appendChild(style);
 
@@ -269,6 +272,7 @@
       restoreWidgetToRail();
       hideHintsMenu();
     }
+    if(!expanded)widget.classList.remove('hd-ai-fullscreen');
     widget.classList.toggle('hd-ai-expanded',expanded);
     widget.setAttribute('aria-modal',expanded?'true':'false');
     if(expanded)widget.setAttribute('role','dialog');
@@ -276,6 +280,8 @@
     if(backdrop)backdrop.hidden=!expanded;
     const btn=widget.querySelector('.hd-ai-expand-btn');
     if(btn){btn.textContent=expanded?'↙':'⛶';btn.title=expanded?'Свернуть чат':'Развернуть чат';btn.setAttribute('aria-label',btn.title);}
+    const fullBtn=widget.querySelector('.hd-ai-fullscreen-btn');
+    if(fullBtn){fullBtn.textContent=widget.classList.contains('hd-ai-fullscreen')?'❐':'⛶';fullBtn.title=widget.classList.contains('hd-ai-fullscreen')?'Выйти из полноэкранного режима':'На весь экран';fullBtn.setAttribute('aria-label',fullBtn.title);fullBtn.setAttribute('aria-pressed',widget.classList.contains('hd-ai-fullscreen')?'true':'false');}
     if(expanded){const input=widget.querySelector('.hd-ai-input');setTimeout(()=>input?.focus(),0);}
   }
 
@@ -319,7 +325,10 @@
       const actions=document.createElement('span');actions.className='hd-ai-title-actions';
       const btn=document.createElement('button');btn.type='button';btn.className='hd-ai-expand-btn';btn.title='Развернуть чат';btn.setAttribute('aria-label','Развернуть чат');btn.textContent='⛶';
       btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();setExpanded(!widget.classList.contains('hd-ai-expanded'));});
-      actions.appendChild(btn);title.appendChild(actions);
+      actions.appendChild(btn);
+      const fullBtn=document.createElement('button');fullBtn.type='button';fullBtn.className='hd-ai-expand-btn hd-ai-fullscreen-btn';fullBtn.title='На весь экран';fullBtn.setAttribute('aria-label','На весь экран');fullBtn.textContent='⛶';
+      fullBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(!widget.classList.contains('hd-ai-expanded'))setExpanded(true);widget.classList.toggle('hd-ai-fullscreen');setExpanded(true);});
+      actions.appendChild(fullBtn);title.appendChild(actions);
     }
 
     normalizeHeader();
@@ -343,7 +352,8 @@
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){
       if(activeHintsMenu&&!activeHintsMenu.hidden){hideHintsMenu();return;}
-      if(widget?.classList.contains('hd-ai-expanded'))setExpanded(false);
+      if(widget?.classList.contains('hd-ai-fullscreen')){widget.classList.remove('hd-ai-fullscreen');setExpanded(true);}
+      else if(widget?.classList.contains('hd-ai-expanded'))setExpanded(false);
     }
   });
   window.addEventListener('resize',()=>{if(activeHintsMenu&&!activeHintsMenu.hidden)positionHintsMenu(activeHintsButton,activeHintsMenu);});
