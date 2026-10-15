@@ -31,7 +31,7 @@ for(const token of [
 ])assert(loaderSource.includes(token),'Stale AI loader marker: '+token);
 for(const token of [
   'modules/ai/ui/client-chat.js?v=20261006-synced-key-1',
-  'client-ai-full-context.js?v=20260919-ai6d',
+  'client-ai-full-context.js?v=20261003-longitudinal-ai-1',
   'modules/ai/ui/session-chat.js?v=20261006-synced-key-1'
 ])assert(indexSource.includes(token),'Stale AI runtime marker: '+token);
 const aiBuildMatch=indexSource.match(/<meta name="diagnostika-build" content="([^"]+)">/);
