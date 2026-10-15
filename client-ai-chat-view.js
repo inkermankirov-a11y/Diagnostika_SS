@@ -8,6 +8,7 @@
   let attempts=0;
   let widget=null;
   let backdrop=null;
+  let widgetAnchor=null;
   let platformEventsHooked=false;
   let activeHintsMenu=null;
   let activeHintsButton=null;
@@ -117,7 +118,7 @@
     .hd-ai-mode-btn.active{background:#fff;color:#2563eb;box-shadow:0 1px 3px rgba(15,23,42,.10)}
     .hd-ai-mode-btn:hover{color:#334155}
 
-    .home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded{position:fixed!important;z-index:14000!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(880px,calc(100vw - 56px))!important;min-width:0!important;max-width:880px!important;height:min(76vh,720px)!important;min-height:520px!important;max-height:calc(100vh - 48px)!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:18px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 28px 80px rgba(15,23,42,.38)!important}
+    body > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded{position:fixed!important;z-index:14000!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(880px,calc(100vw - 56px))!important;min-width:0!important;max-width:880px!important;height:min(76vh,720px)!important;min-height:520px!important;max-height:calc(100vh - 48px)!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:18px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 28px 80px rgba(15,23,42,.38)!important}
     #hdClientAiWidget.hd-ai-expanded .hd-widget-title{font-size:17px!important;margin-bottom:8px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-client{display:block!important;font-size:13px!important;line-height:1.4!important;margin:4px 0 12px!important;padding-left:2px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-messages{height:auto!important;min-height:0!important;flex:1 1 auto!important;font-size:14px!important;padding:12px!important;gap:10px!important}
@@ -134,7 +135,7 @@
     #hdClientAiWidget.hd-ai-expanded .hd-ai-compose{grid-template-columns:1fr 44px!important;gap:8px!important;margin-top:8px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-input{height:44px!important;font-size:14px!important}
     #hdClientAiWidget.hd-ai-expanded .hd-ai-send{width:44px!important;height:44px!important}
-    @media(max-width:760px){.home-dashboard .hd-right > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded{width:calc(100vw - 20px)!important;max-width:none!important;height:calc(100vh - 20px)!important;min-height:0!important;max-height:none!important;padding:12px!important}#hdClientAiWidget.hd-ai-expanded .hd-ai-msg{max-width:92%!important}}
+    @media(max-width:760px){body > #hdClientAiWidget.hd-ai-widget.hd-ai-expanded{width:calc(100vw - 20px)!important;max-width:none!important;height:calc(100vh - 20px)!important;min-height:0!important;max-height:none!important;padding:12px!important}#hdClientAiWidget.hd-ai-expanded .hd-ai-msg{max-width:92%!important}}
   `;
   document.head.appendChild(style);
 
@@ -241,9 +242,37 @@
     }
   }
 
+  function restoreWidgetToRail(){
+    if(!widget)return;
+    if(widgetAnchor?.parentNode){
+      widgetAnchor.parentNode.insertBefore(widget,widgetAnchor);
+    }else if(widget.parentElement===document.body){
+      // The client dashboard may have been re-rendered while the modal was open.
+      document.querySelector('.home-dashboard .hd-right')?.appendChild(widget);
+    }
+    widgetAnchor?.remove();
+    widgetAnchor=null;
+  }
+
   function setExpanded(expanded){
     if(!widget)return;
+    if(expanded){
+      // The right rail clips overflow and creates its own stacking context.
+      // Fixed positioning alone cannot lift the chat above a body-level backdrop.
+      // Portal the SAME widget to body, preserving its messages and listeners.
+      if(widget.parentElement!==document.body){
+        widgetAnchor=document.createComment('client-ai-widget-return-point');
+        widget.parentNode.insertBefore(widgetAnchor,widget);
+        document.body.appendChild(widget);
+      }
+    }else{
+      restoreWidgetToRail();
+      hideHintsMenu();
+    }
     widget.classList.toggle('hd-ai-expanded',expanded);
+    widget.setAttribute('aria-modal',expanded?'true':'false');
+    if(expanded)widget.setAttribute('role','dialog');
+    else widget.removeAttribute('role');
     if(backdrop)backdrop.hidden=!expanded;
     const btn=widget.querySelector('.hd-ai-expand-btn');
     if(btn){btn.textContent=expanded?'↙':'⛶';btn.title=expanded?'Свернуть чат':'Развернуть чат';btn.setAttribute('aria-label',btn.title);}
@@ -296,7 +325,8 @@
     normalizeHeader();
     installFooterControls();
 
-    setExpanded(false);
+    // Re-installation after a chat update must not close an already expanded modal.
+    if(!widget.classList.contains('hd-ai-expanded'))setExpanded(false);
     hookPlatformEvents();
     return true;
   }
