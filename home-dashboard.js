@@ -1066,40 +1066,23 @@
     const compactOutcome=(text)=>{
       const source=String(text||'').replace(/\s+/g,' ').trim();
       if(!source)return '';
-      // Common multi-goal case: compress the meaning, not the character count.
-      if(/интернет-магазин/i.test(source)&&/целительств/i.test(source)&&/путешеств/i.test(source)){
-        const goals=[];
-        if(/(?:выйти|выход|уход|уйти) из найма/i.test(source))goals.push('выйти из найма');
-        goals.push('развивать интернет-магазин','вернуться к целительству и продажам','свободно путешествовать');
-        return goals.join(', ').replace(/^./,c=>c.toUpperCase())+'.';
-      }
-      // Assemble a concise goal from actual phrases instead of truncating the paragraph.
-      const clauses=source.split(/[.!?;]+|,(?=\s)/).map(part=>part.trim()).filter(Boolean);
-      const clean=part=>part
-        .replace(/^(?:клиент(?:ка)?\s+)?(?:хочет|желает|стремится|планирует)\s+/i,'')
-        .replace(/^он(?:а)?\s+(?:хочет|сможет|мог(?:ла)? бы)\s+/i,'')
-        .replace(/^чтобы\s+(?:он(?:а)?\s+)?/i,'')
-        .replace(/^(?:а\s+)?(?:он|она)\s+(?:мог(?:ла)?|хочет)\s+/i,'')
-        .replace(/^и\s+/i,'')
-        .replace(/^из-за необходимости\s+/i,'')
-        .trim();
-      // Preserve the core outcome: professional goal, freedom and desired lifestyle.
-      const meaningful=clauses.map(clean).filter(part=>part.length>8);
-      const scores=meaningful.map((part,index)=>{
-        const goal=/(?:вернут|выйт|разви|работа|бизнес|магазин|продаж|зарабат|доход|финанс|свобод|путешеств|отношени|здоров|жить|созда|постро|занима|избав|перестат|стать|получ)/i.test(part);
-        const vague=/(?:чувствоват|желание просыпат|хочется|клиент|он мог|она мог)/i.test(part);
-        return {part,index,score:(goal?3:0)-(vague?2:0)};
-      });
-      let picked=scores.filter(x=>x.score>=2).slice(0,4);
-      if(!picked.length)picked=scores.slice(0,2);
-      let result=picked.map(x=>x.part).join(', ')
-        .replace(/\s+,/g,',').replace(/,\s*(?:и\s*)?$/,'').trim();
-      if(!result)result=source.split(/[.!?]/)[0].trim();
-      // Keep the card compact without ending with a broken word or an ellipsis.
-      const words=result.split(/\s+/);
-      if(words.length>15)result=words.slice(0,15).join(' ');
-      result=result.replace(/[,;:–—-]+$/,'').trim();
-      return result.charAt(0).toUpperCase()+result.slice(1).replace(/[.!?]*$/,'.');
+      // Distill distinct goals from the original text; never display a paragraph fragment.
+      const goals=[];
+      const has=re=>re.test(source);
+      if(has(/(?:выйти|выход|уйти|уход|освободиться)\s+из\s+найма/i))goals.push('выйти из найма');
+      if(has(/интернет[- ]магазин/i))goals.push('развивать интернет-магазин');
+      if(has(/целительств/i))goals.push('вернуться к целительству');
+      if(has(/продаж/i))goals.push('заниматься продажами');
+      if(has(/путешеств/i))goals.push('свободно путешествовать');
+      if(has(/финансов\w* свобод|финансов\w* независим/i))goals.push('обрести финансовую свободу');
+      if(goals.length>=2)return goals.slice(0,5).join(', ').replace(/^./,ch=>ch.toUpperCase())+'.';
+      // For unrecognized requests choose a short complete sentence, never a cut-off fragment.
+      const sentences=source.split(/(?<=[.!?])\s+/).filter(Boolean);
+      const first=sentences[0]||source;
+      const short=first.split(/[,;]/)[0].replace(/^(?:клиент(?:ка)?\s+)?(?:хочет|желает)\s+/i,'').trim();
+      const words=short.split(/\s+/).filter(Boolean);
+      const result=words.length<=13?short:words.slice(0,13).join(' ');
+      return result.replace(/[.!?…,:;\s]+$/,'').replace(/^./,ch=>ch.toUpperCase())+'.';
     };
     const desiredResult=desiredResultFull?compactOutcome(desiredResultFull):'Не указан';
     const items=[
