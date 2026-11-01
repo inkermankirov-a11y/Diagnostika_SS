@@ -4,7 +4,7 @@
   if(window.DiagnostikaHypothesisClarity)return;
 
   const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
-  const quoteValue=value=>clean(value).replace(/^[«"'“„\s]+|[»"'”\s]+$/g,'').replace(/[.!?]+$/,'').trim();
+  const quoteValue=value=>clean(value).replace(/^[«"'“„\s]+|[»"'”\s]+$/g,'').replace(/[.!?]+$/,'').trim().replace(/^я(?=\s|$)/u,'Я');
   const key=value=>quoteValue(value).toLocaleLowerCase('ru-RU').replace(/^я[\s,:;.!?—–-]+/u,'').trim();
   const isGenericRequest=value=>/^(новый запрос|запрос(?:\s*№?\s*\d+)?|без названия)$/iu.test(clean(value));
 
