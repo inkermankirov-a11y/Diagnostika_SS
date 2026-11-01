@@ -72,6 +72,8 @@
     const request=[active,viewed].find(r=>isUnfinished(r)&&unfinished.some(x=>String(x.id)===String(r.id)))
       ||unfinished[unfinished.length-1];
 
+    const previousViewedId=api.viewedId?.(c);
+    const alreadyInDiagnosis=typeof mode!=='undefined'&&mode==='diagnosis';
     if(String(api.activeId?.(c)??'')!==String(request.id)){
       if(typeof api.activate!=='function'||!api.activate(request.id,{
         client:c,source:'diagnosis-auto-restore-active',render:false
@@ -80,9 +82,9 @@
       if(!api.view(request.id,{client:c,source:'diagnosis-auto-open',render:false}))return false;
     }
 
-    // An already open diagnosis is not a reason to show the chooser.
-    const alreadyInDiagnosis=typeof mode!=='undefined'&&mode==='diagnosis';
-    const alreadyViewing=String(api.viewedId?.(c)??'')===String(request.id);
+    // Preserve the selected diagnosis element only when we were already
+    // viewing exactly the same unfinished request before this opening.
+    const alreadyViewing=String(previousViewedId??'')===String(request.id);
     try{
       if(!alreadyInDiagnosis||!alreadyViewing){
         situationId=request.situations?.[0]?.id||null;
