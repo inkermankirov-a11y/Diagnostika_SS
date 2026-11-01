@@ -300,7 +300,13 @@
   archiveDlg.addEventListener('click',e=>{if(e.target===archiveDlg)archiveDlg.close();});
 
   attachButtons();
-  new MutationObserver(()=>{attachButtons();refreshAiSavedButton();}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
+  // The consultation dialog is created before this script loads. Avoid a
+  // document-wide observer: it was reacting to every field/status DOM change.
+  const consultation=document.getElementById('freeConsultationDialog');
+  consultation?.addEventListener('toggle',()=>{if(consultation.open)attachButtons();});
+  document.getElementById('freeConsultationAiResultDialog')?.addEventListener('close',refreshAiSavedButton);
+  const bindUpdates=()=>window.DiagnostikaPlatform?.events?.on?.('client:updated',refreshAiSavedButton);
+  if(!bindUpdates())window.addEventListener('diagnostika:platform-core-ready',bindUpdates,{once:true});
 
   window.DiagnostikaFreeConsultationArchive={open:openArchive,archiveCurrent,refresh:()=>{renderList();renderEditor();refreshAiSavedButton();}};
 })();
