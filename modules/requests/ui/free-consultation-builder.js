@@ -7,7 +7,7 @@
   style.textContent=`
     .fc-dialog,.fc-result-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}
     .fc-dialog::backdrop,.fc-result-dialog::backdrop{background:rgba(15,23,42,.65);backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-    .fc-window{isolation:isolate;transform:translateZ(0);width:min(1040px,calc(100vw - 28px));max-height:92vh;overflow:auto;background:#f8fafc;border:1px solid #d6e0eb;border-radius:16px;box-shadow:0 28px 80px rgba(15,23,42,.34);padding:18px;box-sizing:border-box;color:#243447}
+    .fc-window{isolation:isolate;width:min(1040px,calc(100vw - 28px));max-height:92vh;overflow:auto;background:#f8fafc;border:1px solid #d6e0eb;border-radius:16px;box-shadow:0 28px 80px rgba(15,23,42,.34);padding:18px;box-sizing:border-box;color:#243447}
     .fc-head,.fc-result-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
     .fc-title,.fc-result-head strong{font-size:22px;font-weight:900;color:#1f344d}.fc-client{margin-top:3px;font-size:12px;color:#71839c}
     .fc-close,.fc-result-close{width:38px;height:38px!important;padding:0!important;font-size:19px!important}
@@ -17,7 +17,7 @@
     .fc-field textarea:focus,.fc-result-main:focus,.fc-situation-name:focus{border-color:#6aa4ee;box-shadow:0 0 0 3px rgba(47,128,237,.1)}
     .fc-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid #dbe4ee}.fc-actions-left,.fc-actions-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .fc-ai{height:40px!important;padding:0 16px!important;background:linear-gradient(#3f8af5,#236ddd)!important;color:#fff!important;border-color:#236ddd!important;font-weight:900!important}.fc-save,.fc-create-diagnosis{height:40px!important;padding:0 16px!important;background:linear-gradient(#48a873,#278656)!important;color:#fff!important;font-weight:900!important}.fc-status{font-size:11px;color:#71839c}
-    .fc-result-window{isolation:isolate;transform:translateZ(0);width:min(900px,calc(100vw - 28px));max-height:92vh;overflow:auto;background:#fff;border:1px solid #d7e0ea;border-radius:15px;box-shadow:0 24px 70px rgba(15,23,42,.3);padding:18px;box-sizing:border-box}
+    .fc-result-window{isolation:isolate;width:min(900px,calc(100vw - 28px));max-height:92vh;overflow:auto;background:#fff;border:1px solid #d7e0ea;border-radius:15px;box-shadow:0 24px 70px rgba(15,23,42,.3);padding:18px;box-sizing:border-box}
     .fc-result-note{padding:10px 12px;border:1px solid #f0d7a7;border-radius:9px;background:#fff8e8;color:#815a14;font-size:12px;line-height:1.4;margin-bottom:12px}.fc-result-label{font-size:12px;font-weight:900;color:#3f526a;margin:12px 0 6px}
     .fc-result-main{width:100%;min-height:105px;resize:vertical;box-sizing:border-box;border:1px solid #c7d4e2;border-radius:9px;padding:10px;font:600 14px/1.5 'Segoe UI',Arial,sans-serif;color:#20344c}
     .fc-short-list{display:grid;gap:8px}.fc-short-option{display:grid;grid-template-columns:auto 72px 1fr;align-items:center;gap:9px;border:1px solid #dbe4ee;border-radius:10px;padding:9px 10px;background:#f8fafc;cursor:pointer}.fc-short-option.selected{border-color:#5b8def;background:#eef5ff;box-shadow:0 0 0 2px rgba(47,128,237,.08)}.fc-short-option input[type=radio]{width:17px;height:17px}.fc-priority{font-weight:900;color:#315f9e;font-size:13px}.fc-short-title{width:100%;box-sizing:border-box;border:0;background:transparent;font:700 13px/1.35 'Segoe UI',Arial,sans-serif;color:#23384f;outline:none}
@@ -80,6 +80,16 @@
       </div>
     </section>`;
   document.body.appendChild(resultDlg);
+  // Input events must remain within the consultation. Global document-level
+  // input/change handlers belong to the underlying application, not this modal.
+  // Bubble-phase listeners preserve every local textarea handler and autosave.
+  for(const modal of [dlg,resultDlg]){
+    for(const type of ['input','change']){
+      modal.addEventListener(type,event=>{
+        if(event.target?.matches?.('input,textarea,select'))event.stopPropagation();
+      });
+    }
+  }
 
   const q=sel=>dlg.querySelector(sel);
   const rq=sel=>resultDlg.querySelector(sel);
@@ -272,7 +282,7 @@
 
   q('.fc-close').onclick=close;q('.fc-cancel').onclick=close;q('.fc-save').onclick=()=>persist(true);q('.fc-ai').onclick=generate;
   dlg.addEventListener('cancel',e=>{e.preventDefault();close();});dlg.addEventListener('click',e=>{if(e.target===dlg)close();});
-  Object.values(fields).forEach(el=>el.addEventListener('input',()=>{status.textContent='Есть несохранённые изменения';}));
+  Object.values(fields).forEach(el=>el.addEventListener('input',()=>{if(status.textContent!=='Есть несохранённые изменения')status.textContent='Есть несохранённые изменения';}));
   rq('.fc-result-close').onclick=()=>resultDlg.close();rq('.fc-result-close2').onclick=()=>resultDlg.close();
   rq('.fc-result-save-main').onclick=()=>saveMainRequest(true);
   rq('.fc-create-diagnosis').onclick=createDiagnosis;
