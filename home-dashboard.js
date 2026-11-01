@@ -1072,6 +1072,7 @@
         .replace(/^(?:клиент(?:ка)?\s+)?(?:хочет|желает|стремится|планирует)\s+/i,'')
         .replace(/^он(?:а)?\s+(?:хочет|сможет|мог(?:ла)? бы)\s+/i,'')
         .replace(/^чтобы\s+(?:он(?:а)?\s+)?/i,'')
+        .replace(/^(?:а\s+)?(?:он|она)\s+(?:мог(?:ла)?|хочет)\s+/i,'')
         .replace(/^и\s+/i,'')
         .replace(/^из-за необходимости\s+/i,'')
         .trim();
@@ -1089,7 +1090,7 @@
       if(!result)result=source.split(/[.!?]/)[0].trim();
       // Keep the card compact without ending with a broken word or an ellipsis.
       const words=result.split(/\s+/);
-      if(words.length>19)result=words.slice(0,19).join(' ');
+      if(words.length>15)result=words.slice(0,15).join(' ');
       result=result.replace(/[,;:–—-]+$/,'').trim();
       return result.charAt(0).toUpperCase()+result.slice(1).replace(/[.!?]*$/,'.');
     };
