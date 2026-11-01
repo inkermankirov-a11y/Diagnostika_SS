@@ -5,9 +5,11 @@
   window.__freeConsultationArchiveReady = true;
 
   const FIELDS = [
+    ['context','История клиента / контекст'],
     ['pain','Боль клиента'],
     ['manifestations','Где проявляется'],
     ['impact','Как мешает жить'],
+    ['attempts','Что пробовал / что сработало / что не сработало'],
     ['desired','Что хочет вместо этого'],
     ['whyNow','Почему сейчас'],
     ['lifeAfter','Как изменится жизнь после решения проблемы']
@@ -32,7 +34,7 @@
 
   function blankConsultation(){
     const now = new Date().toISOString();
-    return {id:makeId(),createdAt:now,updatedAt:now,pain:'',manifestations:'',impact:'',desired:'',whyNow:'',lifeAfter:'',aiResult:null};
+    return {id:makeId(),createdAt:now,updatedAt:now,context:'',pain:'',manifestations:'',impact:'',attempts:'',desired:'',whyNow:'',lifeAfter:'',aiResult:null};
   }
 
   function ensureClientData(c){
@@ -53,7 +55,7 @@
     const dlg=document.getElementById('freeConsultationDialog');
     if(!c||!dlg) return;
     ensureClientData(c);
-    const map={pain:'.fc-pain',manifestations:'.fc-manifestations',impact:'.fc-impact',desired:'.fc-desired',whyNow:'.fc-why-now',lifeAfter:'.fc-life-after'};
+    const map={context:'.fc-context',pain:'.fc-pain',manifestations:'.fc-manifestations',impact:'.fc-impact',attempts:'.fc-attempts',desired:'.fc-desired',whyNow:'.fc-why-now',lifeAfter:'.fc-life-after'};
     for(const [key,sel] of Object.entries(map)){
       const el=dlg.querySelector(sel); if(el) c.freeConsultation[key]=el.value||'';
     }
@@ -64,7 +66,7 @@
     const dlg=document.getElementById('freeConsultationDialog');
     if(!c||!dlg) return;
     ensureClientData(c);
-    const map={pain:'.fc-pain',manifestations:'.fc-manifestations',impact:'.fc-impact',desired:'.fc-desired',whyNow:'.fc-why-now',lifeAfter:'.fc-life-after'};
+    const map={context:'.fc-context',pain:'.fc-pain',manifestations:'.fc-manifestations',impact:'.fc-impact',attempts:'.fc-attempts',desired:'.fc-desired',whyNow:'.fc-why-now',lifeAfter:'.fc-life-after'};
     for(const [key,sel] of Object.entries(map)){
       const el=dlg.querySelector(sel); if(el) el.value=c.freeConsultation[key]||'';
     }
@@ -300,7 +302,13 @@
   archiveDlg.addEventListener('click',e=>{if(e.target===archiveDlg)archiveDlg.close();});
 
   attachButtons();
-  new MutationObserver(()=>{attachButtons();refreshAiSavedButton();}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
+  // The consultation dialog is created before this script loads. Avoid a
+  // document-wide observer: it was reacting to every field/status DOM change.
+  const consultation=document.getElementById('freeConsultationDialog');
+  consultation?.addEventListener('toggle',()=>{if(consultation.open)attachButtons();});
+  document.getElementById('freeConsultationAiResultDialog')?.addEventListener('close',refreshAiSavedButton);
+  const bindUpdates=()=>window.DiagnostikaPlatform?.events?.on?.('client:updated',refreshAiSavedButton);
+  if(!bindUpdates())window.addEventListener('diagnostika:platform-core-ready',bindUpdates,{once:true});
 
   window.DiagnostikaFreeConsultationArchive={open:openArchive,archiveCurrent,refresh:()=>{renderList();renderEditor();refreshAiSavedButton();}};
 })();

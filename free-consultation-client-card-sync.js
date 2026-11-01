@@ -56,9 +56,14 @@
   }
 
   function removeLegacyConsultationFields(grid){
+    // One canonical combined attempts field. Remove the legacy wrapper at once
+    // instead of letting two integrations remove/recreate its children.
+    grid.querySelectorAll('.fc-extra-fields-fragment').forEach(el=>el.remove());
     ['.fc-tried','.fc-worked','.fc-didnt-help'].forEach(selector=>{
-      const el=grid.querySelector(selector);
-      el?.closest('.fc-field')?.remove();
+      grid.querySelectorAll(selector).forEach(el=>{
+        const field=el.closest('.fc-field');
+        if(field)field.remove();else el.remove();
+      });
     });
   }
 
