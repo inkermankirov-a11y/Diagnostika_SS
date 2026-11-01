@@ -25,9 +25,25 @@
     return window.DiagnostikaPlatform?.services?.diagnosis||null;
   }
 
-  function showChooser(){
+  function showChooser(c,requests){
     const launch=document.querySelector('#diagnosisLaunchDialog');
-    if(launch&&!launch.open)launch.showModal();
+    if(!launch)return false;
+    const hasHistory=requests.length>0;
+    const subtitle=launch.querySelector('.diag-launch-sub');
+    if(subtitle)subtitle.textContent=hasHistory
+      ? 'Все запросы завершены. Начать новую диагностику или открыть предыдущую?'
+      : 'У клиента ещё нет запросов. Начните диагностику с первого запроса.';
+    for(const id of ['diagPreviousBtn','diagDeleteBtn']){
+      const button=launch.querySelector('#'+id);
+      if(button){button.hidden=!hasHistory;button.disabled=!hasHistory;}
+    }
+    if(!launch.open)launch.showModal();
+    return true;
+  }
+
+  function isUnfinished(request){
+    // Legacy requests without a status were always treated as active.
+    return !!request && request.status!=='completed';
   }
 
   function open(){
@@ -39,26 +55,46 @@
       else window.alert('Сначала выберите клиента.');
       return false;
     }
+    if(!api?.list||!api?.view)return false;
 
-    if(typeof mode!=='undefined'&&mode==='diagnosis'){
-      showChooser();
-      return true;
+    const requests=api.list(c)||[];
+    const unfinished=requests.filter(isUnfinished);
+    if(!unfinished.length){
+      // Neither a questionnaire nor a consultation alone creates a diagnosis.
+      // The chooser only appears when no unfinished diagnostic request exists.
+      return showChooser(c,requests);
     }
 
-    const r=api?.active?.(c)||null;
-    if(!api||!r){
-      showChooser();
-      return false;
+    // Active request takes precedence, then the already viewed unfinished one.
+    // Recover a forgotten currentRequestId instead of showing a wrong chooser.
+    const active=api.active?.(c);
+    const viewed=api.viewed?.(c);
+    const request=[active,viewed].find(r=>isUnfinished(r)&&unfinished.some(x=>String(x.id)===String(r.id)))
+      ||unfinished[unfinished.length-1];
+
+    if(String(api.activeId?.(c)??'')!==String(request.id)){
+      if(typeof api.activate!=='function'||!api.activate(request.id,{
+        client:c,source:'diagnosis-auto-restore-active',render:false
+      }))return false;
+    }else if(String(api.viewedId?.(c)??'')!==String(request.id)){
+      if(!api.view(request.id,{client:c,source:'diagnosis-auto-open',render:false}))return false;
     }
 
-    if(!api.view(r.id,{client:c,source:'diagnosis-api-open',render:false}))return false;
-
+    // An already open diagnosis is not a reason to show the chooser.
+    const alreadyInDiagnosis=typeof mode!=='undefined'&&mode==='diagnosis';
+    const alreadyViewing=String(api.viewedId?.(c)??'')===String(request.id);
     try{
-      situationId=r.situations?.[0]?.id||null;
-      selected=null;
+      if(!alreadyInDiagnosis||!alreadyViewing){
+        situationId=request.situations?.[0]?.id||null;
+        selected=null;
+      }
       mode='diagnosis';
     }catch(_){return false;}
 
+    const launch=document.querySelector('#diagnosisLaunchDialog');
+    if(launch?.open)launch.close();
+    const history=document.querySelector('#requestHistoryDialog');
+    if(history?.open)history.close();
     if(typeof renderRequests==='function')renderRequests();
     if(typeof renderMode==='function')renderMode();
     return true;
@@ -70,7 +106,7 @@
   };
 
   window.DiagnostikaDiagnosis=Object.freeze({
-    version:'7D',
+    version:'7E',
     moduleAware:true,
     open,
     snapshot:(requestRef,clientRef)=>call('snapshot',requestRef,clientRef),
