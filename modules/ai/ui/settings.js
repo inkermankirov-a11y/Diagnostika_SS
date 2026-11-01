@@ -166,8 +166,8 @@
     if(storage) storage.addEventListener('load',loadCore,{once:true}); else loadCore();
   }
 
-  loadOnce('free-consultation-archive.js?v=20260913-142','data-fc-archive','__freeConsultationArchiveReady');
-  loadOnce('free-consultation-extra-fields.js?v=20260913-142','data-fc-extra-fields','__freeConsultationExtraFieldsReady');
+  loadOnce('free-consultation-archive.js?v=20261101-scoped-observer-1','data-fc-archive','__freeConsultationArchiveReady');
+  loadOnce('free-consultation-extra-fields.js?v=20261101-no-duplicate-fields-1','data-fc-extra-fields','__freeConsultationExtraFieldsReady');
   attach();
   attachQuestionnairePanel();
 
