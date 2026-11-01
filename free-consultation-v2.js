@@ -383,15 +383,16 @@
   dlg.addEventListener('toggle',()=>{if(dlg.open)loadFields();});
   [whyNow,lifeAfter].forEach(el=>el?.addEventListener('input',()=>{if(status)status.textContent='Есть несохранённые изменения';}));
 
-  rq('.fc-v2-result-close').onclick=()=>resultDlg.close();
-  rq('.fc-v2-result-close2').onclick=()=>resultDlg.close();
+  rq('.fc-v2-result-close').onclick=()=>{flushAiEdits();resultDlg.close();};
+  rq('.fc-v2-result-close2').onclick=()=>{flushAiEdits();resultDlg.close();};
   rq('.fc-v2-save-main').onclick=saveMainRequest;
   rq('.fc-v2-copy-main').onclick=async()=>{const text=resultMain.value.trim();if(!text)return;try{await navigator.clipboard.writeText(text);rq('.fc-v2-copy-main').textContent='Скопировано';setTimeout(()=>rq('.fc-v2-copy-main').textContent='Копировать',1100);}catch(_){}};
   rq('.fc-v2-regenerate').onclick=()=>{resultDlg.close();generate();};
   rq('.fc-v2-create-diagnosis').onclick=createDiagnosis;
   rq('.fc-v2-add-situation').onclick=()=>addSituationRow('');
-  resultMain.addEventListener('input',persistAiEdits);
-  selectedShortInput.addEventListener('input',persistAiEdits);
+  resultDlg.addEventListener('close',flushAiEdits);
+  resultMain.addEventListener('input',scheduleAiEdits);
+  selectedShortInput.addEventListener('input',scheduleAiEdits);
 
   patchPendingSituationLevels();
   loadFields();
