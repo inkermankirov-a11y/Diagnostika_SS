@@ -41,7 +41,7 @@
       <div class="diag-launch-sub">Выбери, с какой диагностикой работать</div>
       <div class="diag-launch-actions">
         <button id="diagNewBtn" class="primary">+ Новая диагностика</button>
-        <button id="diagPreviousBtn">Предыдущие запросы</button>
+        <button id="diagPreviousBtn">Предыдущие диагностики</button>
         <button id="diagDeleteBtn">Удалить запрос</button>
       </div>
     </div>`;
@@ -148,6 +148,14 @@
     const api=requestsApi();
     const c=currentClient();
     if(!api||!c)return;
+    // A request may have appeared while the chooser was open. Never create
+    // another diagnosis over an unfinished request.
+    const unfinished=(api.list(c)||[]).some(r=>r&&r.status!=='completed');
+    if(unfinished){
+      launch.close();
+      window.DiagnostikaDiagnosis?.open?.();
+      return;
+    }
     const created=api.create({title:'Новый запрос'},{client:c,source:'diagnosis-create'});
     if(created)enterDiagnosis(created);
   };
