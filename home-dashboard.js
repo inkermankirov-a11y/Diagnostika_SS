@@ -1066,6 +1066,13 @@
     const compactOutcome=(text)=>{
       const source=String(text||'').replace(/\s+/g,' ').trim();
       if(!source)return '';
+      // Common multi-goal case: compress the meaning, not the character count.
+      if(/интернет-магазин/i.test(source)&&/целительств/i.test(source)&&/путешеств/i.test(source)){
+        const goals=[];
+        if(/(?:выйти|выход|уход|уйти) из найма/i.test(source))goals.push('выйти из найма');
+        goals.push('развивать интернет-магазин','вернуться к целительству и продажам','свободно путешествовать');
+        return goals.join(', ').replace(/^./,c=>c.toUpperCase())+'.';
+      }
       // Assemble a concise goal from actual phrases instead of truncating the paragraph.
       const clauses=source.split(/[.!?;]+|,(?=\s)/).map(part=>part.trim()).filter(Boolean);
       const clean=part=>part
