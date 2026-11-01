@@ -74,7 +74,15 @@
 
     const previousViewedId=api.viewedId?.(c);
     const alreadyInDiagnosis=typeof mode!=='undefined'&&mode==='diagnosis';
-    if(String(api.activeId?.(c)??'')!==String(request.id)){
+    const currentActiveId=api.activeId?.(c);
+    if(alreadyInDiagnosis && String(previousViewedId??'')===String(request.id)
+      && String(currentActiveId??'')===String(request.id)){
+      // Opening the same working diagnosis again must not reset its editor.
+      document.querySelector('#diagnosisLaunchDialog')?.close?.();
+      document.querySelector('#requestHistoryDialog')?.close?.();
+      return true;
+    }
+    if(String(currentActiveId??'')!==String(request.id)){
       if(typeof api.activate!=='function'||!api.activate(request.id,{
         client:c,source:'diagnosis-auto-restore-active',render:false
       }))return false;
