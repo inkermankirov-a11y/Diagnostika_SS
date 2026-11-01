@@ -190,7 +190,7 @@
     const input=document.createElement('input');
     input.value=String(text||'').trim();
     input.placeholder='Когда я ...';
-    input.addEventListener('input',persistAiEdits);
+    input.addEventListener('input',scheduleAiEdits);
     const del=document.createElement('button');
     del.type='button';del.className='tk-btn';del.textContent='×';del.title='Удалить ситуацию';
     del.onclick=()=>{row.remove();persistAiEdits();};
@@ -228,6 +228,12 @@
     if(!resultDlg.open)resultDlg.showModal();
   }
 
+  let editTimer=null;
+  function scheduleAiEdits(){
+    clearTimeout(editTimer);
+    editTimer=setTimeout(()=>{editTimer=null;persistAiEdits();},650);
+  }
+  function flushAiEdits(){clearTimeout(editTimer);editTimer=null;persistAiEdits();}
   function persistAiEdits(){
     currentClient=getClient()||currentClient;
     if(!currentClient||!lastResult)return;
@@ -287,7 +293,7 @@
       : window.DiagnostikaPlatform?.services?.requests||null;
     if(!api?.create)return alert('Модуль запросов ещё не готов.');
 
-    persistAiEdits();
+    flushAiEdits();
     const title=selectedShortInput.value.trim();
     if(!title)return alert('Сначала выбери или введи короткий запрос для Диагностики.');
 
