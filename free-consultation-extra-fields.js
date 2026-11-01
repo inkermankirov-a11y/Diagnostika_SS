@@ -4,71 +4,25 @@
   if (window.__freeConsultationExtraFieldsReady) return;
   window.__freeConsultationExtraFieldsReady = true;
 
+  // Historical tried/didntHelp fields are maintained in archives only.
+  // The live consultation uses the single .fc-attempts field. Never recreate
+  // .fc-tried/.fc-didnt-help while the specialist is typing.
+  function removeDuplicateFields(){
+    const grid=document.querySelector('#freeConsultationDialog .fc-grid');
+    if(!grid)return;
+    for(const field of grid.querySelectorAll('.fc-tried,.fc-worked,.fc-didnt-help')){
+      const label=field.closest('.fc-field');
+      if(label)label.remove();else field.remove();
+    }
+    for(const fragment of grid.querySelectorAll('.fc-extra-fields-fragment')){
+      if(!fragment.querySelector('textarea,input,select'))fragment.remove();
+    }
+  }
+
   function getClient(){
-    try{ if(typeof client==='function'){ const c=client(); if(c) return c; } }catch(_){}
-    try{ return state?.clients?.find(c=>String(c.id)===String(clientId))||null; }catch(_){}
+    try{if(typeof client==='function')return client()||null;}catch(_){}
+    try{return state?.clients?.find(c=>String(c.id)===String(clientId))||null;}catch(_){}
     return null;
-  }
-
-  function saveState(){ try{ if(typeof save==='function') save(); }catch(_){} }
-
-  function ensureCurrent(c){
-    if(!c) return null;
-    if(!c.freeConsultation || typeof c.freeConsultation!=='object' || Array.isArray(c.freeConsultation)) c.freeConsultation={};
-    return c.freeConsultation;
-  }
-
-  function attachFields(){
-    const dlg=document.getElementById('freeConsultationDialog');
-    const grid=dlg?.querySelector('.fc-grid');
-    if(!grid) return;
-
-    if(!grid.querySelector('.fc-tried')){
-      const wrap=document.createElement('div');
-      wrap.className='fc-extra-fields-fragment';
-      wrap.style.display='contents';
-      wrap.innerHTML=`
-        <label class="fc-field"><span>Что уже пробовал</span><textarea class="fc-tried" placeholder="Что клиент уже делал, чтобы решить проблему: терапия, разговоры, курсы, самостоятельные попытки, конкретные действия..."></textarea></label>
-        <label class="fc-field"><span>Что не сработало</span><textarea class="fc-didnt-help" placeholder="Что именно не помогло, дало временный эффект или почему попытка не решила проблему..."></textarea></label>`;
-
-      const desired=grid.querySelector('.fc-desired')?.closest('.fc-field');
-      if(desired) desired.insertAdjacentElement('beforebegin',wrap);
-      else grid.appendChild(wrap);
-    }
-
-    const tried=grid.querySelector('.fc-tried');
-    const didnt=grid.querySelector('.fc-didnt-help');
-    if(tried && !tried.dataset.fcExtraBound){
-      tried.dataset.fcExtraBound='1';
-      tried.addEventListener('input',()=>persistCurrent(false));
-    }
-    if(didnt && !didnt.dataset.fcExtraBound){
-      didnt.dataset.fcExtraBound='1';
-      didnt.addEventListener('input',()=>persistCurrent(false));
-    }
-  }
-
-  function loadCurrentFields(){
-    attachFields();
-    const c=getClient(); if(!c) return;
-    const fc=ensureCurrent(c);
-    const dlg=document.getElementById('freeConsultationDialog');
-    const tried=dlg?.querySelector('.fc-tried');
-    const didnt=dlg?.querySelector('.fc-didnt-help');
-    if(tried) tried.value=fc.tried||'';
-    if(didnt) didnt.value=fc.didntHelp||'';
-  }
-
-  function persistCurrent(saveNow=true){
-    const c=getClient(); if(!c) return;
-    const fc=ensureCurrent(c);
-    const dlg=document.getElementById('freeConsultationDialog');
-    const tried=dlg?.querySelector('.fc-tried');
-    const didnt=dlg?.querySelector('.fc-didnt-help');
-    if(tried) fc.tried=tried.value||'';
-    if(didnt) fc.didntHelp=didnt.value||'';
-    fc.updatedAt=new Date().toISOString();
-    if(saveNow) saveState();
   }
 
   function selectedArchiveItem(){
@@ -118,49 +72,32 @@
     item.updatedAt=new Date().toISOString();
   }
 
-  function wrapAiGenerator(){
-    const api=window.DiagnostikaRequestAI;
-    if(!api || typeof api.generate!=='function' || api.generate.__fcExtraWrapped) return;
-    const original=api.generate.bind(api);
-    const wrapped=payload=>{
-      persistCurrent(true);
-      const c=getClient();
-      const fc=c?.freeConsultation||{};
-      const dlg=document.getElementById('freeConsultationDialog');
-      return original({
-        ...(payload||{}),
-        tried:dlg?.querySelector('.fc-tried')?.value ?? fc.tried ?? '',
-        didntHelp:dlg?.querySelector('.fc-didnt-help')?.value ?? fc.didntHelp ?? ''
-      });
-    };
-    wrapped.__fcExtraWrapped=true;
-    api.generate=wrapped;
+
+  // Observe only archive editor replacement, not every DOM mutation in the app.
+  // subtree:false avoids recursive notifications when archive fields are added.
+  let archiveBound=false;
+  function bindArchive(){
+    if(archiveBound)return true;
+    const dialog=document.querySelector('.fc-archive-dialog');
+    const editor=dialog?.querySelector('.fc-archive-editor');
+    if(!editor)return false;
+    archiveBound=true;
+    new MutationObserver(records=>{
+      if(records.some(record=>record.addedNodes.length))enhanceArchiveEditor();
+    }).observe(editor,{childList:true});
+    dialog.addEventListener('toggle',()=>{if(dialog.open)enhanceArchiveEditor();});
+    enhanceArchiveEditor();
+    return true;
   }
 
-  document.addEventListener('click',e=>{
-    if(e.target?.closest?.('.fc-save,.fc-ai,.fc-archive-current')) persistCurrent(true);
-    if(e.target?.closest?.('.fc-archive-restore')){
-      saveArchiveExtraBeforeRestore();
-      setTimeout(()=>{loadCurrentFields();window.DiagnostikaFreeConsultationSync?.syncCurrent?.(true);},180);
-    }
-    if(e.target?.closest?.('.fc-archive-current')){
-      setTimeout(()=>{loadCurrentFields();window.DiagnostikaFreeConsultationSync?.syncCurrent?.(true);},180);
-    }
+  document.addEventListener('click',event=>{
+    if(event.target?.closest?.('.fc-archive-restore'))saveArchiveExtraBeforeRestore();
   },true);
 
-  const dlg=document.getElementById('freeConsultationDialog');
-  if(dlg){
-    new MutationObserver(()=>{if(dlg.open)loadCurrentFields();}).observe(dlg,{attributes:true,attributeFilter:['open']});
+  const dialog=document.getElementById('freeConsultationDialog');
+  dialog?.addEventListener('toggle',()=>{if(dialog.open)removeDuplicateFields();});
+  removeDuplicateFields();
+  if(!bindArchive()){
+    document.querySelector('script[data-fc-archive]')?.addEventListener('load',bindArchive,{once:true});
   }
-
-  const observer=new MutationObserver(()=>{
-    attachFields();
-    enhanceArchiveEditor();
-    wrapAiGenerator();
-  });
-  observer.observe(document.body,{childList:true,subtree:true});
-
-  attachFields();
-  wrapAiGenerator();
-  loadCurrentFields();
 })();
