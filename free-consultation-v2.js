@@ -386,7 +386,7 @@
   q('.fc-save').onclick=()=>persist(true);
   dlg.addEventListener('close',()=>persist(false));
   dlg.addEventListener('toggle',()=>{if(dlg.open)loadFields();});
-  [whyNow,lifeAfter].forEach(el=>el?.addEventListener('input',()=>{if(status)status.textContent='Есть несохранённые изменения';}));
+  [whyNow,lifeAfter].forEach(el=>el?.addEventListener('input',()=>{if(status&&status.textContent!=='Есть несохранённые изменения')status.textContent='Есть несохранённые изменения';}));
 
   rq('.fc-v2-result-close').onclick=()=>{flushAiEdits();resultDlg.close();};
   rq('.fc-v2-result-close2').onclick=()=>{flushAiEdits();resultDlg.close();};
