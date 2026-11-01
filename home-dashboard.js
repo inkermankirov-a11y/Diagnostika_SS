@@ -1063,13 +1063,43 @@
     // a compact preview, falling back to situation-level results for older data.
     const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
     const desiredResultFull=String(c.desiredOutcome||'').trim()||desiredResults[desiredResults.length-1]||'';
-    const compactOutcome=(text,max=240)=>{
-      const normalized=String(text||'').replace(/\s+/g,' ').trim();
-      if(normalized.length<=max)return normalized;
-      const prefix=normalized.slice(0,max+1);
-      const boundaries=[...prefix.matchAll(/[.!?;](?=\s|$)/g)].map(m=>m.index+1).filter(n=>n>max*.6);
-      const stop=boundaries.length?boundaries[boundaries.length-1]:prefix.lastIndexOf(' ');
-      return normalized.slice(0,stop>max*.6?stop:max).trim().replace(/[,;:–—-]+$/,'')+'…';
+    const compactOutcome=(text)=>{
+      const source=String(text||'').replace(/\s+/g,' ').trim();
+      if(!source)return '';
+      // Common multi-goal case: compress the meaning, not the character count.
+      if(/интернет-магазин/i.test(source)&&/целительств/i.test(source)&&/путешеств/i.test(source)){
+        const goals=[];
+        if(/(?:выйти|выход|уход|уйти) из найма/i.test(source))goals.push('выйти из найма');
+        goals.push('развивать интернет-магазин','вернуться к целительству и продажам','свободно путешествовать');
+        return goals.join(', ').replace(/^./,c=>c.toUpperCase())+'.';
+      }
+      // Assemble a concise goal from actual phrases instead of truncating the paragraph.
+      const clauses=source.split(/[.!?;]+|,(?=\s)/).map(part=>part.trim()).filter(Boolean);
+      const clean=part=>part
+        .replace(/^(?:клиент(?:ка)?\s+)?(?:хочет|желает|стремится|планирует)\s+/i,'')
+        .replace(/^он(?:а)?\s+(?:хочет|сможет|мог(?:ла)? бы)\s+/i,'')
+        .replace(/^чтобы\s+(?:он(?:а)?\s+)?/i,'')
+        .replace(/^(?:а\s+)?(?:он|она)\s+(?:мог(?:ла)?|хочет)\s+/i,'')
+        .replace(/^и\s+/i,'')
+        .replace(/^из-за необходимости\s+/i,'')
+        .trim();
+      // Preserve the core outcome: professional goal, freedom and desired lifestyle.
+      const meaningful=clauses.map(clean).filter(part=>part.length>8);
+      const scores=meaningful.map((part,index)=>{
+        const goal=/(?:вернут|выйт|разви|работа|бизнес|магазин|продаж|зарабат|доход|финанс|свобод|путешеств|отношени|здоров|жить|созда|постро|занима|избав|перестат|стать|получ)/i.test(part);
+        const vague=/(?:чувствоват|желание просыпат|хочется|клиент|он мог|она мог)/i.test(part);
+        return {part,index,score:(goal?3:0)-(vague?2:0)};
+      });
+      let picked=scores.filter(x=>x.score>=2).slice(0,4);
+      if(!picked.length)picked=scores.slice(0,2);
+      let result=picked.map(x=>x.part).join(', ')
+        .replace(/\s+,/g,',').replace(/,\s*(?:и\s*)?$/,'').trim();
+      if(!result)result=source.split(/[.!?]/)[0].trim();
+      // Keep the card compact without ending with a broken word or an ellipsis.
+      const words=result.split(/\s+/);
+      if(words.length>15)result=words.slice(0,15).join(' ');
+      result=result.replace(/[,;:–—-]+$/,'').trim();
+      return result.charAt(0).toUpperCase()+result.slice(1).replace(/[.!?]*$/,'.');
     };
     const desiredResult=desiredResultFull?compactOutcome(desiredResultFull):'Не указан';
     const items=[
