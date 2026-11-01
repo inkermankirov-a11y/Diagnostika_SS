@@ -99,7 +99,15 @@
         }
       }
     }
-    return [...grouped.values()].filter(g=>g.level>=6)
+    // A strong *positive* self-statement (e.g. "Я благородный") is not
+    // a harsh limiting core belief merely because its level is high.
+    const isPositiveSelfStatement=value=>{
+      const v=clean(value).toLocaleLowerCase('ru-RU');
+      const negative=/(^|\s)не(?:\s|$)|беспом|беспол|недост|незнач|неувер|неспособ|слаб|плох|никч|ничтож|неудач|ущерб|жалк|одинок|чуж|виноват|никому|нелюб|несчастлив|нужен\s+никому/u;
+      const positive=/благород|хорош|сильн|досто|успеш|способ|нужн|любим|ценн|полезн|важн|значим|уверен|счастлив|умею|могу|справлюсь/u;
+      return !negative.test(v)&&positive.test(v);
+    };
+    return [...grouped.values()].filter(g=>g.level>=6&&!isPositiveSelfStatement(g.name))
       .sort((a,b)=>{
         // Both intensity and recurrence matter. A repeated level-9 belief can
         // outrank an isolated level-10 belief, without allowing low levels in.
