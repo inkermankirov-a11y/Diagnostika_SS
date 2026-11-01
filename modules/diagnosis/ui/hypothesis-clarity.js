@@ -124,7 +124,10 @@
       repeatCount:g.count,
       level:g.level
     }));
-    const branches=ranked.slice(0,3).flatMap(g=>g.branches)
+    // A situation must be linked to one of the selected beliefs, not
+    // presented as proof that all three beliefs arise in that same situation.
+    const contextual=ranked.slice(0,3).find(g=>g.branches.some(b=>b.situation||b.perception));
+    const branches=(contextual?.branches||[]).slice()
       .sort((a,b)=>(Number(!!b.situation)+Number(!!b.perception))-(Number(!!a.situation)+Number(!!a.perception))
         ||b.level-a.level);
     const primary=branches[0]||{};
@@ -188,7 +191,7 @@
     const clauses=[
       address.intro+(plural?' могут лежать глубинные убеждения: ':' может лежать глубинное убеждение: ')+joinNatural(labels)+'.'
     ];
-    if(focus.situation)clauses.push((plural?'Эти убеждения могут':'Это убеждение может')+
+    if(focus.situation)clauses.push((plural?'Например, одно из них может':'Это убеждение может')+
       ' проявляться в ситуации: «'+quoteValue(focus.situation)+'».');
     if(focus.perception&&!focus.beliefs.some(b=>key(b.text)===key(focus.perception)))
       clauses.push(address.perception+': «'+quoteValue(focus.perception)+'».');
