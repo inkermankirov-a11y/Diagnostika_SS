@@ -155,6 +155,14 @@
       clientName:c.name||'',
       requestId:String(r.id||''),
       addressMode:selectedAddressMode(),
+      hypothesisPresentation:{
+        version:'client-clarity-v1',
+        centralBeliefs:1,
+        maxEmotions:4,
+        paragraphs:1,
+        language:'ru',
+        instruction:'Объясни клиенту простыми словами: одно наиболее повторяющееся глубинное убеждение, ситуация, восприятие себя, до четырёх чувств и связь с исходным запросом. Без списков убеждений, повторов, общего психоанализа и причин, не подтверждённых диагностикой. Это рабочая гипотеза, а не установленный факт.'
+      },
       diagnosticData:data
     };
 
@@ -376,12 +384,16 @@
 
     try{
       const answer=await askAi(c,r,data);
-      lastGeneratedRaw=answer;
+      // The backend can return verbose or repetitive prose. Always shape the
+      // saved/displayed result from the actual diagnosis tree instead.
+      const formatted=window.DiagnostikaHypothesisClarity?.formatReply?.(data,selectedAddressMode());
+      if(!formatted)throw new Error('Модуль краткой гипотезы не загрузился. Обновите страницу.');
+      lastGeneratedRaw=formatted;
       lastGeneratedRequestId=String(r.id||'');
-      result.innerHTML=resultHtml(answer);
+      result.innerHTML=resultHtml(formatted);
       setSaveState(false);
       setStatus('Гипотеза сформирована. Сохраните её, чтобы она осталась у этого запроса.','success');
-      return answer;
+      return formatted;
     }catch(err){
       console.warn('Diagnosis hypothesis generation failed',err);
       result.innerHTML='<div class="diagnosis-hypothesis-empty">Не удалось сформировать гипотезу.</div>';
