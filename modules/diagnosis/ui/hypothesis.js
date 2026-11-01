@@ -63,7 +63,7 @@
     }));
 
     return {
-      клиент:{имя:cleanText(c.name)},
+      клиент:{имя:cleanText(c.name),пол:cleanText(c.gender||c.sex)},
       сильные_ВУ:strongVu,
       исходный_запрос:{
         id:String(r.id||''),
@@ -157,11 +157,13 @@
       addressMode:selectedAddressMode(),
       hypothesisPresentation:{
         version:'client-clarity-v1',
-        centralBeliefs:1,
+        centralBeliefs:3,
+        selectBy:'high intensity and recurrence, no invented or positive self-statements',
+        useClientGender:'Use diagnosticData.клиент.пол: Женский/Мужской. Correct gender in self-beliefs and every form of address. Do not infer gender from the name.',
         maxEmotions:4,
         paragraphs:1,
         language:'ru',
-        instruction:'Объясни клиенту простыми словами: одно наиболее повторяющееся глубинное убеждение, ситуация, восприятие себя, до четырёх чувств и связь с исходным запросом. Без списков убеждений, повторов, общего психоанализа и причин, не подтверждённых диагностикой. Это рабочая гипотеза, а не установленный факт.'
+        instruction:'Объясни клиенту простыми словами: 2–3 самых сильных негативных убеждения о себе с учётом частоты и уровня (если подтверждено только одно — одно), конкретная ситуация, восприятие себя, до четырёх чувств и связь с исходным запросом. Все формулировки согласуй с полом клиента из карточки, не определяй пол по имени. Без списков убеждений, повторов, общего психоанализа и причин, не подтверждённых диагностикой. Это рабочая гипотеза, а не установленный факт.'
       },
       diagnosticData:data
     };
