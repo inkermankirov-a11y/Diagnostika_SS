@@ -149,7 +149,12 @@
   function persist(showMessage=false){
     currentClient=getClient()||currentClient;
     if(!currentClient)return;
-    const freeConsultation={...(currentClient.freeConsultation||{}),...readData(),updatedAt:new Date().toISOString()};
+    const previous=currentClient.freeConsultation||{};
+    const context=dlg.querySelector('.fc-context')?.value;
+    const attempts=dlg.querySelector('.fc-attempts')?.value;
+    const values={...readData(),...(context!==undefined?{context}:{}),...(attempts!==undefined?{attempts}:{})};
+    if(Object.entries(values).every(([key,value])=>String(previous[key]||'')===String(value||''))){if(showMessage&&status)status.textContent='Сохранено';return;}
+    const freeConsultation={...previous,...values,updatedAt:new Date().toISOString()};
     if(!updateClient({freeConsultation},'free-consultation-v2-save'))return;
     if(showMessage&&status){status.textContent='Сохранено';setTimeout(()=>{if(status.textContent==='Сохранено')status.textContent='';},1400);}
   }
@@ -282,7 +287,7 @@
   }
 
   function makeSituation(name){
-    return {id:makeId(),name:String(name||'').trim(),level:5,levelPending:true,comment:'',result:'',beliefs:[]};
+    return {id:makeId(),name:String(name||'').trim(),level:null,levelPending:true,levelUnknown:true,comment:'Уровень дискомфорта не указан на бесплатной консультации — уточнить у клиента.',result:'',beliefs:[]};
   }
 
   function createDiagnosis(){
