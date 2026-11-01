@@ -78,8 +78,10 @@
     if(alreadyInDiagnosis && String(previousViewedId??'')===String(request.id)
       && String(currentActiveId??'')===String(request.id)){
       // Opening the same working diagnosis again must not reset its editor.
-      document.querySelector('#diagnosisLaunchDialog')?.close?.();
-      document.querySelector('#requestHistoryDialog')?.close?.();
+      const launch=document.querySelector('#diagnosisLaunchDialog');
+      if(launch?.open)launch.close();
+      const history=document.querySelector('#requestHistoryDialog');
+      if(history?.open)history.close();
       return true;
     }
     if(String(currentActiveId??'')!==String(request.id)){
