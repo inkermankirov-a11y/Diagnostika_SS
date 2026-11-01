@@ -1059,15 +1059,26 @@
 
     const currentReq=requestsApi()?.current?.()||(c.requests||[])[0]||null;
     const lastSession=(c.sessions||[]).filter(s=>!(s?.planned===true||String(s?.status||'')==='planned')).slice().sort((a,b)=>String(b.date||b.createdAt||'').localeCompare(String(a.date||a.createdAt||'')))[0];
+    // Profile card keeps the unabridged desired outcome. The dashboard shows
+    // a compact preview, falling back to situation-level results for older data.
     const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
-    const desiredResult=desiredResults.length?desiredResults[desiredResults.length-1]:'Не указан';
+    const desiredResultFull=String(c.desiredOutcome||'').trim()||desiredResults[desiredResults.length-1]||'';
+    const compactOutcome=(text,max=240)=>{
+      const normalized=String(text||'').replace(/\s+/g,' ').trim();
+      if(normalized.length<=max)return normalized;
+      const prefix=normalized.slice(0,max+1);
+      const boundaries=[...prefix.matchAll(/[.!?;](?=\s|$)/g)].map(m=>m.index+1).filter(n=>n>max*.6);
+      const stop=boundaries.length?boundaries[boundaries.length-1]:prefix.lastIndexOf(' ');
+      return normalized.slice(0,stop>max*.6?stop:max).trim().replace(/[,;:–—-]+$/,'')+'…';
+    };
+    const desiredResult=desiredResultFull?compactOutcome(desiredResultFull):'Не указан';
     const items=[
       ['Текущий запрос',currentReq?.title||'Не указан','hd-summary-current'],
       ['Сессии',String((c.sessions||[]).length),'hd-summary-sessions'],
       ['Последняя сессия',formatRuDate(lastSession?.date),'hd-summary-last'],
       ['Желаемый результат',desiredResult,'hd-summary-result']
     ];
-    summary.innerHTML=items.map(([a,b,cls])=>`<div class="hd-summary-box ${cls}"><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
+    summary.innerHTML=items.map(([a,b,cls])=>`<div class="hd-summary-box ${cls}"${cls==='hd-summary-result'&&desiredResultFull?` title="${esc(desiredResultFull)}"`:''}><div class="hd-summary-label">${esc(a)}</div><div class="hd-summary-value">${esc(b)}</div></div>`).join('');
     summary.hidden=false;
   }
 
