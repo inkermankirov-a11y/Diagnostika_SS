@@ -1101,7 +1101,14 @@
     diagnosisWorkspace.hidden=!diagnosis;
   }
 
+  function consultationDialogOpen(){
+    return Boolean(document.getElementById('freeConsultationDialog')?.open||
+      document.getElementById('freeConsultationAiResultDialog')?.open);
+  }
   function refresh(){
+    // Keep the underlying dashboard DOM stable while the specialist is typing
+    // in a free consultation; the current data is rendered after dialog closure.
+    if(consultationDialogOpen())return;
     syncDashboardView();
     renderClients();
     if(dashboardView==='client')renderHero();
@@ -1134,6 +1141,9 @@
   list.addEventListener('scroll',()=>{closeClientMenu();hideUpcomingTooltip();},{passive:true});
   window.addEventListener('resize',()=>{closeClientMenu();hideUpcomingTooltip();},{passive:true});
 
+  ['freeConsultationDialog','freeConsultationAiResultDialog'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('close',()=>setTimeout(refresh,0));
+  });
   const dashboardEvents=[
     'client:created','client:selected','client:updated','client:deleted','client:restored','client:purged','client:archived','client:unarchived',
     'request:created','request:selected','request:activated','request:completed','request:resumed',
