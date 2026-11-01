@@ -140,7 +140,7 @@
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261101-compact-goal-3','data-home-dashboard-preload'],
+      ['home-dashboard.js?v=20261101-consult-stable-4','data-home-dashboard-preload'],
       ['home-dashboard-sessions.js?v=20261007-reschedule-same-card-1','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
@@ -170,7 +170,7 @@
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20261101-compact-goal-3';
+      s.src='home-dashboard.js?v=20261101-consult-stable-4';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         if(!document.querySelector('script[data-home-dashboard-sessions]')){

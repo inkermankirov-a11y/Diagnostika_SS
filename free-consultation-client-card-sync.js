@@ -234,7 +234,9 @@
     }
 
     refreshOpenCard(updated);
-    try{ window.DiagnostikaHomeDashboard?.refresh?.(); }catch(_){}
+    if(changed && !document.getElementById('freeConsultationDialog')?.open && !document.getElementById('freeConsultationAiResultDialog')?.open){
+      try{ window.DiagnostikaHomeDashboard?.refresh?.(); }catch(_){}
+    }
     window.dispatchEvent(new CustomEvent('diagnostika:free-consultation-card-synced',{detail:{clientId:c.id,changed}}));
     return changed;
   }

@@ -190,7 +190,7 @@
     const input=document.createElement('input');
     input.value=String(text||'').trim();
     input.placeholder='Когда я ...';
-    input.addEventListener('input',persistAiEdits);
+    input.addEventListener('input',scheduleAiEdits);
     const del=document.createElement('button');
     del.type='button';del.className='tk-btn';del.textContent='×';del.title='Удалить ситуацию';
     del.onclick=()=>{row.remove();persistAiEdits();};
@@ -228,6 +228,12 @@
     if(!resultDlg.open)resultDlg.showModal();
   }
 
+  let editTimer=null;
+  function scheduleAiEdits(){
+    clearTimeout(editTimer);
+    editTimer=setTimeout(()=>{editTimer=null;persistAiEdits();},650);
+  }
+  function flushAiEdits(){clearTimeout(editTimer);editTimer=null;persistAiEdits();}
   function persistAiEdits(){
     currentClient=getClient()||currentClient;
     if(!currentClient||!lastResult)return;
@@ -287,7 +293,7 @@
       : window.DiagnostikaPlatform?.services?.requests||null;
     if(!api?.create)return alert('Модуль запросов ещё не готов.');
 
-    persistAiEdits();
+    flushAiEdits();
     const title=selectedShortInput.value.trim();
     if(!title)return alert('Сначала выбери или введи короткий запрос для Диагностики.');
 
@@ -377,15 +383,16 @@
   dlg.addEventListener('toggle',()=>{if(dlg.open)loadFields();});
   [whyNow,lifeAfter].forEach(el=>el?.addEventListener('input',()=>{if(status)status.textContent='Есть несохранённые изменения';}));
 
-  rq('.fc-v2-result-close').onclick=()=>resultDlg.close();
-  rq('.fc-v2-result-close2').onclick=()=>resultDlg.close();
+  rq('.fc-v2-result-close').onclick=()=>{flushAiEdits();resultDlg.close();};
+  rq('.fc-v2-result-close2').onclick=()=>{flushAiEdits();resultDlg.close();};
   rq('.fc-v2-save-main').onclick=saveMainRequest;
   rq('.fc-v2-copy-main').onclick=async()=>{const text=resultMain.value.trim();if(!text)return;try{await navigator.clipboard.writeText(text);rq('.fc-v2-copy-main').textContent='Скопировано';setTimeout(()=>rq('.fc-v2-copy-main').textContent='Копировать',1100);}catch(_){}};
   rq('.fc-v2-regenerate').onclick=()=>{resultDlg.close();generate();};
   rq('.fc-v2-create-diagnosis').onclick=createDiagnosis;
   rq('.fc-v2-add-situation').onclick=()=>addSituationRow('');
-  resultMain.addEventListener('input',persistAiEdits);
-  selectedShortInput.addEventListener('input',persistAiEdits);
+  resultDlg.addEventListener('close',flushAiEdits);
+  resultMain.addEventListener('input',scheduleAiEdits);
+  selectedShortInput.addEventListener('input',scheduleAiEdits);
 
   patchPendingSituationLevels();
   loadFields();
