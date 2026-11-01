@@ -118,7 +118,9 @@
       if(context) fc.context=context.value||'';
       if(attempts) fc.attempts=attempts.value||'';
     }
-    fc.updatedAt=new Date().toISOString();
+    const saved=c.freeConsultation||{};
+    const changed=String(saved.context||'')!==String(fc.context||'')||String(saved.attempts||'')!==String(fc.attempts||'');
+    if(changed)fc.updatedAt=new Date().toISOString();
     if(saveNow){
       const updated=clientsApi()?.update?.(c.id,{freeConsultation:fc},{source:'free-consultation-fields',render:false});
       return updated?.freeConsultation||fc;
@@ -325,12 +327,16 @@
         loadConsultationFields();
       }
     });
-    fcDlg.addEventListener('close',()=>persistConsultationFields(true));
+    fcDlg.addEventListener('close',()=>{
+      const c=getClient();const fields=fcDlg.querySelector('.fc-context, .fc-attempts');
+      if(!c||!fields)return;
+      const current=c.freeConsultation||{};
+      if(String(current.context||'')!==String(fcDlg.querySelector('.fc-context')?.value||'')||String(current.attempts||'')!==String(fcDlg.querySelector('.fc-attempts')?.value||''))persistConsultationFields(true);
+    });
   }
 
   document.addEventListener('click',event=>{
     if(event.target?.closest?.('.cc-free-consult-btn')) setTimeout(loadConsultationFields,0);
-    if(event.target?.closest?.('.fc-save,.fc-ai')) persistConsultationFields(true);
     if(event.target?.closest?.('.fc-v2-save-main,.fc-result-save-main')) setTimeout(syncCurrent,0);
   },true);
 
