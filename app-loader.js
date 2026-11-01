@@ -49,7 +49,7 @@
       id:'diagnosis',
       service:['modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c&cleanup=23c','data-diagnosis-service'],
       module:['modules/diagnosis/index.js?v=20260919-diagnosis7c','data-diagnosis-module'],
-      api:['diagnosis-api.js?v=20260919-diagnosis7d&api=13d','data-diagnosis-api'],
+      api:['diagnosis-api.js?v=20261101-open-by-status-1&api=13d','data-diagnosis-api'],
       ready:()=>window.DiagnostikaDiagnosis?.moduleAware===true
     },
     {
