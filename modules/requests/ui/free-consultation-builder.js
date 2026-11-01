@@ -124,7 +124,7 @@
     status.textContent='';
     if(!dlg.open)dlg.showModal();
   }
-  function close(){persist(false);if(dlg.open)dlg.close();}
+  function close(){if(dlg.open)dlg.close();}
 
   function normalizeShorts(list){
     const arr=Array.isArray(list)?list:[];
