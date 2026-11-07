@@ -1,0 +1,135 @@
+name: AI API audit
+
+on:
+  push:
+    branches: [ main, 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
+    paths:
+      - 'modules/ai/**'
+      - 'ai-api.js'
+      - 'app-loader.js'
+      - 'client-ai-*.js'
+      - 'modules/ai/ui/**'
+      - 'request-ai-n8n.js'
+      - 'form-integrations.js'
+      - 'tests/ai-module-6a-audit.mjs'
+      - 'tests/ai-module-6b-audit.mjs'
+      - 'tests/ai-module-6c-audit.mjs'
+      - 'tests/ai-module-6d-audit.mjs'
+      - 'tests/ai-longitudinal-context-audit.mjs'
+      - '.github/workflows/ai-api-audit.yml'
+      - 'index.html'
+  workflow_dispatch:
+
+jobs:
+  ai-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static AI foundation check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/ai/ai-service.js
+          node --check modules/ai/index.js
+          node --check ai-api.js
+          node --check app-loader.js
+          node --check modules/ai/ui/client-chat.js
+          node --check client-ai-full-context.js
+          node --check client-ai-chat-view.js
+          node --check modules/ai/ui/session-chat.js
+          node --check request-ai-n8n.js
+          node --check tests/ai-module-6a-audit.mjs
+          node --check tests/ai-module-6b-audit.mjs
+          node --check tests/ai-module-6c-audit.mjs
+          node --check tests/ai-module-6d-audit.mjs
+          node --check tests/ai-longitudinal-context-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          service=Path('modules/ai/ai-service.js').read_text(encoding='utf-8')
+          api=Path('ai-api.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          forms=Path('form-integrations.js').read_text(encoding='utf-8')
+          full_context=Path('client-ai-full-context.js').read_text(encoding='utf-8')
+          chat_view=Path('client-ai-chat-view.js').read_text(encoding='utf-8')
+
+          required=[
+              'clientChat','sessionChat','appendClientMessage','replaceClientChat','clearClientChat',
+              'appendSessionMessage','replaceSessionChat','clearSessionChat'
+          ]
+          missing=[x for x in required if x not in service or x not in api]
+          if missing:
+              raise SystemExit('AI 6A service/facade methods missing: '+', '.join(missing))
+          if "version:'6D'" not in api or 'moduleAware:true' not in api:
+              raise SystemExit('AI 6D facade marker missing')
+          if 'services.ai=Object.freeze' not in service:
+              raise SystemExit('AIService frozen export missing')
+          if 'fetch(' in service:
+              raise SystemExit('AI 6A service must not own transport yet')
+          if "typeof save==='function'" in service:
+              raise SystemExit('AI 6D service still depends on global save')
+          if "return c&&Array.isArray(c.aiChat)?clone(c.aiChat):null;" not in service:
+              raise SystemExit('AI 6D client read isolation missing')
+          if "return s&&Array.isArray(s.aiChat)?clone(s.aiChat):null;" not in service:
+              raise SystemExit('AI 6D session read isolation missing')
+          if 'window.DiagnostikaAI=Object.freeze({' not in api or '...legacy' in api or 'const legacy=' in api:
+              raise SystemExit('AI 6D authoritative frozen facade missing')
+          for token in [
+              'modules/ai/ai-service.js?v=20260919-ai6d',
+              'modules/ai/index.js?v=20260919-ai6d',
+              'ai-api.js?v=20260919-ai6d'
+          ]:
+              if token not in loader:
+                  raise SystemExit('AI loader missing/stale '+token)
+
+          client_chat=Path('modules/ai/ui/client-chat.js').read_text(encoding='utf-8')
+          session_chat=Path('modules/ai/ui/session-chat.js').read_text(encoding='utf-8')
+          if re.search(r'window\.fetch\s*=',full_context):
+              raise SystemExit('AI 6D full-context helper still patches global fetch')
+          if re.search(r'window\.fetch\s*=',chat_view):
+              raise SystemExit('AI 6D chat view still patches global fetch')
+          for token in ['DiagnostikaClientAIFullContext?.enrichPayload','DiagnostikaClientAIChatView?.preparePayload']:
+              if token not in client_chat:
+                  raise SystemExit('AI 6D explicit payload pipeline missing '+token)
+          if 'c.aiChat' in client_chat:
+              raise SystemExit('AI 6B regression: client AI UI accesses client.aiChat directly')
+          if 'c.aiChat' in session_chat:
+              raise SystemExit('AI 6B regression: session compatibility UI accesses client.aiChat directly')
+          if 's.aiChat' in session_chat:
+              raise SystemExit('AI 6C regression: session AI UI accesses session.aiChat directly')
+          if 'persist()' in session_chat:
+              raise SystemExit('AI 6C regression: session AI UI persists chat directly')
+          for token in ["source:'client-ai-chat-user'","source:'client-ai-chat-assistant'"]:
+              if token not in client_chat:
+                  raise SystemExit('AI 6B client writer missing '+token)
+          if "source:'session-ai-client-clear'" not in session_chat:
+              raise SystemExit('AI 6B client clear writer missing')
+          for token in ["'127.0.0.1'","'localhost'","'::1'","allowBackgroundInboxPolling"]:
+              if token not in forms:
+                  raise SystemExit('Localhost background n8n polling guard missing: '+token)
+          for token in ["source:'session-ai-chat-user'","source:'session-ai-chat-assistant'","source:'session-ai-chat-clear'"]:
+              if token not in session_chat:
+                  raise SystemExit('AI 6C session writer missing '+token)
+          print('AI 6D ownership, payload and legacy cleanup boundaries OK.')
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: AI ownership and persistence audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/ai-api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/ai-module-6a-audit.mjs
+          node tests/ai-module-6b-audit.mjs
+          node tests/ai-module-6c-audit.mjs
+          node tests/ai-module-6d-audit.mjs
+          node tests/ai-longitudinal-context-audit.mjs

@@ -1,0 +1,43 @@
+name: Diagnosis belief hints audit
+
+on:
+  push:
+    branches: [main, 'feature-diagnosis-*']
+    paths:
+      - 'belief-hints.js'
+      - 'deep-belief-hints.js'
+      - 'beliefs-i18n.js'
+      - 'dynamic-save-labels.js'
+      - 'i18n.js'
+      - 'app.js'
+      - 'index.html'
+      - 'modules/diagnosis/ui/**'
+      - 'tests/diagnosis-belief-hints-audit.mjs'
+      - '.github/workflows/diagnosis-belief-hints-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  belief-hints:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static checks
+        run: |
+          node --check belief-hints.js
+          node --check deep-belief-hints.js
+          node --check beliefs-i18n.js
+          node --check dynamic-save-labels.js
+          node --check i18n.js
+          node --check app.js
+          node --check tests/diagnosis-belief-hints-audit.mjs
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify belief terminology and hint dialogs
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/belief-hints-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-belief-hints-audit.mjs

@@ -1,0 +1,81 @@
+name: Final architecture audit
+
+on:
+  push:
+    branches: [main, 'feature-final-*']
+    paths:
+      - 'core/**'
+      - 'modules/**'
+      - '*-api.js'
+      - 'roles-api.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/final-*.mjs'
+      - '.github/workflows/final-architecture-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  final-architecture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static architecture contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check core/runtime-contract.js
+          node --check app-loader.js
+          node --check tests/final-runtime-contract-15a-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          runtime=Path('core/runtime-contract.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          index=Path('index.html').read_text(encoding='utf-8')
+          errors=[]
+
+          for token in [
+              "const VERSION = '15A'",
+              "db: '14D'",
+              "api: '13D'",
+              "access: '11D'",
+              "modules: '11D'",
+              "window.DiagnostikaRuntime = runtime"
+          ]:
+              if token not in runtime:
+                  errors.append('runtime contract missing '+token)
+
+          required=[
+              'clients','requests','diagnosis','sessions','files',
+              'export','calendar','payments','ai'
+          ]
+          for module in required:
+              if f"modules/{module}/index.js" not in loader:
+                  errors.append('module loader missing '+module)
+
+          if "core/runtime-contract.js?v=20260919-final15a" not in loader:
+              errors.append('runtime contract loader marker missing')
+          if 'app-loader.js?v=20260919-db14d&api=13d&final=15a' not in index:
+              errors.append('FINAL 15A index marker missing')
+
+          print('FINAL_15A_STATIC_ERRORS:',errors)
+          if errors:
+              sys.exit(1)
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify unified runtime contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/final15a-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/final-runtime-contract-15a-audit.mjs

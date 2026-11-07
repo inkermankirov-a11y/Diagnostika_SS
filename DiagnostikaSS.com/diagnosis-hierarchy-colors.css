@@ -1,0 +1,78 @@
+/* Diagnosis hierarchy colors. Loaded last on purpose to win over legacy button themes. */
+#diagnosisWorkspace .center-actions #addBeliefBtn.tk-btn{
+  background:linear-gradient(180deg,#244FAF 0%,#12357F 100%)!important;
+  color:#fff!important;
+  border:1px solid #0E2B68!important;
+  box-shadow:0 3px 9px rgba(18,53,127,.34)!important;
+}
+#diagnosisWorkspace .center-actions #addBeliefBtn.tk-btn:hover{
+  background:linear-gradient(180deg,#2D5CC2 0%,#183E90 100%)!important;
+}
+
+#diagnosisWorkspace .center-actions #addFeelingBtn.tk-btn{
+  background:linear-gradient(180deg,#FFD85A 0%,#E7AD16 100%)!important;
+  color:#4A3500!important;
+  border:1px solid #C58E08!important;
+  box-shadow:0 3px 9px rgba(197,142,8,.28)!important;
+}
+#diagnosisWorkspace .center-actions #addFeelingBtn.tk-btn:hover{
+  background:linear-gradient(180deg,#FFE47A 0%,#F0B91F 100%)!important;
+}
+
+#diagnosisWorkspace .center-actions #addDeepBtn.tk-btn{
+  background:linear-gradient(180deg,#8B63D8 0%,#653DB3 100%)!important;
+  color:#fff!important;
+  border:1px solid #54319D!important;
+  box-shadow:0 3px 9px rgba(101,61,179,.32)!important;
+}
+#diagnosisWorkspace .center-actions #addDeepBtn.tk-btn:hover{
+  background:linear-gradient(180deg,#9B74E5 0%,#7249C3 100%)!important;
+}
+
+
+/* Diagnosis action bar: keep Delete horizontal and use a more legible UI typeface. */
+#diagnosisWorkspace .center-actions{
+  align-items:stretch;
+}
+#diagnosisWorkspace .center-actions #addBeliefBtn.tk-btn,
+#diagnosisWorkspace .center-actions #addFeelingBtn.tk-btn,
+#diagnosisWorkspace .center-actions #addDeepBtn.tk-btn{
+  flex:1 1 0;
+  min-width:0;
+  height:44px;
+  min-height:44px;
+  max-height:44px;
+  padding-top:0!important;
+  padding-bottom:0!important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:Tahoma,Verdana,Arial,sans-serif!important;
+  line-height:1.2;
+}
+#diagnosisWorkspace .center-actions #deleteElementBtn.tk-btn{
+  flex:0 0 78px;
+  min-width:78px;
+  width:78px;
+  height:44px;
+  min-height:44px;
+  max-height:44px;
+  padding:0 8px!important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  word-break:normal;
+  overflow-wrap:normal;
+  writing-mode:horizontal-tb;
+  text-orientation:mixed;
+  font-family:Tahoma,Verdana,Arial,sans-serif!important;
+  line-height:1.2;
+}
+
+
+/* Align the four diagnosis action buttons with the Hypothesis button in the client header, top and height. */
+#diagnosisWorkspace .center-actions{
+  transform:translateY(-5px);
+}

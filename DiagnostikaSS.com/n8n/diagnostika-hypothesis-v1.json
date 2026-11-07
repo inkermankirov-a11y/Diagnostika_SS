@@ -1,0 +1,221 @@
+{
+  "name": "Diagnostika_SS — Гипотеза по диагностике v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "diagnostika-hypothesis-v1",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://inkermankirov-a11y.github.io"
+        }
+      },
+      "id": "a71b65af-4b24-40fe-96dc-6eddb1e3a101",
+      "name": "Webhook — Гипотеза",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        0
+      ],
+      "webhookId": "65b86cd0-ec6b-4f64-82e2-f3c729e918f1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body=typeof $json.body==='string'?JSON.parse($json.body):($json.body||$json);\nconst diagnosticData=body.diagnosticData&&typeof body.diagnosticData==='object'&&!Array.isArray(body.diagnosticData)?body.diagnosticData:null;\nif(!diagnosticData)throw new Error('Нет данных диагностики');\nconst requestId=String(body.requestId||diagnosticData?.исходный_запрос?.id||'').trim();\nif(!requestId)throw new Error('Не выбран запрос');\n\nconst clientName=String(body.clientName||diagnosticData?.клиент?.имя||'клиент').trim()||'клиент';\nconst addressMode=['ty','vy','third'].includes(String(body.addressMode||''))?String(body.addressMode):'ty';\n\nconst clean=value=>String(value??'').trim().replace(/\\s+/g,' ');\nconst normalizeVu=value=>clean(value).toLocaleLowerCase('ru-RU')\n  .replace(/^[«\"'“”„]+|[»\"'“”„]+$/g,'')\n  .replace(/^я[\\s,:;.!?—–-]+/u,'')\n  .trim();\n\nfunction fallbackStrongVu(data){\n  const groups=new Map();\n  for(const situation of Array.isArray(data.ситуации)?data.ситуации:[]){\n    for(const belief of Array.isArray(situation.первичные_убеждения)?situation.первичные_убеждения:[]){\n      const primary=clean(belief?.убеждение);\n      if(!primary)continue;\n      for(const feeling of Array.isArray(belief.вторичные_чувства)?belief.вторичные_чувства:[]){\n        const feelingText=clean(feeling?.чувство_или_реакция);\n        if(!feelingText)continue;\n        for(const deep of Array.isArray(feeling.вторичные_убеждения)?feeling.вторичные_убеждения:[]){\n          const vu=clean(deep?.убеждение_или_самоопределение);\n          const key=normalizeVu(vu);\n          if(!key)continue;\n          const level=Math.max(1,Math.min(10,Number(deep?.уровень)||5));\n          const group=groups.get(key)||{убеждение:vu,максимальный_уровень:0,повторений:0,ветки:[]};\n          if(level>=group.максимальный_уровень)group.убеждение=vu;\n          group.максимальный_уровень=Math.max(group.максимальный_уровень,level);\n          group.повторений++;\n          group.ветки.push({\n            ситуация:clean(situation?.ситуация),\n            первичное_убеждение:primary,\n            вторичное_чувство:feelingText,\n            уровень_ВУ:level,\n            реакции:(Array.isArray(deep?.инстинктивные_реакции)?deep.инстинктивные_реакции:[])\n              .map(x=>clean(x?.реакция)).filter(Boolean)\n          });\n          groups.set(key,group);\n        }\n      }\n    }\n  }\n  return [...groups.values()]\n    .filter(x=>x.максимальный_уровень>=6)\n    .sort((a,b)=>(b.повторений>1)-(a.повторений>1)||b.повторений-a.повторений||b.максимальный_уровень-a.максимальный_уровень);\n}\n\nconst source=Array.isArray(diagnosticData.сильные_ВУ)\n  ?diagnosticData.сильные_ВУ:fallbackStrongVu(diagnosticData);\nconst strongVu=source.filter(x=>x&&clean(x.убеждение)).map(x=>({\n  убеждение:clean(x.убеждение),\n  максимальный_уровень:Number(x.максимальный_уровень)||0,\n  повторений:Number(x.повторений)||1,\n  ветки:Array.isArray(x.ветки)?x.ветки:[]\n}));\nconst strongVuNames=strongVu.map(x=>x.убеждение);\n\nlet addressInstruction='';\nif(addressMode==='vy'){\n  addressInstruction='Обращайся к клиенту на «Вы». Оставляй цитаты убеждений в исходной форме «я ...». Не используй «ты» вне цитат.';\n}else if(addressMode==='third'){\n  addressInstruction='Пиши о клиенте в третьем лице, используя имя «'+clientName+'». Сохраняй убеждения в исходной форме «я ...» внутри кавычек.';\n}else{\n  addressInstruction='Обращайся к клиенту на «ты». Сохраняй убеждения в исходной форме «я ...» внутри кавычек.';\n}\n\nconst instructions=String.raw`\nТы — специалист по психологической диагностике. Сформируй ТОЛЬКО две рабочие гипотезы по заполненной таблице: расширенную и короткую.\n\nГЛАВНОЕ ТРЕБОВАНИЕ — ФОРМА, КАК В ОБРАЗЦЕ.\nНикакого психологического заключения, свободного пересказа, дополнительных абзацев, пояснений или рассуждений после основной цепочки.\nРасширенная — ОДИН цельный абзац, который можно сказать клиенту вслух. Короткая — ОДНО–ДВА предложения в стиле прямого вывода.\nНачинай расширенную словами, соответствующими форме обращения: «В основе твоего запроса лежат глубинные убеждения ...» / «В основе вашего запроса ...» / «В основе запроса [имя] ...».\nЗатем по порядку: глубинные убеждения → вторичные чувства → первичные убеждения в ситуациях → реальные ситуации → реальные реакции → ТОЧНАЯ формулировка исходного запроса.\nЗаканчивай расширенную связью исходного запроса с перечисленными глубинными убеждениями, без второго объяснительного абзаца.\nКороткая начинается с точного исходного запроса и сразу говорит, на каких глубинных убеждениях он строится. Допустимо завершение «Всё остальное уже разворачивается из них», если оно подходит по смыслу.\n\nОЧЕНЬ ВАЖНО — ПОНЯТИЕ «СИЛЬНЫЕ ВУ».\nМассив сильные_ВУ — это ПОЛНЫЙ список глубинных убеждений из правой колонки «Сильные ВУ» (уровни 6–10, включая скрытые под «Показать ещё»).\nНе выбирай только одно или два! В расширенной гипотезе УПОМИНАЙ ВСЕ убеждения из сильные_ВУ, без пропусков и подмены формулировок. Если их шесть — все шесть. Если больше — все. Не вставляй вместо них убеждения с других уровней, не входящие в эту колонку.\nНачальное предложение должно перечислить ВСЕ сильные ВУ в кавычках (например, «я ...», «я ...», «я ...»). Если из колонки приходит «беспомощная», допустимо оформить цитату «я беспомощная» — смысл слова не меняй.\nЕсли список пуст, не выдумывай сильные ВУ: сформулируй только осторожную гипотезу по подтверждённым данным.\nНе добавляй искусственного ограничения длины: важнее сохранить все ВУ и один связный абзац. Но не повторяй список дважды и не превращай гипотезу в перечисление.\nВ короткой гипотезе упомяни все те же сильные ВУ компактно. При большом числе ВУ предложение может быть длиннее — главное, чтобы оно оставалось прямым итогом, а не анализом.\n\nСТРУКТУРА ВЕТВЕЙ.\nГлубинные ВУ — это только элементы массива сильные_ВУ; первичные убеждения берутся из первичные_убеждения, чувства — из вторичные_чувства, реакции — из инстинктивные_реакции.\nНапример, «я некрасивая» или «какая-то не такая» могут быть первичными убеждениями, а не глубинными, если отсутствуют в сильные_ВУ. Не переноси их в список глубинных.\nНе соединяй разрозненные ветки произвольной причинностью. Если у отдельных ВУ разные чувства или ситуации, сформулируй это кратко и раздельно внутри одного абзаца. Если связи не подтверждены — не додумывай.\nОценки и повторы помогают понять выраженность ВУ, но не дают права объявлять их доказанной причиной.\n\nРИТМ И СТИЛЬ (ТОЛЬКО КОНСТРУКЦИЯ, НЕ КОПИРУЙ СЛОВА):\n«В основе всего у тебя лежат глубинные убеждения “[ВСЕ СИЛЬНЫЕ ВУ]”. К ним ты приходишь через [ЧУВСТВА ИЗ ВЕТОК]; эти чувства возникают потому, что в конкретных ситуациях ты воспринимаешь себя как “[ПЕРВИЧНЫЕ УБЕЖДЕНИЯ]”. Это включается, когда [СИТУАЦИИ]. Дальше появляются реакции [РЕАКЦИИ]. И уже вся эта цепочка на поверхности проявляется как [ИСХОДНЫЙ ЗАПРОС]. То есть сам этот запрос строится на этих глубинных убеждениях».\nКороткая: «[ИСХОДНЫЙ ЗАПРОС] здесь строится на глубинных убеждениях “[ВСЕ СИЛЬНЫЕ ВУ]”. Всё остальное уже разворачивается из них».\nЭто только схема синтаксиса. Никогда не копируй конкретные чувства, убеждения, ситуации или реакции из примера, если их нет у клиента.\n\nНе употребляй «в основе прослеживается», «формируется паттерн», «переживание недостаточной ценности», «эти самоопределения», «на их фоне», «может восприниматься как», «вероятно» и другой психологический канцелярит.\nНе добавляй рекомендаций, диагнозов, планов, советов или альтернативных гипотез.\nПеред ответом проверь, что каждое сильное ВУ присутствует в обоих выводах, первое и последнее звено цепочки не потеряны, а расширенная состоит из одного абзаца.\nНе делай неподтверждённых причинных утверждений абсолютной истиной.\n\nФОРМАТ ВЫВОДА — СТРОГО:\n\nРАСШИРЕННАЯ ГИПОТЕЗА:\n[ОДИН абзац, без внутренних подзаголовков, связная цепочка от ВСЕХ сильных ВУ до исходного запроса]\n\nКОРОТКАЯ ГИПОТЕЗА:\n[ОДНО–ДВА предложения: исходный запрос → ВСЕ сильные ВУ]\n\nНикакого текста до первого заголовка и после короткой гипотезы.\n`+\"\\nФОРМА ОБРАЩЕНИЯ:\\n\"+addressInstruction;\n\nconst fullData={...diagnosticData,сильные_ВУ:strongVu};\nconst prompt='ИСХОДНЫЙ ЗАПРОС:\\n'+clean(diagnosticData?.исходный_запрос?.формулировка)+\n  '\\n\\nВСЕ СИЛЬНЫЕ ВУ (перечисли КАЖДОЕ в обеих гипотезах):\\n'+\n  (strongVuNames.length?strongVuNames.map((v,i)=>(i+1)+'. '+v).join('\\n'):'Нет ВУ с уровнем 6 и выше')+\n  '\\n\\nСИЛЬНЫЕ ВУ С ВЕТКАМИ:\\n'+JSON.stringify(strongVu,null,2)+\n  '\\n\\nПОЛНАЯ ДИАГНОСТИКА:\\n'+JSON.stringify(fullData,null,2);\n\nreturn [{json:{\n  accessKey:String(body.accessKey||''),\n  clientId:String(body.clientId||''),\n  clientName,\n  requestId,\n  addressMode,\n  instructions,\n  prompt,\n  strongVuNames\n}}];"
+      },
+      "id": "a71b65af-4b24-40fe-96dc-6eddb1e3a102",
+      "name": "Подготовить гипотезу",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -530,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a71b65af-4b24-40fe-96dc-6eddb1e3a103",
+              "leftValue": "={{ $json.accessKey }}",
+              "rightValue": "CHANGE_ME_TO_THE_SAME_ACCESS_KEY_AS_DIAGNOSTIKA_AI",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a71b65af-4b24-40fe-96dc-6eddb1e3a104",
+      "name": "Ключ верный?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-5.6-luna', instructions: $json.instructions, input: $json.prompt, max_output_tokens: 2600 }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "a71b65af-4b24-40fe-96dc-6eddb1e3a105",
+      "name": "OpenAI — Responses API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -50,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$json||{};\nlet text=String(r.output_text||'').trim();\nif(!text&&Array.isArray(r.output)){\n  for(const item of r.output||[]){\n    for(const part of item?.content||[]){\n      if(part?.type==='output_text'&&part?.text)text+=String(part.text);\n    }\n  }\n}\ntext=text.trim();\nif(!text)throw new Error('OpenAI не вернул текст');\nconst expanded=(text.match(/РАСШИРЕННАЯ\\s+ГИПОТЕЗА\\s*:\\s*([\\s\\S]*?)(?=\\n\\s*КОРОТКАЯ\\s+ГИПОТЕЗА\\s*:|$)/i)?.[1]||'').trim();\nconst short=(text.match(/КОРОТКАЯ\\s+ГИПОТЕЗА\\s*:\\s*([\\s\\S]*?)$/i)?.[1]||'').trim();\nreturn [{json:{reply:text,expandedHypothesis:expanded,shortHypothesis:short}}];"
+      },
+      "id": "a71b65af-4b24-40fe-96dc-6eddb1e3a106",
+      "name": "Разобрать гипотезу",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        190,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "a71b65af-4b24-40fe-96dc-6eddb1e3a107",
+      "name": "Ответ программе",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        430,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'Недействительный ключ доступа' } }}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "a71b65af-4b24-40fe-96dc-6eddb1e3a108",
+      "name": "Ошибка доступа",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -50,
+        120
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook — Гипотеза": {
+      "main": [
+        [
+          {
+            "node": "Подготовить гипотезу",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Подготовить гипотезу": {
+      "main": [
+        [
+          {
+            "node": "Ключ верный?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ключ верный?": {
+      "main": [
+        [
+          {
+            "node": "OpenAI — Responses API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ошибка доступа",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI — Responses API": {
+      "main": [
+        [
+          {
+            "node": "Разобрать гипотезу",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Разобрать гипотезу": {
+      "main": [
+        [
+          {
+            "node": "Ответ программе",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e8bcb86b-dd9e-47a4-941d-7ce1d7d1cd19",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

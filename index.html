@@ -9,6 +9,16 @@
   <meta name="diagnostika-build" content="20260919-db14d">
   <meta name="diagnostika-release" content="v1.0.0">
   <title>Психологическая диагностика</title>
+  <!-- Existing root URL is an alias; the two deployable sites live in separate folders. -->
+  <script>
+    (() => {
+      const target=new URL('./DiagnostikaSS.com/',window.location.href);
+      target.search=window.location.search;
+      target.hash=window.location.hash;
+      window.location.replace(target.href);
+    })();
+  </script>
+  <noscript><meta http-equiv="refresh" content="0; url=./DiagnostikaSS.com/"></noscript>
   <script>
     try{
       const theme=localStorage.getItem('diagnostika-dashboard-theme')||'theme-1';

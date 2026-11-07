@@ -1,0 +1,30 @@
+name: Request UI boundary audit
+
+concurrency:
+  group: request-ui-boundary-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main, 'feature-request-*']
+    paths:
+      - 'request-api.js'
+      - 'index.html'
+      - 'modules/requests/**'
+      - 'tests/request-ui-boundary-stage6-audit.mjs'
+      - '.github/workflows/request-ui-boundary-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  request-ui-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify modular Requests UI ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/request-ui-boundary-stage6-audit.mjs
+          for f in modules/requests/ui/*.js; do node --check "$f"; done
+          node tests/request-ui-boundary-stage6-audit.mjs

@@ -1,0 +1,30 @@
+name: Service boundary audit
+
+on:
+  push:
+    branches: [main, 'feature-final-*']
+    paths:
+      - 'core/store-bridge.js'
+      - 'core/shell-bridge.js'
+      - 'core/bootstrap.js'
+      - 'modules/**'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/service-boundary-*.mjs'
+      - '.github/workflows/service-boundary-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  service-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify service and CORE boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check core/store-bridge.js
+          node --check core/shell-bridge.js
+          node --check tests/service-boundary-23c-audit.mjs
+          node tests/service-boundary-23c-audit.mjs

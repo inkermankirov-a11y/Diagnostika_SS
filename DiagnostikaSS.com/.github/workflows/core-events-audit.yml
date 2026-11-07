@@ -1,0 +1,30 @@
+name: CORE events audit
+on:
+  push:
+    branches: [main, feature-core-0.2a, feature-core-0.2b, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
+  workflow_dispatch:
+jobs:
+  core-events:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start audit server
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/core-events-http.log 2>&1 &
+      - name: Verify existing CORE business events
+        run: node tests/core-events-audit.mjs
+      - name: Verify payment persistence bridge
+        run: node tests/payment-event-bridge-smoke.mjs
+      - name: Verify request payment settings event
+        run: PAYMENT_PHASE=settings node tests/payment-request-events-audit.mjs
+      - name: Verify request payment add event
+        run: PAYMENT_PHASE=add node tests/payment-request-events-audit.mjs
+      - name: Verify request payment edit and delete events
+        run: PAYMENT_PHASE=editdelete node tests/payment-request-events-audit.mjs
+      - name: Verify session payment event
+        run: node tests/session-payment-events-audit.mjs

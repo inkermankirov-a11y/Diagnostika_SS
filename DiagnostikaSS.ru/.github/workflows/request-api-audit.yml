@@ -1,0 +1,290 @@
+name: Request API audit
+
+on:
+  push:
+    branches: [main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, 'feature-request-*', feature-sessions-4a, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
+  workflow_dispatch:
+
+jobs:
+  request-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static request boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check request-api.js
+          node --check modules/requests/request-service.js
+          node --check core/shell-bridge.js
+          node --check modules/requests/index.js
+          node --check tests/request-module-audit.mjs
+          node --check home-dashboard.js
+          node --check modules/requests/ui/title.js
+          node --check modules/requests/ui/selection.js
+          node --check modules/requests/ui/date-unsaved.js
+          node --check tests/request-ui-audit.mjs
+          node --check test-data.js
+          node --check tests/request-acceptance-3d-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,sys
+          api=Path('request-api.js').read_text(encoding='utf-8')
+          request_ui=Path('modules/requests/ui/selection.js').read_text(encoding='utf-8')
+          request_title=Path('modules/requests/ui/title.js').read_text(encoding='utf-8')
+          request_date=Path('modules/requests/ui/date-unsaved.js').read_text(encoding='utf-8')
+          service=Path('modules/requests/request-service.js').read_text(encoding='utf-8')
+          module=Path('modules/requests/index.js').read_text(encoding='utf-8')
+          dash=Path('home-dashboard.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+          index=Path('index.html').read_text(encoding='utf-8')
+          test_data=Path('test-data.js').read_text(encoding='utf-8')
+          errors=[]
+          for token in ['typeof state','typeof clientId','typeof requestId','typeof situationId','typeof selected','typeof mode','save(','renderRequests(','newRequest(']:
+              if token in service: errors.append('RequestService bypasses shell/store bridge: '+token)
+          if re.search(r'(?<![\w.])(?:state|clientId|requestId|situationId|selected|mode)\s*=',service):
+              errors.append('RequestService directly assigns legacy navigation/state')
+          if 'platform.shell?.viewRequest?.' not in service: errors.append('RequestService does not view through shell bridge')
+          if 'platform.store?.persist?.' not in service: errors.append('RequestService does not persist through store bridge')
+          for token in ['typeof client','typeof requestId','renderRequests','window.renderClient','fallbackList','syncActiveView','...legacy']:
+              if token in api: errors.append('request API reintroduced legacy state/render fallback: '+token)
+          if 'window.DiagnostikaRequests=Object.freeze' not in api: errors.append('request API export missing')
+          if "moduleAware:true" not in api or "version:'3A'" not in api: errors.append('request facade is not module-aware 3A')
+          if 'services.requests=Object.freeze' not in service: errors.append('RequestService export missing')
+          for token in ['function view(','function activate(','function create(','function update(','function complete(','function resume(','function remove(']:
+              if token not in service: errors.append('RequestService method missing '+token)
+          if "MODULE_ID='requests'" not in module: errors.append('requests module registration missing')
+          if 'modules/requests/request-service.js?v=20260918-requests3d' not in loader: errors.append('request service loader missing/stale')
+          if 'modules/requests/index.js?v=20260918-requests3d' not in loader: errors.append('requests module loader missing/stale')
+          if 'request-api.js?v=20260918-requests3d' not in loader: errors.append('request API cache version stale')
+          if "DiagnostikaRequestsUI=Object.freeze({version:'3C'" not in request_ui: errors.append('Request UI 3C marker missing')
+          for forbidden in ['c.requests.push','c.currentRequestId=','c.lastDiagnosisRequestId=','r.status=','window.renderClient=function','window.renderRequests=function']:
+              if forbidden in request_ui: errors.append('request UI owns request state/render boundary: '+forbidden)
+          if 'new MutationObserver' in request_ui: errors.append('request UI still owns a MutationObserver after 3C')
+          if "querySelector('#diagNewBtn')" in request_ui or 'diagnosis-create' in request_ui: errors.append('request UI still knows Diagnosis HTML/actions')
+          if 'new MutationObserver' in request_date: errors.append('request-date-unsaved still observes request DOM')
+          if '.update(r.id,{title:value}' not in request_title: errors.append('request title edit does not use RequestService update')
+          if 'r.title = value' in request_title or 'r.updatedAt' in request_title: errors.append('request title display still writes request directly')
+          if 'name="diagnostika-build" content="' not in index: errors.append('build marker missing')
+          for forbidden in ['c.currentRequestId=','c.lastDiagnosisRequestId=','requestId=target.id']:
+              if forbidden in api: errors.append('request facade still owns request authority: '+forbidden)
+          for forbidden in ['c.requests=[]','c.requests.push','requestId=']:
+              if forbidden in test_data: errors.append('test-data still owns request authority: '+forbidden)
+          for required in [".remove(existing.id", ".create({", ".activate(first.id"]:
+              if required not in test_data: errors.append('test-data does not use RequestService lifecycle: '+required)
+          # Ignore requestId when it is only a field/property name such as session.requestId.
+          dash_without_member_fields=re.sub(r'\??\.requestId\b','',dash)
+          if re.search(r'\brequestId\b',dash_without_member_fields): errors.append('dashboard still owns requestId directly')
+          if 'requestsApi()?.current?.()' not in dash: errors.append('dashboard current request does not use request API')
+          if 'request-api.js?v=' not in loader: errors.append('request API loader missing')
+          if 'home-dashboard.js?v=' not in loader: errors.append('dashboard loader missing')
+          print('REQUEST_BOUNDARY_STATIC_ERRORS:',errors)
+          if errors: sys.exit(1)
+          PY
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify RequestService 3A module
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-module-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/request-module-audit.mjs
+      - name: Verify Request UI 3B lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-ui-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/request-ui-audit.mjs
+      - name: Verify Requests 3D final acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-3d-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/request-acceptance-3d-audit.mjs
+      - name: Stress request navigation and persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > request-api-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('dialog',d=>d.accept().catch(()=>{}));
+
+          async function ready(){
+            await page.locator('.home-dashboard').waitFor({state:'visible',timeout:10000});
+            await page.waitForFunction(()=>!!window.DiagnostikaRequests?.select && !!window.DiagnostikaClients?.current,null,{timeout:5000});
+            await page.locator('#hdAddSession').waitFor({state:'attached',timeout:5000});
+          }
+
+          await page.goto(`http://127.0.0.1:8000/index.html?request-api=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await ready();
+          await page.evaluate(()=>{
+            localStorage.removeItem('diagnostika-web-v1');
+            localStorage.removeItem('diagnostika-last-client-id');
+          });
+          await page.reload({waitUntil:'commit'});
+          await ready();
+
+          const fixtures=await page.evaluate(()=>{
+            const first=window.DiagnostikaClients.current();
+            if(!first)throw new Error('No current client');
+            const stamp=new Date().toISOString();
+            const mk=title=>({id:crypto.randomUUID(),title,status:'active',createdAt:stamp,updatedAt:stamp,situations:[],payment:{mode:'',total:0,payments:[],currency:'RUB',sessionAmount:0,sessionDiscount:0}});
+            const fill=(c,name)=>{
+              c.name=name;
+              c.requests=[mk(`${name} A`),mk(`${name} B`)];
+              c.currentRequestId=c.requests[0].id;
+              c.lastDiagnosisRequestId=c.requests[0].id;
+              c.sessions=[];
+              return {clientId:c.id,requests:c.requests.map(r=>({id:r.id,title:r.title}))};
+            };
+            const a=fill(first,'REQUEST CLIENT 1');
+            const second=typeof newClient==='function'?newClient():null;
+            if(!second)throw new Error('Cannot create second audit client');
+            state.clients.push(second);
+            const b=fill(second,'REQUEST CLIENT 2');
+            clientId=first.id;
+            requestId=first.currentRequestId;
+            if(typeof save==='function')save();
+            if(typeof renderClient==='function')renderClient();
+            window.DiagnostikaRequests.refresh();
+            return {clients:[a,b]};
+          });
+
+          const apiShape=await page.evaluate(()=>({
+            frozen:Object.isFrozen(window.DiagnostikaRequests),
+            list:typeof window.DiagnostikaRequests.list,
+            get:typeof window.DiagnostikaRequests.get,
+            current:typeof window.DiagnostikaRequests.current,
+            currentId:typeof window.DiagnostikaRequests.currentId,
+            select:typeof window.DiagnostikaRequests.select,
+            refresh:typeof window.DiagnostikaRequests.refresh,
+            requestNumber:typeof window.DiagnostikaRequests.requestNumber
+          }));
+          console.log('REQUEST_API_SHAPE:',JSON.stringify(apiShape));
+          if(!apiShape.frozen||Object.values(apiShape).some(v=>v===false||v==='undefined'))throw new Error(`Request API shape is incomplete: ${JSON.stringify(apiShape)}`);
+
+          for(const fixture of fixtures.clients){
+            const rows=await page.evaluate(id=>window.DiagnostikaRequests.list(id).map(r=>({id:r.id,title:r.title})),fixture.clientId);
+            if(JSON.stringify(rows)!==JSON.stringify(fixture.requests))throw new Error(`Client request list mismatch: ${JSON.stringify({fixture,rows})}`);
+            const got=await page.evaluate(({clientId,id})=>window.DiagnostikaRequests.get(id,clientId)?.title||'',{clientId:fixture.clientId,id:fixture.requests[1].id});
+            if(got!==fixture.requests[1].title)throw new Error(`Request get() mismatch for ${fixture.clientId}`);
+          }
+
+          const order=await page.evaluate(()=>{
+            const arr=[...document.scripts].map(s=>s.src).filter(Boolean).map(src=>new URL(src).pathname.split('/').pop());
+            return {requestApi:arr.indexOf('request-api.js'),dashboard:arr.indexOf('home-dashboard.js')};
+          });
+          console.log('REQUEST_API_SCRIPT_ORDER:',JSON.stringify(order));
+          if(order.requestApi<0||order.dashboard<0||order.requestApi>order.dashboard)throw new Error('Request API did not load before dashboard');
+
+          // Let the existing render/repair wrappers finish their one-time normalization before taking the immutability baseline.
+          await page.evaluate(()=>window.DiagnostikaRequests.refresh());
+          await page.waitForTimeout(150);
+
+          await page.evaluate(()=>{
+            window.__legacyRequestEvents={changes:0};
+            document.getElementById('requestSelect')?.addEventListener('change',()=>window.__legacyRequestEvents.changes++,true);
+          });
+
+          const requestDataBefore=await page.evaluate(ids=>JSON.stringify(ids.map(id=>window.DiagnostikaRequests.list(id))),fixtures.clients.map(x=>x.clientId));
+          for(let i=0;i<100;i++){
+            const fixture=fixtures.clients[i%2];
+            const target=fixture.requests[Math.floor(i/2)%2];
+            const ok=await page.evaluate(({clientId,requestId})=>{
+              if(!window.DiagnostikaClients.select(clientId))return false;
+              return window.DiagnostikaRequests.select(requestId);
+            },{clientId:fixture.clientId,requestId:target.id});
+            if(!ok)throw new Error(`API select failed at iteration ${i}`);
+            await page.waitForTimeout(10);
+            const snap=await page.evaluate(()=>({
+              api:window.DiagnostikaRequests.currentId(),
+              current:window.DiagnostikaRequests.current()?.title||'',
+              select:document.getElementById('requestSelect')?.value||'',
+              dashboard:document.querySelector('#hdSummary .hd-summary-box .hd-summary-value')?.textContent?.trim()||'',
+              client:window.DiagnostikaClients.currentId()
+            }));
+            if(String(snap.client)!==String(fixture.clientId)||String(snap.api)!==String(target.id)||snap.current!==target.title||String(snap.select)!==String(target.id)||snap.dashboard!==target.title){
+              throw new Error(`Request selection mismatch at iteration ${i}: ${JSON.stringify(snap)}`);
+            }
+          }
+
+          const legacy=await page.evaluate(()=>window.__legacyRequestEvents);
+          console.log('LEGACY_REQUEST_UI_EVENTS:',JSON.stringify(legacy));
+          if(legacy.changes!==0)throw new Error('Request API simulated legacy request select change events');
+
+          const invalid=await page.evaluate(()=>{
+            const before=window.DiagnostikaRequests.currentId();
+            const beforeSelect=document.getElementById('requestSelect')?.value||'';
+            const result=window.DiagnostikaRequests.select('__missing_request__');
+            return {before,beforeSelect,result,after:window.DiagnostikaRequests.currentId(),afterSelect:document.getElementById('requestSelect')?.value||''};
+          });
+          console.log('INVALID_REQUEST_SELECT:',JSON.stringify(invalid));
+          if(invalid.result!==false||String(invalid.before)!==String(invalid.after)||String(invalid.beforeSelect)!==String(invalid.afterSelect))throw new Error('Invalid request selection changed current request');
+
+          const requestDataAfter=await page.evaluate(ids=>JSON.stringify(ids.map(id=>window.DiagnostikaRequests.list(id))),fixtures.clients.map(x=>x.clientId));
+          if(requestDataAfter!==requestDataBefore)throw new Error(`Request navigation mutated request data: ${JSON.stringify({before:JSON.parse(requestDataBefore),after:JSON.parse(requestDataAfter)})}`);
+
+          const chosenClient=fixtures.clients[0];
+          const chosenRequest=chosenClient.requests[1];
+          await page.evaluate(({clientId,requestId})=>{
+            window.DiagnostikaClients.select(clientId);
+            window.DiagnostikaRequests.select(requestId);
+          },{clientId:chosenClient.clientId,requestId:chosenRequest.id});
+
+          const paymentRequest=await page.evaluate(()=>{
+            window.DiagnostikaPayments.open();
+            return document.querySelector('#paymentRequestSub')?.textContent?.trim()||'';
+          });
+          if(!paymentRequest.includes(chosenRequest.title))throw new Error(`Payment opened wrong request: ${paymentRequest}`);
+          await page.locator('dialog.payment-dialog:has(#paymentMode) .payment-x').click();
+
+          await page.locator('#hdAddSession').click();
+          await page.waitForTimeout(50);
+          const sessionRequest=await page.evaluate(()=>window.DiagnostikaClients.current()?.sessions?.at(-1)?.requestId||'');
+          if(String(sessionRequest)!==String(chosenRequest.id))throw new Error(`New session linked to wrong request: ${sessionRequest}`);
+          await page.locator('dialog.session-edit-dialog[open]').evaluate(d=>d.close()).catch(()=>{});
+
+          const diagnosis=await page.evaluate(()=>{
+            const result=window.DiagnostikaDiagnosis.open();
+            return {result,requestId,currentId:window.DiagnostikaRequests.currentId(),mode};
+          });
+          if(!diagnosis.result||String(diagnosis.requestId)!==String(chosenRequest.id)||String(diagnosis.currentId)!==String(chosenRequest.id)||diagnosis.mode!=='diagnosis')throw new Error(`Diagnosis opened wrong request: ${JSON.stringify(diagnosis)}`);
+          await page.locator('.diagnosis-compact-back').click();
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+
+          const expectedData=JSON.stringify(chosenClient.requests);
+          await page.reload({waitUntil:'commit'});
+          await ready();
+          const restored=await page.evaluate(()=>({
+            clientId:window.DiagnostikaClients.currentId(),
+            currentId:window.DiagnostikaRequests.currentId(),
+            currentTitle:window.DiagnostikaRequests.current()?.title||'',
+            select:document.getElementById('requestSelect')?.value||'',
+            dashboard:document.querySelector('#hdSummary .hd-summary-box .hd-summary-value')?.textContent?.trim()||'',
+            list:window.DiagnostikaRequests.list().map(r=>({id:r.id,title:r.title}))
+          }));
+          if(JSON.stringify(restored.list)!==expectedData)throw new Error(`Reload changed request data: ${JSON.stringify(restored)}`);
+          if(String(restored.clientId)!==String(chosenClient.clientId)||String(restored.currentId)!==String(chosenRequest.id)||String(restored.select)!==String(chosenRequest.id)||restored.currentTitle!==chosenRequest.title||restored.dashboard!==chosenRequest.title)throw new Error(`Reload did not restore request authority: ${JSON.stringify(restored)}`);
+
+          console.log('REQUEST_API_STRESS_CYCLES: 100');
+          console.log('REQUEST_API_RELOAD_STATE:',JSON.stringify(restored));
+          console.log('Browser errors:',JSON.stringify(errors));
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
+          if(serious.length)throw new Error(serious.join(' | '));
+          await browser.close();
+          JS
+          node request-api-audit.mjs

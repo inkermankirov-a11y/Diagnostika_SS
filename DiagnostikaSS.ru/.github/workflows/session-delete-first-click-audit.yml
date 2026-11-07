@@ -1,0 +1,40 @@
+name: Session delete first click audit
+
+on:
+  push:
+    branches: [main, 'fix-session-*']
+    paths:
+      - 'home-dashboard-sessions.js'
+      - 'modules/sessions/ui/interactions.js'
+      - 'app-loader.js'
+      - 'index.html'
+      - 'tests/session-delete-first-click-audit.mjs'
+      - '.github/workflows/session-delete-first-click-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  session-delete:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Static checks
+        run: |
+          node --check home-dashboard-sessions.js
+          node --check modules/sessions/ui/interactions.js
+          node --check tests/session-delete-first-click-audit.mjs
+      - name: Install browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Verify one-click session deletion
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/session-delete-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 1
+          node tests/session-delete-first-click-audit.mjs
