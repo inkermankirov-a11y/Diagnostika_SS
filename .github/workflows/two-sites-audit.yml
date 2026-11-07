@@ -1,0 +1,58 @@
+name: Two independent site copies audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'DiagnostikaSS.com/**'
+      - 'DiagnostikaSS.ru/**'
+      - 'index.html'
+      - '.github/workflows/two-sites-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify two complete websites and clean root
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+
+          root=Path('.')
+          allowed={'.git','.github','.gitignore','.nojekyll','README.md','index.html','DiagnostikaSS.com','DiagnostikaSS.ru'}
+          actual={p.name for p in root.iterdir()}
+          assert not (actual-allowed), f'Unexpected root files: {sorted(actual-allowed)}'
+
+          class References(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.values=[]
+              def handle_starttag(self,tag,attrs):
+                  pairs=dict(attrs)
+                  for field in ('src','href'):
+                      if field in pairs:self.values.append(pairs[field])
+
+          for name in ('DiagnostikaSS.com','DiagnostikaSS.ru'):
+              site=root/name
+              required=('index.html','styles.css','app.js','app-loader.js','modules/diagnosis/ui/hypothesis.js','modules/clients/ui/card.js')
+              for file in required:
+                  assert (site/file).is_file(), f'{name}: missing {file}'
+              parser=References()
+              parser.feed((site/'index.html').read_text(encoding='utf-8'))
+              for url in parser.values:
+                  if not url or url.startswith(('http:', 'https:', '#','data:', 'mailto:')): continue
+                  path=url.split('?',1)[0].split('#',1)[0]
+                  assert not path.startswith(('/', '../')), f'{name}: escaping asset {url}'
+                  assert (site/path).is_file(), f'{name}: missing asset {url}'
+              print(name, 'files', len(list(site.rglob('*'))), 'references', len(parser.values))
+          PY
+      - name: Validate JavaScript syntax of both sites
+        run: |
+          set -euo pipefail
+          for site in DiagnostikaSS.com DiagnostikaSS.ru; do
+            find "$site" -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
+          done
