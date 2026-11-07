@@ -1,0 +1,166 @@
+name: Request selection audit
+
+on:
+  push:
+    branches: [main, fix-request-selection-not-active, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, 'feature-request-*', 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
+  workflow_dispatch:
+
+jobs:
+  request-selection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static syntax check
+        run: |
+          node --check modules/requests/ui/selection.js
+          node --check modules/requests/ui/title.js
+          node --check modules/requests/ui/date-unsaved.js
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify viewing does not activate request
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/request-selection-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > request-selection-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1200,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
+          await page.goto(`http://127.0.0.1:8000/index.html?request-selection=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:10000});
+          await page.waitForFunction(()=>window.DiagnostikaRequestsUI?.version==='3C'&&window.DiagnostikaRequests?.moduleAware===true,null,{timeout:10000});
+
+          const ids=await page.evaluate(()=>{
+            const c=typeof client==='function'?client():null;
+            if(!c)throw new Error('No current client');
+            const stamp=new Date().toISOString();
+            const mk=title=>({id:crypto.randomUUID(),title,status:'active',createdAt:stamp,updatedAt:stamp,situations:[]});
+            const first=mk('Первый активный запрос');
+            const second=mk('Второй просматриваемый запрос');
+            c.requests=[first,second];
+            c.currentRequestId=first.id;
+            c.lastDiagnosisRequestId=first.id;
+            requestId=first.id;
+            situationId=null;
+            selected=null;
+            mode='diagnosis';
+            save();
+            renderRequests();
+            renderMode();
+            return {first:first.id,second:second.id};
+          });
+
+          await page.locator('#diagnosticsLeft').waitFor({state:'visible',timeout:3000});
+          await page.evaluate(()=>{
+            const c=client();
+            let value=c.currentRequestId;
+            window.__requestCurrentWrites=[];
+            Object.defineProperty(c,'currentRequestId',{
+              configurable:true,enumerable:true,
+              get(){return value;},
+              set(next){window.__requestCurrentWrites.push({from:value,to:next,stack:new Error('currentRequestId write').stack});value=next;}
+            });
+          });
+          await page.selectOption('#requestSelect',ids.second);
+          await page.waitForTimeout(100);
+
+          const viewed=await page.evaluate(()=>{
+            const c=client();
+            const btn=document.querySelector('.request-current-btn');
+            return {
+              current:c.currentRequestId,
+              lastDiagnosis:c.lastDiagnosisRequestId,
+              viewed:requestId,
+              select:document.querySelector('#requestSelect')?.value||'',
+              disabled:!!btn?.disabled,
+              text:btn?.textContent?.trim()||'',
+              badgeText:document.querySelector('.request-status-badge')?.textContent?.trim()||'',
+              badgeDisplay:getComputedStyle(document.querySelector('.request-status-badge')).display,
+              writes:window.__requestCurrentWrites||[]
+            };
+          });
+          console.log('VIEW_ONLY_STATE:',JSON.stringify(viewed));
+          if(String(viewed.current)!==String(ids.first))throw new Error(`Selecting request changed active request: ${JSON.stringify(viewed)}`);
+          if(String(viewed.lastDiagnosis)!==String(ids.first))throw new Error(`Selecting request changed last diagnosis authority: ${JSON.stringify(viewed)}`);
+          if(String(viewed.viewed)!==String(ids.second)||String(viewed.select)!==String(ids.second))throw new Error(`Second request was not opened for viewing: ${JSON.stringify(viewed)}`);
+          if(viewed.disabled||viewed.text.includes('✓'))throw new Error(`Activate button is not available for viewed inactive request: ${JSON.stringify(viewed)}`);
+          if(viewed.badgeText==='В работе'||viewed.badgeDisplay!=='none')throw new Error(`Inactive viewed request incorrectly shows "В работе": ${JSON.stringify(viewed)}`);
+
+          await page.locator('.request-current-btn').click();
+          await page.waitForTimeout(50);
+          const activated=await page.evaluate(()=>{
+            const c=client();
+            const btn=document.querySelector('.request-current-btn');
+            const badge=document.querySelector('.request-status-badge');
+            return {
+              current:c.currentRequestId,
+              lastDiagnosis:c.lastDiagnosisRequestId,
+              disabled:!!btn?.disabled,
+              text:btn?.textContent?.trim()||'',
+              badgeText:badge?.textContent?.trim()||'',
+              badgeDisplay:getComputedStyle(badge).display
+            };
+          });
+          console.log('ACTIVATED_STATE:',JSON.stringify(activated));
+          if(String(activated.current)!==String(ids.second)||String(activated.lastDiagnosis)!==String(ids.second))throw new Error(`Activate button did not switch active request: ${JSON.stringify(activated)}`);
+          if(!activated.disabled||!activated.text.includes('✓'))throw new Error(`Activated request button state is wrong: ${JSON.stringify(activated)}`);
+          if(activated.badgeText!=='В работе'||activated.badgeDisplay==='none')throw new Error(`Active request does not show "В работе": ${JSON.stringify(activated)}`);
+
+          const actionGrid=await page.evaluate(()=>{
+            const read=selector=>{
+              const el=document.querySelector(selector);
+              const r=el.getBoundingClientRect();
+              const s=getComputedStyle(el);
+              return {x:r.x,y:r.y,width:r.width,height:r.height,borderRadius:s.borderRadius};
+            };
+            return {
+              add:read('#addRequestBtn'),
+              active:read('.request-current-btn'),
+              del:read('#deleteRequestBtn'),
+              finish:read('.request-finish-btn')
+            };
+          });
+          const buttons=[actionGrid.add,actionGrid.active,actionGrid.del,actionGrid.finish];
+          for(const b of buttons){
+            if(Math.abs(b.width-124)>0.5||Math.abs(b.height-34)>0.5)throw new Error(`Request action button size mismatch: ${JSON.stringify(actionGrid)}`);
+            if(b.borderRadius!=='6px')throw new Error(`Request action button shape mismatch: ${JSON.stringify(actionGrid)}`);
+          }
+          if(Math.abs(actionGrid.add.x-actionGrid.active.x)>0.5)throw new Error(`Active request button is not directly under Add: ${JSON.stringify(actionGrid)}`);
+          if(Math.abs(actionGrid.del.x-actionGrid.finish.x)>0.5)throw new Error(`Finish button is not directly under Delete: ${JSON.stringify(actionGrid)}`);
+          if(Math.abs(actionGrid.add.width-actionGrid.del.width)>0.5||Math.abs(actionGrid.active.width-actionGrid.finish.width)>0.5)throw new Error(`Request action columns are not symmetrical: ${JSON.stringify(actionGrid)}`);
+          if(!(actionGrid.active.y>actionGrid.add.y&&actionGrid.finish.y>actionGrid.del.y))throw new Error(`Request action rows are not stacked correctly: ${JSON.stringify(actionGrid)}`);
+
+          const beforeCount=await page.evaluate(()=>window.DiagnostikaRequests.list().length);
+          await page.locator('#addRequestBtn').click();
+          await page.locator('.request-title-dialog').waitFor({state:'visible',timeout:3000});
+          const created=await page.evaluate(()=>({
+            count:window.DiagnostikaRequests.list().length,
+            active:window.DiagnostikaRequests.activeId(),
+            viewed:window.DiagnostikaRequests.viewedId(),
+            title:window.DiagnostikaRequests.viewed()?.title||'',
+            dialogTitle:document.querySelector('.request-title-dialog-title')?.textContent?.trim()||'',
+            input:document.querySelector('#requestTitleDialogInput')?.value||''
+          }));
+          if(created.count!==beforeCount+1)throw new Error(`New request was not created: ${JSON.stringify(created)}`);
+          if(String(created.active)!==String(created.viewed))throw new Error(`New request is not active/viewed: ${JSON.stringify(created)}`);
+          if(created.title!=='Новый запрос')throw new Error(`New request placeholder title is wrong: ${JSON.stringify(created)}`);
+          if(created.dialogTitle!=='Новый запрос'||created.input!=='')throw new Error(`New request editor did not open blank immediately: ${JSON.stringify(created)}`);
+          await page.locator('#requestTitleDialogInput').fill('Новый запрос из редактора');
+          await page.locator('.request-title-dialog-save').click();
+          await page.locator('.request-title-dialog').waitFor({state:'hidden',timeout:3000});
+          const savedTitle=await page.evaluate(()=>window.DiagnostikaRequests.active()?.title||'');
+          if(savedTitle!=='Новый запрос из редактора')throw new Error(`New request title was not saved from editor: ${savedTitle}`);
+
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
+          if(serious.length)throw new Error(serious.join(' | '));
+          await browser.close();
+          JS
+          node request-selection-audit.mjs

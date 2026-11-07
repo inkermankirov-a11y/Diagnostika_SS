@@ -1,0 +1,379 @@
+name: Diagnosis API audit
+
+on:
+  push:
+    branches: [main, retire-old-interface, feature-requests-3c, feature-requests-3d, 'feature-payment-*', 'feature-ai-*', 'feature-diagnosis-*', 'feature-sessions-*', 'feature-roles-*', 'feature-api-*' ]
+    paths:
+      - 'diagnosis-api.js'
+      - 'app.js'
+      - 'tests/diagnosis-ui-7c-audit.mjs'
+      - 'modules/diagnosis/ui/feeling-collapse.js'
+      - 'modules/diagnosis/ui/secondary-feeling-hints.js'
+      - 'modules/diagnosis/ui/add-focus.js'
+      - 'tests/diagnosis-7d-hardening-audit.mjs'
+      - 'deep-context-button.js'
+      - 'situation-unknown-level.js'
+      - 'modules/diagnosis/ui/situation-create.js'
+      - 'modules/diagnosis/**'
+      - 'app-loader.js'
+      - 'home-dashboard.js'
+      - 'modules/diagnosis/ui/navigation.js'
+      - 'modules/diagnosis/ui/compact-client.js'
+      - 'modules/requests/ui/free-consultation-builder.js'
+      - 'free-consultation-v2.js'
+      - 'modules/requests/ui/selection.js'
+      - 'request-api.js'
+      - 'tests/request-diagnosis-3c-audit.mjs'
+      - 'tests/diagnosis-module-7a-audit.mjs'
+      - 'tests/diagnosis-ui-7b-audit.mjs'
+      - 'tests/diagnosis-tree-layout-audit.mjs'
+      - 'styles.css'
+      - 'modules/requests/ui/title.js'
+      - 'index.html'
+      - '.github/workflows/diagnosis-api-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  diagnosis-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static dependency and ownership check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check diagnosis-api.js
+          node --check app.js
+          node --check tests/diagnosis-ui-7c-audit.mjs
+          node --check modules/diagnosis/ui/feeling-collapse.js
+          node --check modules/diagnosis/ui/secondary-feeling-hints.js
+          node --check modules/diagnosis/ui/add-focus.js
+          node --check tests/diagnosis-7d-hardening-audit.mjs
+          node --check deep-context-button.js
+          node --check situation-unknown-level.js
+          node --check modules/diagnosis/ui/situation-create.js
+          node --check modules/diagnosis/diagnosis-service.js
+          node --check modules/diagnosis/index.js
+          node --check home-dashboard.js
+          node --check modules/requests/ui/selection.js
+          node --check modules/diagnosis/ui/navigation.js
+          node --check modules/diagnosis/ui/compact-client.js
+          node --check modules/requests/ui/free-consultation-builder.js
+          node --check free-consultation-v2.js
+          node --check tests/request-diagnosis-3c-audit.mjs
+          node --check tests/diagnosis-module-7a-audit.mjs
+          node --check tests/diagnosis-ui-7b-audit.mjs
+          node --check tests/diagnosis-tree-layout-audit.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          dash=Path('home-dashboard.js').read_text(encoding='utf-8')
+          api=Path('diagnosis-api.js').read_text(encoding='utf-8')
+          app=Path('app.js').read_text(encoding='utf-8')
+          focus_ui=Path('modules/diagnosis/ui/add-focus.js').read_text(encoding='utf-8')
+          feelings_ui=Path('modules/diagnosis/ui/secondary-feeling-hints.js').read_text(encoding='utf-8')
+          collapse_ui=Path('modules/diagnosis/ui/feeling-collapse.js').read_text(encoding='utf-8')
+          create_ui=Path('modules/diagnosis/ui/situation-create.js').read_text(encoding='utf-8')
+          unknown_ui=Path('situation-unknown-level.js').read_text(encoding='utf-8')
+          nav=Path('modules/diagnosis/ui/navigation.js').read_text(encoding='utf-8')
+          compact=Path('modules/diagnosis/ui/compact-client.js').read_text(encoding='utf-8')
+          fc1=Path('modules/requests/ui/free-consultation-builder.js').read_text(encoding='utf-8')
+          fc2=Path('free-consultation-v2.js').read_text(encoding='utf-8')
+          request_ui=Path('modules/requests/ui/selection.js').read_text(encoding='utf-8')
+          html=Path('index.html').read_text(encoding='utf-8')
+          service=Path('modules/diagnosis/diagnosis-service.js').read_text(encoding='utf-8')
+          module=Path('modules/diagnosis/index.js').read_text(encoding='utf-8')
+          loader=Path('app-loader.js').read_text(encoding='utf-8')
+
+          if 'DiagnostikaDiagnosis?.open' not in dash:
+              raise SystemExit('Dashboard does not use DiagnostikaDiagnosis.open')
+          if re.search(r"\bmode\s*=\s*['\"]diagnosis['\"]", dash):
+              raise SystemExit('Dashboard still writes diagnosis mode directly')
+          if 'renderMode()' in dash[dash.find('function openDiagnosis'):dash.find('function openPayment')]:
+              raise SystemExit('Dashboard diagnosis action still calls renderMode directly')
+
+          owners=[]
+          for f in Path('.').glob('*.js'):
+              text=f.read_text(encoding='utf-8',errors='ignore')
+              if 'window.DiagnostikaDiagnosis =' in text or 'window.DiagnostikaDiagnosis=' in text:
+                  owners.append(f.name)
+          print('DiagnostikaDiagnosis owner files:',owners)
+          if owners != ['diagnosis-api.js']:
+              raise SystemExit(f'DiagnostikaDiagnosis must have one owner, got {owners}')
+
+          order={name:html.find(name) for name in ['modules/requests/ui/selection.js','modules/requests/ui/title.js']}
+          print('Diagnosis UI load order:',order)
+          if any(v < 0 for v in order.values()):
+              raise SystemExit('Required diagnosis UI scripts missing from index.html')
+          if not (order['modules/requests/ui/selection.js'] < order['modules/requests/ui/title.js']):
+              raise SystemExit('Diagnosis request UI load order is unsafe')
+          if 'diagnosis-api.js?v=20260919-diagnosis7d' not in loader:
+              raise SystemExit('Diagnosis API is missing from modular app-loader chain')
+
+          if not re.search(r"version:'7[ABCD]'",api) or 'moduleAware:true' not in api:
+              raise SystemExit('Diagnosis API is outside supported module-aware 7A-7D range')
+          for token in ['snapshot','situations','getSituation','findElement','addSituation','updateSituation','removeSituation','addBelief','addFeeling','replaceFeelings','addDeep','addInstinct','updateElement','removeElement']:
+              if token not in service or token not in api:
+                  raise SystemExit('Diagnosis 7A method missing '+token)
+          if "MODULE_ID='diagnosis'" not in module:
+              raise SystemExit('Diagnosis module registration missing')
+          for token in ['modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c','modules/diagnosis/index.js?v=20260919-diagnosis7c']:
+              if token not in loader:
+                  raise SystemExit('Diagnosis loader missing/stale '+token)
+          if re.search(r'\b(?:currentRequestId|lastDiagnosisRequestId)\s*=',service):
+              raise SystemExit('DiagnosisService owns request authority')
+          if re.search(r'\bsave\s*\(',service):
+              raise SystemExit('DiagnosisService persists directly instead of RequestService')
+          if 'api.update(' not in service:
+              raise SystemExit('DiagnosisService does not commit through RequestService.update')
+          nested_sources=app+'\n'+focus_ui+'\n'+feelings_ui+'\n'+collapse_ui
+          for token in ['diagnosis-ui-belief-add','diagnosis-ui-deep-add','diagnosis-ui-element-save','diagnosis-ui-element-delete','diagnosis-ui-instinct-save','diagnosis-ui-instinct-add','diagnosis-ui-feelings-replace']:
+              if token not in nested_sources:
+                  raise SystemExit('Diagnosis 7C nested UI source missing '+token)
+          for token in ['(s.beliefs||(s.beliefs=[])).push','(selected.obj.feelings||(selected.obj.feelings=[])).push','(selected.obj.deep||(selected.obj.deep=[])).push','arr.splice(selected.index,1)','selected.obj.instincts.push(newInstinct())','arr.push(newInstinct())']:
+              if token in app:
+                  raise SystemExit('Diagnosis 7C app nested UI still mutates state directly: '+token)
+          for token in ['s.beliefs||(s.beliefs=[])','parent.feelings||(parent.feelings=[])','parent.deep||(parent.deep=[])',"typeof save==='function') save()"]:
+              if token in focus_ui:
+                  raise SystemExit('Diagnosis 7C focus UI still mutates/persists directly: '+token)
+          if 'editingBelief.feelings=' in feelings_ui or "typeof save==='function')save()" in feelings_ui:
+              raise SystemExit('Diagnosis 7C feeling builder still owns nested state')
+          if 'const arr=feeling.deep||(feeling.deep=[])' in collapse_ui or "typeof save==='function') save()" in collapse_ui:
+              raise SystemExit('Diagnosis 7C context deep UI still owns nested state')
+          ui_sources=app+'\n'+create_ui+'\n'+unknown_ui+'\n'+fc2
+          for token in ["source:'diagnosis-ui-situation-add'","source:'diagnosis-ui-situation-edit'","source:'diagnosis-ui-situation-delete'","source:'diagnosis-ui-situation-result'"]:
+              if token not in ui_sources:
+                  raise SystemExit('Diagnosis 7B situation UI source missing '+token)
+          for token in ['r.situations.push(s)','r.situations=r.situations.filter',"s.result=$('#situationResult').value",'if(n!==null)s.name=n','if(l!==null)s.level=lvl(l)',"typeof save==='function'"]:
+              if token in create_ui or token in unknown_ui:
+                  raise SystemExit('Diagnosis 7B late situation UI still mutates/persists directly: '+token)
+          for token in ['r.situations.push(s)','r.situations=r.situations.filter',"s.result=$('#situationResult').value",'if(n!==null)s.name=n','if(l!==null)s.level=lvl(l)']:
+              if token in app:
+                  raise SystemExit('Diagnosis 7B app situation UI still mutates state directly: '+token)
+          for token in ['if(n!==null)s.name=n','s.level=num;s.levelPending=false']:
+              if token in fc2:
+                  raise SystemExit('Diagnosis 7B consultation edit override still mutates state directly: '+token)
+
+          owned_files={
+              'modules/diagnosis/ui/navigation.js':nav,
+              'diagnosis-api.js':api,
+              'modules/diagnosis/ui/compact-client.js':compact,
+              'modules/requests/ui/free-consultation-builder.js':fc1,
+              'free-consultation-v2.js':fc2,
+          }
+          forbidden=[
+              r'\.requests\.push\s*\(',
+              r'\.currentRequestId\s*=',
+              r'\.lastDiagnosisRequestId\s*=',
+              r'(?<![.\w])requestId\s*=',
+          ]
+          for name,text in owned_files.items():
+              for pattern in forbidden:
+                  if re.search(pattern,text):
+                      raise SystemExit(f'{name} still owns request authority: {pattern}')
+          if '.view(' not in nav or '.create(' not in nav or '.remove(' not in nav:
+              raise SystemExit('Diagnosis navigation is not RequestService-backed')
+          if '.view(' not in api:
+              raise SystemExit('Diagnosis API does not use RequestService.view')
+          if '.create(' not in fc1 or '.create(' not in fc2:
+              raise SystemExit('Free Consultation request creation is not RequestService-backed')
+          if 'new MutationObserver' in request_ui:
+              raise SystemExit('Request UI still has MutationObserver after 3C')
+          if '#diagNewBtn' in request_ui:
+              raise SystemExit('Request UI still knows Diagnosis HTML')
+          PY
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Stress diagnosis navigation and data integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-api-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          cat > diagnosis-api-audit.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+          page.on('dialog',d=>d.accept().catch(()=>{}));
+
+          await page.goto(`http://127.0.0.1:8000/index.html?diagnosis-api=${Date.now()}`,{waitUntil:'commit',timeout:10000});
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:8000});
+          await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:8000});
+
+          await page.waitForFunction(()=>!!window.DiagnostikaClients?.current?.());
+          await page.evaluate(()=>document.getElementById('testFillBtn')?.click());
+          await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:5000});
+          await page.locator('.diagnosis-compact-back').click();
+          await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+
+          const apiShape=await page.evaluate(()=>({
+            exists:!!window.DiagnostikaDiagnosis,
+            open:typeof window.DiagnostikaDiagnosis?.open,
+            frozen:Object.isFrozen(window.DiagnostikaDiagnosis||{})
+          }));
+          console.log('DIAGNOSIS_API_SHAPE:',JSON.stringify(apiShape));
+          if(!apiShape.exists||apiShape.open!=='function'||!apiShape.frozen)throw new Error('Diagnosis API shape is invalid');
+
+          const setup=await page.evaluate(()=>{
+            const c=typeof client==='function'?client():null;
+            if(!c||!Array.isArray(c.requests)||!c.requests[0])throw new Error('Audit client/request unavailable');
+            const first=c.requests[0];
+            first.title='DIAG AUDIT A';
+            first.status='active';
+            if(!Array.isArray(first.situations))first.situations=[];
+            const second=JSON.parse(JSON.stringify(first));
+            second.id=crypto.randomUUID?crypto.randomUUID():'diag_req_'+Date.now();
+            second.title='DIAG AUDIT B';
+            second.createdAt=new Date().toISOString();
+            second.updatedAt=second.createdAt;
+            c.requests=[first,second];
+            c.currentRequestId=first.id;
+            c.lastDiagnosisRequestId=first.id;
+            requestId=first.id;
+            situationId=null;
+            selected=null;
+            mode='card';
+            save();
+            if(!window.DiagnostikaRequests?.activate?.(second.id,{client:c,source:'diagnosis-audit-fixture',render:false})){
+              throw new Error('Cannot activate diagnosis audit request through RequestService');
+            }
+            if(typeof renderClient==='function')renderClient();
+            if(typeof renderMode==='function')renderMode();
+            window.DiagnostikaRequests?.refresh?.();
+            window.DiagnostikaHomeDashboard?.refresh?.();
+            window.__diagApiCalls=0;
+            window.__legacyDiagnosisClicks=0;
+            const original=window.DiagnostikaDiagnosis.open;
+            window.DiagnostikaDiagnosis=Object.freeze({open:function(){window.__diagApiCalls++;return original();}});
+            document.querySelector('#diagnosisModeBtn')?.addEventListener('click',()=>window.__legacyDiagnosisClicks++,true);
+            return {clientId:c.id,firstId:first.id,secondId:second.id};
+          });
+          await page.waitForTimeout(200);
+          setup.requests=await page.evaluate(()=>JSON.stringify(window.DiagnostikaRequests.list()));
+          setup.storedRequests=await page.evaluate((clientId)=>{
+            const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');
+            return JSON.stringify(stored?.clients?.find(x=>String(x.id)===String(clientId))?.requests||[]);
+          },setup.clientId);
+
+          const dashboardRequest=(await page.locator('#hdSummary .hd-summary-box').first().locator('.hd-summary-value').textContent()||'').trim();
+          console.log('DASHBOARD_REQUEST_BEFORE_OPEN:',dashboardRequest);
+          if(dashboardRequest!=='DIAG AUDIT B')throw new Error(`Dashboard request summary is stale: ${dashboardRequest}`);
+
+          const CYCLES=100;
+          for(let i=0;i<CYCLES;i++){
+            const button=page.locator('#hdHeroActions button').filter({hasText:'Диагностика'}).first();
+            await button.waitFor({state:'visible',timeout:3000});
+            await button.click();
+            await page.locator('.diagnosis-compact-back').waitFor({state:'visible',timeout:3000});
+            const state=await page.evaluate(()=>({mode,requestId,clientId,current:client()?.currentRequestId,last:client()?.lastDiagnosisRequestId,dashboardHidden:document.querySelector('.home-dashboard')?.hidden,workspaceVisible:!!document.querySelector('#diagnosisWorkspace')&&getComputedStyle(document.querySelector('#diagnosisWorkspace')).display!=='none'}));
+            if(state.mode!=='diagnosis')throw new Error(`Cycle ${i+1}: diagnosis mode not entered`);
+            if(state.requestId!==setup.secondId||state.current!==setup.secondId||state.last!==setup.secondId)throw new Error(`Cycle ${i+1}: wrong request selected ${JSON.stringify(state)}`);
+            if(!state.dashboardHidden||!state.workspaceVisible)throw new Error(`Cycle ${i+1}: visibility mismatch ${JSON.stringify(state)}`);
+            await page.locator('.diagnosis-compact-back').click();
+            await page.locator('.home-dashboard').waitFor({state:'visible',timeout:3000});
+            if(await page.locator('#diagnosisWorkspace').isVisible())throw new Error(`Cycle ${i+1}: legacy workspace visible after return`);
+          }
+
+          const result=await page.evaluate((setup)=>{
+            const c=state.clients.find(x=>String(x.id)===String(setup.clientId));
+            const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');
+            const sc=stored?.clients?.find(x=>String(x.id)===String(setup.clientId));
+            return {
+              apiCalls:window.__diagApiCalls||0,
+              legacyClicks:window.__legacyDiagnosisClicks||0,
+              requestId,
+              current:c?.currentRequestId,
+              last:c?.lastDiagnosisRequestId,
+              requestsSame:JSON.stringify(c?.requests||[])===setup.requests,
+              storedRequestsSame:JSON.stringify(sc?.requests||[])===setup.storedRequests
+            };
+          },setup);
+          console.log('DIAGNOSIS_STRESS_RESULT:',JSON.stringify({cycles:CYCLES,...result}));
+          if(result.apiCalls!==CYCLES)throw new Error(`Expected ${CYCLES} diagnosis API calls, got ${result.apiCalls}`);
+          if(result.legacyClicks!==0)throw new Error(`Legacy diagnosis button was clicked ${result.legacyClicks} time(s)`);
+          if(result.requestId!==setup.secondId||result.current!==setup.secondId||result.last!==setup.secondId)throw new Error('Diagnosis request authority changed during stress test');
+          if(!result.requestsSame||!result.storedRequestsSame)throw new Error('Diagnosis navigation mutated request data');
+
+          // With no requests, API must open the chooser instead of entering a broken diagnosis view.
+          const fallback=await page.evaluate(()=>{
+            const c=client();
+            const backup={requests:c.requests,currentRequestId:c.currentRequestId,lastDiagnosisRequestId:c.lastDiagnosisRequestId,requestId};
+            c.requests=[];c.currentRequestId=null;c.lastDiagnosisRequestId=null;requestId=null;mode='card';save();renderClient();renderMode();window.DiagnostikaHomeDashboard?.refresh?.();
+            const result=window.DiagnostikaDiagnosis.open();
+            const chooser=!!document.querySelector('#diagnosisLaunchDialog')?.open;
+            const stayedCard=mode!=='diagnosis';
+            document.querySelector('#diagnosisLaunchDialog')?.close();
+            c.requests=backup.requests;c.currentRequestId=backup.currentRequestId;c.lastDiagnosisRequestId=backup.lastDiagnosisRequestId;requestId=backup.requestId;save();renderClient();renderMode();window.DiagnostikaHomeDashboard?.refresh?.();
+            return {result,chooser,stayedCard};
+          });
+          console.log('DIAGNOSIS_EMPTY_FALLBACK:',JSON.stringify(fallback));
+          if(fallback.result!==false||!fallback.chooser||!fallback.stayedCard)throw new Error('Empty-request diagnosis fallback is unsafe');
+
+          const serious=errors.filter(x=>!x.includes('Failed to fetch')&&!x.includes('ERR_')&&!x.includes('favicon')&&!x.includes('429 (Too Many Requests)'));
+          console.log('Browser errors:',JSON.stringify(errors));
+          if(serious.length)throw new Error(serious.join(' | '));
+
+          await browser.close();
+          JS
+          node diagnosis-api-audit.mjs
+      - name: Verify Requests 3C diagnosis and consultation lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/requests-3c-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/request-diagnosis-3c-audit.mjs
+
+      - name: Verify Diagnosis 7A module ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7a-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-module-7a-audit.mjs
+
+      - name: Verify Diagnosis 7B situation UI migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7b-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-ui-7b-audit.mjs
+
+      - name: Verify diagnosis tree long-row layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-tree-layout-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-tree-layout-audit.mjs
+
+      - name: Verify Diagnosis 7C nested UI migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7c-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-ui-7c-audit.mjs
+
+      - name: Verify Diagnosis 7D repository hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/diagnosis-7d-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/diagnosis-7d-hardening-audit.mjs
+
+# acceptance-ci-trigger: 20260918

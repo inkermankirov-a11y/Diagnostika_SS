@@ -1,0 +1,44 @@
+name: Client pinning audit
+
+on:
+  push:
+    branches: [main, 'feature-clients-18a-*']
+    paths:
+      - 'modules/clients/client-service.js'
+      - 'client-api.js'
+      - 'home-dashboard.js'
+      - 'home-dashboard.css'
+      - 'app-loader.js'
+      - 'tests/client-pinning-18a-audit.mjs'
+      - '.github/workflows/client-pinning-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  client-pinning:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static pinning checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check modules/clients/client-service.js
+          node --check client-api.js
+          node --check home-dashboard.js
+          node --check tests/client-pinning-18a-audit.mjs
+
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify client pinning, limit and reload persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/client-pinning-18a-http.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT; sleep 1
+          node tests/client-pinning-18a-audit.mjs
