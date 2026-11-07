@@ -4,16 +4,20 @@ on:
   push:
     branches: [main, retire-old-interface, feature-core-0.2a, feature-clients-2b1, feature-clients-2b2, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
-      - 'client-api.js'
-      - 'delete-client.js'
-      - 'client-db-enhancements.js'
-      - 'client-trash.js'
-      - 'home-dashboard.js'
-      - 'modules/requests/ui/title.js'
-      - 'app-loader.js'
-      - 'index.html'
+      - 'DiagnostikaSS.com/client-api.js'
+      - 'DiagnostikaSS.com/delete-client.js'
+      - 'DiagnostikaSS.com/client-db-enhancements.js'
+      - 'DiagnostikaSS.com/client-trash.js'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/modules/requests/ui/title.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
       - '.github/workflows/client-api-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   client-api:

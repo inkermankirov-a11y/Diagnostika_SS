@@ -4,14 +4,18 @@ on:
   push:
     branches: [main, 'feature-clients-18a-*']
     paths:
-      - 'modules/clients/client-service.js'
-      - 'client-api.js'
-      - 'home-dashboard.js'
-      - 'home-dashboard.css'
-      - 'app-loader.js'
-      - 'tests/client-pinning-18a-audit.mjs'
+      - 'DiagnostikaSS.com/modules/clients/client-service.js'
+      - 'DiagnostikaSS.com/client-api.js'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/home-dashboard.css'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/tests/client-pinning-18a-audit.mjs'
       - '.github/workflows/client-pinning-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   client-pinning:

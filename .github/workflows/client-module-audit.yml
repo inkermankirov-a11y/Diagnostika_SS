@@ -8,32 +8,36 @@ on:
   push:
     branches: [main, feature-clients-2a, feature-clients-2b1, feature-clients-2b2, feature-clients-2c1, feature-clients-2c2, feature-clients-2d, feature-clients-acceptance, feature-requests-3a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*', 'feature-diagnosis-*', 'feature-client-*' ]
     paths:
-      - 'modules/clients/**'
-      - 'client-api.js'
-      - 'modules/clients/ui/card.js'
-      - 'modules/clients/ui/delete.js'
-      - 'modules/clients/ui/trash.js'
-      - 'modules/clients/ui/database.js'
-      - 'modules/sessions/ui/interactions.js'
-      - 'modules/clients/selection-memory.js'
-      - 'modules/clients/ui/transfer.js'
-      - 'form-integrations.js'
-      - 'ui-fixes.js'
-      - 'modules/clients/ui/questionnaires.js'
-      - 'free-consultation-client-card-sync.js'
-      - 'modules/ai/ui/settings.js'
-      - 'home-dashboard.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/client-module-audit.mjs'
-      - 'tests/client-write-audit.mjs'
-      - 'tests/client-trash-audit.mjs'
-      - 'tests/client-legacy-boundary-audit.mjs'
-      - 'tests/client-profile-boundary-audit.mjs'
-      - 'tests/client-final-boundary-audit.mjs'
-      - 'tests/client-acceptance-audit.mjs'
+      - 'DiagnostikaSS.com/modules/clients/**'
+      - 'DiagnostikaSS.com/client-api.js'
+      - 'DiagnostikaSS.com/modules/clients/ui/card.js'
+      - 'DiagnostikaSS.com/modules/clients/ui/delete.js'
+      - 'DiagnostikaSS.com/modules/clients/ui/trash.js'
+      - 'DiagnostikaSS.com/modules/clients/ui/database.js'
+      - 'DiagnostikaSS.com/modules/sessions/ui/interactions.js'
+      - 'DiagnostikaSS.com/modules/clients/selection-memory.js'
+      - 'DiagnostikaSS.com/modules/clients/ui/transfer.js'
+      - 'DiagnostikaSS.com/form-integrations.js'
+      - 'DiagnostikaSS.com/ui-fixes.js'
+      - 'DiagnostikaSS.com/modules/clients/ui/questionnaires.js'
+      - 'DiagnostikaSS.com/free-consultation-client-card-sync.js'
+      - 'DiagnostikaSS.com/modules/ai/ui/settings.js'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/client-module-audit.mjs'
+      - 'DiagnostikaSS.com/tests/client-write-audit.mjs'
+      - 'DiagnostikaSS.com/tests/client-trash-audit.mjs'
+      - 'DiagnostikaSS.com/tests/client-legacy-boundary-audit.mjs'
+      - 'DiagnostikaSS.com/tests/client-profile-boundary-audit.mjs'
+      - 'DiagnostikaSS.com/tests/client-final-boundary-audit.mjs'
+      - 'DiagnostikaSS.com/tests/client-acceptance-audit.mjs'
       - '.github/workflows/client-module-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   client-module:

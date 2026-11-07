@@ -8,11 +8,15 @@ on:
   push:
     branches: [main, 'feature-specialist-history-*', 'feature-specialist-row-*', 'feature-client-*']
     paths:
-      - 'modules/clients/ui/transfer.js'
-      - 'index.html'
-      - 'tests/client-specialist-history-20a-audit.mjs'
+      - 'DiagnostikaSS.com/modules/clients/ui/transfer.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/client-specialist-history-20a-audit.mjs'
       - '.github/workflows/client-specialist-history-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   specialist-history:
