@@ -239,7 +239,7 @@
     $('#hwsSchedule').innerHTML=upcoming.length?upcoming.map(e=>{
       const c=clientFor(e.clientId);
       return '<div class="hws-event-row"><div class="hws-event-type is-'+e.kind+'">'+
-        (e.kind==='reminder'?'◎':'◷')+'</div><div class="hws-event-body"><strong>'+esc(e.label)+'</strong>'+
+        (e.kind==='reminder'?'◎':'◷')+'</div><div class="hws-event-body"><strong>'+esc(hideNames?kindLabel[e.kind]:e.label)+'</strong>'+
         '<span>'+esc(c?showName(c):'Общая запись')+' · '+esc(formatDate(e.at))+'</span></div>'+
         (c?'<button type="button" data-action="open-client" data-client-id="'+esc(c.id)+'" aria-label="Открыть клиента">↗</button>':
            '<button type="button" data-action="calendar" aria-label="Открыть календарь">↗</button>')+'</div>';
@@ -254,7 +254,7 @@
       return;
     }
     el.innerHTML=pending.map(e=>'<div class="hws-priority-row"><div class="hws-priority-flag">!</div>'+
-      '<div><strong>'+esc(e.label)+'</strong><span>'+esc(e.clientId?showName(clientFor(e.clientId)):'Общая задача')+
+      '<div><strong>'+esc(hideNames?kindLabel[e.kind]:e.label)+'</strong><span>'+esc(e.clientId?showName(clientFor(e.clientId)):'Общая задача')+
       ' · '+esc(formatDate(e.at))+'</span></div>'+
       (e.source==='calendar'&&e.eventId?'<button type="button" data-action="complete-reminder" data-event-id="'+esc(e.eventId)+'" title="Отметить выполненным" aria-label="Выполнено">✓</button>':'')+'</div>').join('');
   }
