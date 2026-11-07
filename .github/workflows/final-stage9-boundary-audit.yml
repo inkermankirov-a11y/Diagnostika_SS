@@ -4,20 +4,24 @@ on:
   push:
     branches: [ main, 'feature-final-*' ]
     paths:
-      - 'client-ai-full-context.js'
-      - 'client-ai-chat-view.js'
-      - 'ai-processing-indicator.js'
-      - 'request-ai-n8n.js'
-      - 'modules/ai/**'
-      - 'free-consultation-v2.js'
-      - 'free-consultation-client-card-sync.js'
-      - 'manual-questionnaire-template.js'
-      - 'modules/requests/**'
-      - 'modules/clients/**'
-      - 'index.html'
-      - 'tests/*boundary*'
+      - 'DiagnostikaSS.com/client-ai-full-context.js'
+      - 'DiagnostikaSS.com/client-ai-chat-view.js'
+      - 'DiagnostikaSS.com/ai-processing-indicator.js'
+      - 'DiagnostikaSS.com/request-ai-n8n.js'
+      - 'DiagnostikaSS.com/modules/ai/**'
+      - 'DiagnostikaSS.com/free-consultation-v2.js'
+      - 'DiagnostikaSS.com/free-consultation-client-card-sync.js'
+      - 'DiagnostikaSS.com/manual-questionnaire-template.js'
+      - 'DiagnostikaSS.com/modules/requests/**'
+      - 'DiagnostikaSS.com/modules/clients/**'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/*boundary*'
       - '.github/workflows/final-stage9-boundary-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   boundary:

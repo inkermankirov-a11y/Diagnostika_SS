@@ -4,13 +4,17 @@ on:
   push:
     branches: [main, 'feature-client-*', 'feature-google-*']
     paths:
-      - 'google-drive-auth-popup-fix.js'
-      - 'google-drive-sync-safe.js'
-      - 'google-drive-lazy-loader.js'
-      - 'google-drive-merge-worker.js'
-      - 'tests/google-drive-no-popup-audit.mjs'
+      - 'DiagnostikaSS.com/google-drive-auth-popup-fix.js'
+      - 'DiagnostikaSS.com/google-drive-sync-safe.js'
+      - 'DiagnostikaSS.com/google-drive-lazy-loader.js'
+      - 'DiagnostikaSS.com/google-drive-merge-worker.js'
+      - 'DiagnostikaSS.com/tests/google-drive-no-popup-audit.mjs'
       - '.github/workflows/google-drive-no-popup-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   google-drive-no-popup:

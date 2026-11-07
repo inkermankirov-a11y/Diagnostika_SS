@@ -3,6 +3,10 @@ on:
   push:
     branches: [main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*' ]
   workflow_dispatch:
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
+
 jobs:
   new-ui:
     runs-on: ubuntu-24.04

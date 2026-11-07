@@ -4,20 +4,24 @@ on:
   push:
     branches: [main, retire-old-interface, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
-      - 'home-dashboard.js'
-      - 'modules/payments/**'
-      - 'payment-api.js'
-      - 'app-loader.js'
-      - 'tests/payment-module-5a-audit.mjs'
-      - 'tests/payment-module-5c-audit.mjs'
-      - 'tests/payment-module-5d-audit.mjs'
-      - 'payment-*.js'
-      - 'modules/requests/ui/selection.js'
-      - 'modules/requests/ui/title.js'
-      - 'session-*.js'
-      - 'index.html'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/modules/payments/**'
+      - 'DiagnostikaSS.com/payment-api.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/tests/payment-module-5a-audit.mjs'
+      - 'DiagnostikaSS.com/tests/payment-module-5c-audit.mjs'
+      - 'DiagnostikaSS.com/tests/payment-module-5d-audit.mjs'
+      - 'DiagnostikaSS.com/payment-*.js'
+      - 'DiagnostikaSS.com/modules/requests/ui/selection.js'
+      - 'DiagnostikaSS.com/modules/requests/ui/title.js'
+      - 'DiagnostikaSS.com/session-*.js'
+      - 'DiagnostikaSS.com/index.html'
       - '.github/workflows/payment-api-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   payment-api:

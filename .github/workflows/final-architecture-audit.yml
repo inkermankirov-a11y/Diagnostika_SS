@@ -4,15 +4,19 @@ on:
   push:
     branches: [main, 'feature-final-*']
     paths:
-      - 'core/**'
-      - 'modules/**'
-      - '*-api.js'
-      - 'roles-api.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/final-*.mjs'
+      - 'DiagnostikaSS.com/core/**'
+      - 'DiagnostikaSS.com/modules/**'
+      - 'DiagnostikaSS.com/*-api.js'
+      - 'DiagnostikaSS.com/roles-api.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/final-*.mjs'
       - '.github/workflows/final-architecture-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   final-architecture:
