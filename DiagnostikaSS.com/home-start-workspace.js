@@ -13,9 +13,6 @@
   const PREF_PREFIX='diagnostika-home-workspace-';
   const getStored=(key,fallback='')=>{try{return localStorage.getItem(PREF_PREFIX+key)??fallback;}catch(_){return fallback;}};
   const putStored=(key,value)=>{try{localStorage.setItem(PREF_PREFIX+key,String(value));return true;}catch(_){return false;}};
-  const readJson=(key,fallback)=>{try{return JSON.parse(getStored(key,''))||fallback;}catch(_){return fallback;}};
-  const saveJson=(key,value)=>putStored(key,JSON.stringify(value));
-  const validFavorites=()=>{const list=readJson('favorites',[]);return Array.isArray(list)?list.filter(i=>Number.isInteger(i)&&i>=0&&i<30):[];};
   const clients=()=>window.DiagnostikaClients?.list?.()||[];
   const calendar=()=>window.DiagnostikaCalendar?.moduleAware===true?window.DiagnostikaCalendar:window.DiagnostikaPlatform?.services?.calendar;
   const clientFor=id=>clients().find(c=>String(c?.id)===String(id))||null;
@@ -67,24 +64,19 @@
     'Что ты можешь сделать сейчас, даже если чувство пока остаётся?',
     'Какой самый маленький безопасный эксперимент поможет проверить эту мысль?'
   ];
+  // One thought for the entire local day. Switches only when date changes.
   const dayKey=()=>{
     const d=new Date();
     return String(d.getFullYear())+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   };
   const todayIndex=()=>{
     const d=new Date();
-    return Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()/86400000)%thoughts.length;
+    return Math.abs(Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()/86400000))%thoughts.length;
   };
-  const currentQuote=()=>{
-    const saved=readJson('daily-thought',null);
-    if(saved?.date===dayKey()&&Number.isInteger(saved.index)&&saved.index>=0&&saved.index<thoughts.length)return saved.index;
-    return todayIndex();
-  };
-  let quoteIndex=currentQuote();
+  let quoteDate='';
+  let quoteIndex=0;
   let promptIndex=0;
   let hideNames=getStored('hide-names','false')==='true';
-  let showFavorites=false;
-  let saveMessage='';
 
   home.innerHTML=[
     '<div class="hws-workspace hws-workspace-simple">',
@@ -135,7 +127,6 @@
 
   const $=selector=>dashboard.querySelector(selector);
   const formatDate=timestamp=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(timestamp));
-  const dateDay=timestamp=>new Date(timestamp).toDateString();
   const parseStart=(value,timeValue)=>{
     const date=String(value||'').trim();
     const m=date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -159,11 +150,6 @@
   const kindLabel={reminder:'Напоминание',session:'Сессия',diagnosis:'Диагностика',consultation:'Консультация',meeting:'Встреча'};
   const cleanName=c=>String(c?.name||'').trim()||'Без имени';
   const showName=c=>hideNames?'Имя скрыто':cleanName(c);
-  const newClientName=c=>!c||['Новый клиент','New client',''].includes(String(c.name||'').trim());
-  const isRequestActive=r=>r&&r.status!=='completed';
-  const startOfToday=()=>{
-    const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
-  };
   function entries(){
     const raw=[];
     const api=calendar();
@@ -192,22 +178,6 @@
     return raw.sort((a,b)=>a.at-b.at);
   }
 
-  function rememberClient(id){
-    if(!id)return;
-    const past=readJson('recent-clients',[]);
-    const next=[String(id),...(Array.isArray(past)?past:[]).map(String).filter(x=>x!==String(id))].slice(0,5);
-    saveJson('recent-clients',next);
-  }
-  function resumeClients(){
-    const all=clients();
-    const recent=readJson('recent-clients',[]);
-    const order=new Map((Array.isArray(recent)?recent:[]).map((id,i)=>[String(id),i]));
-    return all.filter(c=>!newClientName(c))
-      .map(c=>({c,active:(c.requests||[]).filter(isRequestActive).length,order:order.get(String(c.id))??999}))
-      .filter(x=>x.order!==999||x.active>0)
-      .sort((a,b)=>a.order-b.order||b.active-a.active)
-      .slice(0,3);
-  }
   function renderSchedule(items){
     const now=Date.now();
     const upcoming=items.filter(e=>e.at>=now&&!isNaN(e.at)).slice(0,4);
@@ -220,55 +190,15 @@
            '<button type="button" data-action="calendar" aria-label="Открыть календарь">↗</button>')+'</div>';
     }).join(''):'<div class="hws-empty"><span class="hws-empty-symbol">✓</span><div><strong>Ближайших событий нет</strong><p>Запланируй встречу или напоминание в календаре.</p></div></div>';
   }
-  function renderPriorities(items){
-    const now=Date.now();
-    const pending=items.filter(e=>e.kind==='reminder'&&e.at<=now).slice(0,3);
-    const el=$('#hwsPriorityList');
-    if(!pending.length){
-      el.innerHTML='<div class="hws-empty hws-empty-success"><span class="hws-empty-symbol">✓</span><div><strong>Срочных напоминаний нет</strong><p>Здесь появятся задачи, которые пора выполнить.</p></div></div>';
-      return;
-    }
-    el.innerHTML=pending.map(e=>'<div class="hws-priority-row"><div class="hws-priority-flag">!</div>'+
-      '<div><strong>'+esc(hideNames?kindLabel[e.kind]:e.label)+'</strong><span>'+esc(e.clientId?showName(clientFor(e.clientId)):'Общая задача')+
-      ' · '+esc(formatDate(e.at))+'</span></div>'+
-      (e.source==='calendar'&&e.eventId?'<button type="button" data-action="complete-reminder" data-event-id="'+esc(e.eventId)+'" title="Отметить выполненным" aria-label="Выполнено">✓</button>':'')+'</div>').join('');
-  }
-  function renderResume(){
-    const list=resumeClients();
-    $('#hwsResumeList').innerHTML=list.length?list.map(({c,active})=>{
-      const initials=cleanName(c).split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
-      return '<button type="button" data-action="open-client" data-client-id="'+esc(c.id)+'" class="hws-resume-person">'+
-        '<span class="hws-resume-avatar">'+(hideNames?'•':esc(initials))+'</span>'+
-        '<span class="hws-resume-info"><strong>'+esc(showName(c))+'</strong>'+
-        '<small>'+esc(active?active+' незавершённых '+(active===1?'запрос':'запросов'):'Недавняя работа')+'</small></span>'+
-        '<span class="hws-resume-arrow">↗</span></button>';
-    }).join(''):'<div class="hws-resume-empty">Выбери клиента слева — он появится здесь для быстрого возврата.</div>';
-  }
-  function renderMetrics(items){
-    const today=startOfToday(),tomorrow=today+86400000,now=Date.now();
-    const todayMeetings=items.filter(e=>e.kind!=='reminder'&&e.at>=today&&e.at<tomorrow).length;
-    const due=items.filter(e=>e.kind==='reminder'&&e.at<=now).length;
-    const requests=clients().reduce((n,c)=>n+(c.requests||[]).filter(isRequestActive).length,0);
-    $('#hwsMetrics').innerHTML=[
-      ['calendar','Встреч сегодня',todayMeetings,'is-ocean','▦'],
-      ['alert','Ожидают внимания',due,'is-amber','◉'],
-      ['requests','Активных запросов',requests,'is-lilac','◇']
-    ].map(([id,label,value,tone,icon])=>'<div class="hws-metric '+tone+'"><span class="hws-metric-icon">'+icon+
-      '</span><span class="hws-metric-value">'+value+'</span><span class="hws-metric-label">'+label+'</span></div>').join('');
-    $('#hwsCurrentDate').textContent=new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
-  }
   function renderQuote(){
-    const saved=validFavorites();
-    if(showFavorites&&!saved.length)showFavorites=false;
-    if(showFavorites&&!saved.includes(quoteIndex))quoteIndex=saved[0];
+    const today=dayKey();
+    if(today!==quoteDate){
+      quoteDate=today;
+      quoteIndex=todayIndex();
+    }
     const q=thoughts[quoteIndex];
     $('#hwsQuoteText').textContent=q[0];
     $('#hwsReflect').textContent=q[1];
-    $('#hwsQuoteNumber').textContent=(quoteIndex+1)+' / '+thoughts.length;
-    $('#hwsFavorite').textContent=saved.includes(quoteIndex)?'★':'☆';
-    $('#hwsFavorite').setAttribute('aria-pressed',saved.includes(quoteIndex)?'true':'false');
-    $('#hwsFavoritesToggle').textContent=showFavorites?'Все мысли':'Избранные мысли'+(saved.length?' · '+saved.length:'');
-    $('#hwsQuoteStatus').textContent=saveMessage;
   }
   function renderPrompt(){
     $('#hwsPractice').textContent=practice[promptIndex];
@@ -276,13 +206,12 @@
   function render(){
     if(!visible())return;
     try{
-      const items=entries();
-      renderMetrics(items);
-      renderSchedule(items);
-      renderPriorities(items);
-      renderResume();
-      $('[data-action="privacy"]').textContent=hideNames?'◉ Показать имена':'◉ Скрыть имена';
-      $('[data-action="privacy"]').setAttribute('aria-pressed',hideNames?'true':'false');
+      renderSchedule(entries());
+      $('#hwsCurrentDate').textContent=new Intl.DateTimeFormat('ru-RU',
+        {weekday:'long',day:'numeric',month:'long'}).format(new Date());
+      const privacy=$('[data-action="privacy"]');
+      privacy.textContent=hideNames?'◉ Показать имена':'◉ Скрыть имена';
+      privacy.setAttribute('aria-pressed',hideNames?'true':'false');
       renderQuote();
       renderPrompt();
     }catch(error){console.error('Home workspace render failed',error);}
