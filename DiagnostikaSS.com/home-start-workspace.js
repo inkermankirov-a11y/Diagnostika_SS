@@ -164,7 +164,7 @@
   const dateDay=timestamp=>new Date(timestamp).toDateString();
   const parseStart=(value,timeValue)=>{
     const date=String(value||'').trim();
-    const m=date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const m=date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if(m){
       const t=String(timeValue||'').match(/^(\d{1,2}):(\d{2})/);
       const d=new Date(+m[1],+m[2]-1,+m[3],t?+t[1]:12,t?+t[2]:0);
@@ -181,7 +181,7 @@
     if(/сесси/.test(type))return 'session';
     return 'meeting';
   };
-  const isComplete=e=>e?.completedAt||e?.sessionCompleted===true||e?.status==='completed'||e?.status==='done';
+  const isComplete=e=>e?.completedAt||e?.sessionCompleted===true||['completed','done','cancelled','canceled'].includes(String(e?.status||'').toLowerCase());
   const kindLabel={reminder:'Напоминание',session:'Сессия',diagnosis:'Диагностика',consultation:'Консультация',meeting:'Встреча'};
   const cleanName=c=>String(c?.name||'').trim()||'Без имени';
   const showName=c=>hideNames?'Имя скрыто':cleanName(c);
