@@ -106,7 +106,14 @@
     render();setTimeout(()=>input.focus(),0);
   }
 
-  window.DiagnostikaQuickNotes={open,close,isOpen:()=>!overlay.hidden};
+  function add(text){
+    const content=String(text||'').trim();
+    if(!content)return false;
+    const notes=load(),now=Date.now();
+    notes.push({id:'n_'+now+'_'+Math.random().toString(36).slice(2,7),text:content,createdAt:now,updatedAt:now});
+    return saveNotes(notes,'general-notes-home-quick-create');
+  }
+  window.DiagnostikaQuickNotes={open,close,isOpen:()=>!overlay.hidden,add};
   wrap.querySelector('#quickNotesBtn').onclick=open;
   document.addEventListener('diagnostika:quick-notes-open',open);
   overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
