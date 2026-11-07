@@ -13,9 +13,6 @@
   const PREF_PREFIX='diagnostika-home-workspace-';
   const getStored=(key,fallback='')=>{try{return localStorage.getItem(PREF_PREFIX+key)??fallback;}catch(_){return fallback;}};
   const putStored=(key,value)=>{try{localStorage.setItem(PREF_PREFIX+key,String(value));return true;}catch(_){return false;}};
-  const readJson=(key,fallback)=>{try{return JSON.parse(getStored(key,''))||fallback;}catch(_){return fallback;}};
-  const saveJson=(key,value)=>putStored(key,JSON.stringify(value));
-  const validFavorites=()=>{const list=readJson('favorites',[]);return Array.isArray(list)?list.filter(i=>Number.isInteger(i)&&i>=0&&i<30):[];};
   const clients=()=>window.DiagnostikaClients?.list?.()||[];
   const calendar=()=>window.DiagnostikaCalendar?.moduleAware===true?window.DiagnostikaCalendar:window.DiagnostikaPlatform?.services?.calendar;
   const clientFor=id=>clients().find(c=>String(c?.id)===String(id))||null;
@@ -67,57 +64,33 @@
     'Что ты можешь сделать сейчас, даже если чувство пока остаётся?',
     'Какой самый маленький безопасный эксперимент поможет проверить эту мысль?'
   ];
+  // One thought for the entire local day. Switches only when date changes.
   const dayKey=()=>{
     const d=new Date();
     return String(d.getFullYear())+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   };
   const todayIndex=()=>{
     const d=new Date();
-    return Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()/86400000)%thoughts.length;
+    return Math.abs(Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()/86400000))%thoughts.length;
   };
-  const currentQuote=()=>{
-    const saved=readJson('daily-thought',null);
-    if(saved?.date===dayKey()&&Number.isInteger(saved.index)&&saved.index>=0&&saved.index<thoughts.length)return saved.index;
-    return todayIndex();
-  };
-  let quoteIndex=currentQuote();
+  let quoteDate='';
+  let quoteIndex=0;
   let promptIndex=0;
   let hideNames=getStored('hide-names','false')==='true';
-  let showFavorites=false;
-  let saveMessage='';
 
   home.innerHTML=[
-    '<div class="hws-workspace">',
-      '<div class="hws-hero">',
-        '<div class="hws-hero-glow" aria-hidden="true"></div>',
-        '<div class="hws-eyebrow"><span class="hws-live-dot"></span> РАБОЧЕЕ ПРОСТРАНСТВО</div>',
-        '<div class="hws-hero-row"><div><h2 class="hws-heading">Мой рабочий день</h2>',
-        '<p>Встречи, приоритеты и следующий шаг — в одном месте.</p></div>',
-        '<div class="hws-today-date" id="hwsCurrentDate"></div></div>',
-        '<button type="button" class="hws-privacy" data-action="privacy" aria-pressed="false"></button>',
-      '</div>',
-      '<div class="hws-metrics" id="hwsMetrics" aria-live="polite"></div>',
-      '<section class="hws-card hws-schedule">',
-        '<div class="hws-section-header"><div><div class="hws-overline">ПЛАН ДНЯ</div>',
-        '<h3>Ближайшие события</h3></div>',
-        '<button type="button" class="hws-text-action" data-action="calendar">Весь календарь <span aria-hidden="true">↗</span></button></div>',
+    '<div class="hws-workspace hws-workspace-simple">',
+      '<section class="hws-card hws-schedule hws-schedule-only">',
+        '<div class="hws-schedule-header">',
+          '<div class="hws-schedule-intro"><div class="hws-overline">РАБОЧИЙ КАЛЕНДАРЬ</div>',
+          '<h2>Ближайшие события</h2>',
+          '<p>Встречи, консультации и напоминания</p></div>',
+          '<button type="button" class="hws-text-action" data-action="calendar">Открыть календарь <span aria-hidden="true">↗</span></button>',
+        '</div>',
+        '<div class="hws-schedule-toolbar"><span id="hwsCurrentDate" class="hws-current-date"></span>',
+        '<button type="button" class="hws-privacy" data-action="privacy" aria-pressed="false"></button></div>',
         '<div id="hwsSchedule" class="hws-rows" aria-live="polite"></div>',
       '</section>',
-      '<section class="hws-card hws-priorities">',
-        '<div class="hws-section-header"><div><div class="hws-overline">ФОКУС</div><h3>Требует внимания</h3></div>',
-        '<span class="hws-card-hint">Только актуальное</span></div>',
-        '<div id="hwsPriorityList" class="hws-rows"></div>',
-      '</section>',
-      '<section class="hws-card hws-resume">',
-        '<div class="hws-section-header"><div><div class="hws-overline">БЫСТРЫЙ ВОЗВРАТ</div>',
-        '<h3>Продолжить работу</h3></div></div>',
-        '<div id="hwsResumeList" class="hws-resume-list"></div>',
-      '</section>',
-      '<div class="hws-action-row">',
-        '<button type="button" class="hws-main-action" data-action="new-client"><span class="hws-action-symbol">＋</span> Новый клиент</button>',
-        '<button type="button" class="hws-sub-action" data-action="calendar"><span aria-hidden="true">▦</span> Календарь</button>',
-        '<button type="button" class="hws-sub-action" data-action="notes"><span aria-hidden="true">▤</span> Заметки</button>',
-      '</div>',
     '</div>'
   ].join('');
 
@@ -127,20 +100,12 @@
     '<section class="hws-wisdom">',
       '<div class="hws-quote-aura" aria-hidden="true"></div>',
       '<div class="hws-rail-kicker"><span class="hws-kicker-mark">✧</span> ПАУЗА ДЛЯ МЫСЛИ</div>',
-      '<div class="hws-wisdom-meta">Мысль дня <span id="hwsQuoteNumber"></span></div>',
+      '<div class="hws-wisdom-meta">Мысль дня</div>',
       '<div class="hws-quote-glyph" aria-hidden="true">“</div>',
       '<blockquote id="hwsQuoteText"></blockquote>',
-      '<div class="hws-wisdom-note">Авторская философская подборка</div>',
       '<div class="hws-wisdom-divider"></div>',
       '<div class="hws-reflect-label">ВОПРОС ДЛЯ РАЗМЫШЛЕНИЯ</div>',
       '<p class="hws-reflect-text" id="hwsReflect"></p>',
-      '<div class="hws-quote-actions">',
-        '<button type="button" data-action="next-quote" title="Другая мысль">Другая мысль <span aria-hidden="true">↻</span></button>',
-        '<button type="button" data-action="favorite" id="hwsFavorite" aria-pressed="false" title="Добавить в избранное">☆</button>',
-        '<button type="button" data-action="copy-quote" title="Скопировать мысль">▢</button>',
-      '</div>',
-      '<div class="hws-quote-subrow"><button type="button" data-action="favorites" id="hwsFavoritesToggle">Избранные мысли</button>',
-        '<span id="hwsQuoteStatus" role="status" aria-live="polite"></span></div>',
     '</section>',
     '<section class="hws-tool-card">',
       '<div class="hws-tool-eyebrow"><span class="hws-tool-icon">✦</span> ПРАКТИКА</div>',
@@ -150,19 +115,18 @@
         '<button type="button" data-action="copy-prompt" title="Скопировать вопрос">Скопировать</button></div>',
     '</section>',
     '<section class="hws-capture">',
-      '<div class="hws-tool-eyebrow"><span class="hws-tool-icon">✎</span> БЫСТРАЯ МЫСЛЬ</div>',
-      '<h3>Не потерять идею</h3>',
+      '<div class="hws-tool-eyebrow"><span class="hws-tool-icon">✎</span> БЫСТРЫЕ МЫСЛИ</div>',
+      '<h3>Записать мысль</h3>',
       '<textarea id="hwsQuickThought" maxlength="800" rows="3" placeholder="Записать мысль, наблюдение или идею…"></textarea>',
       '<div class="hws-capture-bottom"><span id="hwsNoteStatus" role="status" aria-live="polite"></span>',
         '<button type="button" data-action="save-thought">Сохранить <span aria-hidden="true">↗</span></button></div>',
-      '<button type="button" class="hws-capture-link" data-action="notes">Открыть все заметки</button>',
+      '<button type="button" class="hws-capture-link" data-action="quick-thoughts">Открыть быстрые мысли в заметках</button>',
     '</section>'
   ].join('');
   right.appendChild(rail);
 
   const $=selector=>dashboard.querySelector(selector);
   const formatDate=timestamp=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(timestamp));
-  const dateDay=timestamp=>new Date(timestamp).toDateString();
   const parseStart=(value,timeValue)=>{
     const date=String(value||'').trim();
     const m=date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -186,11 +150,6 @@
   const kindLabel={reminder:'Напоминание',session:'Сессия',diagnosis:'Диагностика',consultation:'Консультация',meeting:'Встреча'};
   const cleanName=c=>String(c?.name||'').trim()||'Без имени';
   const showName=c=>hideNames?'Имя скрыто':cleanName(c);
-  const newClientName=c=>!c||['Новый клиент','New client',''].includes(String(c.name||'').trim());
-  const isRequestActive=r=>r&&r.status!=='completed';
-  const startOfToday=()=>{
-    const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
-  };
   function entries(){
     const raw=[];
     const api=calendar();
@@ -219,25 +178,9 @@
     return raw.sort((a,b)=>a.at-b.at);
   }
 
-  function rememberClient(id){
-    if(!id)return;
-    const past=readJson('recent-clients',[]);
-    const next=[String(id),...(Array.isArray(past)?past:[]).map(String).filter(x=>x!==String(id))].slice(0,5);
-    saveJson('recent-clients',next);
-  }
-  function resumeClients(){
-    const all=clients();
-    const recent=readJson('recent-clients',[]);
-    const order=new Map((Array.isArray(recent)?recent:[]).map((id,i)=>[String(id),i]));
-    return all.filter(c=>!newClientName(c))
-      .map(c=>({c,active:(c.requests||[]).filter(isRequestActive).length,order:order.get(String(c.id))??999}))
-      .filter(x=>x.order!==999||x.active>0)
-      .sort((a,b)=>a.order-b.order||b.active-a.active)
-      .slice(0,3);
-  }
   function renderSchedule(items){
     const now=Date.now();
-    const upcoming=items.filter(e=>e.at>=now&&!isNaN(e.at)).slice(0,4);
+    const upcoming=items.filter(e=>e.at>=now&&Number.isFinite(e.at)).slice(0,8);
     $('#hwsSchedule').innerHTML=upcoming.length?upcoming.map(e=>{
       const c=clientFor(e.clientId);
       return '<div class="hws-event-row"><div class="hws-event-type is-'+e.kind+'">'+
@@ -247,55 +190,15 @@
            '<button type="button" data-action="calendar" aria-label="Открыть календарь">↗</button>')+'</div>';
     }).join(''):'<div class="hws-empty"><span class="hws-empty-symbol">✓</span><div><strong>Ближайших событий нет</strong><p>Запланируй встречу или напоминание в календаре.</p></div></div>';
   }
-  function renderPriorities(items){
-    const now=Date.now();
-    const pending=items.filter(e=>e.kind==='reminder'&&e.at<=now).slice(0,3);
-    const el=$('#hwsPriorityList');
-    if(!pending.length){
-      el.innerHTML='<div class="hws-empty hws-empty-success"><span class="hws-empty-symbol">✓</span><div><strong>Срочных напоминаний нет</strong><p>Здесь появятся задачи, которые пора выполнить.</p></div></div>';
-      return;
-    }
-    el.innerHTML=pending.map(e=>'<div class="hws-priority-row"><div class="hws-priority-flag">!</div>'+
-      '<div><strong>'+esc(hideNames?kindLabel[e.kind]:e.label)+'</strong><span>'+esc(e.clientId?showName(clientFor(e.clientId)):'Общая задача')+
-      ' · '+esc(formatDate(e.at))+'</span></div>'+
-      (e.source==='calendar'&&e.eventId?'<button type="button" data-action="complete-reminder" data-event-id="'+esc(e.eventId)+'" title="Отметить выполненным" aria-label="Выполнено">✓</button>':'')+'</div>').join('');
-  }
-  function renderResume(){
-    const list=resumeClients();
-    $('#hwsResumeList').innerHTML=list.length?list.map(({c,active})=>{
-      const initials=cleanName(c).split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
-      return '<button type="button" data-action="open-client" data-client-id="'+esc(c.id)+'" class="hws-resume-person">'+
-        '<span class="hws-resume-avatar">'+(hideNames?'•':esc(initials))+'</span>'+
-        '<span class="hws-resume-info"><strong>'+esc(showName(c))+'</strong>'+
-        '<small>'+esc(active?active+' незавершённых '+(active===1?'запрос':'запросов'):'Недавняя работа')+'</small></span>'+
-        '<span class="hws-resume-arrow">↗</span></button>';
-    }).join(''):'<div class="hws-resume-empty">Выбери клиента слева — он появится здесь для быстрого возврата.</div>';
-  }
-  function renderMetrics(items){
-    const today=startOfToday(),tomorrow=today+86400000,now=Date.now();
-    const todayMeetings=items.filter(e=>e.kind!=='reminder'&&e.at>=today&&e.at<tomorrow).length;
-    const due=items.filter(e=>e.kind==='reminder'&&e.at<=now).length;
-    const requests=clients().reduce((n,c)=>n+(c.requests||[]).filter(isRequestActive).length,0);
-    $('#hwsMetrics').innerHTML=[
-      ['calendar','Встреч сегодня',todayMeetings,'is-ocean','▦'],
-      ['alert','Ожидают внимания',due,'is-amber','◉'],
-      ['requests','Активных запросов',requests,'is-lilac','◇']
-    ].map(([id,label,value,tone,icon])=>'<div class="hws-metric '+tone+'"><span class="hws-metric-icon">'+icon+
-      '</span><span class="hws-metric-value">'+value+'</span><span class="hws-metric-label">'+label+'</span></div>').join('');
-    $('#hwsCurrentDate').textContent=new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
-  }
   function renderQuote(){
-    const saved=validFavorites();
-    if(showFavorites&&!saved.length)showFavorites=false;
-    if(showFavorites&&!saved.includes(quoteIndex))quoteIndex=saved[0];
+    const today=dayKey();
+    if(today!==quoteDate){
+      quoteDate=today;
+      quoteIndex=todayIndex();
+    }
     const q=thoughts[quoteIndex];
     $('#hwsQuoteText').textContent=q[0];
     $('#hwsReflect').textContent=q[1];
-    $('#hwsQuoteNumber').textContent=(quoteIndex+1)+' / '+thoughts.length;
-    $('#hwsFavorite').textContent=saved.includes(quoteIndex)?'★':'☆';
-    $('#hwsFavorite').setAttribute('aria-pressed',saved.includes(quoteIndex)?'true':'false');
-    $('#hwsFavoritesToggle').textContent=showFavorites?'Все мысли':'Избранные мысли'+(saved.length?' · '+saved.length:'');
-    $('#hwsQuoteStatus').textContent=saveMessage;
   }
   function renderPrompt(){
     $('#hwsPractice').textContent=practice[promptIndex];
@@ -303,13 +206,12 @@
   function render(){
     if(!visible())return;
     try{
-      const items=entries();
-      renderMetrics(items);
-      renderSchedule(items);
-      renderPriorities(items);
-      renderResume();
-      $('[data-action="privacy"]').textContent=hideNames?'◉ Показать имена':'◉ Скрыть имена';
-      $('[data-action="privacy"]').setAttribute('aria-pressed',hideNames?'true':'false');
+      renderSchedule(entries());
+      $('#hwsCurrentDate').textContent=new Intl.DateTimeFormat('ru-RU',
+        {weekday:'long',day:'numeric',month:'long'}).format(new Date());
+      const privacy=$('[data-action="privacy"]');
+      privacy.textContent=hideNames?'◉ Показать имена':'◉ Скрыть имена';
+      privacy.setAttribute('aria-pressed',hideNames?'true':'false');
       renderQuote();
       renderPrompt();
     }catch(error){console.error('Home workspace render failed',error);}
@@ -318,7 +220,7 @@
     if(typeof window.DiagnostikaCalendarUI?.open==='function'){window.DiagnostikaCalendarUI.open({mode:'overview'});return;}
     document.getElementById('headerCalendarBtn')?.click();
   };
-  const openNotes=()=>window.DiagnostikaQuickNotes?.open?.();
+  const openQuickThoughts=()=>window.DiagnostikaQuickNotes?.openQuickThoughts?.();
   async function clipboard(text){
     try{
       if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
@@ -329,46 +231,15 @@
   }
   async function onAction(button){
     const action=button.dataset.action||'';
-    if(action==='privacy'){hideNames=!hideNames;putStored('hide-names',String(hideNames));render();return;}
-    if(action==='open-client'){window.DiagnostikaHomeDashboard?.openClient?.(button.dataset.clientId);return;}
-    if(action==='new-client'){window.DiagnostikaHomeDashboard?.addClient?.();return;}
-    if(action==='calendar'){openCalendar();return;}
-    if(action==='notes'){openNotes();return;}
-    if(action==='complete-reminder'){
-      const id=button.dataset.eventId;
-      if(!id||!calendar()?.update)return;
-      const updated=calendar().update(id,{status:'completed',completedAt:new Date().toISOString()},
-        {source:'home-workspace-reminder-complete'});
-      if(updated)render();
+    if(action==='privacy'){
+      hideNames=!hideNames;
+      putStored('hide-names',String(hideNames));
+      render();
       return;
     }
-    if(action==='next-quote'){
-      const favorites=validFavorites();
-      if(showFavorites&&favorites.length){
-        const i=favorites.indexOf(quoteIndex);
-        quoteIndex=favorites[(i+1)%favorites.length];
-      }else{
-        quoteIndex=(quoteIndex+1)%thoughts.length;
-        saveJson('daily-thought',{date:dayKey(),index:quoteIndex});
-      }
-      saveMessage='';renderQuote();return;
-    }
-    if(action==='favorite'){
-      const list=validFavorites();
-      const next=list.includes(quoteIndex)?list.filter(x=>x!==quoteIndex):[...list,quoteIndex];
-      if(saveJson('favorites',next))saveMessage=next.includes(quoteIndex)?'Добавлено':'Убрано';
-      else saveMessage='Не удалось сохранить';
-      renderQuote();return;
-    }
-    if(action==='favorites'){
-      const saved=validFavorites();
-      if(!saved.length){saveMessage='Избранных мыслей пока нет';renderQuote();return;}
-      showFavorites=!showFavorites;
-      if(showFavorites)quoteIndex=saved[0];
-      else quoteIndex=currentQuote();
-      saveMessage='';renderQuote();return;
-    }
-    if(action==='copy-quote'){await clipboard(thoughts[quoteIndex][0]+'\n\n'+thoughts[quoteIndex][1]);return;}
+    if(action==='open-client'){window.DiagnostikaHomeDashboard?.openClient?.(button.dataset.clientId);return;}
+    if(action==='calendar'){openCalendar();return;}
+    if(action==='quick-thoughts'){openQuickThoughts();return;}
     if(action==='next-prompt'){promptIndex=(promptIndex+1)%practice.length;renderPrompt();return;}
     if(action==='copy-prompt'){await clipboard(practice[promptIndex]);return;}
     if(action==='save-thought'){
@@ -376,10 +247,10 @@
       const note=input.value.trim();
       if(!note){status.textContent='Напиши сначала мысль';input.focus();return;}
       const api=window.DiagnostikaQuickNotes;
-      if(typeof api?.add!=='function'){status.textContent='Заметки ещё загружаются';return;}
-      if(api.add(note)){
+      if(typeof api?.addQuickThought!=='function'){status.textContent='Заметки ещё загружаются';return;}
+      if(api.addQuickThought(note)){
         input.value='';
-        status.textContent='✓ Сохранено в заметках';
+        status.textContent='✓ Сохранено в «Быстрые мысли»';
       }else status.textContent='Не удалось сохранить';
     }
   }
@@ -392,11 +263,6 @@
   document.addEventListener('diagnostika:dashboard-home-opened',render);
   document.addEventListener('diagnostika:dashboard-clients-rendered',render);
   window.addEventListener('diagnostika-general-notes-changed',()=>{if(visible())$('#hwsNoteStatus').textContent='Заметки обновлены';});
-  const events=window.DiagnostikaPlatform?.events;
-  if(events?.on)events.on('client:selected',d=>{
-    if(d?.source==='last-client-restore')return;
-    if(d?.clientId)rememberClient(d.clientId);
-  });
   window.DiagnostikaHomeWorkspace=Object.freeze({render,thoughtCount:thoughts.length,practiceCount:practice.length});
   render();
 })();
