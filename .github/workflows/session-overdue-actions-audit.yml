@@ -4,16 +4,20 @@ on:
   push:
     branches: [main, 'feature-sessions-*', 'feature-session-*', 'feature-client-*', 'fix-dashboard-*']
     paths:
-      - 'home-dashboard.js'
-      - 'home-dashboard.css'
-      - 'home-dashboard-sessions.js'
-      - 'modules/sessions/ui/editor.js'
-      - 'modules/calendar/ui/session-planning.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/session-overdue-actions-audit.mjs'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/home-dashboard.css'
+      - 'DiagnostikaSS.com/home-dashboard-sessions.js'
+      - 'DiagnostikaSS.com/modules/sessions/ui/editor.js'
+      - 'DiagnostikaSS.com/modules/calendar/ui/session-planning.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/session-overdue-actions-audit.mjs'
       - '.github/workflows/session-overdue-actions-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   overdue-actions:

@@ -4,17 +4,21 @@ on:
   push:
     branches: [main, 'feature-site-hardening-*', 'feature-api-*']
     paths:
-      - 'index.html'
-      - 'dev-tools-loader.js'
-      - 'app-loader.js'
-      - 'app-startup.js'
-      - 'i18n-observer-guard.js'
-      - 'mobile-responsive.css'
-      - 'tests/site-hardening-19a-audit.mjs'
-      - 'tests/release-16a-production-smoke.mjs'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/dev-tools-loader.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/app-startup.js'
+      - 'DiagnostikaSS.com/i18n-observer-guard.js'
+      - 'DiagnostikaSS.com/mobile-responsive.css'
+      - 'DiagnostikaSS.com/tests/site-hardening-19a-audit.mjs'
+      - 'DiagnostikaSS.com/tests/release-16a-production-smoke.mjs'
       - '.github/workflows/site-hardening-audit.yml'
       - '.github/workflows/release-production-smoke.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   hardening:

@@ -8,11 +8,15 @@ on:
   push:
     branches: [main, retire-old-interface, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-site-hardening-*', 'feature-specialist-history-*', 'feature-specialist-row-*', 'feature-weather-*', 'feature-client-*' ]
     paths:
-      - '**.js'
-      - '**.css'
-      - 'index.html'
+      - 'DiagnostikaSS.com/**.js'
+      - 'DiagnostikaSS.com/**.css'
+      - 'DiagnostikaSS.com/index.html'
       - '.github/workflows/site-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   audit:

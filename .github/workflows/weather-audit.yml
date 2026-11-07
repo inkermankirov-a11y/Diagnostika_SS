@@ -4,12 +4,16 @@ on:
   push:
     branches: [main, 'feature-weather-*']
     paths:
-      - 'header-utilities.js'
-      - 'index.html'
-      - 'tests/weather-21a-audit.mjs'
-      - 'tests/weather-local-data-audit.mjs'
+      - 'DiagnostikaSS.com/header-utilities.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/weather-21a-audit.mjs'
+      - 'DiagnostikaSS.com/tests/weather-local-data-audit.mjs'
       - '.github/workflows/weather-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   weather:
