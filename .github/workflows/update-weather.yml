@@ -8,7 +8,7 @@ on:
     branches: [ main ]
     paths:
       - '.github/workflows/update-weather.yml'
-      - 'weather-locations.json'
+      - 'DiagnostikaSS.com/weather-locations.json'
 
 permissions:
   contents: write
@@ -41,7 +41,7 @@ jobs:
           import urllib.parse
           import urllib.request
 
-          root=pathlib.Path('.')
+          root=pathlib.Path('DiagnostikaSS.com')
           locations=json.loads((root/'weather-locations.json').read_text(encoding='utf-8'))['cities']
           endpoint='https://api.open-meteo.com/v1/forecast'
           rows=[]
@@ -116,7 +116,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
-          data=json.load(open('weather-data.json',encoding='utf-8'))
+          data=json.load(open('DiagnostikaSS.com/weather-data.json',encoding='utf-8'))
           if data.get('current',{}).get('temperature_2m') is None:
               raise SystemExit('top-level current.temperature_2m missing')
           if len(data.get('daily',{}).get('time') or []) < 7:
@@ -134,12 +134,11 @@ jobs:
 
       - name: Update weather in both website folders
         run: |
-          cp weather-data.json DiagnostikaSS.com/weather-data.json
-          cp weather-data.json DiagnostikaSS.ru/weather-data.json
+          cp DiagnostikaSS.com/weather-data.json DiagnostikaSS.ru/weather-data.json
 
       - name: Commit changed weather data
         run: |
-          git add weather-data.json DiagnostikaSS.com/weather-data.json DiagnostikaSS.ru/weather-data.json
+          git add DiagnostikaSS.com/weather-data.json DiagnostikaSS.ru/weather-data.json
           if git diff --cached --quiet; then
             echo "Weather data unchanged."
             exit 0
