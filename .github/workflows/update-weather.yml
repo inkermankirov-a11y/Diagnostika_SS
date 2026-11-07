@@ -132,9 +132,14 @@ jobs:
           print(f"Validated {len(cities)} cities.")
           PY
 
+      - name: Update weather in both website folders
+        run: |
+          cp weather-data.json DiagnostikaSS.com/weather-data.json
+          cp weather-data.json DiagnostikaSS.ru/weather-data.json
+
       - name: Commit changed weather data
         run: |
-          git add weather-data.json
+          git add weather-data.json DiagnostikaSS.com/weather-data.json DiagnostikaSS.ru/weather-data.json
           if git diff --cached --quiet; then
             echo "Weather data unchanged."
             exit 0
