@@ -76,49 +76,141 @@
   wrap.innerHTML=`<button id="quickNotesBtn" class="quick-notes-btn" type="button"><span>📝</span><span class="quick-notes-label">${tr().button}</span></button>`;
   settingsWrap.parentNode.insertBefore(wrap,settingsWrap);
 
+
   const overlay=document.createElement('div');overlay.className='quick-notes-overlay';overlay.hidden=true;document.body.appendChild(overlay);
   let editingId=null;
-
-  function fmtDate(ts){try{return new Intl.DateTimeFormat(lang()==='ru'?'ru-RU':lang(),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(ts))}catch(_){return''}}
+  let activeKind='notes';
+  const kindOf=item=>item?.kind==='quickThought'?'quickThought':'notes';
+  const normalizedKind=kind=>kind==='quickThought'?'quickThought':'notes';
+  function fmtDate(ts){
+    try{return new Intl.DateTimeFormat(lang()==='ru'?'ru-RU':lang(),{
+      day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'
+    }).format(new Date(ts))}catch(_){return'';}
+  }
+  function dayKey(ts){
+    const d=new Date(ts);
+    return Number.isFinite(d.getTime())?
+      [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'):'';
+  }
+  function groupLabel(ts,t){
+    const today=new Date();
+    const yesterday=new Date(today.getFullYear(),today.getMonth(),today.getDate()-1);
+    if(dayKey(ts)===dayKey(today))return t.today;
+    if(dayKey(ts)===dayKey(yesterday))return t.yesterday;
+    try{return new Intl.DateTimeFormat(lang()==='ru'?'ru-RU':lang(),
+      {day:'numeric',month:'long',year:'numeric'}).format(new Date(ts))}
+    catch(_){return'';}
+  }
   function close(){overlay.hidden=true;overlay.innerHTML='';document.documentElement.style.overflow='';editingId=null;}
-  function open(){
+  function open(category='notes'){
+    activeKind=normalizedKind(typeof category==='string'?category:'notes');
+    editingId=null;
     const t=tr();
-    overlay.innerHTML=`<section class="quick-notes-panel"><div class="quick-notes-head"><h2>📝 ${t.title}</h2><button type="button" class="tk-btn quick-notes-close">×</button></div><div class="quick-notes-editor"><textarea class="quick-notes-text" placeholder="${esc(t.placeholder)}"></textarea><div class="quick-notes-actions"><button type="button" class="tk-btn quick-notes-new">${t.newNote}</button><button type="button" class="tk-btn quick-notes-save">${t.add}</button></div></div><div class="quick-notes-list"></div></section>`;
+    overlay.innerHTML=
+      '<section class="quick-notes-panel">'+
+        '<div class="quick-notes-head"><h2>📝 '+esc(t.title)+'</h2><button type="button" class="tk-btn quick-notes-close">×</button></div>'+
+        '<div class="quick-notes-tabs" role="tablist" aria-label="'+esc(t.title)+'">'+
+          '<button type="button" class="quick-notes-tab" role="tab" data-kind="notes">'+esc(t.notesTab)+'</button>'+
+          '<button type="button" class="quick-notes-tab" role="tab" data-kind="quickThought">'+esc(t.quickTab)+'</button>'+
+        '</div>'+
+        '<div class="quick-notes-editor"><textarea class="quick-notes-text"></textarea>'+
+          '<div class="quick-notes-actions"><button type="button" class="tk-btn quick-notes-new">'+esc(t.newNote)+'</button>'+
+          '<button type="button" class="tk-btn quick-notes-save">'+esc(t.add)+'</button></div>'+
+        '</div><div class="quick-notes-list" role="tabpanel"></div></section>';
     overlay.hidden=false;document.documentElement.style.overflow='hidden';
     overlay.querySelector('.quick-notes-close').onclick=close;
-    const input=overlay.querySelector('.quick-notes-text'),saveBtn=overlay.querySelector('.quick-notes-save');
-    function reset(){editingId=null;input.value='';saveBtn.textContent=t.add;input.focus();}
-    overlay.querySelector('.quick-notes-new').onclick=reset;
-    function render(){
-      const notes=load(),list=overlay.querySelector('.quick-notes-list');list.innerHTML='';
-      if(!notes.length){list.innerHTML=`<div class="quick-note-empty">${t.empty}</div>`;return;}
-      notes.sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).forEach(note=>{
-        const row=document.createElement('div');row.className='quick-note-item';
-        row.innerHTML=`<div><div class="quick-note-content">${esc(note.text)}</div><div class="quick-note-date">${fmtDate(note.updatedAt||note.createdAt)}</div></div><button type="button" class="tk-btn quick-note-delete">${t.delete}</button>`;
-        row.querySelector('.quick-note-delete').onclick=e=>{e.stopPropagation();if(!saveNotes(load().filter(x=>x.id!==note.id),'general-notes-delete'))return;if(editingId===note.id)reset();render();};
-        row.onclick=()=>{editingId=note.id;input.value=note.text||'';saveBtn.textContent=t.update;input.focus();};
-        list.appendChild(row);
-      });
+    const input=overlay.querySelector('.quick-notes-text');
+    const saveBtn=overlay.querySelector('.quick-notes-save');
+    const newBtn=overlay.querySelector('.quick-notes-new');
+    const tabs=[...overlay.querySelectorAll('.quick-notes-tab')];
+    function reset(){
+      editingId=null;
+      input.value='';
+      saveBtn.textContent=t.add;
+      newBtn.textContent=t.newNote;
+      input.focus();
     }
-    saveBtn.onclick=()=>{
-      const text=input.value.trim();if(!text)return;
-      const notes=load(),now=Date.now();
-      if(editingId){const n=notes.find(x=>x.id===editingId);if(n){n.text=text;n.updatedAt=now;}}
-      else notes.push({id:'n_'+now+'_'+Math.random().toString(36).slice(2,7),text,createdAt:now,updatedAt:now});
-      if(!saveNotes(notes,editingId?'general-notes-update':'general-notes-create'))return;reset();render();
+    function render(){
+      const list=overlay.querySelector('.quick-notes-list');
+      list.innerHTML='';
+      input.placeholder=activeKind==='quickThought'?t.quickPlaceholder:t.placeholder;
+      for(const tab of tabs)tab.setAttribute('aria-selected',String(tab.dataset.kind===activeKind));
+      const notes=load().filter(note=>kindOf(note)===activeKind);
+      if(!notes.length){
+        list.innerHTML='<div class="quick-note-empty">'+esc(activeKind==='quickThought'?t.quickEmpty:t.empty)+'</div>';
+        return;
+      }
+      notes.sort((a,b)=>(b.createdAt||b.updatedAt||0)-(a.createdAt||a.updatedAt||0));
+      let previousGroup='';
+      for(const note of notes){
+        if(activeKind==='quickThought'){
+          const group=groupLabel(note.createdAt||note.updatedAt,t);
+          if(group!==previousGroup){
+            const heading=document.createElement('div');
+            heading.className='quick-note-day-header';
+            heading.textContent=group;
+            list.appendChild(heading);
+            previousGroup=group;
+          }
+        }
+        const row=document.createElement('div');row.className='quick-note-item';
+        row.innerHTML='<div><div class="quick-note-content">'+esc(note.text)+
+          '</div><div class="quick-note-date">'+esc(fmtDate(note.createdAt||note.updatedAt))+
+          '</div></div><button type="button" class="tk-btn quick-note-delete">'+esc(t.delete)+'</button>';
+        row.querySelector('.quick-note-delete').onclick=e=>{
+          e.stopPropagation();
+          if(!saveNotes(load().filter(x=>x.id!==note.id),'general-notes-delete'))return;
+          if(editingId===note.id)reset();
+          render();
+        };
+        row.onclick=()=>{
+          editingId=note.id;
+          input.value=note.text||'';
+          saveBtn.textContent=t.update;
+          input.focus();
+        };
+        list.appendChild(row);
+      }
+    }
+    for(const tab of tabs)tab.onclick=()=>{
+      if(tab.dataset.kind===activeKind)return;
+      activeKind=normalizedKind(tab.dataset.kind);
+      reset();
+      render();
     };
-    input.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveBtn.click();}});
-    render();setTimeout(()=>input.focus(),0);
+    newBtn.onclick=reset;
+    saveBtn.onclick=()=>{
+      const content=input.value.trim();
+      if(!content)return;
+      const notes=load(),now=Date.now();
+      if(editingId){
+        const item=notes.find(x=>x.id===editingId);
+        if(!item)return;
+        item.text=content;
+        item.updatedAt=now;
+      }else notes.push({id:'n_'+now+'_'+Math.random().toString(36).slice(2,7),text:content,kind:activeKind,createdAt:now,updatedAt:now});
+      if(!saveNotes(notes,editingId?'general-notes-update':'general-notes-create'))return;
+      reset();
+      render();
+    };
+    input.addEventListener('keydown',e=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveBtn.click();}
+    });
+    render();
+    setTimeout(()=>input.focus(),0);
   }
-
-  function add(text){
+  function addWithKind(text,kind){
     const content=String(text||'').trim();
     if(!content)return false;
     const notes=load(),now=Date.now();
-    notes.push({id:'n_'+now+'_'+Math.random().toString(36).slice(2,7),text:content,createdAt:now,updatedAt:now});
-    return saveNotes(notes,'general-notes-home-quick-create');
+    notes.push({id:'n_'+now+'_'+Math.random().toString(36).slice(2,7),
+      text:content,kind:normalizedKind(kind),createdAt:now,updatedAt:now});
+    return saveNotes(notes,kind==='quickThought'?'general-notes-home-quick-thought':'general-notes-create');
   }
-  window.DiagnostikaQuickNotes={open,close,isOpen:()=>!overlay.hidden,add};
+  const add=text=>addWithKind(text,'notes');
+  const addQuickThought=text=>addWithKind(text,'quickThought');
+  const openQuickThoughts=()=>open('quickThought');
+  window.DiagnostikaQuickNotes={open,openQuickThoughts,close,isOpen:()=>!overlay.hidden,add,addQuickThought};
   wrap.querySelector('#quickNotesBtn').onclick=open;
   document.addEventListener('diagnostika:quick-notes-open',open);
   overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
