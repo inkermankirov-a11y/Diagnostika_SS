@@ -5,11 +5,11 @@
   if(document.getElementById('quickNotesBtn')) return;
 
   const TEXT={
-    ru:{button:'Заметки',title:'Общие заметки',placeholder:'Запишите мысль, идею или то, что нужно не забыть…',add:'Сохранить заметку',update:'Сохранить изменения',newNote:'Новая заметка',empty:'Заметок пока нет',delete:'Удалить',close:'Закрыть',notesTab:"Заметки",quickTab:"Быстрые мысли",quickPlaceholder:"Запишите мысль, наблюдение или идею…",today:"Сегодня",yesterday:"Вчера",quickEmpty:"Быстрых мыслей пока нет"},
-    en:{button:'Notes',title:'General notes',placeholder:'Write down a thought, idea, or something to remember…',add:'Save note',update:'Save changes',newNote:'New note',empty:'No notes yet',delete:'Delete',close:'Close',notesTab:"Notes",quickTab:"Quick thoughts",quickPlaceholder:"Capture an idea, observation or thought…",today:"Today",yesterday:"Yesterday",quickEmpty:"No quick thoughts yet"},
-    fr:{button:'Notes',title:'Notes générales',placeholder:'Notez une pensée, une idée ou quelque chose à retenir…',add:'Enregistrer',update:'Enregistrer les modifications',newNote:'Nouvelle note',empty:'Aucune note',delete:'Supprimer',close:'Fermer',notesTab:"Notes",quickTab:"Pensées rapides",quickPlaceholder:"Notez une idée ou une réflexion…",today:"Aujourd'hui",yesterday:"Hier",quickEmpty:"Pas encore de pensées"},
-    de:{button:'Notizen',title:'Allgemeine Notizen',placeholder:'Gedanke, Idee oder Erinnerung notieren…',add:'Notiz speichern',update:'Änderungen speichern',newNote:'Neue Notiz',empty:'Noch keine Notizen',delete:'Löschen',close:'Schließen',notesTab:"Notizen",quickTab:"Schnelle Gedanken",quickPlaceholder:"Gedanken oder Ideen notieren…",today:"Heute",yesterday:"Gestern",quickEmpty:"Noch keine schnellen Gedanken"},
-    it:{button:'Note',title:'Note generali',placeholder:'Scrivi un pensiero, un’idea o qualcosa da ricordare…',add:'Salva nota',update:'Salva modifiche',newNote:'Nuova nota',empty:'Nessuna nota',delete:'Elimina',close:'Chiudi',notesTab:"Note",quickTab:"Pensieri rapidi",quickPlaceholder:"Scrivi un'idea o un pensiero…",today:"Oggi",yesterday:"Ieri",quickEmpty:"Nessun pensiero rapido"}
+    ru:{button:'Заметки',title:'Общие заметки',placeholder:'Запишите мысль, идею или то, что нужно не забыть…',add:'Сохранить заметку',update:'Сохранить изменения',newNote:'Новая заметка',empty:'Заметок пока нет',delete:'Удалить',close:'Закрыть',notesTab:"Заметки",quickTab:"Быстрые мысли",quickPlaceholder:"Запишите мысль, наблюдение или идею…",today:"Сегодня",yesterday:"Вчера",quickEmpty:"Быстрых мыслей пока нет",quickNew:"Новая мысль",quickAdd:"Сохранить мысль",quickUpdate:"Сохранить изменения"},
+    en:{button:'Notes',title:'General notes',placeholder:'Write down a thought, idea, or something to remember…',add:'Save note',update:'Save changes',newNote:'New note',empty:'No notes yet',delete:'Delete',close:'Close',notesTab:"Notes",quickTab:"Quick thoughts",quickPlaceholder:"Capture an idea, observation or thought…",today:"Today",yesterday:"Yesterday",quickEmpty:"No quick thoughts yet",quickNew:"New thought",quickAdd:"Save thought",quickUpdate:"Save changes"},
+    fr:{button:'Notes',title:'Notes générales',placeholder:'Notez une pensée, une idée ou quelque chose à retenir…',add:'Enregistrer',update:'Enregistrer les modifications',newNote:'Nouvelle note',empty:'Aucune note',delete:'Supprimer',close:'Fermer',notesTab:"Notes",quickTab:"Pensées rapides",quickPlaceholder:"Notez une idée ou une réflexion…",today:"Aujourd'hui",yesterday:"Hier",quickEmpty:"Pas encore de pensées",quickNew:"Nouvelle pensée",quickAdd:"Enregistrer la pensée",quickUpdate:"Enregistrer les modifications"},
+    de:{button:'Notizen',title:'Allgemeine Notizen',placeholder:'Gedanke, Idee oder Erinnerung notieren…',add:'Notiz speichern',update:'Änderungen speichern',newNote:'Neue Notiz',empty:'Noch keine Notizen',delete:'Löschen',close:'Schließen',notesTab:"Notizen",quickTab:"Schnelle Gedanken",quickPlaceholder:"Gedanken oder Ideen notieren…",today:"Heute",yesterday:"Gestern",quickEmpty:"Noch keine schnellen Gedanken",quickNew:"Neuer Gedanke",quickAdd:"Gedanken speichern",quickUpdate:"Änderungen speichern"},
+    it:{button:'Note',title:'Note generali',placeholder:'Scrivi un pensiero, un’idea o qualcosa da ricordare…',add:'Salva nota',update:'Salva modifiche',newNote:'Nuova nota',empty:'Nessuna nota',delete:'Elimina',close:'Chiudi',notesTab:"Note",quickTab:"Pensieri rapidi",quickPlaceholder:"Scrivi un'idea o un pensiero…",today:"Oggi",yesterday:"Ieri",quickEmpty:"Nessun pensiero rapido",quickNew:"Nuovo pensiero",quickAdd:"Salva pensiero",quickUpdate:"Salva modifiche"}
   };
   const lang=()=>window.DiagnostikaI18n?.language||localStorage.getItem('diagnostika-ui-language')||'en';
   const tr=()=>TEXT[lang()]||TEXT.en;
@@ -126,14 +126,16 @@
     function reset(){
       editingId=null;
       input.value='';
-      saveBtn.textContent=t.add;
-      newBtn.textContent=t.newNote;
+      saveBtn.textContent=activeKind==='quickThought'?t.quickAdd:t.add;
+      newBtn.textContent=activeKind==='quickThought'?t.quickNew:t.newNote;
       input.focus();
     }
     function render(){
       const list=overlay.querySelector('.quick-notes-list');
       list.innerHTML='';
       input.placeholder=activeKind==='quickThought'?t.quickPlaceholder:t.placeholder;
+      newBtn.textContent=activeKind==='quickThought'?t.quickNew:t.newNote;
+      if(!editingId)saveBtn.textContent=activeKind==='quickThought'?t.quickAdd:t.add;
       for(const tab of tabs)tab.setAttribute('aria-selected',String(tab.dataset.kind===activeKind));
       const notes=load().filter(note=>kindOf(note)===activeKind);
       if(!notes.length){
@@ -166,7 +168,7 @@
         row.onclick=()=>{
           editingId=note.id;
           input.value=note.text||'';
-          saveBtn.textContent=t.update;
+          saveBtn.textContent=activeKind==='quickThought'?t.quickUpdate:t.update;
           input.focus();
         };
         list.appendChild(row);
