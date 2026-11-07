@@ -180,7 +180,7 @@
 
   function renderSchedule(items){
     const now=Date.now();
-    const upcoming=items.filter(e=>e.at>=now&&!isNaN(e.at)).slice(0,4);
+    const upcoming=items.filter(e=>e.at>=now&&Number.isFinite(e.at)).slice(0,8);
     $('#hwsSchedule').innerHTML=upcoming.length?upcoming.map(e=>{
       const c=clientFor(e.clientId);
       return '<div class="hws-event-row"><div class="hws-event-type is-'+e.kind+'">'+
@@ -220,7 +220,7 @@
     if(typeof window.DiagnostikaCalendarUI?.open==='function'){window.DiagnostikaCalendarUI.open({mode:'overview'});return;}
     document.getElementById('headerCalendarBtn')?.click();
   };
-  const openNotes=()=>window.DiagnostikaQuickNotes?.open?.();
+  const openQuickThoughts=()=>window.DiagnostikaQuickNotes?.openQuickThoughts?.();
   async function clipboard(text){
     try{
       if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
@@ -231,46 +231,15 @@
   }
   async function onAction(button){
     const action=button.dataset.action||'';
-    if(action==='privacy'){hideNames=!hideNames;putStored('hide-names',String(hideNames));render();return;}
-    if(action==='open-client'){window.DiagnostikaHomeDashboard?.openClient?.(button.dataset.clientId);return;}
-    if(action==='new-client'){window.DiagnostikaHomeDashboard?.addClient?.();return;}
-    if(action==='calendar'){openCalendar();return;}
-    if(action==='notes'){openNotes();return;}
-    if(action==='complete-reminder'){
-      const id=button.dataset.eventId;
-      if(!id||!calendar()?.update)return;
-      const updated=calendar().update(id,{status:'completed',completedAt:new Date().toISOString()},
-        {source:'home-workspace-reminder-complete'});
-      if(updated)render();
+    if(action==='privacy'){
+      hideNames=!hideNames;
+      putStored('hide-names',String(hideNames));
+      render();
       return;
     }
-    if(action==='next-quote'){
-      const favorites=validFavorites();
-      if(showFavorites&&favorites.length){
-        const i=favorites.indexOf(quoteIndex);
-        quoteIndex=favorites[(i+1)%favorites.length];
-      }else{
-        quoteIndex=(quoteIndex+1)%thoughts.length;
-        saveJson('daily-thought',{date:dayKey(),index:quoteIndex});
-      }
-      saveMessage='';renderQuote();return;
-    }
-    if(action==='favorite'){
-      const list=validFavorites();
-      const next=list.includes(quoteIndex)?list.filter(x=>x!==quoteIndex):[...list,quoteIndex];
-      if(saveJson('favorites',next))saveMessage=next.includes(quoteIndex)?'Добавлено':'Убрано';
-      else saveMessage='Не удалось сохранить';
-      renderQuote();return;
-    }
-    if(action==='favorites'){
-      const saved=validFavorites();
-      if(!saved.length){saveMessage='Избранных мыслей пока нет';renderQuote();return;}
-      showFavorites=!showFavorites;
-      if(showFavorites)quoteIndex=saved[0];
-      else quoteIndex=currentQuote();
-      saveMessage='';renderQuote();return;
-    }
-    if(action==='copy-quote'){await clipboard(thoughts[quoteIndex][0]+'\n\n'+thoughts[quoteIndex][1]);return;}
+    if(action==='open-client'){window.DiagnostikaHomeDashboard?.openClient?.(button.dataset.clientId);return;}
+    if(action==='calendar'){openCalendar();return;}
+    if(action==='quick-thoughts'){openQuickThoughts();return;}
     if(action==='next-prompt'){promptIndex=(promptIndex+1)%practice.length;renderPrompt();return;}
     if(action==='copy-prompt'){await clipboard(practice[promptIndex]);return;}
     if(action==='save-thought'){
@@ -278,10 +247,10 @@
       const note=input.value.trim();
       if(!note){status.textContent='Напиши сначала мысль';input.focus();return;}
       const api=window.DiagnostikaQuickNotes;
-      if(typeof api?.add!=='function'){status.textContent='Заметки ещё загружаются';return;}
-      if(api.add(note)){
+      if(typeof api?.addQuickThought!=='function'){status.textContent='Заметки ещё загружаются';return;}
+      if(api.addQuickThought(note)){
         input.value='';
-        status.textContent='✓ Сохранено в заметках';
+        status.textContent='✓ Сохранено в «Быстрые мысли»';
       }else status.textContent='Не удалось сохранить';
     }
   }
@@ -294,11 +263,6 @@
   document.addEventListener('diagnostika:dashboard-home-opened',render);
   document.addEventListener('diagnostika:dashboard-clients-rendered',render);
   window.addEventListener('diagnostika-general-notes-changed',()=>{if(visible())$('#hwsNoteStatus').textContent='Заметки обновлены';});
-  const events=window.DiagnostikaPlatform?.events;
-  if(events?.on)events.on('client:selected',d=>{
-    if(d?.source==='last-client-restore')return;
-    if(d?.clientId)rememberClient(d.clientId);
-  });
   window.DiagnostikaHomeWorkspace=Object.freeze({render,thoughtCount:thoughts.length,practiceCount:practice.length});
   render();
 })();
