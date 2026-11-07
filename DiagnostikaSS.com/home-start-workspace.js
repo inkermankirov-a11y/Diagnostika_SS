@@ -174,7 +174,7 @@
     return Number.isFinite(stamp)?stamp:NaN;
   };
   const eventType=e=>{
-    const type=String(e?.type||e?.title||'').toLowerCase();
+    const type=(String(e?.type||'')+' '+String(e?.title||'')).toLowerCase();
     if(/напомин|remind|задач/.test(type))return 'reminder';
     if(/диагност/.test(type))return 'diagnosis';
     if(/консультац/.test(type))return 'consultation';
