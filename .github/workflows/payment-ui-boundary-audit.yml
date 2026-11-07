@@ -4,13 +4,17 @@ on:
   push:
     branches: [main, 'feature-payment-*']
     paths:
-      - 'payment-api.js'
-      - 'index.html'
-      - 'app-loader.js'
-      - 'modules/payments/ui/**'
-      - 'tests/payment-ui-boundary-*.mjs'
+      - 'DiagnostikaSS.com/payment-api.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/modules/payments/ui/**'
+      - 'DiagnostikaSS.com/tests/payment-ui-boundary-*.mjs'
       - '.github/workflows/payment-ui-boundary-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   payment-ui-boundary:

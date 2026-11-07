@@ -8,12 +8,16 @@ on:
   push:
     branches: [main, 'feature-request-*']
     paths:
-      - 'request-api.js'
-      - 'index.html'
-      - 'modules/requests/**'
-      - 'tests/request-ui-boundary-stage6-audit.mjs'
+      - 'DiagnostikaSS.com/request-api.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/modules/requests/**'
+      - 'DiagnostikaSS.com/tests/request-ui-boundary-stage6-audit.mjs'
       - '.github/workflows/request-ui-boundary-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   request-ui-boundary:

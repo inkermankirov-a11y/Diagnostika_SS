@@ -5,6 +5,10 @@ on:
     branches: [main, fix-request-selection-not-active, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, 'feature-request-*', 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
+
 jobs:
   request-selection:
     runs-on: ubuntu-24.04

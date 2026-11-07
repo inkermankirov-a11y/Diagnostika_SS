@@ -4,15 +4,19 @@ on:
   push:
     branches: [main, 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
     paths:
-      - 'core/access-control.js'
-      - 'core/module-registry.js'
-      - 'roles-api.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'modules/**/index.js'
-      - 'tests/roles-*.mjs'
+      - 'DiagnostikaSS.com/core/access-control.js'
+      - 'DiagnostikaSS.com/core/module-registry.js'
+      - 'DiagnostikaSS.com/roles-api.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/modules/**/index.js'
+      - 'DiagnostikaSS.com/tests/roles-*.mjs'
       - '.github/workflows/roles-access-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   roles-access:

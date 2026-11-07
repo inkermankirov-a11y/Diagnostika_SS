@@ -4,14 +4,18 @@ on:
   push:
     branches: [main, 'feature-notes-*']
     paths:
-      - 'quick-notes.js'
-      - 'modules/ai/ui/client-chat.js'
-      - 'google-drive-merge-worker.js'
-      - 'storage-simple-sync.js'
-      - 'index.html'
-      - 'tests/notes-*.mjs'
+      - 'DiagnostikaSS.com/quick-notes.js'
+      - 'DiagnostikaSS.com/modules/ai/ui/client-chat.js'
+      - 'DiagnostikaSS.com/google-drive-merge-worker.js'
+      - 'DiagnostikaSS.com/storage-simple-sync.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/notes-*.mjs'
       - '.github/workflows/notes-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   notes:

@@ -4,21 +4,25 @@ on:
   push:
     branches: [ main, 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
     paths:
-      - 'modules/ai/**'
-      - 'ai-api.js'
-      - 'app-loader.js'
-      - 'client-ai-*.js'
-      - 'modules/ai/ui/**'
-      - 'request-ai-n8n.js'
-      - 'form-integrations.js'
-      - 'tests/ai-module-6a-audit.mjs'
-      - 'tests/ai-module-6b-audit.mjs'
-      - 'tests/ai-module-6c-audit.mjs'
-      - 'tests/ai-module-6d-audit.mjs'
-      - 'tests/ai-longitudinal-context-audit.mjs'
+      - 'DiagnostikaSS.com/modules/ai/**'
+      - 'DiagnostikaSS.com/ai-api.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/client-ai-*.js'
+      - 'DiagnostikaSS.com/modules/ai/ui/**'
+      - 'DiagnostikaSS.com/request-ai-n8n.js'
+      - 'DiagnostikaSS.com/form-integrations.js'
+      - 'DiagnostikaSS.com/tests/ai-module-6a-audit.mjs'
+      - 'DiagnostikaSS.com/tests/ai-module-6b-audit.mjs'
+      - 'DiagnostikaSS.com/tests/ai-module-6c-audit.mjs'
+      - 'DiagnostikaSS.com/tests/ai-module-6d-audit.mjs'
+      - 'DiagnostikaSS.com/tests/ai-longitudinal-context-audit.mjs'
       - '.github/workflows/ai-api-audit.yml'
-      - 'index.html'
+      - 'DiagnostikaSS.com/index.html'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   ai-api:

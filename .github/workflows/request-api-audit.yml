@@ -5,6 +5,10 @@ on:
     branches: [main, retire-old-interface, feature-core-0.2a, feature-requests-3a, feature-requests-3b, feature-requests-3c, feature-requests-3d, 'feature-request-*', feature-sessions-4a, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
+
 jobs:
   request-api:
     runs-on: ubuntu-24.04

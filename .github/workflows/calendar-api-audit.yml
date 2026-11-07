@@ -4,20 +4,24 @@ on:
   push:
     branches: [main, 'feature-calendar-*', 'fix-calendar-*', 'feature-session-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
     paths:
-      - 'modules/calendar/**'
-      - 'calendar-api.js'
-      - 'client-calendar.js'
-      - 'calendar-session-planning.js'
-      - 'calendar-google-link.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/calendar-module-8a-audit.mjs'
-      - 'tests/calendar-ui-8b-audit.mjs'
-      - 'tests/calendar-session-8c-audit.mjs'
-      - 'tests/calendar-hardening-8d-audit.mjs'
-      - 'tests/calendar-ui-boundary-stage8-audit.mjs'
+      - 'DiagnostikaSS.com/modules/calendar/**'
+      - 'DiagnostikaSS.com/calendar-api.js'
+      - 'DiagnostikaSS.com/client-calendar.js'
+      - 'DiagnostikaSS.com/calendar-session-planning.js'
+      - 'DiagnostikaSS.com/calendar-google-link.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/calendar-module-8a-audit.mjs'
+      - 'DiagnostikaSS.com/tests/calendar-ui-8b-audit.mjs'
+      - 'DiagnostikaSS.com/tests/calendar-session-8c-audit.mjs'
+      - 'DiagnostikaSS.com/tests/calendar-hardening-8d-audit.mjs'
+      - 'DiagnostikaSS.com/tests/calendar-ui-boundary-stage8-audit.mjs'
       - '.github/workflows/calendar-api-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   calendar-api:

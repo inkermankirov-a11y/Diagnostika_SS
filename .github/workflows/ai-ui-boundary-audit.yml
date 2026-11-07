@@ -8,12 +8,16 @@ on:
   push:
     branches: [main, 'feature-ai-*']
     paths:
-      - 'ai-api.js'
-      - 'index.html'
-      - 'modules/ai/**'
-      - 'tests/ai-ui-boundary-stage7-audit.mjs'
+      - 'DiagnostikaSS.com/ai-api.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/modules/ai/**'
+      - 'DiagnostikaSS.com/tests/ai-ui-boundary-stage7-audit.mjs'
       - '.github/workflows/ai-ui-boundary-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   ai-ui-boundary:

@@ -4,13 +4,17 @@ on:
   push:
     branches: [main, 'feature-diagnosis-*']
     paths:
-      - 'app.js'
-      - 'app-dialogs.js'
-      - 'index.html'
-      - 'modules/diagnosis/ui/**'
-      - 'tests/diagnosis-unsaved-editor-audit.mjs'
+      - 'DiagnostikaSS.com/app.js'
+      - 'DiagnostikaSS.com/app-dialogs.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/modules/diagnosis/ui/**'
+      - 'DiagnostikaSS.com/tests/diagnosis-unsaved-editor-audit.mjs'
       - '.github/workflows/diagnosis-unsaved-editor-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   unsaved-editor:

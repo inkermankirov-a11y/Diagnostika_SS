@@ -4,14 +4,18 @@ on:
   push:
     branches: [main, 'feature-diagnosis-*', 'feature-sessions-*']
     paths:
-      - 'app.js'
-      - 'index.html'
-      - 'core/shell-bridge.js'
-      - 'modules/diagnosis/ui/**'
-      - 'modules/sessions/ui/**'
-      - 'tests/domain-ui-boundary-*.mjs'
+      - 'DiagnostikaSS.com/app.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/core/shell-bridge.js'
+      - 'DiagnostikaSS.com/modules/diagnosis/ui/**'
+      - 'DiagnostikaSS.com/modules/sessions/ui/**'
+      - 'DiagnostikaSS.com/tests/domain-ui-boundary-*.mjs'
       - '.github/workflows/domain-ui-boundary-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   domain-ui-boundary:

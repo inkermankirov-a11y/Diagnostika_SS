@@ -4,15 +4,19 @@ on:
   push:
     branches: [main, 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
     paths:
-      - 'modules/files/**'
-      - 'files-api.js'
-      - 'modules/sessions/ui/editor.js'
-      - 'storage-manager.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/files-*.mjs'
+      - 'DiagnostikaSS.com/modules/files/**'
+      - 'DiagnostikaSS.com/files-api.js'
+      - 'DiagnostikaSS.com/modules/sessions/ui/editor.js'
+      - 'DiagnostikaSS.com/storage-manager.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/files-*.mjs'
       - '.github/workflows/files-api-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   files-api:

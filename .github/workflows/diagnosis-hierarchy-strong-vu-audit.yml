@@ -4,17 +4,21 @@ on:
   push:
     branches: [main, 'feature-diagnosis-*']
     paths:
-      - 'app.js'
-      - 'styles.css'
-      - 'index.html'
-      - 'modules/diagnosis/ui/feeling-collapse.js'
-      - 'modules/diagnosis/ui/strong-vu-summary.js'
-      - 'tests/diagnosis-hierarchy-strong-vu-audit.mjs'
-      - 'tests/n8n-hypothesis-contract-audit.mjs'
-      - 'n8n/diagnostika-hypothesis-v1.json'
-      - 'modules/diagnosis/ui/hypothesis.js'
+      - 'DiagnostikaSS.com/app.js'
+      - 'DiagnostikaSS.com/styles.css'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/modules/diagnosis/ui/feeling-collapse.js'
+      - 'DiagnostikaSS.com/modules/diagnosis/ui/strong-vu-summary.js'
+      - 'DiagnostikaSS.com/tests/diagnosis-hierarchy-strong-vu-audit.mjs'
+      - 'DiagnostikaSS.com/tests/n8n-hypothesis-contract-audit.mjs'
+      - 'DiagnostikaSS.com/n8n/diagnostika-hypothesis-v1.json'
+      - 'DiagnostikaSS.com/modules/diagnosis/ui/hypothesis.js'
       - '.github/workflows/diagnosis-hierarchy-strong-vu-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   hierarchy-strong-vu:

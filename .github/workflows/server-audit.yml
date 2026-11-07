@@ -4,10 +4,14 @@ on:
   push:
     branches: [main, 'feature-server-*']
     paths:
-      - 'server/**'
-      - 'tests/server-*.mjs'
+      - 'DiagnostikaSS.com/server/**'
+      - 'DiagnostikaSS.com/tests/server-*.mjs'
       - '.github/workflows/server-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   server:

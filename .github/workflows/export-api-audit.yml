@@ -4,15 +4,19 @@ on:
   push:
     branches: [main, 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*' ]
     paths:
-      - 'modules/export/**'
-      - 'export-api.js'
-      - 'export-txt-classic.js'
-      - 'app.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/export-*.mjs'
+      - 'DiagnostikaSS.com/modules/export/**'
+      - 'DiagnostikaSS.com/export-api.js'
+      - 'DiagnostikaSS.com/export-txt-classic.js'
+      - 'DiagnostikaSS.com/app.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/export-*.mjs'
       - '.github/workflows/export-api-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   export-api:
