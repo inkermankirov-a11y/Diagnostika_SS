@@ -8,13 +8,17 @@ on:
   push:
     branches: [main, 'feature-client-*']
     paths:
-      - 'client-api.js'
-      - 'index.html'
-      - 'modules/ai/ui/settings.js'
-      - 'modules/clients/**'
-      - 'tests/client-ui-boundary-stage5-audit.mjs'
+      - 'DiagnostikaSS.com/client-api.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/modules/ai/ui/settings.js'
+      - 'DiagnostikaSS.com/modules/clients/**'
+      - 'DiagnostikaSS.com/tests/client-ui-boundary-stage5-audit.mjs'
       - '.github/workflows/client-ui-boundary-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   client-ui-boundary:

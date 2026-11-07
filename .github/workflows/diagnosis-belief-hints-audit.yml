@@ -4,17 +4,21 @@ on:
   push:
     branches: [main, 'feature-diagnosis-*']
     paths:
-      - 'belief-hints.js'
-      - 'deep-belief-hints.js'
-      - 'beliefs-i18n.js'
-      - 'dynamic-save-labels.js'
-      - 'i18n.js'
-      - 'app.js'
-      - 'index.html'
-      - 'modules/diagnosis/ui/**'
-      - 'tests/diagnosis-belief-hints-audit.mjs'
+      - 'DiagnostikaSS.com/belief-hints.js'
+      - 'DiagnostikaSS.com/deep-belief-hints.js'
+      - 'DiagnostikaSS.com/beliefs-i18n.js'
+      - 'DiagnostikaSS.com/dynamic-save-labels.js'
+      - 'DiagnostikaSS.com/i18n.js'
+      - 'DiagnostikaSS.com/app.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/modules/diagnosis/ui/**'
+      - 'DiagnostikaSS.com/tests/diagnosis-belief-hints-audit.mjs'
       - '.github/workflows/diagnosis-belief-hints-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   belief-hints:

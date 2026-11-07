@@ -4,14 +4,18 @@ on:
   push:
     branches: [main, 'feature-dashboard-*', 'fix-dashboard-*', 'fix-notification-*', 'feature-client-*', 'feature-diagnosis-*']
     paths:
-      - 'home-dashboard.js'
-      - 'home-dashboard.css'
-      - 'app-loader.js'
-      - 'tests/dashboard-reminder-persistence-audit.mjs'
-      - 'tests/dashboard-diagnosis-beacon-audit.mjs'
-      - 'tests/dashboard-notification-compact-audit.mjs'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/home-dashboard.css'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/tests/dashboard-reminder-persistence-audit.mjs'
+      - 'DiagnostikaSS.com/tests/dashboard-diagnosis-beacon-audit.mjs'
+      - 'DiagnostikaSS.com/tests/dashboard-notification-compact-audit.mjs'
       - '.github/workflows/dashboard-reminder-persistence-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   reminder-persistence:

@@ -4,11 +4,15 @@ on:
   push:
     branches: [main, retire-old-interface, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*', 'feature-api-*' ]
     paths:
-      - '**.js'
-      - '**.css'
-      - 'index.html'
+      - 'DiagnostikaSS.com/**.js'
+      - 'DiagnostikaSS.com/**.css'
+      - 'DiagnostikaSS.com/index.html'
       - '.github/workflows/core-crm-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   core-crm:

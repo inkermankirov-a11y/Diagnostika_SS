@@ -4,12 +4,16 @@ on:
   push:
     branches: [main, 'feature-dashboard-*']
     paths:
-      - 'home-dashboard.js'
-      - 'home-dashboard.css'
-      - 'app-loader.js'
-      - 'tests/dashboard-specialist-placement-audit.mjs'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/home-dashboard.css'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/tests/dashboard-specialist-placement-audit.mjs'
       - '.github/workflows/dashboard-specialist-placement-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   specialist-placement:

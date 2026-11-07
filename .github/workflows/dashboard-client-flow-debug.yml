@@ -4,18 +4,22 @@ on:
   push:
     branches: [main, retire-old-interface, 'feature-payment-*', 'feature-ai-*', 'feature-roles-*' ]
     paths:
-      - 'home-dashboard.js'
-      - 'client-card-window.js'
-      - 'client-list-cleanup.js'
-      - 'modules/payments/ui/client-debt-flags.js'
-      - 'app.js'
-      - 'app-loader.js'
-      - 'app-startup.js'
-      - 'last-client.js'
-      - 'index.html'
-      - 'request-title-display.js'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/client-card-window.js'
+      - 'DiagnostikaSS.com/client-list-cleanup.js'
+      - 'DiagnostikaSS.com/modules/payments/ui/client-debt-flags.js'
+      - 'DiagnostikaSS.com/app.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/app-startup.js'
+      - 'DiagnostikaSS.com/last-client.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/request-title-display.js'
       - '.github/workflows/dashboard-client-flow-debug.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   debug-client-flow:
