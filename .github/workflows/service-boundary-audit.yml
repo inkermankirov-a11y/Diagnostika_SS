@@ -4,15 +4,19 @@ on:
   push:
     branches: [main, 'feature-final-*']
     paths:
-      - 'core/store-bridge.js'
-      - 'core/shell-bridge.js'
-      - 'core/bootstrap.js'
-      - 'modules/**'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/service-boundary-*.mjs'
+      - 'DiagnostikaSS.com/core/store-bridge.js'
+      - 'DiagnostikaSS.com/core/shell-bridge.js'
+      - 'DiagnostikaSS.com/core/bootstrap.js'
+      - 'DiagnostikaSS.com/modules/**'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/service-boundary-*.mjs'
       - '.github/workflows/service-boundary-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   service-boundary:

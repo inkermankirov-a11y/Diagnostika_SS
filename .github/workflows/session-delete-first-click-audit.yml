@@ -4,13 +4,17 @@ on:
   push:
     branches: [main, 'fix-session-*']
     paths:
-      - 'home-dashboard-sessions.js'
-      - 'modules/sessions/ui/interactions.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/session-delete-first-click-audit.mjs'
+      - 'DiagnostikaSS.com/home-dashboard-sessions.js'
+      - 'DiagnostikaSS.com/modules/sessions/ui/interactions.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/session-delete-first-click-audit.mjs'
       - '.github/workflows/session-delete-first-click-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   session-delete:

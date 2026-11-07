@@ -4,26 +4,30 @@ on:
   push:
     branches: [main, feature-sessions-4a, feature-sessions-4b, feature-sessions-4c, 'feature-sessions-*', feature-payment-5a, 'feature-payment-*', 'feature-ai-*', 'feature-files-*', 'feature-export-*', 'feature-roles-*', 'feature-api-*', 'feature-db-*', 'feature-diagnosis-*' ]
     paths:
-      - 'modules/sessions/**'
-      - 'session-api.js'
-      - 'app-loader.js'
-      - 'index.html'
-      - 'tests/session-module-audit.mjs'
-      - 'tests/session-ui-4b-audit.mjs'
-      - 'tests/session-final-4c-audit.mjs'
-      - 'tests/session-overdue-actions-audit.mjs'
-      - 'modules/calendar/ui/session-planning.js'
-      - 'test-data.js'
-      - 'core/legacy-event-bridge.js'
-      - 'core/bootstrap.js'
-      - 'home-dashboard-sessions.js'
-      - 'modules/sessions/ui/editor.js'
-      - 'modules/sessions/ui/interactions.js'
-      - 'modules/sessions/ui/active-request.js'
-      - 'modules/sessions/ui/format.js'
-      - 'modules/payments/ui/**'
+      - 'DiagnostikaSS.com/modules/sessions/**'
+      - 'DiagnostikaSS.com/session-api.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/session-module-audit.mjs'
+      - 'DiagnostikaSS.com/tests/session-ui-4b-audit.mjs'
+      - 'DiagnostikaSS.com/tests/session-final-4c-audit.mjs'
+      - 'DiagnostikaSS.com/tests/session-overdue-actions-audit.mjs'
+      - 'DiagnostikaSS.com/modules/calendar/ui/session-planning.js'
+      - 'DiagnostikaSS.com/test-data.js'
+      - 'DiagnostikaSS.com/core/legacy-event-bridge.js'
+      - 'DiagnostikaSS.com/core/bootstrap.js'
+      - 'DiagnostikaSS.com/home-dashboard-sessions.js'
+      - 'DiagnostikaSS.com/modules/sessions/ui/editor.js'
+      - 'DiagnostikaSS.com/modules/sessions/ui/interactions.js'
+      - 'DiagnostikaSS.com/modules/sessions/ui/active-request.js'
+      - 'DiagnostikaSS.com/modules/sessions/ui/format.js'
+      - 'DiagnostikaSS.com/modules/payments/ui/**'
       - '.github/workflows/session-module-audit.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
 
 jobs:
   session-module:

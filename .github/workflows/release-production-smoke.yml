@@ -9,6 +9,10 @@ permissions:
   contents: read
   deployments: read
 
+defaults:
+  run:
+    working-directory: DiagnostikaSS.com
+
 jobs:
   production-smoke:
     runs-on: ubuntu-24.04
