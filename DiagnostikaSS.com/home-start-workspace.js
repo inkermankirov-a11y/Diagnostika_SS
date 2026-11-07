@@ -80,6 +80,14 @@
 
   home.innerHTML=[
     '<div class="hws-workspace hws-workspace-simple">',
+      '<div class="hws-hero">',
+        '<div class="hws-hero-glow" aria-hidden="true"></div>',
+        '<div class="hws-eyebrow"><span class="hws-live-dot"></span> РАБОЧЕЕ ПРОСТРАНСТВО</div>',
+        '<div class="hws-hero-row"><div><h2 class="hws-heading">Мой рабочий день</h2>',
+        '<p>Встречи, приоритеты и следующий шаг — в одном месте.</p></div>',
+        '<div class="hws-today-date" id="hwsHeroDate"></div></div>',
+      '</div>',
+      '<div class="hws-metrics" id="hwsMetrics" aria-live="polite"></div>',
       '<section class="hws-card hws-schedule hws-schedule-only">',
         '<div class="hws-schedule-header">',
           '<div class="hws-schedule-intro"><div class="hws-overline">РАБОЧИЙ КАЛЕНДАРЬ</div>',
@@ -190,6 +198,24 @@
            '<button type="button" data-action="calendar" aria-label="Открыть календарь">↗</button>')+'</div>';
     }).join(''):'<div class="hws-empty"><span class="hws-empty-symbol">✓</span><div><strong>Ближайших событий нет</strong><p>Запланируй встречу или напоминание в календаре.</p></div></div>';
   }
+  function renderMetrics(items){
+    const now=Date.now();
+    const date=new Date();
+    const start=new Date(date.getFullYear(),date.getMonth(),date.getDate()).getTime();
+    const end=new Date(date.getFullYear(),date.getMonth(),date.getDate()+1).getTime();
+    const meetings=items.filter(e=>e.kind!=='reminder'&&e.at>=start&&e.at<end).length;
+    const attention=items.filter(e=>e.kind==='reminder'&&e.at<=now).length;
+    const active=clients().reduce((sum,c)=>
+      sum+(Array.isArray(c.requests)?c.requests:[])
+        .filter(r=>r&&r.status!=='completed').length,0);
+    $('#hwsMetrics').innerHTML=[
+      ['Встреч сегодня',meetings,'is-ocean','▦'],
+      ['Ожидают внимания',attention,'is-amber','◉'],
+      ['Активных запросов',active,'is-lilac','◇']
+    ].map(([label,value,tone,icon])=>'<div class="hws-metric '+tone+'"><span class="hws-metric-icon">'+icon+
+      '</span><span class="hws-metric-value">'+value+'</span><span class="hws-metric-label">'+label+'</span></div>').join('');
+  }
+
   function renderQuote(){
     const today=dayKey();
     if(today!==quoteDate){
@@ -206,9 +232,13 @@
   function render(){
     if(!visible())return;
     try{
-      renderSchedule(entries());
-      $('#hwsCurrentDate').textContent=new Intl.DateTimeFormat('ru-RU',
+      const items=entries();
+      renderMetrics(items);
+      renderSchedule(items);
+      const today=new Intl.DateTimeFormat('ru-RU',
         {weekday:'long',day:'numeric',month:'long'}).format(new Date());
+      $('#hwsCurrentDate').textContent=today;
+      $('#hwsHeroDate').textContent=today;
       const privacy=$('[data-action="privacy"]');
       privacy.textContent=hideNames?'◉ Показать имена':'◉ Скрыть имена';
       privacy.setAttribute('aria-pressed',hideNames?'true':'false');
