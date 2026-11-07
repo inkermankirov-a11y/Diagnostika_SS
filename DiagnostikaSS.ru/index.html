@@ -8,7 +8,44 @@
   <meta http-equiv="Expires" content="0">
   <meta name="diagnostika-build" content="20260919-db14d">
   <meta name="diagnostika-release" content="v1.0.0">
-  <title>Психологическая диагностика</title>
+  <meta name="diagnostika-instance" content="DiagnostikaSS.ru">
+  <title>DiagnostikaSS.ru — Психологическая диагностика</title>
+  <script>
+    // This copy shares the GitHub Pages origin with the .com copy.
+    // Namespace its local browser data so client records do not overlap.
+    (() => {
+      try {
+        const target=window.localStorage;
+        const proto=Storage.prototype;
+        const prefix='diagnostikass.ru::';
+        const get=proto.getItem, set=proto.setItem;
+        const remove=proto.removeItem, clear=proto.clear, key=proto.key;
+        if(proto.__diagnostikaRuStorageScoped)return;
+        Object.defineProperty(proto,'__diagnostikaRuStorageScoped',{value:true});
+        proto.getItem=function(name){
+          return get.call(this,this===target?prefix+String(name):name);
+        };
+        proto.setItem=function(name,value){
+          return set.call(this,this===target?prefix+String(name):name,value);
+        };
+        proto.removeItem=function(name){
+          return remove.call(this,this===target?prefix+String(name):name);
+        };
+        proto.clear=function(){
+          if(this!==target)return clear.call(this);
+          const owned=[];
+          for(let i=0;i<this.length;i++){
+            const name=key.call(this,i);
+            if(name&&name.startsWith(prefix))owned.push(name);
+          }
+          for(const name of owned)remove.call(this,name);
+        };
+      }catch(error){
+        console.error('DiagnostikaSS.ru: local storage isolation unavailable',error);
+      }
+    })();
+  </script>
+
   <script>
     try{
       const theme=localStorage.getItem('diagnostika-dashboard-theme')||'theme-1';
