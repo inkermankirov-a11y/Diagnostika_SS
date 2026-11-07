@@ -153,6 +153,22 @@
     }
   }
 
+  function loadHomeWorkspace(){
+    if(!document.querySelector('link[data-home-workspace-css]')){
+      const style=document.createElement('link');
+      style.rel='stylesheet';
+      style.href='home-start-workspace.css?v=20261107-main-hub-1';
+      style.setAttribute('data-home-workspace-css','1');
+      document.head.appendChild(style);
+    }
+    if(!document.querySelector('script[data-home-workspace]')){
+      const script=document.createElement('script');
+      script.src='home-start-workspace.js?v=20261107-main-hub-1';
+      script.setAttribute('data-home-workspace','1');
+      document.body.appendChild(script);
+    }
+  }
+
   function loadDashboard(){
     if(!document.querySelector('link[data-brand-icon]')){
       const icon=document.createElement('link');
@@ -173,6 +189,7 @@
       s.src='home-dashboard.js?v=20261101-consult-stable-4';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
+        loadHomeWorkspace();
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
           const x=document.createElement('script');
           x.src='home-dashboard-sessions.js?v=20261007-reschedule-same-card-1';
@@ -187,6 +204,7 @@
       x.setAttribute('data-home-dashboard-sessions','1');
       document.body.appendChild(x);
     }
+    if(document.querySelector('.home-dashboard'))loadHomeWorkspace();
   }
 
   function publishRuntimeGate(status, report = null, error = null){
