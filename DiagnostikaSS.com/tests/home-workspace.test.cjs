@@ -54,10 +54,18 @@ function makeBrowser(){
     selected:()=>selected,calendarOpened:()=>calendarOpened,quickOpened:()=>quickOpened,platformListeners};
 }
 
-test('center contains only upcoming events, right shows one daily thought',()=>{
+test('restores hero and all three counters above upcoming events, but not the removed sections',()=>{
   const x=makeBrowser();
+  assert.match(x.home.innerHTML,/Мой рабочий день/);
+  assert.match(x.home.innerHTML,/hwsMetrics/);
   assert.match(x.home.innerHTML,/Ближайшие события/);
-  assert.doesNotMatch(x.home.innerHTML,/Требует внимания|Продолжить работу|Новый клиент|hwsMetrics/);
+  assert.ok(x.home.innerHTML.indexOf('Мой рабочий день')<x.home.innerHTML.indexOf('hwsMetrics'));
+  assert.ok(x.home.innerHTML.indexOf('hwsMetrics')<x.home.innerHTML.indexOf('Ближайшие события'));
+  assert.match(x.$('#hwsMetrics').innerHTML,/Встреч сегодня/);
+  assert.match(x.$('#hwsMetrics').innerHTML,/Ожидают внимания/);
+  assert.match(x.$('#hwsMetrics').innerHTML,/Активных запросов/);
+  assert.match(x.$('#hwsMetrics').innerHTML,/hws-metric-value">1</);
+  assert.doesNotMatch(x.home.innerHTML,/hws-priorities|hws-resume|hws-action-row|Продолжить работу|Новый клиент/);
   assert.equal(x.right.children.length,1);
   assert.match(x.right.children[0].innerHTML,/Мысль дня/);
   assert.doesNotMatch(x.right.children[0].innerHTML,/next-quote|hwsQuoteNumber|hwsFavorite/);
