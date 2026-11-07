@@ -15,6 +15,7 @@
   const putStored=(key,value)=>{try{localStorage.setItem(PREF_PREFIX+key,String(value));return true;}catch(_){return false;}};
   const readJson=(key,fallback)=>{try{return JSON.parse(getStored(key,''))||fallback;}catch(_){return fallback;}};
   const saveJson=(key,value)=>putStored(key,JSON.stringify(value));
+  const validFavorites=()=>{const list=readJson('favorites',[]);return Array.isArray(list)?list.filter(i=>Number.isInteger(i)&&i>=0&&i<30):[];};
   const clients=()=>window.DiagnostikaClients?.list?.()||[];
   const calendar=()=>window.DiagnostikaCalendar?.moduleAware===true?window.DiagnostikaCalendar:window.DiagnostikaPlatform?.services?.calendar;
   const clientFor=id=>clients().find(c=>String(c?.id)===String(id))||null;
@@ -220,7 +221,8 @@
 
   function rememberClient(id){
     if(!id)return;
-    const next=[String(id),...readJson('recent-clients',[]).map(String).filter(x=>x!==String(id))].slice(0,5);
+    const past=readJson('recent-clients',[]);
+    const next=[String(id),...(Array.isArray(past)?past:[]).map(String).filter(x=>x!==String(id))].slice(0,5);
     saveJson('recent-clients',next);
   }
   function resumeClients(){
@@ -283,8 +285,7 @@
     $('#hwsCurrentDate').textContent=new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
   }
   function renderQuote(){
-    const favorites=readJson('favorites',[]);
-    const saved=Array.isArray(favorites)?favorites:[];
+    const saved=validFavorites();
     if(showFavorites&&!saved.length)showFavorites=false;
     if(showFavorites&&!saved.includes(quoteIndex))quoteIndex=saved[0];
     const q=thoughts[quoteIndex];
@@ -342,8 +343,8 @@
       return;
     }
     if(action==='next-quote'){
-      const favorites=readJson('favorites',[]);
-      if(showFavorites&&Array.isArray(favorites)&&favorites.length){
+      const favorites=validFavorites();
+      if(showFavorites&&favorites.length){
         const i=favorites.indexOf(quoteIndex);
         quoteIndex=favorites[(i+1)%favorites.length];
       }else{
@@ -353,15 +354,15 @@
       saveMessage='';renderQuote();return;
     }
     if(action==='favorite'){
-      const saved=readJson('favorites',[]),list=Array.isArray(saved)?saved.filter(x=>Number.isInteger(x)):[];
+      const list=validFavorites();
       const next=list.includes(quoteIndex)?list.filter(x=>x!==quoteIndex):[...list,quoteIndex];
       if(saveJson('favorites',next))saveMessage=next.includes(quoteIndex)?'Добавлено':'Убрано';
       else saveMessage='Не удалось сохранить';
       renderQuote();return;
     }
     if(action==='favorites'){
-      const saved=readJson('favorites',[]);
-      if(!Array.isArray(saved)||!saved.length){saveMessage='Избранных мыслей пока нет';renderQuote();return;}
+      const saved=validFavorites();
+      if(!saved.length){saveMessage='Избранных мыслей пока нет';renderQuote();return;}
       showFavorites=!showFavorites;
       if(showFavorites)quoteIndex=saved[0];
       else quoteIndex=currentQuote();
