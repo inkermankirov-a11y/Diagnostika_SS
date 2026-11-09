@@ -54,31 +54,62 @@ function makeBrowser(){
     selected:()=>selected,calendarOpened:()=>calendarOpened,quickOpened:()=>quickOpened,platformListeners};
 }
 
-test('restores hero and all three counters above upcoming events, but not the removed sections',()=>{
+test('retains compact top header, two counters, and a compact event section',()=>{
   const x=makeBrowser();
   assert.match(x.home.innerHTML,/Мой рабочий день/);
-  assert.match(x.home.innerHTML,/hwsMetrics/);
+  assert.match(x.home.innerHTML,/hws-hero-compact/);
   assert.match(x.home.innerHTML,/Ближайшие события/);
+  assert.match(x.home.innerHTML,/hws-schedule-header-compact/);
   assert.ok(x.home.innerHTML.indexOf('Мой рабочий день')<x.home.innerHTML.indexOf('hwsMetrics'));
   assert.ok(x.home.innerHTML.indexOf('hwsMetrics')<x.home.innerHTML.indexOf('Ближайшие события'));
   assert.match(x.$('#hwsMetrics').innerHTML,/Встреч сегодня/);
   assert.match(x.$('#hwsMetrics').innerHTML,/Ожидают внимания/);
-  assert.match(x.$('#hwsMetrics').innerHTML,/Активных запросов/);
-  assert.match(x.$('#hwsMetrics').innerHTML,/hws-metric-value">1</);
-  assert.doesNotMatch(x.home.innerHTML,/hws-priorities|hws-resume|hws-action-row|Продолжить работу|Новый клиент/);
+  assert.doesNotMatch(x.$('#hwsMetrics').innerHTML,/Активных запросов/);
+  assert.equal((x.$('#hwsMetrics').innerHTML.match(/hws-metric is-/g)||[]).length,2);
+  assert.doesNotMatch(x.home.innerHTML,/hws-privacy|Скрыть имена|hws-schedule-toolbar|hws-priorities|hws-resume|hws-action-row/);
   assert.equal(x.right.children.length,1);
   assert.match(x.right.children[0].innerHTML,/Мысль дня/);
-  assert.doesNotMatch(x.right.children[0].innerHTML,/next-quote|hwsQuoteNumber|hwsFavorite/);
   assert.match(x.$('#hwsSchedule').innerHTML,/Ирина Волкова/);
 });
 
-test('privacy hides names and calendar event titles',()=>{
+test('event shows scheduled appointment date/time, not creation date',()=>{
   const x=makeBrowser();
-  x.click('privacy');
-  assert.doesNotMatch(x.$('#hwsSchedule').innerHTML,/Ирина Волкова/);
-  assert.match(x.$('#hwsSchedule').innerHTML,/Имя скрыто/);
-  x.click('privacy');
-  assert.match(x.$('#hwsSchedule').innerHTML,/Ирина Волкова/);
+  const event=x.events.find(e=>e.id==='appointment');
+  event.title='Сессия';
+  event.createdAt='2020-01-01T00:00:00.000Z';
+  x.window.DiagnostikaHomeWorkspace.render();
+  const markup=x.$('#hwsSchedule').innerHTML;
+  assert.match(markup,/Сессия/);
+  assert.match(markup,/Ирина Волкова/);
+  assert.match(markup,/Запланировано:/);
+  const scheduled=new Intl.DateTimeFormat('ru-RU',
+    {day:'numeric',month:'long',year:'numeric'}).format(new Date(event.date+'T12:00:00'));
+  assert.ok(markup.includes(scheduled));
+  const [hour,minute]=event.time.split(':');
+  assert.ok(markup.includes(hour.padStart(2,'0')+':'+minute));
+  assert.doesNotMatch(markup,/2020|1 января/);
+});
+
+test('absence of appointment time is visibly indicated, never fabricated as 12:00',()=>{
+  const x=makeBrowser();
+  const event=x.events.find(e=>e.id==='appointment');
+  event.time='';
+  x.window.DiagnostikaHomeWorkspace.render();
+  const markup=x.$('#hwsSchedule').innerHTML;
+  assert.match(markup,/Время не указано/);
+  assert.doesNotMatch(markup,/12:00/);
+});
+
+test('legacy planned session without explicit scheduled time is not shown as an appointment',()=>{
+  const x=makeBrowser();
+  x.events.splice(0,x.events.length);
+  const client=x.window.DiagnostikaClients.list()[0];
+  client.sessions=[{id:'legacy',planned:true,date:'2040-02-03',createdAt:'2040-02-03T10:00:00.000Z'}];
+  x.window.DiagnostikaHomeWorkspace.render();
+  assert.match(x.$('#hwsSchedule').innerHTML,/Ближайших событий нет/);
+  client.sessions[0].scheduledTime='18:30';
+  x.window.DiagnostikaHomeWorkspace.render();
+  assert.match(x.$('#hwsSchedule').innerHTML,/18:30/);
 });
 
 test('one thought remains unchanged during the same day',()=>{
@@ -108,11 +139,11 @@ test('calendar and client links remain functional',()=>{
 });
 
 test('scripts are wired only to com and use fresh cache versions',()=>{
-  assert.match(loader,/home-start-workspace\.js\?v=20261107-restore-summary-3/);
-  assert.match(loader,/home-start-workspace\.css\?v=20261107-restore-summary-3/);
+  assert.match(loader,/home-start-workspace\.js\?v=20261109-compact-dates-1/);
+  assert.match(loader,/home-start-workspace\.css\?v=20261109-compact-dates-1/);
   assert.match(loader,/loadHomeWorkspace\(\)/);
   assert.match(notes,/openQuickThoughts/);
   assert.match(notes,/addQuickThought/);
-  assert.match(index,/app-loader\.js\?v=20261107-restore-summary-3/);
+  assert.match(index,/app-loader\.js\?v=20261109-compact-dates-1/);
   assert.match(index,/quick-notes\.js\?v=20261107-quick-thoughts-tabs-2/);
 });

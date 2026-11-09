@@ -197,3 +197,153 @@
   .home-dashboard .hws-workspace-simple .hws-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .home-dashboard .hws-workspace-simple .hws-metric:last-child{grid-column:1/-1}
 }
+
+
+/* Compact working day (2026-11-09): two useful counters, smaller headers. */
+.home-dashboard .hws-workspace.hws-workspace-simple{
+  padding:14px 18px 18px;
+  gap:11px;
+}
+.home-dashboard .hws-workspace-simple .hws-hero.hws-hero-compact{
+  min-height:0;
+  padding:18px 22px;
+  border-radius:14px;
+  box-shadow:0 7px 19px rgba(18,49,81,.12);
+}
+.home-dashboard .hws-hero-compact .hws-hero-row{
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  justify-content:space-between;
+}
+.home-dashboard .hws-hero-compact .hws-heading{
+  font-size:24px!important;
+  margin:0!important;
+  line-height:1.14!important;
+  flex:1 1 auto;
+}
+.home-dashboard .hws-hero-compact .hws-today-date{
+  margin:0;
+  padding:7px 11px;
+  font-size:11px;
+}
+.home-dashboard .hws-workspace-simple .hws-metrics{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.home-dashboard .hws-workspace-simple .hws-metric{
+  min-height:68px;
+  grid-template-columns:36px auto 1fr;
+  grid-template-rows:auto;
+  column-gap:9px;
+  align-items:center;
+  padding:11px 14px;
+  border-radius:12px;
+}
+.home-dashboard .hws-workspace-simple .hws-metric-icon{
+  grid-row:auto;
+  align-self:center;
+  width:33px;
+  height:33px;
+}
+.home-dashboard .hws-workspace-simple .hws-metric-value{
+  font-size:25px;
+  line-height:1;
+}
+.home-dashboard .hws-workspace-simple .hws-metric-label{
+  margin:0;
+  align-self:center;
+  font-size:11px;
+}
+.home-dashboard .hws-workspace-simple .hws-schedule-only{
+  min-height:190px;
+  border-radius:14px;
+}
+.home-dashboard .hws-workspace-simple .hws-schedule-header.hws-schedule-header-compact{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px 20px;
+  min-height:64px;
+  background:linear-gradient(110deg,#193953,#246182 100%);
+}
+.home-dashboard .hws-workspace-simple .hws-schedule-header-compact::after{
+  width:135px;
+  height:135px;
+  top:-115px;
+  right:50px;
+  box-shadow:0 0 0 26px rgba(190,234,243,.028);
+}
+.home-dashboard .hws-workspace-simple .hws-schedule-header-compact h2{
+  margin:0!important;
+  font-size:21px!important;
+  letter-spacing:-.015em!important;
+  line-height:1.2!important;
+}
+.home-dashboard .hws-workspace-simple .hws-schedule-header-compact .hws-text-action{
+  min-height:30px!important;
+  height:auto!important;
+  padding:7px 11px!important;
+  font-size:10px!important;
+}
+.home-dashboard .hws-workspace-simple #hwsSchedule{
+  padding:8px 20px 15px;
+  max-height:min(62vh,600px);
+}
+.home-dashboard .hws-workspace-simple .hws-event-row{
+  min-height:75px;
+  padding:12px 3px;
+}
+.home-dashboard .hws-workspace-simple .hws-event-body{
+  gap:3px;
+}
+.home-dashboard .hws-workspace-simple .hws-event-body strong{
+  font-size:13px;
+}
+.home-dashboard .hws-workspace-simple .hws-event-person{
+  font-size:11px;
+  color:#708ba6;
+}
+.home-dashboard .hws-workspace-simple .hws-event-scheduled{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  column-gap:7px;
+  row-gap:3px;
+  font-size:11px;
+  color:#55758f;
+  white-space:normal;
+  overflow:visible;
+}
+.home-dashboard .hws-workspace-simple .hws-event-scheduled b{
+  color:#20496b;
+  font-weight:850;
+}
+.home-dashboard .hws-workspace-simple .hws-event-time{
+  display:inline-flex;
+  align-items:center;
+  padding:3px 8px;
+  border-radius:7px;
+  background:#eaf4fd;
+  color:#24669a;
+  font-weight:850;
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:1050px){
+  .home-dashboard .hws-workspace.hws-workspace-simple{padding:12px;gap:9px}
+  .home-dashboard .hws-workspace-simple .hws-metric{grid-template-columns:30px auto;grid-template-rows:auto auto;gap:3px 8px}
+  .home-dashboard .hws-workspace-simple .hws-metric-icon{grid-row:1/3;width:29px;height:29px}
+  .home-dashboard .hws-workspace-simple .hws-metric-label{grid-column:2;white-space:normal}
+}
+@media(max-width:530px){
+  .home-dashboard .hws-hero-compact .hws-hero-row{flex-wrap:wrap;gap:9px}
+  .home-dashboard .hws-hero-compact .hws-today-date{margin:0}
+  .home-dashboard .hws-workspace-simple .hws-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .home-dashboard .hws-workspace-simple .hws-metric:last-child{grid-column:auto}
+  .home-dashboard .hws-workspace-simple .hws-schedule-header.hws-schedule-header-compact{padding:13px 14px}
+  .home-dashboard .hws-workspace-simple .hws-schedule-header-compact h2{font-size:18px!important}
+  .home-dashboard .hws-workspace-simple #hwsSchedule{padding:5px 12px 12px}
+}

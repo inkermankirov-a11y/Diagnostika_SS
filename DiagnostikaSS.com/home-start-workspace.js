@@ -10,9 +10,6 @@
   if(!home||!dashboard||!right)return;
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&#39;'}[ch]));
-  const PREF_PREFIX='diagnostika-home-workspace-';
-  const getStored=(key,fallback='')=>{try{return localStorage.getItem(PREF_PREFIX+key)??fallback;}catch(_){return fallback;}};
-  const putStored=(key,value)=>{try{localStorage.setItem(PREF_PREFIX+key,String(value));return true;}catch(_){return false;}};
   const clients=()=>window.DiagnostikaClients?.list?.()||[];
   const calendar=()=>window.DiagnostikaCalendar?.moduleAware===true?window.DiagnostikaCalendar:window.DiagnostikaPlatform?.services?.calendar;
   const clientFor=id=>clients().find(c=>String(c?.id)===String(id))||null;
@@ -76,27 +73,19 @@
   let quoteDate='';
   let quoteIndex=0;
   let promptIndex=0;
-  let hideNames=getStored('hide-names','false')==='true';
 
   home.innerHTML=[
     '<div class="hws-workspace hws-workspace-simple">',
-      '<div class="hws-hero">',
-        '<div class="hws-hero-glow" aria-hidden="true"></div>',
-        '<div class="hws-eyebrow"><span class="hws-live-dot"></span> РАБОЧЕЕ ПРОСТРАНСТВО</div>',
-        '<div class="hws-hero-row"><div><h2 class="hws-heading">Мой рабочий день</h2>',
-        '<p>Встречи, приоритеты и следующий шаг — в одном месте.</p></div>',
+      '<div class="hws-hero hws-hero-compact">',
+        '<div class="hws-hero-row"><h2 class="hws-heading">Мой рабочий день</h2>',
         '<div class="hws-today-date" id="hwsHeroDate"></div></div>',
       '</div>',
       '<div class="hws-metrics" id="hwsMetrics" aria-live="polite"></div>',
       '<section class="hws-card hws-schedule hws-schedule-only">',
-        '<div class="hws-schedule-header">',
-          '<div class="hws-schedule-intro"><div class="hws-overline">РАБОЧИЙ КАЛЕНДАРЬ</div>',
+        '<div class="hws-schedule-header hws-schedule-header-compact">',
           '<h2>Ближайшие события</h2>',
-          '<p>Встречи, консультации и напоминания</p></div>',
-          '<button type="button" class="hws-text-action" data-action="calendar">Открыть календарь <span aria-hidden="true">↗</span></button>',
+          '<button type="button" class="hws-text-action" data-action="calendar">Календарь <span aria-hidden="true">↗</span></button>',
         '</div>',
-        '<div class="hws-schedule-toolbar"><span id="hwsCurrentDate" class="hws-current-date"></span>',
-        '<button type="button" class="hws-privacy" data-action="privacy" aria-pressed="false"></button></div>',
         '<div id="hwsSchedule" class="hws-rows" aria-live="polite"></div>',
       '</section>',
     '</div>'
@@ -134,13 +123,20 @@
   right.appendChild(rail);
 
   const $=selector=>dashboard.querySelector(selector);
-  const formatDate=timestamp=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(timestamp));
+  const formatScheduledDate=date=>new Intl.DateTimeFormat('ru-RU',
+    {day:'numeric',month:'long',year:'numeric'}).format(new Date(date+'T12:00:00'));
+  const formatScheduledTime=time=>{
+    const m=String(time||'').trim().match(/^(\d{1,2}):(\d{2})/);
+    return m?m[1].padStart(2,'0')+':'+m[2]:'Время не указано';
+  };
   const parseStart=(value,timeValue)=>{
     const date=String(value||'').trim();
     const m=date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if(m){
       const t=String(timeValue||'').match(/^(\d{1,2}):(\d{2})/);
-      const d=new Date(+m[1],+m[2]-1,+m[3],t?+t[1]:12,t?+t[2]:0);
+      const d=new Date(+m[1],+m[2]-1,+m[3],t?+t[1]:23,t?+t[2]:59);
+      // An invalid date must not turn into a different scheduled day.
+      if(d.getFullYear()!==+m[1]||d.getMonth()!==+m[2]-1||d.getDate()!==+m[3])return NaN;
       return d.getTime();
     }
     const stamp=Date.parse(date);
@@ -156,8 +152,7 @@
   };
   const isComplete=e=>e?.completedAt||e?.sessionCompleted===true||['completed','done','cancelled','canceled'].includes(String(e?.status||'').toLowerCase());
   const kindLabel={reminder:'Напоминание',session:'Сессия',diagnosis:'Диагностика',consultation:'Консультация',meeting:'Встреча'};
-  const cleanName=c=>String(c?.name||'').trim()||'Без имени';
-  const showName=c=>hideNames?'Имя скрыто':cleanName(c);
+
   function entries(){
     const raw=[];
     const api=calendar();
@@ -165,9 +160,13 @@
       const all=api?.list?.()||[];
       for(const e of Array.isArray(all)?all:[]){
         if(!e||isComplete(e))continue;
-        const at=parseStart(e.date,e.time);
+        // Calendar date/time are the scheduled appointment, unlike createdAt.
+        const scheduledDate=String(e.date||'').trim().slice(0,10);
+        const scheduledTime=String(e.time||'').trim();
+        const at=parseStart(scheduledDate,scheduledTime);
         if(!Number.isFinite(at))continue;
-        raw.push({key:'event:'+e.id,at,kind:eventType(e),clientId:e.clientId,
+        raw.push({key:'event:'+e.id,at,scheduledDate,scheduledTime,
+          kind:eventType(e),clientId:e.clientId,
           label:String(e.title||e.type||'Запись').trim(),eventId:e.id,source:'calendar'});
       }
     }catch(error){console.warn('Home workspace calendar snapshot unavailable',error);}
@@ -177,10 +176,16 @@
       for(const s of Array.isArray(c.sessions)?c.sessions:[]){
         if(!(s?.planned===true||s?.status==='planned')||isComplete(s))continue;
         if(s.calendarEventId&&known.has(String(s.calendarEventId)))continue;
-        const at=parseStart(s.date,s.scheduledTime||s.time);
+        // A legacy session's "date" can be its creation date. Only show
+        // standalone planned sessions when an explicit scheduled time exists.
+        const scheduledDate=String(s.scheduledDate||s.plannedDate||s.date||'').trim().slice(0,10);
+        const scheduledTime=String(s.scheduledTime||'').trim();
+        if(!scheduledTime)continue;
+        const at=parseStart(scheduledDate,scheduledTime);
         if(!Number.isFinite(at))continue;
-        raw.push({key:'session:'+c.id+':'+s.id,at,kind:/диагност/i.test(String(s.appointmentType||''))?'diagnosis':'session',
-          clientId:c.id,label:String(s.appointmentType||s.calendarTitle||'Сессия'),source:'session'});
+        raw.push({key:'session:'+c.id+':'+s.id,at,scheduledDate,scheduledTime,
+          kind:/диагност/i.test(String(s.appointmentType||''))?'diagnosis':'session',
+          clientId:c.id,label:String(s.calendarTitle||s.appointmentType||'Сессия'),source:'session'});
       }
     }
     return raw.sort((a,b)=>a.at-b.at);
@@ -191,9 +196,15 @@
     const upcoming=items.filter(e=>e.at>=now&&Number.isFinite(e.at)).slice(0,8);
     $('#hwsSchedule').innerHTML=upcoming.length?upcoming.map(e=>{
       const c=clientFor(e.clientId);
+      const scheduledDate=formatScheduledDate(e.scheduledDate);
+      const scheduledTime=formatScheduledTime(e.scheduledTime);
+      const name=c?String(c.name||'Без имени').trim():'Общая запись';
       return '<div class="hws-event-row"><div class="hws-event-type is-'+e.kind+'">'+
-        (e.kind==='reminder'?'◎':'◷')+'</div><div class="hws-event-body"><strong>'+esc(hideNames?kindLabel[e.kind]:e.label)+'</strong>'+
-        '<span>'+esc(c?showName(c):'Общая запись')+' · '+esc(formatDate(e.at))+'</span></div>'+
+        (e.kind==='reminder'?'◎':'◷')+'</div><div class="hws-event-body">'+
+        '<strong>'+esc(e.label)+'</strong>'+
+        '<span class="hws-event-person">'+esc(name)+'</span>'+
+        '<span class="hws-event-scheduled">Запланировано: <b>'+esc(scheduledDate)+'</b>'+
+        ' <span class="hws-event-time">'+esc(scheduledTime)+'</span></span></div>'+
         (c?'<button type="button" data-action="open-client" data-client-id="'+esc(c.id)+'" aria-label="Открыть клиента">↗</button>':
            '<button type="button" data-action="calendar" aria-label="Открыть календарь">↗</button>')+'</div>';
     }).join(''):'<div class="hws-empty"><span class="hws-empty-symbol">✓</span><div><strong>Ближайших событий нет</strong><p>Запланируй встречу или напоминание в календаре.</p></div></div>';
@@ -205,13 +216,9 @@
     const end=new Date(date.getFullYear(),date.getMonth(),date.getDate()+1).getTime();
     const meetings=items.filter(e=>e.kind!=='reminder'&&e.at>=start&&e.at<end).length;
     const attention=items.filter(e=>e.kind==='reminder'&&e.at<=now).length;
-    const active=clients().reduce((sum,c)=>
-      sum+(Array.isArray(c.requests)?c.requests:[])
-        .filter(r=>r&&r.status!=='completed').length,0);
     $('#hwsMetrics').innerHTML=[
       ['Встреч сегодня',meetings,'is-ocean','▦'],
-      ['Ожидают внимания',attention,'is-amber','◉'],
-      ['Активных запросов',active,'is-lilac','◇']
+      ['Ожидают внимания',attention,'is-amber','◉']
     ].map(([label,value,tone,icon])=>'<div class="hws-metric '+tone+'"><span class="hws-metric-icon">'+icon+
       '</span><span class="hws-metric-value">'+value+'</span><span class="hws-metric-label">'+label+'</span></div>').join('');
   }
@@ -237,11 +244,7 @@
       renderSchedule(items);
       const today=new Intl.DateTimeFormat('ru-RU',
         {weekday:'long',day:'numeric',month:'long'}).format(new Date());
-      $('#hwsCurrentDate').textContent=today;
       $('#hwsHeroDate').textContent=today;
-      const privacy=$('[data-action="privacy"]');
-      privacy.textContent=hideNames?'◉ Показать имена':'◉ Скрыть имена';
-      privacy.setAttribute('aria-pressed',hideNames?'true':'false');
       renderQuote();
       renderPrompt();
     }catch(error){console.error('Home workspace render failed',error);}
@@ -261,12 +264,6 @@
   }
   async function onAction(button){
     const action=button.dataset.action||'';
-    if(action==='privacy'){
-      hideNames=!hideNames;
-      putStored('hide-names',String(hideNames));
-      render();
-      return;
-    }
     if(action==='open-client'){window.DiagnostikaHomeDashboard?.openClient?.(button.dataset.clientId);return;}
     if(action==='calendar'){openCalendar();return;}
     if(action==='quick-thoughts'){openQuickThoughts();return;}
