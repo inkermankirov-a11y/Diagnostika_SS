@@ -74,7 +74,7 @@ test('card retains editor on failure and exposes explicit local backup action',(
 test('only new .com modules are loaded by updated browser cache keys',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   const loader=fs.readFileSync(path.join(root,'app-loader.js'),'utf8');
-  assert.match(html,/core\/database\.js\?v=20261109-save-diagnostics-1/);
+  assert.match(html,/core\/database\.js\?v=20261109-lossless-state-1/);
   assert.match(html,/modules\/clients\/ui\/card\.js\?v=20261109-save-diagnostics-1/);
   assert.match(loader,/modules\/clients\/client-service\.js\?v=20261109-save-rollback-1/);
 });
