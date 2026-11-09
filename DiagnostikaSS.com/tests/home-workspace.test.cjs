@@ -104,12 +104,68 @@ test('legacy planned session without explicit scheduled time is not shown as an 
   const x=makeBrowser();
   x.events.splice(0,x.events.length);
   const client=x.window.DiagnostikaClients.list()[0];
-  client.sessions=[{id:'legacy',planned:true,date:'2040-02-03',createdAt:'2040-02-03T10:00:00.000Z'}];
+  const tomorrow=new Date();
+  tomorrow.setDate(tomorrow.getDate()+1);
+  const scheduledDate=[tomorrow.getFullYear(),String(tomorrow.getMonth()+1).padStart(2,'0'),String(tomorrow.getDate()).padStart(2,'0')].join('-');
+  client.sessions=[{id:'legacy',planned:true,date:scheduledDate,createdAt:'2040-02-03T10:00:00.000Z'}];
   x.window.DiagnostikaHomeWorkspace.render();
   assert.match(x.$('#hwsSchedule').innerHTML,/Ближайших событий нет/);
   client.sessions[0].scheduledTime='18:30';
   x.window.DiagnostikaHomeWorkspace.render();
   assert.match(x.$('#hwsSchedule').innerHTML,/18:30/);
+});
+
+test('shows every upcoming event in seven calendar dates, not just eight',()=>{
+  const x=makeBrowser();
+  const today=new Date();
+  const day=offset=>{
+    const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()+offset);
+    return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+  };
+  const events=[];
+  for(let i=0;i<18;i++){
+    events.push({id:'slot-'+i,clientId:'client1',type:'Сессия',
+      title:'Встреча-'+i,date:day(1+i%6),time:String(9+Math.floor(i/6)).padStart(2,'0')+':00'});
+  }
+  events.push({id:'week-last',clientId:'client1',type:'Сессия',
+    title:'ПоследнееВНеделе',date:day(6),time:'23:59'});
+  events.push({id:'next-week',clientId:'client1',type:'Сессия',
+    title:'ВосьмойДень',date:day(7),time:'00:00'});
+  events.push({id:'past',clientId:'client1',type:'Сессия',
+    title:'ПрошедшаяВстреча',date:day(-1),time:'12:00'});
+  events.push({id:'cancelled',clientId:'client1',type:'Сессия',
+    title:'Отменено',status:'cancelled',date:day(2),time:'12:00'});
+  events.push({id:'completed',clientId:'client1',type:'Сессия',
+    title:'Завершено',status:'completed',date:day(3),time:'12:00'});
+  x.events.splice(0,x.events.length,...events.reverse());
+  x.window.DiagnostikaHomeWorkspace.render();
+  const html=x.$('#hwsSchedule').innerHTML;
+  assert.equal((html.match(/class="hws-event-row"/g)||[]).length,19);
+  assert.match(html,/Встреча-0/);
+  assert.match(html,/Встреча-17/);
+  assert.match(html,/ПоследнееВНеделе/);
+  assert.doesNotMatch(html,/ВосьмойДень|ПрошедшаяВстреча|Отменено|Завершено/);
+  assert.ok(html.indexOf('Встреча-0')<html.indexOf('Встреча-6'));
+  assert.ok(html.indexOf('Встреча-17')<html.indexOf('ПоследнееВНеделе'));
+});
+
+test('events for the remainder of today are included, earlier ones excluded',()=>{
+  const x=makeBrowser();
+  const future=new Date(Date.now()+60000);
+  const day=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+  const clock=d=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  // Calendar dates/times have minute precision. Allow one minute buffer
+  // before and after the current time so the test works near midnight.
+  const past=new Date(Date.now()-600000);
+  const later=new Date(Date.now()+3600000);
+  x.events.splice(0,x.events.length,
+    {id:'past-today',clientId:'client1',title:'УжеПрошло',date:day(past),time:clock(past)},
+    {id:'future-today',clientId:'client1',title:'ЕщёВпереди',date:day(later),time:clock(later)}
+  );
+  x.window.DiagnostikaHomeWorkspace.render();
+  const html=x.$('#hwsSchedule').innerHTML;
+  assert.match(html,/ЕщёВпереди/);
+  assert.doesNotMatch(html,/УжеПрошло/);
 });
 
 test('one thought remains unchanged during the same day',()=>{
@@ -139,11 +195,11 @@ test('calendar and client links remain functional',()=>{
 });
 
 test('scripts are wired only to com and use fresh cache versions',()=>{
-  assert.match(loader,/home-start-workspace\.js\?v=20261109-compact-dates-1/);
-  assert.match(loader,/home-start-workspace\.css\?v=20261109-compact-dates-1/);
+  assert.match(loader,/home-start-workspace\.js\?v=20261109-seven-days-1/);
+  assert.match(loader,/home-start-workspace\.css\?v=20261109-seven-days-1/);
   assert.match(loader,/loadHomeWorkspace\(\)/);
   assert.match(notes,/openQuickThoughts/);
   assert.match(notes,/addQuickThought/);
-  assert.match(index,/app-loader\.js\?v=20261109-compact-dates-1/);
+  assert.match(index,/app-loader\.js\?v=20261109-seven-days-1/);
   assert.match(index,/quick-notes\.js\?v=20261107-quick-thoughts-tabs-2/);
 });

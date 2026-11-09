@@ -193,7 +193,14 @@
 
   function renderSchedule(items){
     const now=Date.now();
-    const upcoming=items.filter(e=>e.at>=now&&Number.isFinite(e.at)).slice(0,8);
+    const today=new Date(now);
+    // Seven calendar dates in the user's local timezone: today + six more.
+    // Midnight of day eight is exclusive, so the window is DST-safe.
+    const endExclusive=new Date(
+      today.getFullYear(),today.getMonth(),today.getDate()+7
+    ).getTime();
+    // No count cap: show every upcoming calendar event in this week.
+    const upcoming=items.filter(e=>Number.isFinite(e.at)&&e.at>=now&&e.at<endExclusive);
     $('#hwsSchedule').innerHTML=upcoming.length?upcoming.map(e=>{
       const c=clientFor(e.clientId);
       const scheduledDate=formatScheduledDate(e.scheduledDate);
