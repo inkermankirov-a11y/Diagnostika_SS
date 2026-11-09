@@ -99,6 +99,18 @@
   }
 
   const backend = createLocalStorageBackend();
+  // Read-only diagnosis of the last database write. Never expose record content.
+  let lastWriteFailure = null;
+  const lastError = () => lastWriteFailure && Object.freeze({ ...lastWriteFailure });
+  const markWriteFailure = (reason, error, source) => {
+    lastWriteFailure = {
+      reason: String(reason || 'write-failed'),
+      name: String(error?.name || ''),
+      source: String(source || ''),
+      at: Date.now()
+    };
+  };
+
 
   function available() {
     return backend.available();
@@ -154,12 +166,16 @@
   }
 
   function write(key, value, options = {}) {
-    if (!validKey(key)) return false;
+    if (!validKey(key)) {
+      markWriteFailure('invalid-key', null, options.source);
+      return false;
+    }
 
     let raw;
     try {
       raw = JSON.stringify(value);
     } catch (error) {
+      markWriteFailure('serialize-failed', error, options.source);
       emit(EVENTS.error, {
         operation: 'write',
         key,
@@ -171,6 +187,7 @@
     }
 
     if (raw === undefined) {
+      markWriteFailure('unsupported-value', null, options.source);
       emit(EVENTS.error, {
         operation: 'write',
         key,
@@ -182,6 +199,7 @@
 
     const result = backend.writeRaw(key, raw);
     if (!result.ok) {
+      markWriteFailure(result.reason, result.error, options.source);
       emit(EVENTS.error, {
         operation: 'write',
         key,
@@ -192,6 +210,7 @@
       return false;
     }
 
+    lastWriteFailure = null;
     emit(EVENTS.written, { operation: 'write', key, source: options.source });
     return true;
   }
@@ -238,6 +257,7 @@
 
   function writeState(value, options = {}) {
     if (!validState(value)) {
+      markWriteFailure('invalid-state-shape', null, options.source);
       emit(EVENTS.error, {
         operation: 'write-state',
         key: STATE_KEY,
@@ -279,7 +299,8 @@
     readState,
     writeState,
     validState,
-    health
+    health,
+    lastError
   });
 
   platform.db = db;
