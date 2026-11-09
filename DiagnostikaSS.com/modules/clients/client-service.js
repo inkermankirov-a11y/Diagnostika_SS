@@ -342,9 +342,23 @@
 
     const patch = clone(changes) || {};
     delete patch.id;
+    // A failed synchronous browser write must not leave partially edited data
+    // inside the active client object. Preserve its identity for UI references.
+    const previous = Object.create(null);
+    for (const key of Object.keys(patch)) {
+      previous[key] = {
+        existed: Object.prototype.hasOwnProperty.call(target, key),
+        value: target[key]
+      };
+    }
     Object.assign(target, patch);
-
-    if (!persist()) return null;
+    if (!persist()) {
+      for (const [key, before] of Object.entries(previous)) {
+        if (before.existed) target[key] = before.value;
+        else delete target[key];
+      }
+      return null;
+    }
     if (options.render !== false) render();
 
     emit(EVENTS.updated, {

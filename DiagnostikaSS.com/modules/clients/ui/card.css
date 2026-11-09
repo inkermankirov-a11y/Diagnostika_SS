@@ -119,3 +119,22 @@
   .client-card-top-grid{grid-template-columns:1fr}
   .cc-span-2,.cc-client-time{grid-column:1}
 }
+/* Save errors are shown inside the editor without dropping unsaved input. */
+.client-card-window .cc-save-failure[hidden]{display:none!important}
+.client-card-window .cc-save-failure{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:#fff6f2;border:1px solid #eeb89f;border-radius:10px;
+  color:#9b3d25;font-size:12px;font-weight:650;line-height:1.5;
+  padding:10px 12px;margin:8px 0 2px;flex:0 0 auto
+}
+.client-card-window .cc-save-failure span{flex:1 1 290px}
+.client-card-window .cc-export-unsaved-btn{
+  background:#fff;border:1px solid #c17c5b;border-radius:8px;
+  color:#87472d;font-weight:750;font-size:12px;min-height:35px;
+  padding:7px 12px;cursor:pointer
+}
+.client-card-window .cc-export-unsaved-btn:hover{background:#ffe7d9}
+.client-card-window .cc-export-unsaved-btn:focus-visible{outline:3px solid #d18a67;outline-offset:2px}
+@media(max-width:650px){
+  .client-card-window .cc-save-failure{max-height:160px;overflow-y:auto}
+}

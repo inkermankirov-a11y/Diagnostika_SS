@@ -57,6 +57,10 @@
           <label>Рабочие заметки<textarea id="ccClientNotes"></textarea></label>
         </div>
       </div>
+      <div id="ccSaveFailure" class="cc-save-failure" role="alert" aria-live="assertive" hidden>
+        <span id="ccSaveFailureText"></span>
+        <button id="ccExportUnsavedBtn" type="button" class="cc-export-unsaved-btn">Скачать копию данных</button>
+      </div>
       <div class="client-card-footer">
         <div class="cc-footer-spacer"></div>
         <button id="ccCloseBtn" type="button" class="cc-close-btn">Закрыть</button>
@@ -808,6 +812,67 @@
     return fieldIds.some(id=>String(q(id)?.value||'').trim()!=='');
   }
 
+  function clearSaveFailure(){
+    const box=q('ccSaveFailure');
+    if(box)box.hidden=true;
+  }
+
+  function showSaveFailure(){
+    const failure=window.DiagnostikaDB?.lastError?.()
+      ||window.DiagnostikaPlatform?.db?.lastError?.();
+    const reason=failure?.reason;
+    const quota=reason==='quota-exceeded';
+    const text=quota
+      ? 'Недостаточно места в хранилище браузера. Изменения НЕ сохранены. Не закрывайте карточку. Можно скачать копию данных и проверить свободное место.'
+      :reason==='storage-unavailable'||reason==='write-failed'
+        ? 'Браузер не разрешил записать данные. Изменения НЕ сохранены. Проверьте доступность хранилища браузера, затем повторите попытку.'
+        :'Сохранение не выполнено. Изменения остались в форме. Можно скачать копию данных и повторить попытку.';
+    const box=q('ccSaveFailure');
+    if(box){
+      q('ccSaveFailureText').textContent=text+' Файл копии содержит персональные данные клиентов; храните его безопасно.';
+      box.hidden=false;
+    }else window.alert(text);
+  }
+
+  function exportUnsavedCard(){
+    // Explicitly initiated by the user. Export a snapshot of the whole state
+    // with the still-unsaved form values, without writing over live storage.
+    const snapshot=window.DiagnostikaPlatform?.store?.snapshot?.();
+    if(!snapshot||!Array.isArray(snapshot.clients)){
+      window.alert('Невозможно получить данные для копии. Оставьте карточку открытой.');
+      return false;
+    }
+    const data=collectData();
+    if(draftMode){
+      if(!draft)return false;
+      snapshot.clients.push({...draft,...data});
+    }else{
+      const current=sourceClient();
+      const row=snapshot.clients.find(c=>current&&String(c?.id)===String(current.id));
+      if(!row){
+        window.alert('Клиент не найден в копии. Оставьте карточку открытой.');
+        return false;
+      }
+      Object.assign(row,data);
+    }
+    try{
+      const payload=JSON.stringify(snapshot,null,2);
+      const url=URL.createObjectURL(new Blob([payload],{type:'application/json;charset=utf-8'}));
+      const link=document.createElement('a');
+      link.href=url;
+      link.download='DiagnostikaSS-unsaved-client-'+new Date().toISOString().slice(0,10)+'.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      return true;
+    }catch(error){
+      console.error('[Diagnostika] client card backup export failed',error?.name||'Error');
+      window.alert('Не удалось скачать копию. Оставьте карточку открытой.');
+      return false;
+    }
+  }
+
   function saveCard(){
     const api=clientsApi();
     if(!api) return alert('Модуль клиентов не загрузился. Обновите страницу.');
@@ -815,7 +880,7 @@
     if(draftMode){
       if(!draft) return;
       const created=api.create?.({...draft,...collectData()},{source:'client-card-create'});
-      if(!created) return alert('Не удалось сохранить клиента.');
+      if(!created){showSaveFailure();return;}
       draftMode=false;draft=null;dirty=false;
       dlg.close();
       return;
@@ -824,7 +889,7 @@
     const c=sourceClient();
     if(!c) return;
     const updated=api.update?.(c.id,collectData(),{source:'client-card'});
-    if(!updated) return alert('Не удалось сохранить карточку клиента.');
+    if(!updated){showSaveFailure();return;}
     dirty=false;
     dlg.close();
   }
@@ -841,6 +906,7 @@
   }
 
   function openExisting(){
+    clearSaveFailure();
     const c=currentClient();
     if(!c) return alert('Сначала выбери клиента.');
     draftMode=false;draft=null;
@@ -851,6 +917,7 @@
   }
 
   function openNew(){
+    clearSaveFailure();
     draftMode=true;
     draft=typeof newClient==='function' ? newClient() : {id:(crypto.randomUUID?crypto.randomUUID():Date.now()+''),name:'Новый клиент',city:'',age:'',ageAuto:false,birth:'',birthTime:'',photoData:'',photoSourceData:'',photoCrop:{x:50,y:50,zoom:1},vk:'',telegram:'',max:'',sessions:[],requests:[]};
     q('ccSaveBtn').textContent='Сохранить клиента';
@@ -875,6 +942,7 @@
   q('ccGender')?.addEventListener('change',()=>{dirty=true;});
   q('ccCloseBtn').onclick = closeDraftAware;
   q('ccSaveBtn').onclick = saveCard;
+  q('ccExportUnsavedBtn').onclick=exportUnsavedCard;
   q('ccQuestionnairesBtn').onclick=()=>{
     if(draftMode){
       if(window.AppDialog?.alert)window.AppDialog.alert('Сначала сохраните клиента, затем откройте анкеты.','Анкеты');
