@@ -104,7 +104,10 @@ test('legacy planned session without explicit scheduled time is not shown as an 
   const x=makeBrowser();
   x.events.splice(0,x.events.length);
   const client=x.window.DiagnostikaClients.list()[0];
-  client.sessions=[{id:'legacy',planned:true,date:'2040-02-03',createdAt:'2040-02-03T10:00:00.000Z'}];
+  const tomorrow=new Date();
+  tomorrow.setDate(tomorrow.getDate()+1);
+  const scheduledDate=[tomorrow.getFullYear(),String(tomorrow.getMonth()+1).padStart(2,'0'),String(tomorrow.getDate()).padStart(2,'0')].join('-');
+  client.sessions=[{id:'legacy',planned:true,date:scheduledDate,createdAt:'2040-02-03T10:00:00.000Z'}];
   x.window.DiagnostikaHomeWorkspace.render();
   assert.match(x.$('#hwsSchedule').innerHTML,/Ближайших событий нет/);
   client.sessions[0].scheduledTime='18:30';
