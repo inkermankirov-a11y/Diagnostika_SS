@@ -149,18 +149,30 @@
 
     if (result.value === null) return clone(fallback);
 
+    const isPackedState=key===STATE_KEY
+      && typeof result.value==='string'
+      && result.value.startsWith('DSS15V1:');
     try {
-      const value = JSON.parse(result.value);
+      // Existing JSON is still accepted. New compact state is decoded
+      // losslessly before the same JSON parser and validation.
+      const source=isPackedState
+        ? window.DiagnostikaStateCodec?.unpack?.(result.value)
+        : result.value;
+      if(typeof source!=='string')throw new Error('State decoder is missing');
+      const value = JSON.parse(source);
       emit(EVENTS.read, { operation: 'read', key, source: options.source });
       return value;
     } catch (error) {
       emit(EVENTS.error, {
         operation: 'read',
         key,
-        reason: 'invalid-json',
+        reason: isPackedState?'packed-state-read-failed':'invalid-json',
         name: error?.name || 'Error',
         source: options.source
       });
+      // Never replace a damaged/unreadable compact database with a new,
+      // empty one. Fail closed so the existing browser data stay intact.
+      if(isPackedState)throw new Error('Сохранённую базу не удалось безопасно прочитать. Данные не изменены.',{cause:error});
       return clone(fallback);
     }
   }
@@ -197,7 +209,25 @@
       return false;
     }
 
-    const result = backend.writeRaw(key, raw);
+    let compact = null;
+    if(key===STATE_KEY&&typeof window.DiagnostikaStateCodec?.pack==='function'){
+      try {
+        const packed=window.DiagnostikaStateCodec.pack(raw);
+        if(typeof packed==='string'&&packed.length<raw.length*0.95)compact=packed;
+      }catch(error){
+        // Encoding is optional for old engines: preserve the original raw
+        // JSON save route if packing is unavailable.
+        console.warn('[DiagnostikaDB] compact state encoding unavailable',error?.name||'Error');
+      }
+    }
+    // A replacement setItem() is atomic: it preserves the previous saved
+    // value if browser quota prevents the new compact write.
+    let result = backend.writeRaw(key, compact || raw);
+    if (!result.ok && compact) {
+      // A browser may account for UTF-16 strings differently; retry with
+      // legacy JSON rather than rejecting a write that may still fit.
+      result = backend.writeRaw(key, raw);
+    }
     if (!result.ok) {
       markWriteFailure(result.reason, result.error, options.source);
       emit(EVENTS.error, {
