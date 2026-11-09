@@ -157,13 +157,13 @@
     if(!document.querySelector('link[data-home-workspace-css]')){
       const style=document.createElement('link');
       style.rel='stylesheet';
-      style.href='home-start-workspace.css?v=20261107-restore-summary-3';
+      style.href='home-start-workspace.css?v=20261109-compact-dates-1';
       style.setAttribute('data-home-workspace-css','1');
       document.head.appendChild(style);
     }
     if(!document.querySelector('script[data-home-workspace]')){
       const script=document.createElement('script');
-      script.src='home-start-workspace.js?v=20261107-restore-summary-3';
+      script.src='home-start-workspace.js?v=20261109-compact-dates-1';
       script.setAttribute('data-home-workspace','1');
       document.body.appendChild(script);
     }
