@@ -347,3 +347,11 @@
   .home-dashboard .hws-workspace-simple .hws-schedule-header-compact h2{font-size:18px!important}
   .home-dashboard .hws-workspace-simple #hwsSchedule{padding:5px 12px 12px}
 }
+
+
+/* All events within seven local calendar days remain visible on the homepage.
+   Scroll the page, not a hidden/capped list of appointments. */
+.home-dashboard .hws-workspace-simple #hwsSchedule{
+  max-height:none!important;
+  overflow-y:visible!important;
+}
