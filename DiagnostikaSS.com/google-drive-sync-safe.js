@@ -456,9 +456,15 @@
     setStatus('Сохраняю объединённую базу на этом ПК…');
     if(!writeCanonicalDatabase(merged,'google-drive-safe-sync'))throw new Error('Объединённая база уже сохранена в Google, но локальную копию сохранить не удалось. Не удаляй резервные копии в Diagnostika/Backups.');
     await setBase(merged);
-    applyDatabaseToRuntime(merged);
+    // setBase() is asynchronous: another local save may have happened
+    // while IndexedDB was being updated. Never apply the older merged
+    // snapshot over those newly saved edits.
+    const laterChanges=!equal(currentDatabase(),merged);
+    if(!laterChanges)applyDatabaseToRuntime(merged);
 
-    setStatus(`Готово: ${merged.clients?.length||0} клиент(ов)`);
+    setStatus(laterChanges
+      ? 'В облаке сохранено; появились новые локальные правки — отправлю их следующим циклом.'
+      : `Готово: ${merged.clients?.length||0} клиент(ов)`);
     cleanupBackups(remote.folder.id);
     return {
       merged,
@@ -470,7 +476,7 @@
       remoteWrites,
       accountEmail,
       unchanged:false,
-      pendingLocalChanges:false
+      pendingLocalChanges:laterChanges
     };
   }
 
@@ -539,6 +545,10 @@
   function publishStatus(kind,message){
     showBeacon(kind,message);
     autoStatus(message);
+    if(kind==='auth'&&rememberedConnection()){
+      const connect=document.querySelector('.gdrive-card .gdrive-connect');
+      if(connect&&!connect.disabled)connect.textContent='Восстановить Google Drive';
+    }
   }
   function confirmSync(result){
     if(result?.pendingLocalChanges){
