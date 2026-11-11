@@ -244,6 +244,32 @@
     return writes;
   }
 
+  async function assertRemoteUnchanged(remote){
+    // Re-check cloud revision immediately before overwriting: another PC may
+    // have saved a newer copy while our merge and backups were in progress.
+    const folders=Array.isArray(remote?.folders)?remote.folders:[];
+    for(const folder of folders){
+      const before=(remote.copies||[]).filter(copy=>String(copy.folder?.id)===String(folder.id));
+      const latest=await listNamedFiles(folder.id,'database.json');
+      if(latest.length!==before.length)throw new Error('Данные Google Drive изменились на другом устройстве. Автосинхронизация повторится после новой сверки.');
+      const previous=new Map(before.map(copy=>[String(copy.file.id),copy.file.modifiedTime||'']));
+      for(const file of latest){
+        if(!previous.has(String(file.id))||previous.get(String(file.id))!==(file.modifiedTime||'')){
+          throw new Error('Данные Google Drive изменились на другом устройстве. Автосинхронизация повторится после новой сверки.');
+        }
+      }
+    }
+  }
+  async function verifyRemoteSaved(expected){
+    // Google write response is not proof of persisted contents. Read the
+    // committed files back before showing a green indicator.
+    const verified=await remoteDatabase();
+    if(!verified.data||!verified.copies?.length
+      ||!verified.copies.every(copy=>equal(copy.data,expected))){
+      throw new Error('Google Drive не подтвердил сохранение всех копий базы. Изменения будут перепроверены.');
+    }
+  }
+
   function currentDatabase(){
     const db=readCanonicalDatabase('google-drive-safe-current');
     if(db&&Array.isArray(db.clients))return db;
@@ -380,7 +406,8 @@
         remoteCopyCount:remote.copies?.length||0,
         folderCount:remote.folders?.length||0,
         accountEmail,
-        unchanged:true
+        unchanged:true,
+        pendingLocalChanges:!equal(currentDatabase(),local)
       };
     }
 
@@ -404,9 +431,27 @@
     const conflicts=[...(remote.cloudConflicts||[]),...(localMerge.conflicts||[])];
     await pause();
 
+    setStatus('Проверяю, не менялась ли база на другом устройстве…');
+    await assertRemoteUnchanged(remote);
     setStatus('Привожу все database.json в Google Drive к одной базе…');
     const remoteWrites=await convergeRemoteCopies(remote,merged);
+    setStatus('Проверяю сохранённые файлы на Google Drive…');
+    await verifyRemoteSaved(merged);
     await pause();
+
+    // A local edit may have occurred during the network/merge operations.
+    // Never overwrite that newer in-memory/local state with the old snapshot.
+    const pendingLocalChanges=!equal(currentDatabase(),local);
+    if(pendingLocalChanges){
+      await setBase(merged);
+      return {
+        merged,conflicts,localCount:local.clients?.length||0,
+        remoteCount:remote.data?.clients?.length||0,
+        remoteCopyCount:remote.copies?.length||0,
+        folderCount:remote.folders?.length||0,
+        remoteWrites,accountEmail,unchanged:false,pendingLocalChanges:true
+      };
+    }
 
     setStatus('Сохраняю объединённую базу на этом ПК…');
     if(!writeCanonicalDatabase(merged,'google-drive-safe-sync'))throw new Error('Объединённая база уже сохранена в Google, но локальную копию сохранить не удалось. Не удаляй резервные копии в Diagnostika/Backups.');
@@ -424,7 +469,8 @@
       folderCount:remote.folders?.length||0,
       remoteWrites,
       accountEmail,
-      unchanged:false
+      unchanged:false,
+      pendingLocalChanges:false
     };
   }
 
