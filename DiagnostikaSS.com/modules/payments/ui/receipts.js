@@ -14,7 +14,12 @@
   function sessionRef(c,s,r){
     if(!c?.id||!s?.id)return null;
     const request=r||(c.requests||[]).find(x=>String(x.id)===String(s.requestId||s.payment?.requestId||''));
-    const payment=(request?.payment?.payments||[]).find(p=>String(p?.sessionId||'')===String(s.id));
+    // Only treat a session-linked installment as its receipt in the
+    // installments mode; obsolete records from an older payment mode must
+    // never silently replace a current per-session receipt.
+    const payment=request?.payment?.mode==='parts'
+      ?(request.payment.payments||[]).find(p=>String(p?.sessionId||'')===String(s.id))
+      :null;
     return payment?requestRef(c,request,payment):
       {kind:'session',clientId:String(c.id),sessionId:String(s.id)};
   }
