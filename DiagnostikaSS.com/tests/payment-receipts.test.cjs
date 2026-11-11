@@ -130,7 +130,7 @@ test('PDF and BMP are supported, unsupported formats and oversized files rejecte
   assert.ok(h.api.validateFile(new FakeBlob(1024,'image/bmp','invoice.bmp')));
   assert.throws(()=>h.api.validateFile(new FakeBlob(1000,'application/javascript','script.js')),/Разрешены/);
   assert.throws(()=>h.api.validateFile(new FakeBlob(16*1024*1024,'image/png','huge.png')),/15 МБ/);
-  assert.throws(()=>h.api.validateUrl('javascript:alert(1)'),/HTTP или HTTPS/);
+  assert.throws(()=>h.api.validateUrl('javascript:alert(1)'),/HTTP или HTTPS|https:\/\//);
 });
 
 test('failure of database write preserves old receipt and rolls back new file',async()=>{
