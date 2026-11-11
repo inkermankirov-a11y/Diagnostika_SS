@@ -79,20 +79,75 @@ function normalizeYoutubeUrl(value){
   return null;
 }
 
+async function openTextAttachment(rec){
+  const reader=window.DiagnostikaSessionMaterials;
+  if(!reader)throw new Error('Просмотр текстовых файлов ещё загружается.');
+  const dlg=document.createElement('dialog');
+  dlg.className='session-attachment-text-dialog';
+  const panel=document.createElement('div');panel.className='session-attachment-text-panel';
+  const header=document.createElement('div');header.className='session-attachment-text-header';
+  const title=document.createElement('strong');title.textContent=rec.name||'Текстовый файл';
+  const close=document.createElement('button');close.type='button';close.textContent='Закрыть';close.onclick=()=>dlg.close();
+  header.append(title,close);
+  const actions=document.createElement('div');actions.className='session-attachment-text-tools';
+  const label=document.createElement('label');label.textContent='Кодировка: ';
+  const encoding=document.createElement('select');
+  for(const [value,text] of [['auto','Автоматически'],['utf-8','UTF-8'],['windows-1251','Windows-1251'],['repair','Восстановить кириллицу']]){
+    const option=document.createElement('option');option.value=value;option.textContent=text;encoding.appendChild(option);
+  }
+  label.appendChild(encoding);
+  const download=document.createElement('button');download.type='button';download.textContent='Скачать оригинал';
+  download.onclick=()=>{
+    const blobUrl=URL.createObjectURL(rec.blob);
+    const link=document.createElement('a');link.href=blobUrl;link.download=rec.name||'текст.txt';
+    document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl),10000);
+  };
+  actions.append(label,download);
+  const status=document.createElement('div');status.className='session-attachment-text-status';status.setAttribute('role','status');
+  const preview=document.createElement('textarea');
+  preview.className='session-attachment-text-content';preview.readOnly=true;preview.spellcheck=false;
+  panel.append(header,actions,status,preview);dlg.appendChild(panel);
+  document.body.appendChild(dlg);
+  dlg.addEventListener('close',()=>dlg.remove(),{once:true});
+  dlg.showModal();
+  const render=async()=>{
+    status.textContent='Читаю текст…';
+    try{
+      const result=await reader.readText(rec,encoding.value);
+      if(!dlg.isConnected)return;
+      preview.value=result.text;
+      status.textContent=result.encoding
+        +(result.truncated?' · показано начало файла; скачайте оригинал для полного текста':'')
+        +(result.possiblyBroken?' · если буквы выглядят неправильно, выберите другую кодировку':'');
+    }catch(error){
+      if(!dlg.isConnected)return;
+      preview.value='';
+      status.textContent=error?.message||'Не удалось прочитать текст. Скачайте оригинал.';
+    }
+  };
+  encoding.onchange=render;
+  render();
+}
+
 async function openAttachmentRecord(id){
   try{
     const rec=await filesApi()?.get?.(id);
-    if(!rec?.blob) return alert('Файл не найден в локальном хранилище.');
+    if(!rec?.blob)return alert('Файл не найден в локальном хранилище.');
+    if(window.DiagnostikaSessionMaterials?.isText?.(rec)){
+      await openTextAttachment(rec);
+      return;
+    }
     const url=URL.createObjectURL(rec.blob);
     const a=document.createElement('a');
     a.href=url;
     a.target='_blank';
-    a.rel='noopener';
+    a.rel='noopener noreferrer';
     a.click();
     setTimeout(()=>URL.revokeObjectURL(url),60000);
   }catch(e){
-    console.error(e);
-    alert('Не удалось открыть файл.');
+    console.error('Session attachment open failed',e?.name||'Error');
+    alert(e?.message||'Не удалось открыть файл.');
   }
 }
 

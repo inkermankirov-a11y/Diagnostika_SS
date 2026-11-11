@@ -55,11 +55,12 @@
       }))
     };
   }
-  function buildSessionContext(c,s,dlg,number){
+  function buildSessionContext(c,s,dlg,number,materials={texts:[],images:[],skipped:[],count:0}){
     let base={};
     try{base=window.DiagnostikaClientAIChat?.buildContext?.(c)||{};}catch(_){}
     const req=linkedRequest(c,s,dlg);
     const notesInput=dlg?.querySelector('.session-edit-text');
+    const planInput=dlg?.querySelector('.session-plan-editor-text');
     const dateInput=dlg?.querySelector('.session-edit-grid input[type="date"]');
     const formatSelect=dlg?.querySelector('.session-format-select');
     const formatOther=dlg?.querySelector('.session-format-other');
@@ -72,12 +73,21 @@
       requests:req?[sanitizeRequest(req)]:[],
       sessions:[{
         id:s.id||'',number:number||'',date:dateInput?.value||s.date||'',requestId:req?.id||s.requestId||'',
-        notes:clip(notesInput?.value??s.notes,5000),sessionFormat:formatSelect?.value||s.sessionFormat||'',
-        sessionFormatOther:clip(formatOther?.value??s.sessionFormatOther,300),youtubeUrl:s.youtubeUrl?'Есть ссылка на запись YouTube':''
+        notes:clip(notesInput?.value??s.notes,5000),
+        plan:clip(planInput?.value??s.plan,4000),
+        sessionFormat:formatSelect?.value||s.sessionFormat||'',
+        sessionFormatOther:clip(formatOther?.value??s.sessionFormatOther,300),
+        youtubeUrl:s.youtubeUrl?'Есть ссылка на запись YouTube':''
       }],
-      notes:(Array.isArray(base.notes)?base.notes:[]).slice(-5),
+      notes:[],
+      sessionAttachments:{
+        texts:materials.texts||[],
+        skipped:materials.skipped||[],
+        imageNames:(materials.images||[]).map(image=>image.name),
+        total:materials.count||0
+      },
       sessionScope:{
-        instruction:'Это чат по одной конкретной сессии. В первую очередь анализируй именно данные этой сессии. Общий контекст клиента используй только как фон. Не смешивай факты из других сессий.',
+        instruction:'Это чат по одной конкретной сессии. В первую очередь используй заметки этой сессии и текст её приложенных файлов. Отличай расшифровку от подтверждённых действий специалиста. Не выдавай планы, общие сведения или записи других сессий за проведённую работу. Указывай источники: заметки сессии, файл по имени, текущая диагностика. Не выдумывай техники и результаты. Название изображения без его содержимого не является основанием для выводов; если изображение недоступно модели, прямо скажи об этом. Если материалов недостаточно, честно скажи.',
         sessionId:String(s.id||''),sessionNumber:number||''
       }
     };
@@ -91,21 +101,52 @@
     if(data?.output_text)return String(data.output_text).trim();
     let out='';for(const item of data?.output||[])for(const part of item?.content||[])if(part?.type==='output_text'&&part?.text)out+=part.text;return out.trim();
   }
-  async function ask(c,s,dlg,number,message){
+  async function ask(c,s,dlg,number,message,onProgress=()=>{}){
+    onProgress('Читаю вложения этой сессии…');
+    let materials={texts:[],images:[],skipped:[],count:0};
+    try{
+      materials=await window.DiagnostikaSessionMaterials?.collect?.(s.id,c.id)||materials;
+    }catch(error){
+      materials.skipped.push({name:'Вложения',reason:error?.message||'Не удалось прочитать вложения'});
+    }
     const history=sessionChat(s,c).slice(0,-1).slice(-12).map(m=>({role:m.role,text:m.text}));
+    const attachmentCount=materials.texts.length+materials.images.length;
+    const ignoredCount=materials.skipped.length;
+    onProgress(attachmentCount
+      ?'Читаю материалы: текстовых файлов '+materials.texts.length+
+        ', изображений '+materials.images.length+
+        (ignoredCount?'; не обработано '+ignoredCount:'')+'…'
+      :ignoredCount?'Не удалось прочитать часть вложений; анализирую доступные заметки…'
+        :'Вложений нет, анализирую текущую сессию…');
     const payload={
       accessKey:getAccessKey(),clientId:String(c.id||''),clientName:c.name||'',
-      message:`ЧАТ ПО СЕССИИ №${number||''}. Отвечай по этой сессии, не подменяй её общей историей клиента.\n\nВопрос специалиста: ${message}`,
-      clientContext:buildSessionContext(c,s,dlg,number),chatHistory:history,
+      message:'ЧАТ ПО СЕССИИ №'+(number||'')+
+        '. Отвечай исключительно по материалам этой сессии; не приписывай этой сессии действия из общей истории клиента. '+
+        'Если вопрос о том, что было проведено, опирайся на приложенную расшифровку и заметки, а не на планы или предположения. '+
+        'Если нет подтверждённых данных, сообщи об этом. Для кратких итогов перечисли только: что обсуждали, что делали, какой результат зафиксирован. '+
+        'Предложения для следующей встречи помечай как рекомендации, а не как выполненную работу.\n\nВопрос специалиста: '+message,
+      clientContext:buildSessionContext(c,s,dlg,number,materials),chatHistory:history,
+      sessionAttachmentImages:materials.images.map(({name,mimeType,dataUrl})=>({name,mimeType,dataUrl})),
       sessionId:String(s.id||''),sessionNumber:number||''
     };
-    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),60000);
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);
     try{
-      const r=await fetch(PROD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:controller.signal});
+      onProgress('ИИ анализирует данные выбранной сессии…');
+      const r=await fetch(PROD_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:controller.signal});
       const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{};}catch(_){data={text:raw};}
       if([401,403].includes(r.status))throw new Error('n8n отклонил ключ доступа.');
-      if(!r.ok)throw new Error(`ИИ помощник: HTTP ${r.status}`);
-      const text=replyText(data);if(!text)throw new Error('ИИ не вернул текст ответа.');return text;
+      if(!r.ok)throw new Error('ИИ помощник: HTTP '+r.status);
+      const text=replyText(data);if(!text)throw new Error('ИИ не вернул текст ответа.');
+      const processedImages=Number(data?.processedImageCount)||0;
+      const notice=materials.images.length&&!processedImages
+        ?'Изображения получены, но серверный ИИ не подтвердил их анализ. Нужно обновить обработчик n8n.'
+        :materials.skipped.length
+          ?'Не удалось обработать '+materials.skipped.length+' вложений. Проверьте форматы или размер.'
+          :materials.texts.length
+            ?'Учтены текстовые материалы этой сессии: '+materials.texts.length+'.'
+            :'';
+      return {text,notice,materials,processedImages};
     }finally{clearTimeout(timer);}
   }
 
@@ -124,6 +165,14 @@
     .session-ai-tools{display:flex;align-items:center;justify-content:flex-end;padding:7px 9px 0}.session-ai-mode{display:flex;gap:2px;padding:2px;background:#edf2f7;border-radius:8px}.session-ai-mode button{border:0;background:transparent;border-radius:6px;padding:5px 8px;color:#64748b;font-size:10px;font-weight:700;cursor:pointer}.session-ai-mode button.active{background:#fff;color:#2563eb;box-shadow:0 1px 3px rgba(15,23,42,.10)}
     .session-ai-compose{display:grid;grid-template-columns:1fr 40px;gap:6px;padding:7px 9px 9px}.session-ai-input{height:40px;border:1px solid #cfdbea;border-radius:10px;background:#fff;padding:0 11px;font:12px 'Segoe UI',Arial,sans-serif;outline:none;min-width:0}.session-ai-input:focus{border-color:#72a6f2;box-shadow:0 0 0 2px rgba(47,124,246,.10)}.session-ai-send{height:40px;width:40px;border:0;border-radius:10px;background:#2f7cf6;color:#fff;font-size:17px;font-weight:900;cursor:pointer}.session-ai-send:disabled,.session-ai-input:disabled{opacity:.5;cursor:not-allowed}
     .session-ai-status{min-height:13px;padding:0 10px 7px;color:#64748b;font-size:9px}.session-ai-status.error{color:#b91c1c}.session-ai-status.busy{color:#2563eb}
+    .session-ai-hints{padding:9px 10px 3px;border-top:1px solid #e7edf6}
+    .session-ai-hints-title{font-size:10px;font-weight:850;color:#456486;margin-bottom:7px;letter-spacing:.025em}
+    .session-ai-hint-chips{display:flex;flex-wrap:wrap;gap:5px}
+    .session-ai-hint-chips button{border:1px solid #bbd3ee;background:#f2f7fe;border-radius:9px;color:#285b91;font-size:10.5px;font-weight:750;padding:6px 9px;cursor:pointer}
+    .session-ai-hint-chips button:hover{background:#e3f0ff}
+    .session-ai-hint-chips button:disabled{opacity:.5;cursor:wait}
+    .session-ai-materials-note{font-size:10px;color:#7c8ea4;padding:6px 10px 2px;line-height:1.4}
+    .session-ai-status.warning{color:#a96317}
     @media(max-width:640px){.session-ai-messages{height:210px}.session-ai-msg{max-width:94%}.session-ai-head{align-items:flex-start}.session-ai-clear{margin-left:auto}}
   `;
   document.head.appendChild(style);
@@ -181,12 +230,19 @@
     dlg.dataset.sessionAiReady='1';dlg.dataset.sessionId=s.id;
     const number=sessionNumber(c,s);
     const box=document.createElement('section');box.className='session-ai-box';
-    box.innerHTML=`<div class="session-ai-head"><span class="session-ai-icon" aria-hidden="true"></span><div class="session-ai-head-text"><div class="session-ai-title">ИИ помощник по сессии</div><div class="session-ai-sub">Сессия №${esc(number)} · ${esc(c.name||'Клиент')}</div></div><button type="button" class="session-ai-clear">Очистить</button></div><div class="session-ai-messages"></div><div class="session-ai-tools"><div class="session-ai-mode"><button type="button" data-mode="short">Кратко</button><button type="button" data-mode="deep">Глубоко</button></div></div><div class="session-ai-compose"><input class="session-ai-input" type="text" placeholder="Спроси ИИ по этой сессии…"><button class="session-ai-send" type="button">➤</button></div><div class="session-ai-status"></div>`;
+    box.innerHTML=`<div class="session-ai-head"><span class="session-ai-icon" aria-hidden="true"></span><div class="session-ai-head-text"><div class="session-ai-title">ИИ помощник по сессии</div><div class="session-ai-sub">Сессия №${esc(number)} · ${esc(c.name||'Клиент')}</div></div><button type="button" class="session-ai-clear">Очистить</button></div><div class="session-ai-messages"></div><div class="session-ai-hints"><div class="session-ai-hints-title">Подсказки по этой сессии</div><div class="session-ai-hint-chips"><button type="button" data-session-hint="summary">Итоги сессии</button><button type="button" data-session-hint="questions">Что уточнить</button><button type="button" data-session-hint="next">Следующие шаги</button><button type="button" data-session-hint="gaps">Что упущено</button></div></div><div class="session-ai-materials-note">Тексты этой сессии передаются ИИ. Обработка фото требует поддержки на сервере; её результат будет указан ниже. Материалы отправляются в подключённый ИИ-сервис.</div><div class="session-ai-tools"><div class="session-ai-mode"><button type="button" data-mode="short">Кратко</button><button type="button" data-mode="deep">Глубоко</button></div></div><div class="session-ai-compose"><input class="session-ai-input" type="text" placeholder="Спроси ИИ по этой сессии…"><button class="session-ai-send" type="button">➤</button></div><div class="session-ai-status"></div>`;
     card.insertBefore(box,actions);
     updateSessionMode(box);renderSessionChat(box,c,s);
     box.querySelectorAll('.session-ai-mode button').forEach(b=>b.onclick=()=>{setMode(b.dataset.mode);setTimeout(()=>{updateSessionMode(box);document.querySelectorAll('.session-ai-box').forEach(updateSessionMode);},0);});
     document.addEventListener('diagnostika-session-ai-mode-changed',()=>updateSessionMode(box),{signal:(()=>{const ctr=new AbortController();dlg.addEventListener('close',()=>ctr.abort(),{once:true});return ctr.signal;})()});
     const status=box.querySelector('.session-ai-status'),input=box.querySelector('.session-ai-input'),sendBtn=box.querySelector('.session-ai-send');
+    const hintButtons=[...box.querySelectorAll('.session-ai-hint-chips button')];
+    const hintTexts={
+      summary:'Кратко и по фактам: что было проведено на этой сессии? Используй записи и прикреплённые файлы именно этой сессии. Отдельно укажи, что обсуждали, какие действия специалиста подтверждены, и какой результат зафиксирован. Ничего не додумывай.',
+      questions:'Какие конкретные уточняющие вопросы по этой сессии стоит задать клиенту? Опирайся на её заметки и вложения; укажи, что требует проверки.',
+      next:'Какие обоснованные следующие шаги можно предложить после этой сессии? Отделяй сделанное от предложений на будущую встречу.',
+      gaps:'Что важного могло остаться невыясненным именно в этой сессии? Отдели факты из материалов от гипотез и предложи вопросы для проверки.'
+    };
     let sending=false;
     const setStatus=(text,kind='')=>{status.textContent=text||'';status.className=`session-ai-status ${kind}`.trim();};
     const send=async()=>{
@@ -195,15 +251,22 @@
       const addedUser=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'user',text:message,createdAt:Date.now()},{client:c,source:'session-ai-chat-user'});
       if(!addedUser){setStatus('Не удалось сохранить сообщение сессии.','error');return;}
       renderSessionChat(box,c,s);
-      sending=true;input.disabled=true;sendBtn.disabled=true;setStatus('ИИ анализирует эту сессию…','busy');
+      sending=true;input.disabled=true;sendBtn.disabled=true;hintButtons.forEach(btn=>btn.disabled=true);
+      setStatus('ИИ изучает материалы этой сессии…','busy');
       try{
-        const answer=await ask(c,s,dlg,number,message);
-        const addedAssistant=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'assistant',text:answer,createdAt:Date.now()},{client:c,source:'session-ai-chat-assistant'});
+        const result=await ask(c,s,dlg,number,message,text=>setStatus(text,'busy'));
+        const addedAssistant=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'assistant',text:result.text,createdAt:Date.now()},{client:c,source:'session-ai-chat-assistant'});
         if(!addedAssistant)throw new Error('Не удалось сохранить ответ ИИ по сессии.');
-        renderSessionChat(box,c,s);scrollLastAnswerToStart(box);setStatus('');
+        renderSessionChat(box,c,s);scrollLastAnswerToStart(box);
+        setStatus(result.notice||'',result.notice?.includes('не подтвердил')?'warning':'');
       }catch(err){console.warn('Session AI chat failed',err);setStatus(err?.message||'Не удалось получить ответ ИИ.','error');}
-      finally{sending=false;input.disabled=false;sendBtn.disabled=false;input.focus();}
+      finally{sending=false;input.disabled=false;sendBtn.disabled=false;hintButtons.forEach(btn=>btn.disabled=false);input.focus();}
     };
+    hintButtons.forEach(btn=>btn.onclick=()=>{
+      if(sending)return;
+      input.value=hintTexts[btn.dataset.sessionHint]||'';
+      send();
+    });
     sendBtn.onclick=send;input.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}};
     box.querySelector('.session-ai-clear').onclick=()=>{
       const hist=sessionChat(s,c);if(!hist.length)return;
