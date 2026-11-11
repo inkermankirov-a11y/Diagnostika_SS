@@ -112,11 +112,15 @@
     const dlg=document.createElement('dialog');dlg.className='session-payment-edit-dialog';
     dlg.innerHTML=`<div class="session-payment-edit-card"><h3>Оплата сессии</h3><div class="session-payment-edit-fields"><label class="session-payment-paid-check"><input id="spePaid" type="checkbox"> Оплачено</label><label>Сумма<input id="speAmount" type="number" min="0" step="100"></label></div><div class="session-payment-edit-actions"><button type="button" id="speCancel" class="tk-btn">Отмена</button><button type="button" id="speSave" class="tk-btn">Сохранить</button></div></div>`;
     document.body.appendChild(dlg);const paid=dlg.querySelector('#spePaid'),amount=dlg.querySelector('#speAmount');paid.checked=!!sp.paid;amount.value=sp.amount||effective||'';
+    const receiptHost=document.createElement('div');receiptHost.className='payment-receipt-row';
+    dlg.querySelector('.session-payment-edit-fields')?.appendChild(receiptHost);
+    const receipts=window.DiagnostikaPaymentReceipts;
+    receipts?.mount?.(receiptHost,receipts.sessionRef(c,s,r));
     const close=()=>{try{dlg.close();}catch(e){}dlg.remove();};dlg.querySelector('#speCancel').onclick=close;
     dlg.querySelector('#speSave').onclick=()=>{
       const updated=paymentWriter()?.updateSession?.(
         s.id,
-        {paid:paid.checked,amount:Math.max(0,Number(amount.value)||0),manualAmount:true,receiptUrl:''},
+        {paid:paid.checked,amount:Math.max(0,Number(amount.value)||0),manualAmount:true},
         {client:c,source:'payment-enhancements-session-editor'}
       );
       if(!updated)return;
@@ -133,6 +137,11 @@
       const sp=sessionPay(c,s),effective=sessionPrice(p);
       const btn=old.cloneNode(true);btn.dataset.editablePayment='1';btn.textContent=sp.paid?`✓ Оплачено ${money(sp.amount||effective)} ₽`:'Не оплачено';btn.title='Редактировать оплату сессии';
       btn.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();openSessionPaymentEditor(c,s);});old.replaceWith(btn);
+      const meta=card.querySelector('.session-card-meta')||card.querySelector('.session-card-head');
+      const receiptHost=document.createElement('span');receiptHost.className='payment-card-receipt';
+      meta?.appendChild(receiptHost);
+      const receipts=window.DiagnostikaPaymentReceipts;
+      receipts?.mount?.(receiptHost,receipts.sessionRef(c,s,r));
     });
   }
 
