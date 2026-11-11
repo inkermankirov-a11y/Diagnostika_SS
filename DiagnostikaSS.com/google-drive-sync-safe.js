@@ -448,10 +448,81 @@
     return remote.data;
   }
 
+  // Green is reserved for a confirmed Drive operation, never for connection alone.
+  function ensureBeacon(){
+    const card=document.querySelector('.gdrive-card');
+    const connect=card?.querySelector('.gdrive-connect');
+    if(!connect)return null;
+    let beacon=card.querySelector('.gdrive-beacon');
+    if(!beacon){
+      beacon=document.createElement('span');
+      beacon.className='gdrive-beacon';
+      beacon.setAttribute('role','status');
+      beacon.setAttribute('aria-live','polite');
+      beacon.innerHTML='<span class="gdrive-beacon-dot" aria-hidden="true"></span><span class="gdrive-beacon-label"></span>';
+      connect.insertAdjacentElement('beforebegin',beacon);
+    }
+    let verified=card.querySelector('.gdrive-verified-at');
+    if(!verified){
+      verified=document.createElement('div');
+      verified.className='gdrive-verified-at';
+      card.querySelector('.gdrive-copy')?.appendChild(verified);
+    }
+    return {beacon,verified};
+  }
+  function formatTime(timestamp){
+    return new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit'}).format(new Date(timestamp));
+  }
+  function showBeacon(kind,message=''){
+    syncState=kind;
+    const elements=ensureBeacon();
+    if(!elements)return;
+    const {beacon,verified}=elements;
+    beacon.dataset.state=kind;
+    const labels={synced:'Сохранено',working:'Синхронизация',pending:'Ожидает',auth:'Нужен вход',error:'Ошибка',off:'Не подключено',unknown:'Проверка'};
+    beacon.querySelector('.gdrive-beacon-label').textContent=labels[kind]||labels.unknown;
+    beacon.title=message||beacon.querySelector('.gdrive-beacon-label').textContent;
+    verified.textContent=lastConfirmedAt
+      ? 'Последняя подтверждённая синхронизация: '+formatTime(lastConfirmedAt)
+      : 'Облачное сохранение пока не подтверждено';
+  }
   function autoStatus(text){
     const status=document.querySelector('.gdrive-card .gdrive-status');
     if(status)status.textContent=text;
   }
+  function publishStatus(kind,message){
+    showBeacon(kind,message);
+    autoStatus(message);
+  }
+  function confirmSync(result){
+    if(result?.pendingLocalChanges){
+      autoSyncPending=true;
+      publishStatus('pending','Google Drive: появились новые изменения, отправляю следующим циклом.');
+      return;
+    }
+    lastConfirmedAt=Date.now();
+    publishStatus('synced',result?.unchanged
+      ? 'Google Drive: база проверена, новых изменений нет · '+formatTime(lastConfirmedAt)
+      : 'Google Drive: изменения записаны и проверены · '+formatTime(lastConfirmedAt));
+  }
+
+  const beaconCss=document.createElement('style');
+  beaconCss.textContent=[
+    '.gdrive-beacon{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;padding:7px 8px;border:1px solid #d9e4eb;border-radius:9px;background:#f5f8fa;font-size:10px;font-weight:800;color:#627487;white-space:nowrap}',
+    '.gdrive-beacon-dot{display:inline-block;flex:0 0 11px;width:11px;height:11px;border-radius:50%;background:#98a9b6;box-shadow:0 0 0 3px rgba(152,169,182,.13)}',
+    '.gdrive-beacon[data-state="synced"]{background:#eff9f3;border-color:#bfe5d0;color:#24744b}',
+    '.gdrive-beacon[data-state="synced"] .gdrive-beacon-dot{background:#27b576;box-shadow:0 0 0 3px rgba(39,181,118,.17)}',
+    '.gdrive-beacon[data-state="working"],.gdrive-beacon[data-state="pending"]{background:#fff8eb;border-color:#f3dca4;color:#996412}',
+    '.gdrive-beacon[data-state="working"] .gdrive-beacon-dot,.gdrive-beacon[data-state="pending"] .gdrive-beacon-dot{background:#e6a333;box-shadow:0 0 0 3px rgba(230,163,51,.15)}',
+    '.gdrive-beacon[data-state="working"] .gdrive-beacon-dot{animation:gdrive-beacon-pulse 1.25s ease-in-out infinite}',
+    '.gdrive-beacon[data-state="error"],.gdrive-beacon[data-state="auth"]{background:#fff1f0;border-color:#f1c3bd;color:#ae4337}',
+    '.gdrive-beacon[data-state="error"] .gdrive-beacon-dot,.gdrive-beacon[data-state="auth"] .gdrive-beacon-dot{background:#de5a4e;box-shadow:0 0 0 3px rgba(222,90,78,.14)}',
+    '.gdrive-verified-at{font-size:10px;line-height:1.35;color:#7b8fa3;margin-top:4px}',
+    '@keyframes gdrive-beacon-pulse{50%{opacity:.35;transform:scale(.76)}}',
+    '@media(max-width:700px){.gdrive-main-row{flex-wrap:wrap}.gdrive-beacon{margin-left:auto}.gdrive-main-row .gdrive-connect{flex:0 0 auto;width:auto}}',
+    '@media(prefers-reduced-motion:reduce){.gdrive-beacon-dot{animation:none!important}}'
+  ].join('');
+  document.head.appendChild(beaconCss);
 
   function scheduleAutoSync(delay=AUTO_SYNC_DEBOUNCE){
     if(!token()){
