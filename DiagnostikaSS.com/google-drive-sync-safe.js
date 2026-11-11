@@ -700,12 +700,19 @@
 
     const status=card.querySelector('.gdrive-status');
     const connect=card.querySelector('.gdrive-connect');
+    ensureBeacon();
+    if(token())showBeacon('unknown','Google Drive: проверяю актуальность сохранённой базы.');
+    else if(rememberedConnection())showBeacon('auth','Google Drive: доступ истёк, нажмите «Восстановить Google Drive».');
+    else showBeacon('off','Google Drive не подключён.');
     const sync=oldSync.cloneNode(true);
     const restore=oldRestore.cloneNode(true);
     oldSync.replaceWith(sync);
     oldRestore.replaceWith(restore);
 
-    const setStatus=text=>{if(status)status.textContent=text;};
+    const setStatus=text=>{
+      if(status)status.textContent=text;
+      if(syncState!=='working')showBeacon('working',text);
+    };
     const busy=value=>{
       active=value;
       sync.disabled=value;
@@ -724,9 +731,14 @@
 
       const oldText=sync.textContent;
       busy(true);
+      publishStatus('working','Google Drive: ручная синхронизация…');
       sync.textContent='Синхронизирую…';
+      const startedAtRevision=localRevision;
       try{
         const result=await safeSync(setStatus);
+        if(startedAtRevision!==localRevision)result.pendingLocalChanges=true;
+        lastAutoSyncAt=Date.now();
+        confirmSync(result);
         const accountLine=result.accountEmail?`Google аккаунт: ${result.accountEmail}\n`:'';
         const copiesLine=(result.folderCount>1||result.remoteCopyCount>1)
           ? `\nНайдено папок Diagnostika: ${result.folderCount}.\nНайдено database.json: ${result.remoteCopyCount}.\nВсе найденные облачные копии объединены и приведены к одной базе.`
@@ -738,11 +750,12 @@
           'Синхронизация завершена'
         );
       }catch(error){
-        setStatus(error.message||'Ошибка синхронизации');
+        publishStatus(token()?'error':'auth','Google Drive: '+(error?.message||'Ошибка синхронизации'));
         await notify(error.message||String(error),'Ошибка синхронизации');
       }finally{
         sync.textContent=oldText;
         busy(false);
+        if(autoSyncPending)scheduleAutoSync(AUTO_SYNC_MIN_INTERVAL);
       }
     });
 
@@ -757,24 +770,33 @@
 
       const oldText=restore.textContent;
       busy(true);
+      publishStatus('working','Google Drive: восстанавливаю облачную копию…');
       restore.textContent='Восстанавливаю…';
       try{
         const db=await safeRestore(setStatus);
+        lastAutoSyncAt=Date.now();
+        confirmSync({unchanged:true,pendingLocalChanges:false});
         await notify(`Восстановлено клиентов: ${db.clients?.length||0}. Локальная версия до восстановления сохранена в Backups. Перезагрузка страницы не требуется.`,'Готово');
       }catch(error){
-        setStatus(error.message||'Ошибка восстановления');
+        publishStatus(token()?'error':'auth','Google Drive: '+(error?.message||'Ошибка восстановления'));
         await notify(error.message||String(error),'Ошибка восстановления');
       }finally{
         restore.textContent=oldText;
         busy(false);
+        if(autoSyncPending)scheduleAutoSync(AUTO_SYNC_MIN_INTERVAL);
       }
     });
 
     const note=card.querySelector('.gdrive-note');
-    if(note)note.textContent='Автосинхронизация включена для всех подключённых устройств. После изменений и при возврате в приложение база сверяется с Google Drive; доступ каждого компьютера восстанавливается независимо и подключение другого устройства его не отключает.';
+    if(note)note.textContent='Изменения сохраняются в браузере и отправляются на Google Drive автоматически после редактирования. Каждые 3 минуты при открытом приложении выполняется контрольная сверка. Зелёный индикатор означает подтверждённую облачную запись; если Google запросит повторный вход, индикатор это покажет.';
     bindAutoSync();
     return true;
   }
+
+  window.DiagnostikaGoogleDriveSyncStatus=Object.freeze({
+    getStatus:()=>Object.freeze({state:syncState,lastConfirmedAt,pending:autoSyncPending,active}),
+    requestSync:()=>scheduleAutoSync(0)
+  });
 
   bindAutoSync();
   Promise.resolve(window.DiagnostikaPlatform?.ready).then(bindAutoSync).catch(()=>{});
