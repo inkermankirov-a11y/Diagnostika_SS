@@ -527,6 +527,15 @@
   }
   function showBeacon(kind,message=''){
     syncState=kind;
+    // Broadcast the same verified status to the header gear. No separate
+    // timer, second network request, or misleading local-save signal.
+    try{
+      if(typeof window.dispatchEvent==='function'&&typeof CustomEvent==='function'){
+        window.dispatchEvent(new CustomEvent('diagnostika:google-drive-sync-status',{
+          detail:{state:kind,message,lastConfirmedAt}
+        }));
+      }
+    }catch(_){}
     const elements=ensureBeacon();
     if(!elements)return;
     const {beacon,verified}=elements;

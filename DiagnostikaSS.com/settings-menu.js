@@ -48,6 +48,18 @@
     .settings-gear{display:inline-block;font-size:20px;line-height:1;transform-origin:50% 50%;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
     .settings-main-btn:hover .settings-gear{transform:rotate(90deg)}
     .settings-wrap.open .settings-gear{animation:settingsGearSpin 3.2s linear infinite}
+    .settings-gear{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:22px;min-height:22px}
+    .settings-drive-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:10px;height:10px;box-sizing:border-box;border:2px solid #23364c;border-radius:50%;
+      background:#91a3b2;box-shadow:0 0 0 1px rgba(255,255,255,.45);pointer-events:none}
+    .settings-wrap[data-drive-state="synced"] .settings-drive-center{background:#27d78a;box-shadow:0 0 0 1px #b7ffe1,0 0 7px #19ca76}
+    .settings-wrap[data-drive-state="working"] .settings-drive-center,
+    .settings-wrap[data-drive-state="pending"] .settings-drive-center{background:#ffca3c;box-shadow:0 0 0 1px #fff1a9,0 0 7px #ecae25}
+    .settings-wrap[data-drive-state="working"] .settings-drive-center{animation:settingsDrivePulse 1.15s ease-in-out infinite}
+    .settings-wrap[data-drive-state="auth"] .settings-drive-center,
+    .settings-wrap[data-drive-state="error"] .settings-drive-center{background:#ef6258;box-shadow:0 0 0 1px #ffc9c2,0 0 7px #d94740}
+    @keyframes settingsDrivePulse{50%{opacity:.55;box-shadow:0 0 0 1px #fff1a9}}
+    @media(prefers-reduced-motion:reduce){.settings-wrap[data-drive-state="working"] .settings-drive-center{animation:none}}
     @keyframes settingsGearSpin{to{transform:rotate(360deg)}}
     .settings-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30020;width:min(330px,calc(100vw - 18px));padding:9px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;box-shadow:0 18px 45px rgba(15,23,42,.25);display:none}
     .settings-wrap.open .settings-panel{display:grid;gap:7px;animation:settingsPanelIn .14s ease-out}
@@ -103,7 +115,7 @@
   wrap.className='settings-wrap';
   wrap.innerHTML=`
     <button id="settingsMenuBtn" class="settings-main-btn" type="button" aria-expanded="false">
-      <span class="settings-gear" aria-hidden="true">⚙</span>
+      <span class="settings-gear" aria-hidden="true">⚙<span class="settings-drive-center"></span></span>
       <span class="settings-label">Настройки</span>
     </button>
     <div class="settings-panel" id="settingsPanel">
@@ -118,6 +130,26 @@
   const accountsBtn=wrap.querySelector('.settings-accounts-btn');
   const interfaceBtn=wrap.querySelector('.settings-interface-btn');
   const interfaceContent=wrap.querySelector('.settings-interface-content');
+  const gear=wrap.querySelector('.settings-gear');
+  let driveState='unknown';
+  let driveMessage='Google Drive: статус ещё не проверен';
+  const driveLabels={
+    synced:'Google Drive: сохранено и проверено',
+    working:'Google Drive: синхронизация выполняется',
+    pending:'Google Drive: изменения ожидают отправки',
+    auth:'Google Drive: требуется повторный вход',
+    error:'Google Drive: ошибка синхронизации',
+    off:'Google Drive: не подключён',
+    unknown:'Google Drive: статус ещё не проверен'
+  };
+  function displayDriveStatus(status){
+    const state=String(status?.state||'unknown');
+    driveState=Object.prototype.hasOwnProperty.call(driveLabels,state)?state:'unknown';
+    driveMessage=String(status?.message||driveLabels[driveState]);
+    wrap.dataset.driveState=driveState;
+    gear.title=driveMessage;
+    updateLabel();
+  }
 
   const saveHistory=document.getElementById('saveHistoryBtn');
   if(saveHistory) saveHistory.remove();
@@ -193,8 +225,9 @@
     const panelTitle=panel.querySelector('.settings-panel-title-text');
     if(label) label.textContent=t.settings;
     if(panelTitle) panelTitle.textContent=t.settings;
-    btn.title=t.settings;
-    btn.setAttribute('aria-label',wrap.classList.contains('open')?t.close:t.settings);
+    btn.title=t.settings+' · '+driveMessage;
+    btn.setAttribute('aria-label',(wrap.classList.contains('open')?t.close:t.settings)
+      +'. '+driveLabels[driveState]);
     if(clientBase){clientBase.textContent=t.clients;clientBase.title=t.clients;}
     accountsBtn.firstElementChild.textContent=t.accounts;
     interfaceBtn.firstElementChild.textContent=t.interface;
@@ -259,7 +292,12 @@
     }
   };
 
-  updateLabel();
+  window.addEventListener('diagnostika:google-drive-sync-status',event=>{
+    displayDriveStatus(event?.detail);
+  });
+  // Also pick up the last verified status if the lazy Drive module loaded first.
+  displayDriveStatus(window.DiagnostikaGoogleDriveSyncStatus?.getStatus?.()
+    ||{state:'unknown'});
 })();
 
 (() => {
