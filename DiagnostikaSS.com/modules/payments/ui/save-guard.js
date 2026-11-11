@@ -106,6 +106,13 @@
     const dlg=document.querySelector('dialog.payment-dialog:has(#paymentMode)');
     if(dlg)ensurePaymentSnapshot(dlg);
   });
+  // Receipt edits are individually persisted. Do not accidentally roll
+  // them back when the user later closes a payment form without saving
+  // unrelated draft fields.
+  window.addEventListener('diagnostika:payment-receipt-saved',()=>{
+    const dlg=document.querySelector('dialog.payment-dialog:has(#paymentMode)');
+    if(dlg?.open)commitPaymentSnapshot(dlg);
+  });
   setTimeout(refresh,0);
 })();
 
