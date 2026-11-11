@@ -16,15 +16,19 @@
   const MAX_BACKUPS=20;
   const FETCH_TIMEOUT=45000;
   const MERGE_TIMEOUT=45000;
-  const AUTO_SYNC_DEBOUNCE=5000;
-  const AUTO_SYNC_MIN_INTERVAL=15000;
-  const AUTO_SYNC_POLL_INTERVAL=60000;
+  const AUTO_SYNC_DEBOUNCE=2500;
+  const AUTO_SYNC_MIN_INTERVAL=12000;
+  const AUTO_SYNC_POLL_INTERVAL=180000;
+  const AUTO_SYNC_RETRY_INTERVAL=45000;
   let active=false;
   let autoSyncTimer=null;
   let autoSyncPollTimer=null;
   let autoSyncPending=false;
   let autoSyncBound=false;
   let lastAutoSyncAt=0;
+  let localRevision=0;
+  let lastConfirmedAt=0;
+  let syncState='unknown';
 
   const stamp=()=>new Date().toISOString().replace(/[:.]/g,'-');
   const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
