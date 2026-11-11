@@ -701,7 +701,7 @@
     const status=card.querySelector('.gdrive-status');
     const connect=card.querySelector('.gdrive-connect');
     ensureBeacon();
-    if(token())showBeacon('unknown','Google Drive: проверяю актуальность сохранённой базы.');
+    if(token())showBeacon(syncState==='pending'?'pending':'unknown',autoSyncPending?'Google Drive: ожидается автоматическая синхронизация.':'Google Drive: проверяю актуальность сохранённой базы.');
     else if(rememberedConnection())showBeacon('auth','Google Drive: доступ истёк, нажмите «Восстановить Google Drive».');
     else showBeacon('off','Google Drive не подключён.');
     const sync=oldSync.cloneNode(true);
