@@ -77,7 +77,7 @@ function harness({validToken=true,connected=true}={}){
   const context={window:win,document,localStorage:store,sessionStorage:store,
     setTimeout:fakeSetTimeout,clearTimeout:id=>timers.delete(id),
     setInterval:(callback,ms)=>{intervals.push({callback,ms});return intervals.length;},
-    clearInterval(){},setImmediate,fetch,Headers,AbortController,
+    clearInterval(){},fetch,Headers,AbortController,
     indexedDB:undefined,console:{warn(){},error(){}},Date,Intl,Promise,JSON,Object,
     Blob,Map,Set,Math,structuredClone,Worker:function(){}};
   vm.runInNewContext(source,context);
