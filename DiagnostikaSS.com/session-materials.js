@@ -6,7 +6,7 @@
 
   const TEXT_SUFFIX=/\.(?:txt|md|csv|json|srt|vtt|log|tsv)$/i;
   const TEXT_LIMIT=220000;
-  const AI_FILE_LIMIT=125000;
+  const AI_FILE_LIMIT=160000;
   const AI_TOTAL_LIMIT=200000;
   const AI_FILES_LIMIT=12;
   const IMAGE_LIMIT=3;
