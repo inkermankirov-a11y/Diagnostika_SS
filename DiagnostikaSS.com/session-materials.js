@@ -115,6 +115,8 @@
       }catch(_){blob=record.blob;}
     }
     if(!blob||blob.size>IMAGE_MAX_BYTES)throw new Error('Изображение слишком большое для анализа (максимум 1,8 МБ).');
+    // Keep MIME and data URL consistent even if the uploaded file had no type.
+    if(!/^image\/(jpeg|png|webp)$/i.test(blob.type||''))blob=new Blob([blob],{type:mime});
     const mimeType=blob.type||mime;
     const dataUrl=await new Promise((resolve,reject)=>{
       const reader=new FileReader();
