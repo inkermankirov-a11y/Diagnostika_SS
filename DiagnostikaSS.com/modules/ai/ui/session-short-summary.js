@@ -8,8 +8,8 @@
   const MAX_LINES=3;
   function cleanLine(line){
     return String(line||'')
-      .replace(/^\s*(?:#{1,6}\s*|[-•*]\s*|\d+[.)]\s*)/u,'')
       .replace(/\*\*|__/g,'')
+      .replace(/^\s*(?:#{1,6}\s*|[-•*]\s+|\d+[.)]\s*)/u,'')
       .replace(/\s+/g,' ')
       .trim();
   }
