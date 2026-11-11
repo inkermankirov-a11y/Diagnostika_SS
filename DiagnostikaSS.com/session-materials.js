@@ -30,7 +30,7 @@
     return map;
   })();
   function repairMojibake(text){
-    if(!/(?:[РС][\u0400-\u04ff]){3,}/u.test(text))return null;
+    if(!/(?:[РС][^\s]){3,}/u.test(text))return null;
     const bytes=[];
     for(const char of text){
       if(!cpByteMap.has(char))return null;
@@ -38,7 +38,7 @@
     }
     try{
       const repaired=utf8Strict().decode(Uint8Array.from(bytes));
-      const bad=s=>(s.match(/[РС][\u0400-\u04ff]/gu)||[]).length;
+      const bad=s=>(s.match(/[РС][^\s]/gu)||[]).length;
       return bad(repaired)*3+4<bad(text)?repaired:null;
     }catch(_){return null;}
   }
