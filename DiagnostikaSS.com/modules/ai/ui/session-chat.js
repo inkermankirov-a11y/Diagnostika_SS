@@ -55,11 +55,12 @@
       }))
     };
   }
-  function buildSessionContext(c,s,dlg,number){
+  function buildSessionContext(c,s,dlg,number,materials={texts:[],images:[],skipped:[],count:0}){
     let base={};
     try{base=window.DiagnostikaClientAIChat?.buildContext?.(c)||{};}catch(_){}
     const req=linkedRequest(c,s,dlg);
     const notesInput=dlg?.querySelector('.session-edit-text');
+    const planInput=dlg?.querySelector('.session-plan-editor-text');
     const dateInput=dlg?.querySelector('.session-edit-grid input[type="date"]');
     const formatSelect=dlg?.querySelector('.session-format-select');
     const formatOther=dlg?.querySelector('.session-format-other');
@@ -72,12 +73,21 @@
       requests:req?[sanitizeRequest(req)]:[],
       sessions:[{
         id:s.id||'',number:number||'',date:dateInput?.value||s.date||'',requestId:req?.id||s.requestId||'',
-        notes:clip(notesInput?.value??s.notes,5000),sessionFormat:formatSelect?.value||s.sessionFormat||'',
-        sessionFormatOther:clip(formatOther?.value??s.sessionFormatOther,300),youtubeUrl:s.youtubeUrl?'Есть ссылка на запись YouTube':''
+        notes:clip(notesInput?.value??s.notes,5000),
+        plan:clip(planInput?.value??s.plan,4000),
+        sessionFormat:formatSelect?.value||s.sessionFormat||'',
+        sessionFormatOther:clip(formatOther?.value??s.sessionFormatOther,300),
+        youtubeUrl:s.youtubeUrl?'Есть ссылка на запись YouTube':''
       }],
-      notes:(Array.isArray(base.notes)?base.notes:[]).slice(-5),
+      notes:[],
+      sessionAttachments:{
+        texts:materials.texts||[],
+        skipped:materials.skipped||[],
+        imageNames:(materials.images||[]).map(image=>image.name),
+        total:materials.count||0
+      },
       sessionScope:{
-        instruction:'Это чат по одной конкретной сессии. В первую очередь анализируй именно данные этой сессии. Общий контекст клиента используй только как фон. Не смешивай факты из других сессий.',
+        instruction:'Это чат по одной конкретной сессии. В первую очередь используй заметки этой сессии и текст её приложенных файлов. Отличай расшифровку от подтверждённых действий специалиста. Не выдавай планы, общие сведения или записи других сессий за проведённую работу. Указывай источники: заметки сессии, файл по имени, текущая диагностика. Не выдумывай техники и результаты. Если материалов недостаточно, честно скажи.',
         sessionId:String(s.id||''),sessionNumber:number||''
       }
     };
@@ -91,21 +101,52 @@
     if(data?.output_text)return String(data.output_text).trim();
     let out='';for(const item of data?.output||[])for(const part of item?.content||[])if(part?.type==='output_text'&&part?.text)out+=part.text;return out.trim();
   }
-  async function ask(c,s,dlg,number,message){
+  async function ask(c,s,dlg,number,message,onProgress=()=>{}){
+    onProgress('Читаю вложения этой сессии…');
+    let materials={texts:[],images:[],skipped:[],count:0};
+    try{
+      materials=await window.DiagnostikaSessionMaterials?.collect?.(s.id,c.id)||materials;
+    }catch(error){
+      materials.skipped.push({name:'Вложения',reason:error?.message||'Не удалось прочитать вложения'});
+    }
     const history=sessionChat(s,c).slice(0,-1).slice(-12).map(m=>({role:m.role,text:m.text}));
+    const attachmentCount=materials.texts.length+materials.images.length;
+    const ignoredCount=materials.skipped.length;
+    onProgress(attachmentCount
+      ?'Читаю материалы: текстовых файлов '+materials.texts.length+
+        ', изображений '+materials.images.length+
+        (ignoredCount?'; не обработано '+ignoredCount:'')+'…'
+      :ignoredCount?'Не удалось прочитать часть вложений; анализирую доступные заметки…'
+        :'Вложений нет, анализирую текущую сессию…');
     const payload={
       accessKey:getAccessKey(),clientId:String(c.id||''),clientName:c.name||'',
-      message:`ЧАТ ПО СЕССИИ №${number||''}. Отвечай по этой сессии, не подменяй её общей историей клиента.\n\nВопрос специалиста: ${message}`,
-      clientContext:buildSessionContext(c,s,dlg,number),chatHistory:history,
+      message:'ЧАТ ПО СЕССИИ №'+(number||'')+
+        '. Отвечай исключительно по материалам этой сессии; не приписывай этой сессии действия из общей истории клиента. '+
+        'Если вопрос о том, что было проведено, опирайся на приложенную расшифровку и заметки, а не на планы или предположения. '+
+        'Если нет подтверждённых данных, сообщи об этом. Для кратких итогов перечисли только: что обсуждали, что делали, какой результат зафиксирован. '+
+        'Предложения для следующей встречи помечай как рекомендации, а не как выполненную работу.\n\nВопрос специалиста: '+message,
+      clientContext:buildSessionContext(c,s,dlg,number,materials),chatHistory:history,
+      sessionAttachmentImages:materials.images.map(({name,mimeType,dataUrl})=>({name,mimeType,dataUrl})),
       sessionId:String(s.id||''),sessionNumber:number||''
     };
-    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),60000);
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);
     try{
-      const r=await fetch(PROD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:controller.signal});
+      onProgress('ИИ анализирует данные выбранной сессии…');
+      const r=await fetch(PROD_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:controller.signal});
       const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{};}catch(_){data={text:raw};}
       if([401,403].includes(r.status))throw new Error('n8n отклонил ключ доступа.');
-      if(!r.ok)throw new Error(`ИИ помощник: HTTP ${r.status}`);
-      const text=replyText(data);if(!text)throw new Error('ИИ не вернул текст ответа.');return text;
+      if(!r.ok)throw new Error('ИИ помощник: HTTP '+r.status);
+      const text=replyText(data);if(!text)throw new Error('ИИ не вернул текст ответа.');
+      const processedImages=Number(data?.processedImageCount)||0;
+      const notice=materials.images.length&&!processedImages
+        ?'Изображения получены, но серверный ИИ не подтвердил их анализ. Нужно обновить обработчик n8n.'
+        :materials.skipped.length
+          ?'Не удалось обработать '+materials.skipped.length+' вложений. Проверьте форматы или размер.'
+          :materials.texts.length
+            ?'Учтены текстовые материалы этой сессии: '+materials.texts.length+'.'
+            :'';
+      return {text,notice,materials,processedImages};
     }finally{clearTimeout(timer);}
   }
 
