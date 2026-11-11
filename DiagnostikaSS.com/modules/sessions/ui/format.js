@@ -7,6 +7,7 @@
     ['yandex-telemost','Яндекс Телемост'],
     ['zoom','Zoom'],
     ['telegram','Telegram'],
+    ['vk','ВКонтакте'],
     ['whatsapp','WhatsApp'],
     ['max','MAX'],
     ['other-video','Другой мессенджер / видеосвязь'],
