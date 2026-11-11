@@ -169,14 +169,18 @@
         const updated=updateRequestPaymentRecord(c,r,pay.id,{
           date:row.querySelector('.pr-date').value||todayLocal(),
           amount,
-          note:row.querySelector('.pr-note').value.trim(),
-          receiptUrl:row.querySelector('.pr-receipt').value.trim()
+          note:row.querySelector('.pr-note').value.trim()
         },'payment-dialog-edit');
         if(!updated)return;
         renderSummary(c,r);refreshDatabasePaymentColumn();renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();
       };
       row.querySelector('.pr-delete').onclick=()=>{if(!removeRequestPayment(c,r,pay.id,'payment-dialog-delete'))return;renderPaymentList(c,r);renderSummary(c,r);refreshDatabasePaymentColumn();renderAllPayments();window.DiagnostikaHomeDashboard?.refresh?.();};
       root.appendChild(row);
+      const receiptHost=document.createElement('div');receiptHost.className='payment-receipt-row';
+      row.appendChild(receiptHost);
+      window.DiagnostikaPaymentReceipts?.mount?.(
+        receiptHost,window.DiagnostikaPaymentReceipts.requestRef(c,r,pay)
+      );
     });
   }
 
@@ -222,7 +226,14 @@
     const c=currentClient();if(!c)return;
     const rows=allRows(c),root=allDlg.querySelector('#allPaymentsList'),summaryEl=allDlg.querySelector('#allPaymentsSummary');
     root.innerHTML='';const totals={};rows.forEach(x=>totals[x.sym]=(totals[x.sym]||0)+x.amount);summaryEl.textContent=rows.length?`Всего платежей: ${rows.length} · ${Object.entries(totals).map(([s,v])=>`${money(v)} ${s}`).join(' · ')}`:'Платежей пока нет';
-    rows.forEach(x=>{const row=document.createElement('div');row.className='all-payment-row';row.innerHTML=`<span>${formatRuDate(x.date)}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn ap-edit">Изменить</button>`;row.querySelector('.ap-edit').onclick=()=>{if(x.pay){dlg.showModal?.();dlg.close?.();const req=x.request;dialogRequestId=req.id;renderDialog();dlg.showModal();setTimeout(()=>{const target=[...q('#paymentList').querySelectorAll('.payment-row')].find(rw=>num(rw.querySelector('.pr-amount')?.value)===num(x.pay.amount)&&rw.querySelector('.pr-date')?.value===x.pay.date);target?.querySelector('.pr-note')?.focus();},0);}else if(x.session){allDlg.close();const cnow=currentClient();const chronological=(ui()?.sessionList?.(cnow)||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));ui()?.openSessionEditor?.(cnow,x.session,chronological.indexOf(x.session)+1);}};root.appendChild(row);});
+    rows.forEach(x=>{const row=document.createElement('div');row.className='all-payment-row';row.innerHTML=`<span>${formatRuDate(x.date)}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn ap-edit">Изменить</button>`;row.querySelector('.ap-edit').onclick=()=>{if(x.pay){dlg.showModal?.();dlg.close?.();const req=x.request;dialogRequestId=req.id;renderDialog();dlg.showModal();setTimeout(()=>{const target=[...q('#paymentList').querySelectorAll('.payment-row')].find(rw=>num(rw.querySelector('.pr-amount')?.value)===num(x.pay.amount)&&rw.querySelector('.pr-date')?.value===x.pay.date);target?.querySelector('.pr-note')?.focus();},0);}else if(x.session){allDlg.close();const cnow=currentClient();const chronological=(ui()?.sessionList?.(cnow)||[]).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));ui()?.openSessionEditor?.(cnow,x.session,chronological.indexOf(x.session)+1);}};root.appendChild(row);
+      const receiptHost=document.createElement('div');receiptHost.className='payment-receipt-row';
+      row.appendChild(receiptHost);
+      const receipts=window.DiagnostikaPaymentReceipts;
+      const receiptRef=x.pay?receipts?.requestRef?.(c,x.request,x.pay)
+        :x.session?receipts?.sessionRef?.(c,x.session,x.request):null;
+      receipts?.mount?.(receiptHost,receiptRef);
+    });
   }
   q('#allClientPaymentsBtn').onclick=()=>{allDlg.dataset.forceRender='1';renderAllPayments();delete allDlg.dataset.forceRender;allDlg.showModal();};
   allDlg.querySelector('.payment-x').onclick=()=>allDlg.close();allDlg.querySelector('.all-payments-close').onclick=()=>allDlg.close();allDlg.addEventListener('click',e=>{if(e.target===allDlg)allDlg.close();});
