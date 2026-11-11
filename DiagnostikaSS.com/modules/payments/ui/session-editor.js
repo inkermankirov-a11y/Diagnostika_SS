@@ -68,6 +68,7 @@
     .session-date-payment-wrap>input[type="date"]{width:100%;box-sizing:border-box}
     .session-editor-payment{display:flex;align-items:center;gap:6px;min-height:30px;position:relative;z-index:3;flex-wrap:wrap}
     .session-editor-payment-label{font-size:11px;font-weight:800;color:#475569}
+    .session-editor-payment-receipt{display:inline-flex;align-items:center;min-width:0}
     .session-editor-payment-state{min-height:28px!important;height:28px!important;padding:3px 9px!important;border-radius:8px!important;font-size:11px!important;font-weight:800!important;white-space:nowrap;pointer-events:auto!important;cursor:pointer!important;position:relative;z-index:4}
     .session-editor-payment-state.unpaid{background:linear-gradient(#ef6a6a,#d94d4d)!important;color:#fff!important;animation:none!important;box-shadow:none!important}
     .session-editor-payment-state.paid{background:linear-gradient(#42ad73,#248d58)!important;color:#fff!important;animation:none!important}
@@ -100,7 +101,7 @@
   function persistSessionPayment(c,s,preferredId,paid,dateValue){
     const sp=sessionPay(c,s),linked=linkedRequest(c,s,preferredId),linkedPayment=paymentOf(c,linked),amount=configuredPriceForSession(c,s,preferredId)||priceForSession(c,s,preferredId);
     if(linked?.id&&!linkSessionRequest(c,s,linked.id,'session-payment-session-link'))return false;
-    const next={...sp,paid:!!paid,amount,receiptUrl:'',manualAmount:false};
+    const next={...sp,paid:!!paid,amount,manualAmount:false};
     if(linked?.id)next.requestId=linked.id;
     if(paid){
       next.paidAt=today();
@@ -175,6 +176,8 @@
     box.className='session-editor-payment';
     box.innerHTML='<span class="session-editor-payment-label">Оплата:</span><button type="button" class="tk-btn session-editor-payment-state session-payment-toggle-stable"></button><div class="session-editor-payment-amount-wrap" hidden><span class="session-editor-payment-amount-label">Сумма:</span><input class="session-editor-payment-amount" type="number" min="0" step="100" placeholder="0"><span class="session-editor-payment-currency">₽</span></div>';
     dateWrap.appendChild(box);
+    const receiptHost=document.createElement('span');receiptHost.className='session-editor-payment-receipt';
+    box.appendChild(receiptHost);
     const btn=box.querySelector('.session-editor-payment-state');
     const amountWrap=box.querySelector('.session-editor-payment-amount-wrap');
     const amountInput=box.querySelector('.session-editor-payment-amount');
@@ -189,6 +192,8 @@
       if(parts&&document.activeElement!==amountInput)amountInput.value=Number(existing?.amount??sp.amount)||0;
       amountInput.classList.toggle('invalid',parts&&sp.paid&&(Number(amountInput.value)||0)<=0);
       applyButtonState(btn,c,s,preferredId);
+      const receipts=window.DiagnostikaPaymentReceipts;
+      receipts?.mount?.(receiptHost,receipts.sessionRef(c,s,linked));
     }
     requestSelect?.addEventListener('change',render);
     amountInput.addEventListener('input',()=>amountInput.classList.remove('invalid'));
@@ -204,7 +209,7 @@
         return;
       }
       persistInstallmentSessionPayment(c,s,preferredId,true,dateInput?.value||s.date||today(),amount);
-      applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();
+      applyButtonState(btn,c,s,preferredId);render();refreshGlobalPaymentUi();
     });
     dialogControllers.set(dlg,{render});
     dlg.addEventListener('close',()=>dialogControllers.delete(dlg),{once:true});
@@ -233,7 +238,7 @@
     }
     dlg.dataset.saveGuardPaymentDraft=next?'1':'0';
     dlg.dataset.saveGuardSessionDirty='1';
-    applyButtonState(btn,c,s,preferredId);refreshGlobalPaymentUi();renderPaymentLedger();
+    applyButtonState(btn,c,s,preferredId);dialogControllers.get(dlg)?.render?.();refreshGlobalPaymentUi();renderPaymentLedger();
     setTimeout(()=>{ui()?.refreshSessions?.();refreshGlobalPaymentUi();renderPaymentLedger();},0);
   },true);
   function renderPaymentLedger(){
