@@ -571,14 +571,20 @@
   document.head.appendChild(beaconCss);
 
   function scheduleAutoSync(delay=AUTO_SYNC_DEBOUNCE){
+    autoSyncPending=true;
     if(!token()){
-      if(rememberedConnection())autoSyncPending=true;
+      if(rememberedConnection()){
+        publishStatus('auth','Google Drive: доступ истёк. Нажмите «Восстановить Google Drive» для продолжения автоматического сохранения.');
+      }else{
+        showBeacon('off','Google Drive не подключён');
+      }
       return;
     }
-    autoSyncPending=true;
+    if(active)return;
     clearTimeout(autoSyncTimer);
     const sinceLast=Date.now()-lastAutoSyncAt;
     const wait=Math.max(delay,AUTO_SYNC_MIN_INTERVAL-Math.max(0,sinceLast));
+    publishStatus('pending','Google Drive: изменения ожидают автоматического сохранения.');
     autoSyncTimer=setTimeout(runAutoSync,Math.max(0,wait));
   }
 
@@ -586,7 +592,10 @@
     clearTimeout(autoSyncTimer);
     autoSyncTimer=null;
     if(!token()){
-      if(rememberedConnection())autoSyncPending=true;
+      if(rememberedConnection()){
+        autoSyncPending=true;
+        publishStatus('auth','Google Drive: доступ истёк. Нажмите «Восстановить Google Drive».');
+      }else showBeacon('off','Google Drive не подключён');
       return;
     }
     if(document.hidden){
@@ -594,25 +603,35 @@
       return;
     }
     if(active){
-      scheduleAutoSync(15000);
+      autoSyncPending=true;
       return;
     }
 
     active=true;
     autoSyncPending=false;
-    autoStatus('Google Drive: автосинхронизация…');
+    const startedAtRevision=localRevision;
+    publishStatus('working','Google Drive: автоматическая синхронизация и проверка данных…');
+    let retry=false;
     try{
       const result=await safeSync(text=>autoStatus('Google Drive: '+text));
       lastAutoSyncAt=Date.now();
-      autoStatus(result.unchanged
-        ? 'Google Drive: синхронизировано · изменений нет'
-        : 'Google Drive: автосинхронизация завершена');
+      // A save during upload is a NEW pending change, not a completed sync.
+      if(startedAtRevision!==localRevision)result.pendingLocalChanges=true;
+      confirmSync(result);
     }catch(error){
-      console.warn('[Google Drive auto sync]',error);
-      autoStatus('Google Drive: автосинхронизация не выполнена · '+(error?.message||String(error)));
+      retry=true;
+      autoSyncPending=true;
+      console.warn('[Google Drive auto sync]',error?.name||'Error',error?.message||'');
+      if(!token()){
+        publishStatus('auth','Google Drive: требуется восстановить доступ. Нажмите «Восстановить Google Drive».');
+      }else{
+        publishStatus('error','Google Drive: данные не подтверждены. '+(error?.message||'Повторная попытка через 45 секунд.'));
+      }
     }finally{
       active=false;
-      if(autoSyncPending)scheduleAutoSync(15000);
+      if(autoSyncPending&&token()&&!document.hidden){
+        scheduleAutoSync(retry?AUTO_SYNC_RETRY_INTERVAL:AUTO_SYNC_MIN_INTERVAL);
+      }
     }
   }
 
@@ -627,6 +646,7 @@
       if(detail?.key!==db?.stateKey)return;
       const source=String(detail?.source||'');
       if(source.startsWith('google-drive-'))return;
+      localRevision+=1;
       scheduleAutoSync();
     });
 
@@ -648,12 +668,25 @@
       scheduleAutoSync(100);
     });
 
+    window.addEventListener('offline',()=>{
+      if(rememberedConnection())publishStatus('error','Google Drive: нет подключения к интернету. Данные остаются локально, отправка возобновится после подключения.');
+    });
+    window.addEventListener('diagnostika:google-drive-disconnected',()=>{
+      clearTimeout(autoSyncTimer);
+      autoSyncTimer=null;
+      autoSyncPending=false;
+      lastConfirmedAt=0;
+      publishStatus('off','Google Drive отключён.');
+    });
+
     clearInterval(autoSyncPollTimer);
     autoSyncPollTimer=setInterval(()=>{
       if(!document.hidden&&(token()||rememberedConnection()))scheduleAutoSync(0);
     },AUTO_SYNC_POLL_INTERVAL);
 
-    if(token())scheduleAutoSync(5000);
+    if(token())scheduleAutoSync(2000);
+    else if(rememberedConnection())publishStatus('auth','Google Drive: нужно восстановить доступ для автоматической синхронизации.');
+    else showBeacon('off','Google Drive не подключён');
     return true;
   }
 
