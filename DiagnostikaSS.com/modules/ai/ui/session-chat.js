@@ -173,6 +173,25 @@
     .session-ai-hint-chips button:disabled{opacity:.5;cursor:wait}
     .session-ai-materials-note{font-size:10px;color:#7c8ea4;padding:6px 10px 2px;line-height:1.4}
     .session-ai-status.warning{color:#a96317}
+    .session-ai-expand{height:29px;padding:0 10px;white-space:nowrap;border:1px solid #cadcf1;background:#f2f7fe;color:#285a89;border-radius:8px;cursor:pointer;font-size:11px;font-weight:800}
+    .session-ai-expand:hover{background:#e3f0ff}
+    .session-ai-to-notes{margin:0 10px 8px;padding:7px 10px;border-radius:8px;border:1px solid #a5d7bc;background:#eff9f3;color:#23784b;font-size:11px;font-weight:800;cursor:pointer;align-self:flex-start}
+    .session-ai-to-notes[hidden]{display:none}
+    .session-ai-box .session-ai-msg.assistant{white-space:pre-wrap;line-height:1.55}
+    dialog.session-edit-dialog.session-ai-fullscreen{position:fixed!important;inset:0!important;top:0!important;left:0!important;margin:0!important;width:100vw!important;max-width:none!important;min-width:0!important;height:100dvh!important;max-height:none!important;padding:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:hidden!important}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-edit-card{display:flex!important;flex-direction:column!important;gap:0!important;height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;padding:clamp(9px,2vw,22px)!important;background:#f7faff}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-edit-card > :not(.session-ai-box){display:none!important}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-box{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;height:100%!important;width:100%!important;margin:0!important}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-head{flex:0 0 auto;padding:12px 16px}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-head .session-ai-title{font-size:19px}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-head .session-ai-sub{font-size:12px}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-messages{flex:1 1 auto!important;min-height:90px!important;height:auto!important;max-height:none!important;overflow-y:auto!important;padding:clamp(10px,2vw,22px)!important;gap:12px!important}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-msg{font-size:15px!important;line-height:1.62!important;padding:13px 16px!important;max-width:min(92%,1000px)!important}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-hints,dialog.session-edit-dialog.session-ai-fullscreen .session-ai-tools,dialog.session-edit-dialog.session-ai-fullscreen .session-ai-compose,dialog.session-edit-dialog.session-ai-fullscreen .session-ai-status,dialog.session-edit-dialog.session-ai-fullscreen .session-ai-materials-note{flex-shrink:0}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-hint-chips button{font-size:12px;padding:8px 11px}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-input{height:45px;font-size:14px}
+    dialog.session-edit-dialog.session-ai-fullscreen .session-ai-send{height:45px;width:45px}
+    @media(max-width:580px){.session-ai-head{flex-wrap:wrap}.session-ai-expand{margin-left:auto}dialog.session-edit-dialog.session-ai-fullscreen .session-ai-head{padding:9px}dialog.session-edit-dialog.session-ai-fullscreen .session-ai-head .session-ai-title{font-size:15px}dialog.session-edit-dialog.session-ai-fullscreen .session-ai-msg{font-size:13px!important;padding:9px 11px!important}dialog.session-edit-dialog.session-ai-fullscreen .session-ai-materials-note{display:none}}
     @media(max-width:640px){.session-ai-messages{height:210px}.session-ai-msg{max-width:94%}.session-ai-head{align-items:flex-start}.session-ai-clear{margin-left:auto}}
   `;
   document.head.appendChild(style);
@@ -230,14 +249,38 @@
     dlg.dataset.sessionAiReady='1';dlg.dataset.sessionId=s.id;
     const number=sessionNumber(c,s);
     const box=document.createElement('section');box.className='session-ai-box';
-    box.innerHTML=`<div class="session-ai-head"><span class="session-ai-icon" aria-hidden="true"></span><div class="session-ai-head-text"><div class="session-ai-title">ИИ помощник по сессии</div><div class="session-ai-sub">Сессия №${esc(number)} · ${esc(c.name||'Клиент')}</div></div><button type="button" class="session-ai-clear">Очистить</button></div><div class="session-ai-messages"></div><div class="session-ai-hints"><div class="session-ai-hints-title">Подсказки по этой сессии</div><div class="session-ai-hint-chips"><button type="button" data-session-hint="summary">Итоги сессии</button><button type="button" data-session-hint="questions">Что уточнить</button><button type="button" data-session-hint="next">Следующие шаги</button><button type="button" data-session-hint="gaps">Что упущено</button></div></div><div class="session-ai-materials-note">Тексты этой сессии передаются ИИ. Обработка фото требует поддержки на сервере; её результат будет указан ниже. Материалы отправляются в подключённый ИИ-сервис.</div><div class="session-ai-tools"><div class="session-ai-mode"><button type="button" data-mode="short">Кратко</button><button type="button" data-mode="deep">Глубоко</button></div></div><div class="session-ai-compose"><input class="session-ai-input" type="text" placeholder="Спроси ИИ по этой сессии…"><button class="session-ai-send" type="button">➤</button></div><div class="session-ai-status"></div>`;
+    box.innerHTML=`<div class="session-ai-head"><span class="session-ai-icon" aria-hidden="true"></span><div class="session-ai-head-text"><div class="session-ai-title">ИИ помощник по сессии</div><div class="session-ai-sub">Сессия №${esc(number)} · ${esc(c.name||'Клиент')}</div></div><button type="button" class="session-ai-expand" aria-pressed="false" title="Развернуть ИИ-помощник на весь экран">⛶ На весь экран</button><button type="button" class="session-ai-clear">Очистить</button></div><div class="session-ai-messages"></div><div class="session-ai-hints"><div class="session-ai-hints-title">Подсказки по этой сессии</div><div class="session-ai-hint-chips"><button type="button" data-session-hint="shortNotes">Короткие итоги → в заметки</button><button type="button" data-session-hint="summary">Подробные итоги</button><button type="button" data-session-hint="questions">Что уточнить</button><button type="button" data-session-hint="next">Следующие шаги</button><button type="button" data-session-hint="gaps">Что упущено</button></div></div><div class="session-ai-materials-note">Тексты этой сессии передаются ИИ. Обработка фото требует поддержки на сервере; её результат будет указан ниже. Материалы отправляются в подключённый ИИ-сервис.</div><div class="session-ai-tools"><div class="session-ai-mode"><button type="button" data-mode="short">Кратко</button><button type="button" data-mode="deep">Глубоко</button></div></div><div class="session-ai-compose"><input class="session-ai-input" type="text" placeholder="Спроси ИИ по этой сессии…"><button class="session-ai-send" type="button">➤</button></div><div class="session-ai-status"></div><button type="button" class="session-ai-to-notes" hidden>↑ К заметкам сессии</button>`;
     card.insertBefore(box,actions);
     updateSessionMode(box);renderSessionChat(box,c,s);
+    const expandButton=box.querySelector('.session-ai-expand');
+    const setFullscreen=expanded=>{
+      dlg.classList.toggle('session-ai-fullscreen',Boolean(expanded));
+      expandButton.textContent=expanded?'↙ Свернуть':'⛶ На весь экран';
+      expandButton.title=expanded?'Вернуться к карточке сессии':'Развернуть ИИ-помощник на весь экран';
+      expandButton.setAttribute('aria-pressed',String(Boolean(expanded)));
+    };
+    expandButton.onclick=()=>setFullscreen(!dlg.classList.contains('session-ai-fullscreen'));
+    dlg.addEventListener('cancel',event=>{
+      if(!dlg.classList.contains('session-ai-fullscreen'))return;
+      event.preventDefault();
+      setFullscreen(false);
+    });
+    dlg.addEventListener('close',()=>setFullscreen(false),{once:true});
     box.querySelectorAll('.session-ai-mode button').forEach(b=>b.onclick=()=>{setMode(b.dataset.mode);setTimeout(()=>{updateSessionMode(box);document.querySelectorAll('.session-ai-box').forEach(updateSessionMode);},0);});
     document.addEventListener('diagnostika-session-ai-mode-changed',()=>updateSessionMode(box),{signal:(()=>{const ctr=new AbortController();dlg.addEventListener('close',()=>ctr.abort(),{once:true});return ctr.signal;})()});
     const status=box.querySelector('.session-ai-status'),input=box.querySelector('.session-ai-input'),sendBtn=box.querySelector('.session-ai-send');
     const hintButtons=[...box.querySelectorAll('.session-ai-hint-chips button')];
+    const jumpNotes=box.querySelector('.session-ai-to-notes');
+    jumpNotes.onclick=()=>{
+      setFullscreen(false);
+      const notes=dlg.querySelector('.session-edit-text');
+      notes?.scrollIntoView?.({block:'center',behavior:'smooth'});
+      notes?.focus?.();
+    };
+    const hintLabels={shortNotes:'Короткие итоги сессии',summary:'Подробные итоги сессии',
+      questions:'Что уточнить',next:'Следующие шаги',gaps:'Что упущено'};
     const hintTexts={
+      shortNotes:'Составь очень короткую памятку по проведённой сессии, пригодную для поля «Заметки по сессии». Ровно 3 строки: «Обсудили: ...», «Проведено: ...», «Результат: ...». ВСЁ вместе не более 400 символов. Не используй заголовки, Markdown, общие рассуждения, планы и советы. Только факты из заметок и прикреплённых материалов ИМЕННО этой сессии; если действия или результат не подтверждены, так и напиши «не зафиксировано». Не придумывай выполненные действия. Это итог для профессиональной карточки, не анализ.',
       summary:'Кратко и по фактам: что было проведено на этой сессии? Используй записи и прикреплённые файлы именно этой сессии. Отдельно укажи, что обсуждали, какие действия специалиста подтверждены, и какой результат зафиксирован. Ничего не додумывай.',
       questions:'Какие конкретные уточняющие вопросы по этой сессии стоит задать клиенту? Опирайся на её заметки и вложения; укажи, что требует проверки.',
       next:'Какие обоснованные следующие шаги можно предложить после этой сессии? Отделяй сделанное от предложений на будущую встречу.',
@@ -245,29 +288,57 @@
     };
     let sending=false;
     const setStatus=(text,kind='')=>{status.textContent=text||'';status.className=`session-ai-status ${kind}`.trim();};
-    const send=async()=>{
-      const message=input.value.trim();if(!message||sending)return;input.value='';
+    const saveShortNotes=answer=>{
+      const helper=window.DiagnostikaSessionShortSummary;
+      const short=helper?.normalize?.(answer)||'';
+      if(!short)throw new Error('ИИ не сформировал короткие итоги.');
+      const notes=dlg.querySelector('.session-edit-text');
+      if(!notes)throw new Error('Не найдено поле заметок сессии.');
+      const merged=helper.merge(notes.value,s.aiShortSummary||'',short);
+      const service=window.DiagnostikaSessions?.moduleAware===true?window.DiagnostikaSessions:null;
+      const saved=service?.update?.(s.id,{notes:merged,aiShortSummary:short},{
+        client:c,source:'session-ai-short-summary-save',render:false
+      });
+      // Keep the draft visible even on failed persistence; the user can
+      // save the session manually instead of losing the generated text.
+      notes.value=merged;
+      if(!saved)throw new Error('Короткие итоги перенесены в поле заметок, но не сохранены. Проверь хранилище и нажми «Сохранить».');
+      jumpNotes.hidden=false;
+      return short;
+    };
+    const send=async(kind='')=>{
+      const fromHint=Boolean(hintTexts[kind]);
+      const message=(fromHint?hintTexts[kind]:input.value).trim();
+      if(!message||sending)return;
+      input.value='';
       const api=window.DiagnostikaAI;
-      const addedUser=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'user',text:message,createdAt:Date.now()},{client:c,source:'session-ai-chat-user'});
+      const userText=fromHint?hintLabels[kind]:message;
+      const addedUser=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'user',text:userText,createdAt:Date.now()},{client:c,source:'session-ai-chat-user'});
       if(!addedUser){setStatus('Не удалось сохранить сообщение сессии.','error');return;}
       renderSessionChat(box,c,s);
       sending=true;input.disabled=true;sendBtn.disabled=true;hintButtons.forEach(btn=>btn.disabled=true);
       setStatus('ИИ изучает материалы этой сессии…','busy');
       try{
         const result=await ask(c,s,dlg,number,message,text=>setStatus(text,'busy'));
-        const addedAssistant=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'assistant',text:result.text,createdAt:Date.now()},{client:c,source:'session-ai-chat-assistant'});
+        const answer=kind==='shortNotes'
+          ?window.DiagnostikaSessionShortSummary?.normalize?.(result.text)||result.text
+          :result.text;
+        const addedAssistant=api?.appendSessionMessage?.(s.id,{id:uid('session-chat'),role:'assistant',text:answer,createdAt:Date.now()},{client:c,source:'session-ai-chat-assistant'});
         if(!addedAssistant)throw new Error('Не удалось сохранить ответ ИИ по сессии.');
         renderSessionChat(box,c,s);scrollLastAnswerToStart(box);
-        setStatus(result.notice||'',result.notice?.includes('не подтвердил')?'warning':'');
+        if(kind==='shortNotes'){
+          saveShortNotes(answer);
+          setStatus('Короткие итоги добавлены в заметки по сессии и сохранены.'+
+            (result.notice?' '+result.notice:''),result.notice?.includes('не подтвердил')?'warning':'');
+        }else setStatus(result.notice||'',result.notice?.includes('не подтвердил')?'warning':'');
       }catch(err){console.warn('Session AI chat failed',err);setStatus(err?.message||'Не удалось получить ответ ИИ.','error');}
       finally{sending=false;input.disabled=false;sendBtn.disabled=false;hintButtons.forEach(btn=>btn.disabled=false);input.focus();}
     };
     hintButtons.forEach(btn=>btn.onclick=()=>{
       if(sending)return;
-      input.value=hintTexts[btn.dataset.sessionHint]||'';
-      send();
+      send(btn.dataset.sessionHint);
     });
-    sendBtn.onclick=send;input.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}};
+    sendBtn.onclick=()=>send();input.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}};
     box.querySelector('.session-ai-clear').onclick=()=>{
       const hist=sessionChat(s,c);if(!hist.length)return;
       if(!confirm(`Очистить переписку ИИ помощника по сессии №${number}?`))return;
