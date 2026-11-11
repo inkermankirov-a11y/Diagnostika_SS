@@ -9,5 +9,5 @@
 .session-format-chip.in-person{background:#eef7f1;border-color:#cfe3d5;color:#4f705a}
 .session-format-chip.in-person::before{color:#6d9b78}
 .session-format-chip.zoom,.session-format-chip.google-meet,.session-format-chip.yandex-telemost{background:#eef4fb;border-color:#cbd9ea;color:#4d6684}
-.session-format-chip.telegram,.session-format-chip.whatsapp,.session-format-chip.max{background:#f2f5fb;border-color:#d4dbea;color:#586981}
+.session-format-chip.telegram,.session-format-chip.vk,.session-format-chip.whatsapp,.session-format-chip.max{background:#f2f5fb;border-color:#d4dbea;color:#586981}
 @media(max-width:700px){.session-format-field{grid-template-columns:1fr}.session-format-other{grid-column:1}.session-edit-grid-with-format{grid-template-columns:1fr}.session-format-field{grid-column:1}}
