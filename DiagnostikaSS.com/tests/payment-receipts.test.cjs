@@ -111,6 +111,15 @@ test('receipt in installment linked to a session points to the same payment reco
   assert.equal(without.sessionId,'s2');
 });
 
+test('switching to per-session mode never attaches an obsolete installment receipt',()=>{
+  const h=makeHarness();
+  const request=h.client.requests[0];
+  request.payment.mode='session';
+  const ref=h.api.sessionRef(h.client,h.client.sessions[0],request);
+  assert.equal(ref.kind,'session');
+  assert.equal(ref.sessionId,'s1');
+});
+
 test('file receipt uses separate FileService storage and metadata in payment record',async()=>{
   const h=makeHarness();
   const ref=h.api.requestRef(h.client,h.client.requests[0],h.client.requests[0].payment.payments[0]);
@@ -168,6 +177,7 @@ test('both payment lists, session editor and session card expose receipt actions
   assert.match(paymentDialog,/requestRef\(c,r,pay\)/);
   assert.match(paymentDialog,/sessionRef\?\.\(c,x.session,x.request\)/);
   assert.match(sessionEditor,/receipts\.sessionRef\(c,s,linked\)/);
+  assert.match(sessionEditor,/installmentReceipt\.hidden=!(parts&&existing)/);
   assert.match(enhancements,/receipts\.sessionRef\(c,s,r\)/);
   assert.match(consistency,/receipts\.requestRef\(c,x.request,x.pay\)/);
   assert.match(consistency,/receiptApi\.sessionRef\(currentClient\(\),item.session,item.request\)/);
