@@ -68,7 +68,8 @@
     .session-date-payment-wrap>input[type="date"]{width:100%;box-sizing:border-box}
     .session-editor-payment{display:flex;align-items:center;gap:6px;min-height:30px;position:relative;z-index:3;flex-wrap:wrap}
     .session-editor-payment-label{font-size:11px;font-weight:800;color:#475569}
-    .session-editor-payment-receipt{display:inline-flex;align-items:center;min-width:0}
+    .session-editor-payment-receipt,.session-editor-installment-receipt{display:inline-flex;align-items:center;min-width:0}
+    .session-editor-installment-receipt[hidden]{display:none!important}
     .session-editor-payment-state{min-height:28px!important;height:28px!important;padding:3px 9px!important;border-radius:8px!important;font-size:11px!important;font-weight:800!important;white-space:nowrap;pointer-events:auto!important;cursor:pointer!important;position:relative;z-index:4}
     .session-editor-payment-state.unpaid{background:linear-gradient(#ef6a6a,#d94d4d)!important;color:#fff!important;animation:none!important;box-shadow:none!important}
     .session-editor-payment-state.paid{background:linear-gradient(#42ad73,#248d58)!important;color:#fff!important;animation:none!important}
@@ -178,6 +179,10 @@
     dateWrap.appendChild(box);
     const receiptHost=document.createElement('span');receiptHost.className='session-editor-payment-receipt';
     box.appendChild(receiptHost);
+    const installmentReceipt=document.createElement('span');
+    installmentReceipt.className='session-editor-installment-receipt';
+    installmentReceipt.hidden=true;
+    dateWrap.appendChild(installmentReceipt);
     const btn=box.querySelector('.session-editor-payment-state');
     const amountWrap=box.querySelector('.session-editor-payment-amount-wrap');
     const amountInput=box.querySelector('.session-editor-payment-amount');
@@ -194,6 +199,11 @@
       applyButtonState(btn,c,s,preferredId);
       const receipts=window.DiagnostikaPaymentReceipts;
       receipts?.mount?.(receiptHost,receipts.sessionRef(c,s,linked));
+      // Installments hide the session payment status by design, but the
+      // receipt for an installment linked to this session must remain visible.
+      installmentReceipt.hidden=!(parts&&existing);
+      if(parts&&existing)receipts?.mount?.(installmentReceipt,receipts.requestRef(c,linked,existing));
+      else installmentReceipt.replaceChildren();
     }
     requestSelect?.addEventListener('change',render);
     amountInput.addEventListener('input',()=>amountInput.classList.remove('invalid'));
