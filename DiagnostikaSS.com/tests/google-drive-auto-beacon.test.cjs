@@ -11,9 +11,10 @@ const source=fs.readFileSync(path.join(root,'google-drive-sync-safe.js'),'utf8')
 const loader=fs.readFileSync(path.join(root,'google-drive-lazy-loader.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const auth=fs.readFileSync(path.join(root,'google-drive-auth-popup-fix.js'),'utf8');
+const settings=fs.readFileSync(path.join(root,'settings-menu.js'),'utf8');
 
 function harness({validToken=true,connected=true}={}){
-  const callbacks={},listeners={},intervals=[],timers=new Map(),storage=new Map();
+  const callbacks={},listeners={},intervals=[],timers=new Map(),storage=new Map(),syncEvents=[];
   let nextTimer=0;
   const dbState={version:4,clients:[]};
   function node(){
@@ -45,7 +46,8 @@ function harness({validToken=true,connected=true}={}){
   const win={
     DiagnostikaDB:{stateKey:'diagnostika-web-v1',readState:()=>dbState,writeState:()=>true},
     DiagnostikaPlatform:{events:{on:(name,callback)=>{callbacks[name]=callback;}},ready:Promise.resolve()},
-    addEventListener:(name,callback)=>{listeners[name]=callback}
+    addEventListener:(name,callback)=>{listeners[name]=callback},
+    dispatchEvent:event=>{if(event?.type==='diagnostika:google-drive-sync-status')syncEvents.push(event.detail);}
   };
   const document={
     hidden:false,head:{appendChild(){}},
@@ -79,9 +81,10 @@ function harness({validToken=true,connected=true}={}){
     setInterval:(callback,ms)=>{intervals.push({callback,ms});return intervals.length;},
     clearInterval(){},fetch,Headers,AbortController,
     indexedDB:undefined,console:{warn(){},error(){}},Date,Intl,Promise,JSON,Object,
+    CustomEvent:class CustomEvent{constructor(type,options){this.type=type;this.detail=options.detail;}},
     Blob,Map,Set,Math,structuredClone,Worker:function(){}};
   vm.runInNewContext(source,context);
-  return {win,document,card,status,storage,callbacks,listeners,intervals,timers,
+  return {win,document,card,status,storage,callbacks,listeners,intervals,timers,syncEvents,
     get:()=>win.DiagnostikaGoogleDriveSyncStatus.getStatus(),
     async fireScheduled(){
       const first=[...timers.entries()].find(([id,t])=>t.ms>0);
@@ -145,9 +148,35 @@ test('a verified, unchanged cloud database turns indicator green',async()=>{
   assert.match(h.status.textContent,/проверена/);
 });
 
+test('header gear receives exactly the same verified cloud status',async()=>{
+  const h=harness();
+  assert.ok(h.syncEvents.length>0);
+  assert.equal(h.syncEvents.at(-1).state,'pending');
+  h.callbacks['db:written']({key:'diagnostika-web-v1',source:'client-card-save'});
+  assert.equal(h.syncEvents.at(-1).state,'pending');
+  await h.fireScheduled();
+  assert.equal(h.get().state,'synced');
+  assert.equal(h.syncEvents.at(-1).state,'synced');
+  assert.ok(h.syncEvents.at(-1).lastConfirmedAt>0);
+  h.listeners['diagnostika:google-drive-disconnected']();
+  assert.equal(h.syncEvents.at(-1).state,'off');
+});
+
+test('gear holds a colored dot inside its existing icon, without polling',()=>{
+  assert.match(settings,/class="settings-gear" aria-hidden="true">⚙<span class="settings-drive-center"><\/span>/);
+  assert.match(settings,/settings-wrap\[data-drive-state="synced"\] \.settings-drive-center\{background:#27d78a/);
+  assert.match(settings,/settings-wrap\[data-drive-state="working"\]/);
+  assert.match(settings,/settings-wrap\[data-drive-state="pending"\]/);
+  assert.match(settings,/settings-wrap\[data-drive-state="auth"\]/);
+  assert.match(settings,/settings-wrap\[data-drive-state="error"\]/);
+  assert.match(settings,/window\.addEventListener\('diagnostika:google-drive-sync-status'/);
+  assert.match(settings,/displayDriveStatus\(window\.DiagnostikaGoogleDriveSyncStatus\?\.getStatus\?\.\(\)/);
+  assert.match(html,/settings-menu\.js\?v=20261111-gear-indicator-1/);
+});
+
 test('versioned loader and disconnect event are wired',()=>{
-  assert.match(loader,/google-drive-sync-safe\.js\?v=20261111-auto-beacon-1/);
+  assert.match(loader,/google-drive-sync-safe\.js\?v=20261111-gear-indicator-1/);
   assert.match(loader,/google-drive-auth-popup-fix\.js\?v=20261111-auto-beacon-1/);
-  assert.match(html,/google-drive-lazy-loader\.js\?v=20261111-auto-beacon-1/);
+  assert.match(html,/google-drive-lazy-loader\.js\?v=20261111-gear-indicator-1/);
   assert.match(auth,/diagnostika:google-drive-disconnected/);
 });
