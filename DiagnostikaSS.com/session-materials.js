@@ -6,8 +6,8 @@
 
   const TEXT_SUFFIX=/\.(?:txt|md|csv|json|srt|vtt|log|tsv)$/i;
   const TEXT_LIMIT=220000;
-  const AI_FILE_LIMIT=54000;
-  const AI_TOTAL_LIMIT=100000;
+  const AI_FILE_LIMIT=125000;
+  const AI_TOTAL_LIMIT=200000;
   const AI_FILES_LIMIT=12;
   const IMAGE_LIMIT=3;
   const IMAGE_MAX_BYTES=1800000;
@@ -138,9 +138,8 @@
         try{
           const limit=Math.min(AI_FILE_LIMIT,AI_TOTAL_LIMIT-totalText);
           const read=await readText(record,'auto',limit);
-          if(read.possiblyBroken){
-            skipped.push({name,reason:'Возможная ошибка кодировки — проверьте файл вручную'});
-          }
+          if(read.possiblyBroken)skipped.push({name,reason:'Возможная ошибка кодировки — проверьте файл вручную'});
+          if(read.truncated)skipped.push({name,reason:'Текст слишком длинный: для ИИ использована только часть файла'});
           texts.push({name,content:read.text,encoding:read.encoding,
             truncated:read.truncated,source:'Вложение текущей сессии'});
           totalText+=read.text.length;
