@@ -194,7 +194,7 @@
 
     if(item.kind==='session'&&item.session){
       const c=currentClient(),sp=sessionPayment(item.session,c);
-      const next={...sp,paid:false,note:'',receiptUrl:''};
+      const next={...sp,paid:false,note:''};
       delete next.paidAt;delete next.sessionDate;
       return !!paymentWriter()?.replaceSession?.(
         item.session.id,next,{client:c,source:'payment-consistency-session-delete'}
@@ -211,6 +211,17 @@
     const amount=dlg.querySelector('.pce-amount');
     const note=dlg.querySelector('.pce-note');
     const receipt=dlg.querySelector('.pce-receipt');
+    receipt.closest('label').hidden=true;
+    let receiptHost=dlg.querySelector('.payment-receipt-row');
+    if(!receiptHost){
+      receiptHost=document.createElement('div');
+      receiptHost.className='payment-receipt-row';
+      dlg.querySelector('.payment-grid').appendChild(receiptHost);
+    }
+    const receiptApi=window.DiagnostikaPaymentReceipts;
+    receiptApi?.mount?.(receiptHost,item.kind==='request'
+      ?receiptApi.requestRef(currentClient(),item.request,item.pay)
+      :receiptApi.sessionRef(currentClient(),item.session,item.request));
     const context=dlg.querySelector('.pce-context');
 
     context.textContent=`${item.title} · ${item.sub}`;
@@ -231,13 +242,12 @@
       if(value<=0){amount.focus();return;}
       const newDate=date.value||item.date||'';
       const newNote=note.value.trim();
-      const newReceipt=receipt.value.trim();
 
       if(item.kind==='request'){
         const updated=paymentWriter()?.updatePayment?.(
           item.request?.id,
           item.pay?.id,
-          {date:newDate,amount:value,note:newNote,receiptUrl:newReceipt},
+          {date:newDate,amount:value,note:newNote},
           {client:currentClient(),source:'payment-consistency-edit'}
         );
         if(!updated)return;
@@ -251,7 +261,6 @@
             amount:value,
             paidAt:newDate,
             note:newNote,
-            receiptUrl:newReceipt,
             ...(item.request?.id?{requestId:item.request.id}:{})
           },
           {client:c,source:'payment-consistency-session-edit'}
@@ -317,6 +326,13 @@
       row.innerHTML=`<span>${formatRuDate(x.date)}</span><strong>${money(x.amount)} ${x.sym}</strong><div class="wide"><div>${x.title}</div><div class="all-payment-meta">${x.sub}</div></div><button type="button" class="tk-btn pc-edit-payment">Изменить</button>`;
       row.querySelector('.pc-edit-payment').onclick=()=>editPayment(x);
       list.appendChild(row);
+      const receiptHost=document.createElement('div');
+      receiptHost.className='payment-receipt-row';
+      row.appendChild(receiptHost);
+      const receipts=window.DiagnostikaPaymentReceipts;
+      receipts?.mount?.(receiptHost,x.kind==='request'
+        ?receipts.requestRef(c,x.request,x.pay)
+        :receipts.sessionRef(c,x.session,x.request));
     });
   }
 
