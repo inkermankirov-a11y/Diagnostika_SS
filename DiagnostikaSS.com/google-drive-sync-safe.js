@@ -598,10 +598,8 @@
       }else showBeacon('off','Google Drive не подключён');
       return;
     }
-    if(document.hidden){
-      autoSyncPending=true;
-      return;
-    }
+    // Attempt cloud saving even when the tab is in the background.
+    // Browsers can throttle timers, so visibility return also rechecks.
     if(active){
       autoSyncPending=true;
       return;
@@ -629,7 +627,7 @@
       }
     }finally{
       active=false;
-      if(autoSyncPending&&token()&&!document.hidden){
+      if(autoSyncPending&&token()){
         scheduleAutoSync(retry?AUTO_SYNC_RETRY_INTERVAL:AUTO_SYNC_MIN_INTERVAL);
       }
     }
@@ -651,17 +649,19 @@
     });
 
     document.addEventListener('visibilitychange',()=>{
-      if(document.hidden)return;
-      if(token())scheduleAutoSync(autoSyncPending?250:750);
-      else if(rememberedConnection())autoSyncPending=true;
+      if(document.hidden){
+        if(autoSyncPending&&token()&&!active)runAutoSync();
+        return;
+      }
+      scheduleAutoSync(autoSyncPending?250:750);
     });
-    window.addEventListener('focus',()=>{
-      if(token())scheduleAutoSync(500);
-      else if(rememberedConnection())autoSyncPending=true;
-    });
-    window.addEventListener('online',()=>{
-      if(token())scheduleAutoSync(500);
-      else if(rememberedConnection())autoSyncPending=true;
+    window.addEventListener('focus',()=>scheduleAutoSync(500));
+    window.addEventListener('online',()=>scheduleAutoSync(500));
+    window.addEventListener('storage',event=>{
+      // A second tab may write the same local database.
+      if(event.key!==databaseApi()?.stateKey)return;
+      localRevision+=1;
+      scheduleAutoSync(750);
     });
     window.addEventListener('diagnostika:google-drive-auth-restored',()=>{
       autoSyncPending=true;
@@ -681,7 +681,7 @@
 
     clearInterval(autoSyncPollTimer);
     autoSyncPollTimer=setInterval(()=>{
-      if(!document.hidden&&(token()||rememberedConnection()))scheduleAutoSync(0);
+      if(token()||rememberedConnection())scheduleAutoSync(0);
     },AUTO_SYNC_POLL_INTERVAL);
 
     if(token())scheduleAutoSync(2000);
