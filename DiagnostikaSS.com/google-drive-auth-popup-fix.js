@@ -73,6 +73,7 @@
     delStored(FOLDER_KEY);
     delStored(USER_KEY);
     try { localStorage.removeItem(CONNECTED_KEY); } catch {}
+    window.dispatchEvent(new Event('diagnostika:google-drive-disconnected'));
   }
 
   function rememberedConnection() {

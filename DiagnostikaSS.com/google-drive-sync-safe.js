@@ -16,15 +16,19 @@
   const MAX_BACKUPS=20;
   const FETCH_TIMEOUT=45000;
   const MERGE_TIMEOUT=45000;
-  const AUTO_SYNC_DEBOUNCE=5000;
-  const AUTO_SYNC_MIN_INTERVAL=15000;
-  const AUTO_SYNC_POLL_INTERVAL=60000;
+  const AUTO_SYNC_DEBOUNCE=2500;
+  const AUTO_SYNC_MIN_INTERVAL=12000;
+  const AUTO_SYNC_POLL_INTERVAL=180000;
+  const AUTO_SYNC_RETRY_INTERVAL=45000;
   let active=false;
   let autoSyncTimer=null;
   let autoSyncPollTimer=null;
   let autoSyncPending=false;
   let autoSyncBound=false;
   let lastAutoSyncAt=0;
+  let localRevision=0;
+  let lastConfirmedAt=0;
+  let syncState='unknown';
 
   const stamp=()=>new Date().toISOString().replace(/[:.]/g,'-');
   const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
@@ -240,6 +244,32 @@
     return writes;
   }
 
+  async function assertRemoteUnchanged(remote){
+    // Re-check cloud revision immediately before overwriting: another PC may
+    // have saved a newer copy while our merge and backups were in progress.
+    const folders=Array.isArray(remote?.folders)?remote.folders:[];
+    for(const folder of folders){
+      const before=(remote.copies||[]).filter(copy=>String(copy.folder?.id)===String(folder.id));
+      const latest=await listNamedFiles(folder.id,'database.json');
+      if(latest.length!==before.length)throw new Error('Данные Google Drive изменились на другом устройстве. Автосинхронизация повторится после новой сверки.');
+      const previous=new Map(before.map(copy=>[String(copy.file.id),copy.file.modifiedTime||'']));
+      for(const file of latest){
+        if(!previous.has(String(file.id))||previous.get(String(file.id))!==(file.modifiedTime||'')){
+          throw new Error('Данные Google Drive изменились на другом устройстве. Автосинхронизация повторится после новой сверки.');
+        }
+      }
+    }
+  }
+  async function verifyRemoteSaved(expected){
+    // Google write response is not proof of persisted contents. Read the
+    // committed files back before showing a green indicator.
+    const verified=await remoteDatabase();
+    if(!verified.data||!verified.copies?.length
+      ||!verified.copies.every(copy=>equal(copy.data,expected))){
+      throw new Error('Google Drive не подтвердил сохранение всех копий базы. Изменения будут перепроверены.');
+    }
+  }
+
   function currentDatabase(){
     const db=readCanonicalDatabase('google-drive-safe-current');
     if(db&&Array.isArray(db.clients))return db;
@@ -376,7 +406,8 @@
         remoteCopyCount:remote.copies?.length||0,
         folderCount:remote.folders?.length||0,
         accountEmail,
-        unchanged:true
+        unchanged:true,
+        pendingLocalChanges:!equal(currentDatabase(),local)
       };
     }
 
@@ -400,16 +431,40 @@
     const conflicts=[...(remote.cloudConflicts||[]),...(localMerge.conflicts||[])];
     await pause();
 
+    setStatus('Проверяю, не менялась ли база на другом устройстве…');
+    await assertRemoteUnchanged(remote);
     setStatus('Привожу все database.json в Google Drive к одной базе…');
     const remoteWrites=await convergeRemoteCopies(remote,merged);
+    setStatus('Проверяю сохранённые файлы на Google Drive…');
+    await verifyRemoteSaved(merged);
     await pause();
+
+    // A local edit may have occurred during the network/merge operations.
+    // Never overwrite that newer in-memory/local state with the old snapshot.
+    const pendingLocalChanges=!equal(currentDatabase(),local);
+    if(pendingLocalChanges){
+      await setBase(merged);
+      return {
+        merged,conflicts,localCount:local.clients?.length||0,
+        remoteCount:remote.data?.clients?.length||0,
+        remoteCopyCount:remote.copies?.length||0,
+        folderCount:remote.folders?.length||0,
+        remoteWrites,accountEmail,unchanged:false,pendingLocalChanges:true
+      };
+    }
 
     setStatus('Сохраняю объединённую базу на этом ПК…');
     if(!writeCanonicalDatabase(merged,'google-drive-safe-sync'))throw new Error('Объединённая база уже сохранена в Google, но локальную копию сохранить не удалось. Не удаляй резервные копии в Diagnostika/Backups.');
     await setBase(merged);
-    applyDatabaseToRuntime(merged);
+    // setBase() is asynchronous: another local save may have happened
+    // while IndexedDB was being updated. Never apply the older merged
+    // snapshot over those newly saved edits.
+    const laterChanges=!equal(currentDatabase(),merged);
+    if(!laterChanges)applyDatabaseToRuntime(merged);
 
-    setStatus(`Готово: ${merged.clients?.length||0} клиент(ов)`);
+    setStatus(laterChanges
+      ? 'В облаке сохранено; появились новые локальные правки — отправлю их следующим циклом.'
+      : `Готово: ${merged.clients?.length||0} клиент(ов)`);
     cleanupBackups(remote.folder.id);
     return {
       merged,
@@ -420,7 +475,8 @@
       folderCount:remote.folders?.length||0,
       remoteWrites,
       accountEmail,
-      unchanged:false
+      unchanged:false,
+      pendingLocalChanges:laterChanges
     };
   }
 
@@ -444,20 +500,101 @@
     return remote.data;
   }
 
+  // Green is reserved for a confirmed Drive operation, never for connection alone.
+  function ensureBeacon(){
+    const card=document.querySelector('.gdrive-card');
+    const connect=card?.querySelector('.gdrive-connect');
+    if(!connect)return null;
+    let beacon=card.querySelector('.gdrive-beacon');
+    if(!beacon){
+      beacon=document.createElement('span');
+      beacon.className='gdrive-beacon';
+      beacon.setAttribute('role','status');
+      beacon.setAttribute('aria-live','polite');
+      beacon.innerHTML='<span class="gdrive-beacon-dot" aria-hidden="true"></span><span class="gdrive-beacon-label"></span>';
+      connect.insertAdjacentElement('beforebegin',beacon);
+    }
+    let verified=card.querySelector('.gdrive-verified-at');
+    if(!verified){
+      verified=document.createElement('div');
+      verified.className='gdrive-verified-at';
+      card.querySelector('.gdrive-copy')?.appendChild(verified);
+    }
+    return {beacon,verified};
+  }
+  function formatTime(timestamp){
+    return new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit'}).format(new Date(timestamp));
+  }
+  function showBeacon(kind,message=''){
+    syncState=kind;
+    const elements=ensureBeacon();
+    if(!elements)return;
+    const {beacon,verified}=elements;
+    beacon.dataset.state=kind;
+    const labels={synced:'Сохранено',working:'Синхронизация',pending:'Ожидает',auth:'Нужен вход',error:'Ошибка',off:'Не подключено',unknown:'Проверка'};
+    beacon.querySelector('.gdrive-beacon-label').textContent=labels[kind]||labels.unknown;
+    beacon.title=message||beacon.querySelector('.gdrive-beacon-label').textContent;
+    verified.textContent=lastConfirmedAt
+      ? 'Последняя подтверждённая синхронизация: '+formatTime(lastConfirmedAt)
+      : 'Облачное сохранение пока не подтверждено';
+  }
   function autoStatus(text){
     const status=document.querySelector('.gdrive-card .gdrive-status');
     if(status)status.textContent=text;
   }
-
-  function scheduleAutoSync(delay=AUTO_SYNC_DEBOUNCE){
-    if(!token()){
-      if(rememberedConnection())autoSyncPending=true;
+  function publishStatus(kind,message){
+    showBeacon(kind,message);
+    autoStatus(message);
+    if(kind==='auth'&&rememberedConnection()){
+      const connect=document.querySelector('.gdrive-card .gdrive-connect');
+      if(connect&&!connect.disabled)connect.textContent='Восстановить Google Drive';
+    }
+  }
+  function confirmSync(result){
+    if(result?.pendingLocalChanges){
+      autoSyncPending=true;
+      publishStatus('pending','Google Drive: появились новые изменения, отправляю следующим циклом.');
       return;
     }
+    lastConfirmedAt=Date.now();
+    publishStatus('synced',result?.unchanged
+      ? 'Google Drive: база проверена, новых изменений нет · '+formatTime(lastConfirmedAt)
+      : 'Google Drive: изменения записаны и проверены · '+formatTime(lastConfirmedAt));
+  }
+
+  const beaconCss=document.createElement('style');
+  beaconCss.textContent=[
+    '.gdrive-beacon{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;padding:7px 8px;border:1px solid #d9e4eb;border-radius:9px;background:#f5f8fa;font-size:10px;font-weight:800;color:#627487;white-space:nowrap}',
+    '.gdrive-beacon-dot{display:inline-block;flex:0 0 11px;width:11px;height:11px;border-radius:50%;background:#98a9b6;box-shadow:0 0 0 3px rgba(152,169,182,.13)}',
+    '.gdrive-beacon[data-state="synced"]{background:#eff9f3;border-color:#bfe5d0;color:#24744b}',
+    '.gdrive-beacon[data-state="synced"] .gdrive-beacon-dot{background:#27b576;box-shadow:0 0 0 3px rgba(39,181,118,.17)}',
+    '.gdrive-beacon[data-state="working"],.gdrive-beacon[data-state="pending"]{background:#fff8eb;border-color:#f3dca4;color:#996412}',
+    '.gdrive-beacon[data-state="working"] .gdrive-beacon-dot,.gdrive-beacon[data-state="pending"] .gdrive-beacon-dot{background:#e6a333;box-shadow:0 0 0 3px rgba(230,163,51,.15)}',
+    '.gdrive-beacon[data-state="working"] .gdrive-beacon-dot{animation:gdrive-beacon-pulse 1.25s ease-in-out infinite}',
+    '.gdrive-beacon[data-state="error"],.gdrive-beacon[data-state="auth"]{background:#fff1f0;border-color:#f1c3bd;color:#ae4337}',
+    '.gdrive-beacon[data-state="error"] .gdrive-beacon-dot,.gdrive-beacon[data-state="auth"] .gdrive-beacon-dot{background:#de5a4e;box-shadow:0 0 0 3px rgba(222,90,78,.14)}',
+    '.gdrive-verified-at{font-size:10px;line-height:1.35;color:#7b8fa3;margin-top:4px}',
+    '@keyframes gdrive-beacon-pulse{50%{opacity:.35;transform:scale(.76)}}',
+    '@media(max-width:700px){.gdrive-main-row{flex-wrap:wrap}.gdrive-beacon{margin-left:auto}.gdrive-main-row .gdrive-connect{flex:0 0 auto;width:auto}}',
+    '@media(prefers-reduced-motion:reduce){.gdrive-beacon-dot{animation:none!important}}'
+  ].join('');
+  document.head.appendChild(beaconCss);
+
+  function scheduleAutoSync(delay=AUTO_SYNC_DEBOUNCE){
     autoSyncPending=true;
+    if(!token()){
+      if(rememberedConnection()){
+        publishStatus('auth','Google Drive: доступ истёк. Нажмите «Восстановить Google Drive» для продолжения автоматического сохранения.');
+      }else{
+        showBeacon('off','Google Drive не подключён');
+      }
+      return;
+    }
+    if(active)return;
     clearTimeout(autoSyncTimer);
     const sinceLast=Date.now()-lastAutoSyncAt;
     const wait=Math.max(delay,AUTO_SYNC_MIN_INTERVAL-Math.max(0,sinceLast));
+    publishStatus('pending','Google Drive: изменения ожидают автоматического сохранения.');
     autoSyncTimer=setTimeout(runAutoSync,Math.max(0,wait));
   }
 
@@ -465,33 +602,44 @@
     clearTimeout(autoSyncTimer);
     autoSyncTimer=null;
     if(!token()){
-      if(rememberedConnection())autoSyncPending=true;
+      if(rememberedConnection()){
+        autoSyncPending=true;
+        publishStatus('auth','Google Drive: доступ истёк. Нажмите «Восстановить Google Drive».');
+      }else showBeacon('off','Google Drive не подключён');
       return;
     }
-    if(document.hidden){
-      autoSyncPending=true;
-      return;
-    }
+    // Attempt cloud saving even when the tab is in the background.
+    // Browsers can throttle timers, so visibility return also rechecks.
     if(active){
-      scheduleAutoSync(15000);
+      autoSyncPending=true;
       return;
     }
 
     active=true;
     autoSyncPending=false;
-    autoStatus('Google Drive: автосинхронизация…');
+    const startedAtRevision=localRevision;
+    publishStatus('working','Google Drive: автоматическая синхронизация и проверка данных…');
+    let retry=false;
     try{
       const result=await safeSync(text=>autoStatus('Google Drive: '+text));
       lastAutoSyncAt=Date.now();
-      autoStatus(result.unchanged
-        ? 'Google Drive: синхронизировано · изменений нет'
-        : 'Google Drive: автосинхронизация завершена');
+      // A save during upload is a NEW pending change, not a completed sync.
+      if(startedAtRevision!==localRevision)result.pendingLocalChanges=true;
+      confirmSync(result);
     }catch(error){
-      console.warn('[Google Drive auto sync]',error);
-      autoStatus('Google Drive: автосинхронизация не выполнена · '+(error?.message||String(error)));
+      retry=true;
+      autoSyncPending=true;
+      console.warn('[Google Drive auto sync]',error?.name||'Error',error?.message||'');
+      if(!token()){
+        publishStatus('auth','Google Drive: требуется восстановить доступ. Нажмите «Восстановить Google Drive».');
+      }else{
+        publishStatus('error','Google Drive: данные не подтверждены. '+(error?.message||'Повторная попытка через 45 секунд.'));
+      }
     }finally{
       active=false;
-      if(autoSyncPending)scheduleAutoSync(15000);
+      if(autoSyncPending&&token()){
+        scheduleAutoSync(retry?AUTO_SYNC_RETRY_INTERVAL:AUTO_SYNC_MIN_INTERVAL);
+      }
     }
   }
 
@@ -506,33 +654,49 @@
       if(detail?.key!==db?.stateKey)return;
       const source=String(detail?.source||'');
       if(source.startsWith('google-drive-'))return;
+      localRevision+=1;
       scheduleAutoSync();
     });
 
     document.addEventListener('visibilitychange',()=>{
-      if(document.hidden)return;
-      if(token())scheduleAutoSync(autoSyncPending?250:750);
-      else if(rememberedConnection())autoSyncPending=true;
+      if(document.hidden){
+        if(autoSyncPending&&token()&&!active)runAutoSync();
+        return;
+      }
+      scheduleAutoSync(autoSyncPending?250:750);
     });
-    window.addEventListener('focus',()=>{
-      if(token())scheduleAutoSync(500);
-      else if(rememberedConnection())autoSyncPending=true;
-    });
-    window.addEventListener('online',()=>{
-      if(token())scheduleAutoSync(500);
-      else if(rememberedConnection())autoSyncPending=true;
+    window.addEventListener('focus',()=>scheduleAutoSync(500));
+    window.addEventListener('online',()=>scheduleAutoSync(500));
+    window.addEventListener('storage',event=>{
+      // A second tab may write the same local database.
+      if(event.key!==databaseApi()?.stateKey)return;
+      localRevision+=1;
+      scheduleAutoSync(750);
     });
     window.addEventListener('diagnostika:google-drive-auth-restored',()=>{
       autoSyncPending=true;
       scheduleAutoSync(100);
     });
 
+    window.addEventListener('offline',()=>{
+      if(rememberedConnection())publishStatus('error','Google Drive: нет подключения к интернету. Данные остаются локально, отправка возобновится после подключения.');
+    });
+    window.addEventListener('diagnostika:google-drive-disconnected',()=>{
+      clearTimeout(autoSyncTimer);
+      autoSyncTimer=null;
+      autoSyncPending=false;
+      lastConfirmedAt=0;
+      publishStatus('off','Google Drive отключён.');
+    });
+
     clearInterval(autoSyncPollTimer);
     autoSyncPollTimer=setInterval(()=>{
-      if(!document.hidden&&(token()||rememberedConnection()))scheduleAutoSync(0);
+      if(token()||rememberedConnection())scheduleAutoSync(0);
     },AUTO_SYNC_POLL_INTERVAL);
 
-    if(token())scheduleAutoSync(5000);
+    if(token())scheduleAutoSync(2000);
+    else if(rememberedConnection())publishStatus('auth','Google Drive: нужно восстановить доступ для автоматической синхронизации.');
+    else showBeacon('off','Google Drive не подключён');
     return true;
   }
 
@@ -546,12 +710,19 @@
 
     const status=card.querySelector('.gdrive-status');
     const connect=card.querySelector('.gdrive-connect');
+    ensureBeacon();
+    if(token())showBeacon(syncState==='pending'?'pending':'unknown',autoSyncPending?'Google Drive: ожидается автоматическая синхронизация.':'Google Drive: проверяю актуальность сохранённой базы.');
+    else if(rememberedConnection())showBeacon('auth','Google Drive: доступ истёк, нажмите «Восстановить Google Drive».');
+    else showBeacon('off','Google Drive не подключён.');
     const sync=oldSync.cloneNode(true);
     const restore=oldRestore.cloneNode(true);
     oldSync.replaceWith(sync);
     oldRestore.replaceWith(restore);
 
-    const setStatus=text=>{if(status)status.textContent=text;};
+    const setStatus=text=>{
+      if(status)status.textContent=text;
+      if(syncState!=='working')showBeacon('working',text);
+    };
     const busy=value=>{
       active=value;
       sync.disabled=value;
@@ -570,9 +741,14 @@
 
       const oldText=sync.textContent;
       busy(true);
+      publishStatus('working','Google Drive: ручная синхронизация…');
       sync.textContent='Синхронизирую…';
+      const startedAtRevision=localRevision;
       try{
         const result=await safeSync(setStatus);
+        if(startedAtRevision!==localRevision)result.pendingLocalChanges=true;
+        lastAutoSyncAt=Date.now();
+        confirmSync(result);
         const accountLine=result.accountEmail?`Google аккаунт: ${result.accountEmail}\n`:'';
         const copiesLine=(result.folderCount>1||result.remoteCopyCount>1)
           ? `\nНайдено папок Diagnostika: ${result.folderCount}.\nНайдено database.json: ${result.remoteCopyCount}.\nВсе найденные облачные копии объединены и приведены к одной базе.`
@@ -584,11 +760,12 @@
           'Синхронизация завершена'
         );
       }catch(error){
-        setStatus(error.message||'Ошибка синхронизации');
+        publishStatus(token()?'error':'auth','Google Drive: '+(error?.message||'Ошибка синхронизации'));
         await notify(error.message||String(error),'Ошибка синхронизации');
       }finally{
         sync.textContent=oldText;
         busy(false);
+        if(autoSyncPending)scheduleAutoSync(AUTO_SYNC_MIN_INTERVAL);
       }
     });
 
@@ -603,24 +780,33 @@
 
       const oldText=restore.textContent;
       busy(true);
+      publishStatus('working','Google Drive: восстанавливаю облачную копию…');
       restore.textContent='Восстанавливаю…';
       try{
         const db=await safeRestore(setStatus);
+        lastAutoSyncAt=Date.now();
+        confirmSync({unchanged:true,pendingLocalChanges:false});
         await notify(`Восстановлено клиентов: ${db.clients?.length||0}. Локальная версия до восстановления сохранена в Backups. Перезагрузка страницы не требуется.`,'Готово');
       }catch(error){
-        setStatus(error.message||'Ошибка восстановления');
+        publishStatus(token()?'error':'auth','Google Drive: '+(error?.message||'Ошибка восстановления'));
         await notify(error.message||String(error),'Ошибка восстановления');
       }finally{
         restore.textContent=oldText;
         busy(false);
+        if(autoSyncPending)scheduleAutoSync(AUTO_SYNC_MIN_INTERVAL);
       }
     });
 
     const note=card.querySelector('.gdrive-note');
-    if(note)note.textContent='Автосинхронизация включена для всех подключённых устройств. После изменений и при возврате в приложение база сверяется с Google Drive; доступ каждого компьютера восстанавливается независимо и подключение другого устройства его не отключает.';
+    if(note)note.textContent='Изменения сохраняются в браузере и отправляются на Google Drive автоматически после редактирования. Каждые 3 минуты при открытом приложении выполняется контрольная сверка. Зелёный индикатор означает подтверждённую облачную запись; если Google запросит повторный вход, индикатор это покажет.';
     bindAutoSync();
     return true;
   }
+
+  window.DiagnostikaGoogleDriveSyncStatus=Object.freeze({
+    getStatus:()=>Object.freeze({state:syncState,lastConfirmedAt,pending:autoSyncPending,active}),
+    requestSync:()=>scheduleAutoSync(0)
+  });
 
   bindAutoSync();
   Promise.resolve(window.DiagnostikaPlatform?.ready).then(bindAutoSync).catch(()=>{});
