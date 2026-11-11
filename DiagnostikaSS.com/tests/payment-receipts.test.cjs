@@ -177,7 +177,7 @@ test('both payment lists, session editor and session card expose receipt actions
   assert.match(paymentDialog,/requestRef\(c,r,pay\)/);
   assert.match(paymentDialog,/sessionRef\?\.\(c,x.session,x.request\)/);
   assert.match(sessionEditor,/receipts\.sessionRef\(c,s,linked\)/);
-  assert.match(sessionEditor,/installmentReceipt\.hidden=!(parts&&existing)/);
+  assert.ok(sessionEditor.includes('installmentReceipt.hidden=!(parts&&existing)'));
   assert.match(enhancements,/receipts\.sessionRef\(c,s,r\)/);
   assert.match(consistency,/receipts\.requestRef\(c,x.request,x.pay\)/);
   assert.match(consistency,/receiptApi\.sessionRef\(currentClient\(\),item.session,item.request\)/);
