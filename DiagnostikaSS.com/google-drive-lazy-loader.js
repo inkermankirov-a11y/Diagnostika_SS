@@ -30,7 +30,7 @@
       if (existing) {
         if (existing.dataset.loaded === '1') return resolve();
         existing.addEventListener('load', resolve, { once: true });
-        existing.addEventListener('error', reject, { once: true });
+        existing.addEventListener('error', () => { existing.remove(); reject(new Error(`Не удалось загрузить ${src}`)); }, { once: true });
         return;
       }
       const script = document.createElement('script');
@@ -41,7 +41,7 @@
         script.dataset.loaded = '1';
         resolve();
       };
-      script.onerror = () => reject(new Error(`Не удалось загрузить ${src}`));
+      script.onerror = () => { script.remove(); reject(new Error(`Не удалось загрузить ${src}`)); };
       document.head.appendChild(script);
     });
   }
