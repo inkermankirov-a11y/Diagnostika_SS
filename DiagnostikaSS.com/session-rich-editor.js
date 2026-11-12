@@ -68,9 +68,26 @@ const head=document.createElement('div');head.className='session-rich-head';
 const heading=document.createElement('strong');heading.textContent=title||'Редактор';
 const format=document.createElement('button');format.type='button';format.textContent='Форматирование';format.setAttribute('aria-expanded','false');
 const close=document.createElement('button');close.type='button';close.textContent='Закрыть';
-function exitWithoutApplying(){
-  if(!window.confirm('Закрыть редактор? Несохранённые изменения останутся локальным черновиком для восстановления.'))return;
-  dialog.close();
+let initialHtml='',closing=false;
+const hasChanges=()=>cleanHtml(editor.innerHTML)!==initialHtml;
+async function exitWithoutApplying(){
+  if(closing)return;
+  if(!hasChanges()){
+    draftApi?.clearField(editor);
+    dialog.close();
+    return;
+  }
+  closing=true;
+  try{
+    const choice=window.AppDialog?.savePrompt
+      ?await window.AppDialog.savePrompt('Сохранить изменения в тексте перед закрытием редактора?')
+      :'cancel';
+    if(choice==='save')apply.click();
+    else if(choice==='discard'){
+      draftApi?.clearField(editor);
+      dialog.close();
+    }
+  }finally{closing=false;}
 }
 close.onclick=exitWithoutApplying;
 const controls=document.createElement('div');controls.style.display='flex';controls.style.gap='7px';controls.append(format,close);head.append(heading,controls);
@@ -78,6 +95,7 @@ const tools=document.createElement('div');tools.className='session-rich-tools';t
 const editor=document.createElement('div');editor.className='session-rich-surface';editor.contentEditable='true';editor.spellcheck=true;
 editor.setAttribute('role','textbox');editor.setAttribute('aria-multiline','true');editor.setAttribute('aria-label',title||'Текст');
 editor.innerHTML=html?cleanHtml(html):plainToHtml(textarea.value);
+initialHtml=cleanHtml(editor.innerHTML);
 const draftApi=window.DiagnostikaEditDrafts;
 if(draftApi&&textarea.dataset.editDraftKey){
   draftApi.attach(editor,textarea.dataset.editDraftKey+':fullscreen');
