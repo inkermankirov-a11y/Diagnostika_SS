@@ -385,11 +385,18 @@ function openSessionEditor(c,s,number){
   const actions=document.createElement('div');actions.className='session-edit-actions';
   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Отмена';
   const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='primary';saveBtn.textContent=planned?'Сохранить план':'Сохранить';
-  cancel.onclick=()=>{
-    // Never discard the current dialog unexpectedly. Keep the local drafts,
-    // including rich text, if the user explicitly chooses to close.
-    if(!window.confirm('Закрыть редактор сессии? Несохранённый текст останется в локальном черновике для восстановления.'))return;
-    dlg.close();
+  cancel.onclick=async()=>{
+    const result=window.AppDialog?.savePrompt
+      ?await window.AppDialog.savePrompt('В сессии могут быть несохранённые изменения. Сохранить их перед выходом?')
+      :(window.confirm('Сохранить изменения перед выходом?')?'save':'cancel');
+    if(result==='save'){saveBtn.click();return;}
+    if(result==='discard'){
+      // Explicit discard removes this session's recovery copy.
+      if(drafts){
+        for(const field of [planInput,ta,planInline.view,notesInline.view,...dlg.querySelectorAll('input,textarea,[contenteditable="true"]')])drafts.clearField(field);
+      }
+      dlg.close();
+    }
   };
   saveBtn.onclick=()=>{
     const youtube=normalizeYoutubeUrl(youtubeInput.value);
