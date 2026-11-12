@@ -141,7 +141,7 @@
     }
     for(const [href,marker] of [
       ['home-dashboard.js?v=20261101-consult-stable-4','data-home-dashboard-preload'],
-      ['home-dashboard-sessions.js?v=20261007-reschedule-same-card-1','data-home-dashboard-sessions-preload']
+      ['home-dashboard-sessions.js?v=20261112-compact-session-cards-1','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
       const preload=document.createElement('link');
@@ -192,7 +192,7 @@
         loadHomeWorkspace();
         if(!document.querySelector('script[data-home-dashboard-sessions]')){
           const x=document.createElement('script');
-          x.src='home-dashboard-sessions.js?v=20261007-reschedule-same-card-1';
+          x.src='home-dashboard-sessions.js?v=20261112-compact-session-cards-1';
           x.setAttribute('data-home-dashboard-sessions','1');
           document.body.appendChild(x);
         }
@@ -200,7 +200,7 @@
       document.body.appendChild(s);
     }else if(!document.querySelector('script[data-home-dashboard-sessions]')){
       const x=document.createElement('script');
-      x.src='home-dashboard-sessions.js?v=20261007-reschedule-same-card-1';
+      x.src='home-dashboard-sessions.js?v=20261112-compact-session-cards-1';
       x.setAttribute('data-home-dashboard-sessions','1');
       document.body.appendChild(x);
     }
