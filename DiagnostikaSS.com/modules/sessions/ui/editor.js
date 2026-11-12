@@ -385,19 +385,41 @@ function openSessionEditor(c,s,number){
   const actions=document.createElement('div');actions.className='session-edit-actions';
   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Отмена';
   const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='primary';saveBtn.textContent=planned?'Сохранить план':'Сохранить';
-  cancel.onclick=async()=>{
-    const result=window.AppDialog?.savePrompt
-      ?await window.AppDialog.savePrompt('В сессии могут быть несохранённые изменения. Сохранить их перед выходом?')
-      :(window.confirm('Сохранить изменения перед выходом?')?'save':'cancel');
-    if(result==='save'){saveBtn.click();return;}
-    if(result==='discard'){
-      // Explicit discard removes this session's recovery copy.
-      if(drafts){
-        for(const field of [planInput,ta,planInline.view,notesInline.view,...dlg.querySelectorAll('input,textarea,[contenteditable="true"]')])drafts.clearField(field);
-      }
-      dlg.close();
-    }
+  // Compare the editable form itself rather than draft-storage entries.
+  // Merely focusing/opening a session must not count as a modification.
+  const snapshot=()=>JSON.stringify({
+    date:dateInput.value,requestId:link.value,plan:planInput.value,
+    notes:ta.value,planHtml:planRichHtml,notesHtml:notesRichHtml,
+    youtube:youtubeInput.value,
+    format:dlg.querySelector('.session-format-select')?.value||'',
+    formatOther:dlg.querySelector('.session-format-other')?.value||''
+  });
+  let initialSnapshot=null;
+  let exitInProgress=false;
+  const clearSessionDrafts=()=>{
+    if(!drafts)return;
+    for(const field of [planInput,ta,planInline.view,notesInline.view,
+      ...dlg.querySelectorAll('input,textarea,[contenteditable="true"]')])
+      drafts.clearField(field);
   };
+  const hasUnsavedChanges=()=>initialSnapshot!==null&&snapshot()!==initialSnapshot;
+  const requestClose=async()=>{
+    if(exitInProgress)return;
+    if(!hasUnsavedChanges()){
+      clearSessionDrafts();
+      dlg.close();
+      return;
+    }
+    exitInProgress=true;
+    try{
+      const result=window.AppDialog?.savePrompt
+        ?await window.AppDialog.savePrompt('Сохранить изменения в сессии перед закрытием?')
+        :'cancel';
+      if(result==='save'){saveBtn.click();return;}
+      if(result==='discard'){clearSessionDrafts();dlg.close();}
+    }finally{exitInProgress=false;}
+  };
+  cancel.onclick=requestClose;
   saveBtn.onclick=()=>{
     const youtube=normalizeYoutubeUrl(youtubeInput.value);
     if(youtube===null) return alert('Проверь ссылку: сейчас принимаются ссылки YouTube и youtu.be.');
@@ -427,18 +449,18 @@ function openSessionEditor(c,s,number){
       source:'session-editor-save'
     });
     if(!updated)return alert('Не удалось сохранить сессию.');
-    if(drafts){
-      for(const field of [planInput,ta,planInline.view,notesInline.view])drafts.clearField(field);
-    }
+    clearSessionDrafts();
     dlg.close();
   };
   actions.append(cancel,saveBtn);
   wrap.append(h,plannedBanner,grid,planBlock,notesLabel,notesRichRow,ta,notesInline.view,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
   dlg.dataset.noBackdropClose='1';
-  dlg.addEventListener('cancel',event=>{event.preventDefault();cancel.click();});
+  dlg.addEventListener('cancel',event=>{event.preventDefault();requestClose();});
+  dlg.addEventListener('click',event=>{if(event.target===dlg)requestClose();});
   dlg.addEventListener('close',()=>dlg.remove());
   dlg.showModal();
   document.dispatchEvent(new CustomEvent('diagnostika:session-editor-opened',{
     detail:{client:c,session:s,number,dialog:dlg}
   }));
+  initialSnapshot=snapshot();
 }
