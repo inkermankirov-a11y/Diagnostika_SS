@@ -82,7 +82,7 @@
   // Esc should not silently throw away entered text. Backdrop is handled separately.
   document.addEventListener('cancel',event=>{
     const dlg=event.target;
-    if(!(dlg instanceof HTMLDialogElement)||!dirty(dlg))return;
+    if(!(dlg instanceof HTMLDialogElement)||dlg.classList.contains('session-edit-dialog')||dlg.classList.contains('session-rich-dialog')||!dirty(dlg))return;
     event.preventDefault();
     // Keeping the dialog open is safer than auto-discarding.
     const leave=window.confirm('Есть несохранённый текст. Закрыть окно? Черновик останется в этом браузере и будет предложен при следующем открытии.');
