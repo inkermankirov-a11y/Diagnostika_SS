@@ -67,12 +67,22 @@ const panel=document.createElement('div');panel.className='session-rich-window';
 const head=document.createElement('div');head.className='session-rich-head';
 const heading=document.createElement('strong');heading.textContent=title||'Редактор';
 const format=document.createElement('button');format.type='button';format.textContent='Форматирование';format.setAttribute('aria-expanded','false');
-const close=document.createElement('button');close.type='button';close.textContent='Закрыть';close.onclick=()=>dialog.close();
+const close=document.createElement('button');close.type='button';close.textContent='Закрыть';
+function exitWithoutApplying(){
+  if(!window.confirm('Закрыть редактор? Несохранённые изменения останутся локальным черновиком для восстановления.'))return;
+  dialog.close();
+}
+close.onclick=exitWithoutApplying;
 const controls=document.createElement('div');controls.style.display='flex';controls.style.gap='7px';controls.append(format,close);head.append(heading,controls);
 const tools=document.createElement('div');tools.className='session-rich-tools';tools.hidden=true;
 const editor=document.createElement('div');editor.className='session-rich-surface';editor.contentEditable='true';editor.spellcheck=true;
 editor.setAttribute('role','textbox');editor.setAttribute('aria-multiline','true');editor.setAttribute('aria-label',title||'Текст');
 editor.innerHTML=html?cleanHtml(html):plainToHtml(textarea.value);
+const draftApi=window.DiagnostikaEditDrafts;
+if(draftApi&&textarea.dataset.editDraftKey){
+  draftApi.attach(editor,textarea.dataset.editDraftKey+':fullscreen');
+}
+dialog.dataset.noBackdropClose='1';
 let range=null;
 function remember(){const sel=window.getSelection();if(sel?.rangeCount&&editor.contains(sel.anchorNode))range=sel.getRangeAt(0).cloneRange();}
 editor.addEventListener('keyup',remember);editor.addEventListener('mouseup',remember);
@@ -96,10 +106,10 @@ format.onclick=()=>{tools.hidden=!tools.hidden;format.setAttribute('aria-expande
 const foot=document.createElement('div');foot.className='session-rich-foot';
 const hint=document.createElement('small');hint.textContent='После применения сохрани карточку сессии.';
 const actions=document.createElement('div');actions.style.display='flex';actions.style.gap='8px';
-const cancel=document.createElement('button');cancel.textContent='Отмена';cancel.onclick=()=>dialog.close();
+const cancel=document.createElement('button');cancel.textContent='Отмена';cancel.onclick=exitWithoutApplying;
 const apply=document.createElement('button');apply.textContent='Применить';apply.className='primary';
 apply.onclick=()=>{const html=cleanHtml(editor.innerHTML),preview=document.createElement('div');preview.innerHTML=html;
-const text=toText(preview);textarea.value=text;textarea.dispatchEvent(new Event('input',{bubbles:true}));onApply?.({html,text});dialog.close();};
+const text=toText(preview);textarea.value=text;textarea.dispatchEvent(new Event('input',{bubbles:true}));onApply?.({html,text});draftApi?.clearField(editor);dialog.close();};
 actions.append(cancel,apply);foot.append(hint,actions);
 panel.append(head,tools,editor,foot);dialog.appendChild(panel);document.body.appendChild(dialog);
 dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();editor.focus();return dialog;
