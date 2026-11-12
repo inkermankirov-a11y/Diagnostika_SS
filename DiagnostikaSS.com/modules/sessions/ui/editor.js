@@ -276,7 +276,7 @@ function openSessionEditor(c,s,number){
     if(!helper)return alert('Редактор форматирования ещё загружается.');
     helper.open({title:'План на сессию',textarea:planInput,
       html:planInput.value===planRichBase?planRichHtml:'',
-      onApply:result=>{planRichHtml=result.html;planRichBase=result.text;}
+      onApply:result=>{planRichHtml=result.html;planRichBase=result.text;planInline.assign(result.html,result.text);}
     });
   };
   planRichRow.appendChild(planFull);
@@ -293,10 +293,48 @@ function openSessionEditor(c,s,number){
     if(!helper)return alert('Редактор форматирования ещё загружается.');
     helper.open({title:'Заметки после сессии',textarea:ta,
       html:ta.value===notesRichBase?notesRichHtml:'',
-      onApply:result=>{notesRichHtml=result.html;notesRichBase=result.text;}
+      onApply:result=>{notesRichHtml=result.html;notesRichBase=result.text;notesInline.assign(result.html,result.text);}
     });
   };
   notesRichRow.appendChild(notesFull);
+
+  // The inline field is a rich, editable view of the saved HTML. The original
+  // textarea remains the plain-text persistence fallback for legacy consumers.
+  const richHelper=window.DiagnostikaSessionRichEditor;
+  function createInlineRich(textarea,html,placeholder,onChange){
+    const view=document.createElement('div');
+    view.className='session-rich-inline';
+    view.contentEditable='true';
+    view.spellcheck=true;
+    view.setAttribute('role','textbox');
+    view.setAttribute('aria-multiline','true');
+    view.setAttribute('aria-label',placeholder);
+    view.dataset.placeholder=placeholder;
+    const assign=(value,plain)=>{
+      view.innerHTML=richHelper?.cleanHtml?.(value)||richHelper?.plainToHtml?.(plain)||'';
+    };
+    assign(html,textarea.value);
+    if(richHelper){
+      textarea.classList.add('session-rich-original-input');
+      view.addEventListener('input',()=>{
+        const nextHtml=richHelper.cleanHtml(view.innerHTML);
+        const text=richHelper.toText(view);
+        textarea.value=text;
+        onChange(nextHtml,text);
+      });
+    }else{
+      view.hidden=true;
+    }
+    return {view,assign};
+  }
+  const planInline=createInlineRich(planInput,planRichHtml,'План на сессию',(html,text)=>{
+    planRichHtml=html;planRichBase=text;
+  });
+  const notesInline=createInlineRich(ta,notesRichHtml,'Заметки после сессии',(html,text)=>{
+    notesRichHtml=html;notesRichBase=text;
+  });
+  planInput.insertAdjacentElement('afterend',planInline.view);
+  ta.insertAdjacentElement('afterend',notesInline.view);
 
   const youtubeBlock=document.createElement('div');youtubeBlock.className='session-youtube-editor';
   const youtubeLabel=document.createElement('label');youtubeLabel.textContent='Ссылка на YouTube';
