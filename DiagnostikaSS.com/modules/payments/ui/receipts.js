@@ -142,7 +142,7 @@
     minus.onclick=()=>scale(-.25);plus.onclick=()=>scale(.25);
     reset.onclick=()=>{zoom=1;x=0;y=0;angle=0;transform();};
     rotate.onclick=()=>{angle=(angle+90)%360;transform();};
-    stage.addEventListener('wheel',e=>{if(!img)return;e.preventDefault();scale(e.deltaY<0?.2:-.2);},{passive:false});
+    stage.addEventListener('wheel',e=>{if(!img)return;e.preventDefault();scale(e.deltaY < 0 ? 0.2 : -0.2);},{passive:false});
     stage.addEventListener('pointerdown',e=>{if(!img)return;drag={x:e.clientX-x,y:e.clientY-y};stage.setPointerCapture?.(e.pointerId);});
     stage.addEventListener('pointermove',e=>{if(!drag)return;x=e.clientX-drag.x;y=e.clientY-drag.y;transform();});
     stage.addEventListener('pointerup',()=>drag=null);stage.addEventListener('pointercancel',()=>drag=null);
@@ -242,8 +242,9 @@
     const actions=document.createElement('div');actions.className='payment-receipt-actions';
     const view=document.createElement('button');view.type='button';view.textContent='Открыть чек';
     const download=document.createElement('button');download.type='button';download.textContent='Скачать';
+    const share=document.createElement('button');share.type='button';share.textContent='Скопировать ссылку';
     const remove=document.createElement('button');remove.type='button';remove.textContent='Удалить чек';
-    actions.append(view,download,remove);
+    actions.append(view,download,share,remove);
     const controls=document.createElement('div');controls.className='payment-receipt-controls';
     const fileLabel=document.createElement('label');fileLabel.textContent='Загрузить чек (JPG, PNG, WebP, BMP или PDF; до 15 МБ)';
     const file=document.createElement('input');file.type='file';
@@ -295,6 +296,7 @@
       catch(e){report(e?.message||'Не удалось открыть чек.',true);}
     };
     download.onclick=async()=>{try{await openFile(ref,true,kind);}catch(e){report(e?.message||'Не удалось скачать чек.',true);}};
+    share.onclick=async()=>{try{const item=itemOf(ref,kind);if(!item.url)throw Error('Этот файл есть только в браузере. Для отправки другим людям сначала загрузите его в защищённое облако и укажите доступную HTTPS-ссылку.');await navigator.clipboard.writeText(validateUrl(item.url));report('Ссылка скопирована.');}catch(e){report(e?.message||'Не удалось скопировать ссылку.',true);}};
     dlg.addEventListener('close',()=>dlg.remove(),{once:true});
     refresh();dlg.showModal();paste.focus();return dlg;
   }
