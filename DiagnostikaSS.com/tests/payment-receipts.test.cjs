@@ -199,3 +199,29 @@ test('clipboard paste, file input, link and cache-busting scripts are wired',()=
   assert.match(code,/local\-warning/);
   assert.match(index,/modules\/payments\/ui\/receipts\.js\?v=20261112-dual-receipts-1/);
 });
+
+
+test('issued receipt keeps existing client receipt intact',async()=>{
+  const h=makeHarness();
+  const ref=h.api.requestRef(h.client,h.client.requests[0],h.client.requests[0].payment.payments[0]);
+  await h.api.putFile(ref,new FakeBlob(1200,'image/png','client.png'));
+  const existing=h.api.itemOf(ref).id;
+  await h.api.putFile(ref,new FakeBlob(1300,'image/png','issued.png'),'issued');
+  assert.equal(h.api.itemOf(ref).id,existing);
+  assert.equal(h.api.itemOf(ref,'issued').name,'issued.png');
+  assert.equal(h.files.size,2);
+  assert.equal(h.files.get(h.api.itemOf(ref,'issued').id).sessionId,'receipt:payment:r1:p1:issued');
+  await h.api.erase(ref,'issued');
+  assert.equal(h.api.itemOf(ref).id,existing);
+  assert.equal(h.api.itemOf(ref,'issued').id,'');
+  assert.equal(h.files.size,1);
+});
+
+test('issued link does not overwrite original receipt URL',async()=>{
+  const h=makeHarness();
+  const ref=h.api.requestRef(h.client,h.client.requests[0],h.client.requests[0].payment.payments[1]);
+  await h.api.putLink(ref,'https://example.test/client');
+  await h.api.putLink(ref,'https://example.test/issued','issued');
+  assert.equal(h.api.itemOf(ref).url,'https://example.test/client');
+  assert.equal(h.api.itemOf(ref,'issued').url,'https://example.test/issued');
+});
