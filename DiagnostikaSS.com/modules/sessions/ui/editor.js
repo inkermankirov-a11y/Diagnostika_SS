@@ -334,7 +334,6 @@ function openSessionEditor(c,s,number){
     notesRichHtml=html;notesRichBase=text;
   });
   planInput.insertAdjacentElement('afterend',planInline.view);
-  ta.insertAdjacentElement('afterend',notesInline.view);
 
   const youtubeBlock=document.createElement('div');youtubeBlock.className='session-youtube-editor';
   const youtubeLabel=document.createElement('label');youtubeLabel.textContent='Ссылка на YouTube';
@@ -412,7 +411,7 @@ function openSessionEditor(c,s,number){
     dlg.close();
   };
   actions.append(cancel,saveBtn);
-  wrap.append(h,plannedBanner,grid,planBlock,notesLabel,notesRichRow,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
+  wrap.append(h,plannedBanner,grid,planBlock,notesLabel,notesRichRow,ta,notesInline.view,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
   dlg.addEventListener('close',()=>dlg.remove());
   dlg.showModal();
   document.dispatchEvent(new CustomEvent('diagnostika:session-editor-opened',{
