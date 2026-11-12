@@ -101,6 +101,7 @@ if(draftApi&&textarea.dataset.editDraftKey){
   draftApi.attach(editor,textarea.dataset.editDraftKey+':fullscreen');
 }
 dialog.dataset.noBackdropClose='1';
+dialog.addEventListener('click',event=>{if(event.target===dialog)exitWithoutApplying();});
 dialog.addEventListener('cancel',e=>{e.preventDefault();exitWithoutApplying();});
 let range=null;
 function remember(){const sel=window.getSelection();if(sel?.rangeCount&&editor.contains(sel.anchorNode))range=sel.getRangeAt(0).cloneRange();}
@@ -127,7 +128,7 @@ const hint=document.createElement('small');hint.textContent='После прим
 const actions=document.createElement('div');actions.style.display='flex';actions.style.gap='8px';
 const cancel=document.createElement('button');cancel.textContent='Отмена';cancel.onclick=exitWithoutApplying;
 const apply=document.createElement('button');apply.textContent='Применить';apply.className='primary';
-apply.onclick=()=>{const html=cleanHtml(editor.innerHTML),preview=document.createElement('div');preview.innerHTML=html;
+apply.onclick=()=>{if(!hasChanges()){draftApi?.clearField(editor);dialog.close();return;}const html=cleanHtml(editor.innerHTML),preview=document.createElement('div');preview.innerHTML=html;
 const text=toText(preview);textarea.value=text;textarea.dispatchEvent(new Event('input',{bubbles:true}));onApply?.({html,text});draftApi?.clearField(editor);dialog.close();};
 actions.append(cancel,apply);foot.append(hint,actions);
 panel.append(head,tools,editor,foot);dialog.appendChild(panel);document.body.appendChild(dialog);
