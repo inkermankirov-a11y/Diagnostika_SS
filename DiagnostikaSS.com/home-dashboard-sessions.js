@@ -461,7 +461,7 @@
         :'';
       // A bounded excerpt gives context for older sessions without allowing
       // a long plan or notes to change card height.
-      const excerpt=String(planned?s.plan||'':s.notes||'').replace(/\\s+/g,' ').trim();
+      const excerpt=String(planned?s.plan||'':s.notes||'').replace(/\s+/g,' ').trim();
       const summaryLabel=planned?'ПЛАН':'НА СЕССИИ';
       const summary=excerpt
         ?`<div class="hd-session-snippet" aria-label="${summaryLabel}"><span class="hd-session-snippet-label">${summaryLabel}:</span> <span class="hd-session-snippet-text">${esc(excerpt.slice(0,340))}</span></div>`
