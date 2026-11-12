@@ -83,6 +83,7 @@ if(draftApi&&textarea.dataset.editDraftKey){
   draftApi.attach(editor,textarea.dataset.editDraftKey+':fullscreen');
 }
 dialog.dataset.noBackdropClose='1';
+dialog.addEventListener('cancel',e=>{e.preventDefault();exitWithoutApplying();});
 let range=null;
 function remember(){const sel=window.getSelection();if(sel?.rangeCount&&editor.contains(sel.anchorNode))range=sel.getRangeAt(0).cloneRange();}
 editor.addEventListener('keyup',remember);editor.addEventListener('mouseup',remember);
