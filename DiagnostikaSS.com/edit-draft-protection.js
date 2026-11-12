@@ -44,6 +44,7 @@
     const key=identity(el);if(!key)return;
     known.set(el,key);
     const draft=read(key),current=value(el);
+    if(draft!==null&&draft===current){clear(key);return;}
     if(draft!==null&&draft!==current){
       // Never silently replace saved content with a draft from an earlier edit.
       if(window.confirm('Найден несохранённый черновик этого поля. Восстановить его?')){
@@ -68,6 +69,16 @@
       return !!key&&read(key)!==null;
     });
   }
+  // Intercept ordinary close/cancel controls on other editing dialogs too.
+  document.addEventListener('click',event=>{
+    const button=event.target?.closest?.('button');
+    const dlg=button?.closest?.('dialog');
+    if(!button||!dlg||dlg.classList.contains('session-edit-dialog')||dlg.classList.contains('session-rich-dialog'))return;
+    const label=(button.getAttribute('aria-label')||button.title||button.textContent||'').trim().toLowerCase();
+    if(!/^(?:закрыть|отмена|отменить|×|✕|close|cancel)$/.test(label)||!dirty(dlg))return;
+    event.preventDefault();event.stopImmediatePropagation();
+    if(window.confirm('В этом окне есть несохранённый текст. Закрыть? Локальный черновик останется для восстановления.'))dlg.close();
+  },true);
   // Esc should not silently throw away entered text. Backdrop is handled separately.
   document.addEventListener('cancel',event=>{
     const dlg=event.target;
