@@ -333,6 +333,14 @@ function openSessionEditor(c,s,number){
   const notesInline=createInlineRich(ta,notesRichHtml,'Заметки после сессии',(html,text)=>{
     notesRichHtml=html;notesRichBase=text;
   });
+  const drafts=window.DiagnostikaEditDrafts;
+  const draftPrefix='session:'+String(c.id)+':'+String(s.id)+':';
+  if(drafts){
+    drafts.attach(planInput,draftPrefix+'plan-plain');
+    drafts.attach(ta,draftPrefix+'notes-plain');
+    drafts.attach(planInline.view,draftPrefix+'plan-rich');
+    drafts.attach(notesInline.view,draftPrefix+'notes-rich');
+  }
   planInput.insertAdjacentElement('afterend',planInline.view);
 
   const youtubeBlock=document.createElement('div');youtubeBlock.className='session-youtube-editor';
@@ -377,7 +385,12 @@ function openSessionEditor(c,s,number){
   const actions=document.createElement('div');actions.className='session-edit-actions';
   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Отмена';
   const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='primary';saveBtn.textContent=planned?'Сохранить план':'Сохранить';
-  cancel.onclick=()=>dlg.close();
+  cancel.onclick=()=>{
+    // Never discard the current dialog unexpectedly. Keep the local drafts,
+    // including rich text, if the user explicitly chooses to close.
+    if(!window.confirm('Закрыть редактор сессии? Несохранённый текст останется в локальном черновике для восстановления.'))return;
+    dlg.close();
+  };
   saveBtn.onclick=()=>{
     const youtube=normalizeYoutubeUrl(youtubeInput.value);
     if(youtube===null) return alert('Проверь ссылку: сейчас принимаются ссылки YouTube и youtu.be.');
@@ -407,11 +420,14 @@ function openSessionEditor(c,s,number){
       source:'session-editor-save'
     });
     if(!updated)return alert('Не удалось сохранить сессию.');
-
+    if(drafts){
+      for(const field of [planInput,ta,planInline.view,notesInline.view])drafts.clearField(field);
+    }
     dlg.close();
   };
   actions.append(cancel,saveBtn);
   wrap.append(h,plannedBanner,grid,planBlock,notesLabel,notesRichRow,ta,notesInline.view,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
+  dlg.dataset.noBackdropClose='1';
   dlg.addEventListener('close',()=>dlg.remove());
   dlg.showModal();
   document.dispatchEvent(new CustomEvent('diagnostika:session-editor-opened',{
