@@ -435,6 +435,7 @@ function openSessionEditor(c,s,number){
   actions.append(cancel,saveBtn);
   wrap.append(h,plannedBanner,grid,planBlock,notesLabel,notesRichRow,ta,notesInline.view,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
   dlg.dataset.noBackdropClose='1';
+  dlg.addEventListener('cancel',event=>{event.preventDefault();cancel.click();});
   dlg.addEventListener('close',()=>dlg.remove());
   dlg.showModal();
   document.dispatchEvent(new CustomEvent('diagnostika:session-editor-opened',{
