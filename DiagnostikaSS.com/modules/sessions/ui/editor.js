@@ -267,10 +267,36 @@ function openSessionEditor(c,s,number){
   const planLabel=document.createElement('div');planLabel.className='session-plan-editor-title';planLabel.textContent='ПЛАН НА СЕССИЮ';
   const planInput=document.createElement('textarea');planInput.className='session-plan-editor-text';planInput.value=s.plan||'';planInput.placeholder='Что важно разобрать, какие техники использовать, что проверить, к какому результату прийти…';
   const planHint=document.createElement('div');planHint.className='session-plan-editor-hint';planHint.textContent='Заполни заранее — перед встречей будет видно, с чем работать.';
-  planBlock.append(planLabel,planInput,planHint);
+  let planRichHtml=String(s.planRichHtml||'');
+  let planRichBase=String(s.plan||'');
+  const planRichRow=document.createElement('div');planRichRow.className='session-rich-launch';
+  const planFull=document.createElement('button');planFull.type='button';planFull.textContent='⛶ На весь экран · Форматирование';
+  planFull.onclick=()=>{
+    const helper=window.DiagnostikaSessionRichEditor;
+    if(!helper)return alert('Редактор форматирования ещё загружается.');
+    helper.open({title:'План на сессию',textarea:planInput,
+      html:planInput.value===planRichBase?planRichHtml:'',
+      onApply:result=>{planRichHtml=result.html;planRichBase=result.text;}
+    });
+  };
+  planRichRow.appendChild(planFull);
+  planBlock.append(planLabel,planRichRow,planInput,planHint);
 
   const notesLabel=document.createElement('div');notesLabel.className='session-notes-editor-title';notesLabel.textContent=planned?'ЗАМЕТКИ / ПОСЛЕ СЕССИИ':'ЗАМЕТКИ ПО СЕССИИ';
   const ta=document.createElement('textarea');ta.className='session-edit-text';ta.value=s.notes||'';ta.placeholder='Что делали, результат, заметки';
+  let notesRichHtml=String(s.notesRichHtml||'');
+  let notesRichBase=String(s.notes||'');
+  const notesRichRow=document.createElement('div');notesRichRow.className='session-rich-launch';
+  const notesFull=document.createElement('button');notesFull.type='button';notesFull.textContent='⛶ На весь экран · Форматирование';
+  notesFull.onclick=()=>{
+    const helper=window.DiagnostikaSessionRichEditor;
+    if(!helper)return alert('Редактор форматирования ещё загружается.');
+    helper.open({title:'Заметки после сессии',textarea:ta,
+      html:ta.value===notesRichBase?notesRichHtml:'',
+      onApply:result=>{notesRichHtml=result.html;notesRichBase=result.text;}
+    });
+  };
+  notesRichRow.appendChild(notesFull);
 
   const youtubeBlock=document.createElement('div');youtubeBlock.className='session-youtube-editor';
   const youtubeLabel=document.createElement('label');youtubeLabel.textContent='Ссылка на YouTube';
@@ -329,6 +355,9 @@ function openSessionEditor(c,s,number){
       requestId:link.value,
       notes:ta.value,
       plan:planInput.value,
+      // Discard obsolete formatting if plain text was edited afterwards.
+      notesRichHtml:ta.value===notesRichBase?notesRichHtml:'',
+      planRichHtml:planInput.value===planRichBase?planRichHtml:'',
       youtubeUrl:youtube
     };
     if(formatSelect){
@@ -345,7 +374,7 @@ function openSessionEditor(c,s,number){
     dlg.close();
   };
   actions.append(cancel,saveBtn);
-  wrap.append(h,plannedBanner,grid,planBlock,notesLabel,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
+  wrap.append(h,plannedBanner,grid,planBlock,notesLabel,notesRichRow,ta,youtubeBlock,mediaBlock,localHint,actions);dlg.appendChild(wrap);document.body.appendChild(dlg);
   dlg.addEventListener('close',()=>dlg.remove());
   dlg.showModal();
   document.dispatchEvent(new CustomEvent('diagnostika:session-editor-opened',{
