@@ -197,5 +197,5 @@ test('clipboard paste, file input, link and cache-busting scripts are wired',()=
   assert.match(code,/saveUrl\.onclick=/);
   assert.match(code,/download\.onclick=/);
   assert.match(code,/local\-warning/);
-  assert.match(index,/modules\/payments\/ui\/receipts\.js\?v=20261111-receipts-1/);
+  assert.match(index,/modules\/payments\/ui\/receipts\.js\?v=20261112-dual-receipts-1/);
 });
