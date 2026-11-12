@@ -22,6 +22,12 @@ style.textContent=[
 '.session-rich-surface:focus{box-shadow:0 0 0 2px #b7d9fa}',
 '.session-rich-surface blockquote{border-left:3px solid #8bb7df;background:#f1f7ff;margin:8px 0;padding:7px 12px}',
 '.session-rich-foot small{color:#66819c}',
+'.session-rich-inline{display:block;box-sizing:border-box;width:100%;min-height:116px;max-height:210px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#fffefa;border:1px solid #c7d7e8;border-radius:9px;padding:10px 12px;color:#213954;font:13px/1.5 Arial,sans-serif;cursor:text}',
+'.session-rich-inline:focus{outline:2px solid #90c3f7;outline-offset:1px}',
+'.session-rich-inline:empty::before{content:attr(data-placeholder);color:#93a1b0;pointer-events:none}',
+'.session-rich-inline ul,.session-rich-inline ol{padding-left:25px}',
+'.session-rich-inline blockquote{border-left:3px solid #a4bdd8;padding-left:9px;margin:5px 0}',
+'.session-rich-original-input{display:none!important}',
 '@media(max-width:580px){.session-rich-window{width:98vw;height:96dvh;padding:8px}.session-rich-surface{padding:10px}}'
 ].join('');
 document.head.appendChild(style);
@@ -98,5 +104,5 @@ actions.append(cancel,apply);foot.append(hint,actions);
 panel.append(head,tools,editor,foot);dialog.appendChild(panel);document.body.appendChild(dialog);
 dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();editor.focus();return dialog;
 }
-window.DiagnostikaSessionRichEditor=Object.freeze({open,cleanHtml,plainToHtml});
+window.DiagnostikaSessionRichEditor=Object.freeze({open,cleanHtml,plainToHtml,toText});
 })();
