@@ -448,8 +448,6 @@
       card.classList.toggle('is-planned',planned);
       card.classList.toggle('is-diagnosis',diagnosis);
       card.classList.toggle('is-overdue',overdue);
-      const notes=String(s.notes||'').trim();
-      const plan=String(s.plan||'').trim();
       const req=requestForSession(c,s);
       const showPayment=!planned&&req?.payment?.mode==='session';
       const paid=Boolean(s?.payment?.paid);
@@ -461,9 +459,9 @@
       const plannedActions=planned
         ?`<div class="hd-session-card-actions"><button type="button" class="hd-session-complete-btn">✓ Проведена</button><button type="button" class="hd-session-reschedule-btn">Перенести</button><button type="button" class="hd-session-delete-planned-btn">Удалить</button></div>`
         :'';
-      const bodyHtml=planned
-        ?`<div class="hd-session-plan-label">ПЛАН НА СЕССИЮ</div><div class="hd-session-plan ${plan?'':'empty'}">${plan?esc(plan):'План пока не заполнен — откройте карточку и подготовьте его заранее.'}</div>${plannedActions}`
-        :(notes?`<div class="hd-session-note-label">ЗАМЕТКА</div><div class="hd-session-note">${esc(notes)}</div>`:'<div class="hd-session-note hd-session-note-empty">Заметка не добавлена</div>');
+      // Keep every session collapsed in the client overview. Full plan and notes
+      // remain in the existing session editor, opened on card activation.
+      const bodyHtml=plannedActions;
       card.innerHTML=`
         <div class="hd-session-top">
           <strong>${esc(appointmentTitle(s,number))}</strong>
@@ -587,6 +585,14 @@
     .hd-session-type{border-color:#d7c8f4;background:#f6f0ff;color:#6d49a3;font-weight:800}
     .hd-session-pay{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid transparent;white-space:nowrap}.hd-session-pay.paid{background:#e9f8ef;color:#247a49;border-color:#bfe7ce}.hd-session-pay.unpaid{background:#fdecec;color:#b33a3a;border-color:#f1c3c3}.hd-session-flag{font-size:13px;line-height:1}
     .hd-session-card-actions{display:flex;gap:8px;padding:0 14px 13px}.hd-session-card-actions button{height:34px;border-radius:8px;padding:0 13px;font-size:12px;font-weight:850;cursor:pointer}.hd-session-complete-btn{border:1px solid #8fcca7;background:#eaf8ef;color:#287447}.hd-session-complete-btn:hover{background:#dff3e7}.hd-session-reschedule-btn{border:1px solid #c9d5e4;background:#fff;color:#36546f}.hd-session-reschedule-btn:hover{background:#f2f6fa}.hd-session-delete-planned-btn{border:1px solid #e4aaa2;background:#fff5f4;color:#a63b2c}.hd-session-delete-planned-btn:hover{background:#fde6e3}
+    /* Uniform compact session rows: detail belongs to the session editor only. */
+    .hd-session-card{height:112px!important;min-height:112px!important;max-height:112px!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+    .hd-session-card .hd-session-top{flex:1 1 auto;min-height:0;align-content:center;overflow:hidden;padding:8px 12px;gap:6px 8px}
+    .hd-session-card .hd-session-card-actions{flex:0 0 auto;margin:0;padding:0 12px 8px;gap:6px}
+    .hd-session-card .hd-session-card-actions button{height:25px;padding:0 9px;font-size:11px}
+    .hd-session-card .hd-session-request{max-width:min(100%,390px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hd-session-card .hd-session-note,.hd-session-card .hd-session-plan,.hd-session-card .hd-session-note-label,.hd-session-card .hd-session-plan-label{display:none!important}
+    @media(max-width:600px){.hd-session-card{height:132px!important;min-height:132px!important;max-height:132px!important}.hd-session-card .hd-session-top{padding:7px 10px}.hd-session-card .hd-session-card-actions{padding:0 10px 7px}}
     .hd-session-edit-hint{margin-left:auto;color:#2f70d4;font-size:12px;font-weight:800}.hd-session-note-label,.hd-session-plan-label{padding:11px 14px 0;color:#a17b55;font-size:10px;font-weight:800;letter-spacing:.08em}.hd-session-note,.hd-session-plan{padding:7px 14px 14px;color:#243a58;font-size:13px;line-height:1.45;white-space:pre-wrap}.hd-session-note-empty{color:#9aa9bc;font-style:italic;padding-top:13px}.hd-session-plan-label{color:#976a0a}.hd-session-plan{color:#654c17;font-weight:700}.hd-session-plan.empty{color:#a2854a;font-weight:600;font-style:italic}.hd-sessions-empty{min-height:68px;padding:20px 22px;border:2px dashed #b9cee3;border-radius:12px;text-align:center;color:#4e6482;background:linear-gradient(145deg,#ffffff,#f4f8fc);font-size:14px;line-height:1.45;font-weight:700;display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.96)}
     .hd-session-archive-dialog{border:0;padding:0;background:transparent;max-width:calc(100vw - 20px)}.hd-session-archive-dialog::backdrop{background:rgba(15,23,42,.44);backdrop-filter:blur(5px)}.hd-session-archive-window{width:min(720px,calc(100vw - 24px));max-height:86vh;overflow:auto;background:#f8fafc;border:1px solid #d5dee8;border-radius:14px;box-shadow:0 24px 65px rgba(15,23,42,.28);padding:18px;box-sizing:border-box}.hd-session-archive-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.hd-session-archive-head strong{font-size:19px;color:#26384b}.hd-session-archive-sub{margin-top:3px;font-size:12px;color:#7b8ba0}.hd-session-archive-close{width:36px;height:36px;border-radius:8px!important;padding:0!important}.hd-session-archive-list{display:grid;gap:8px}.hd-session-archive-row{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;padding:11px 12px;border:1px solid #dbe4ed;border-radius:9px;background:#fff;cursor:pointer}.hd-session-archive-row:hover{background:#f8fbff}.hd-session-archive-main{display:grid;gap:3px}.hd-session-archive-main span{font-size:12px;color:#718198}.hd-session-archive-request{font-size:13px;color:#334155}
     @media(max-width:820px){.hd-sessions-section{padding:14px}.hd-sessions-head{align-items:stretch;flex-direction:column}.hd-sessions-actions{width:100%}.hd-sessions-actions button{flex:1}.hd-session-edit-hint{width:100%;margin-left:0}.hd-session-archive-row{grid-template-columns:1fr}.hd-session-pay{justify-self:start}}
