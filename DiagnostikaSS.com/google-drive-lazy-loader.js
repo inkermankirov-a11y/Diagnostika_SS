@@ -6,6 +6,8 @@
 
   let loading = false;
   let loaded = false;
+  let retryTimer = null;
+  let attempts = 0;
   const TOKEN_KEY='diagnostika-google-drive-token-v2';
   const CONNECTED_KEY='diagnostika-google-drive-connected-v1';
   const USER_KEY='diagnostika-google-drive-user-v2';
@@ -52,18 +54,28 @@
     if (loaded || loading) return;
     loading = true;
     try {
-      for (let i = 0; i < 20 && !storageDialogReady(); i += 1) {
-        await new Promise(resolve => setTimeout(resolve, 50));
+      for (let i = 0; i < 100 && !storageDialogReady(); i += 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
-      if (!storageDialogReady()) return;
+      if (!storageDialogReady()) throw new Error('Окно хранилища ещё не готово. Подключение будет повторено.');
 
       await loadScript('google-oauth-config.js?v=20260914-2');
       await loadScript('google-drive-storage.js?v=20261005-no-auto-oauth-1&db=14d');
       await loadScript('google-drive-auth-popup-fix.js?v=20261111-auto-beacon-1');
       await loadScript('google-drive-sync-safe.js?v=20261111-gear-indicator-1');
       loaded = true;
+      clearTimeout(retryTimer);
+      retryTimer = null;
+      attempts = 0;
     } catch (error) {
-      console.error('[Google Drive lazy loader]', error);
+      console.warn('[Google Drive lazy loader]', error?.message || error);
+      if (hasGoogleSession() && attempts < 12 && !retryTimer) {
+        attempts += 1;
+        retryTimer = setTimeout(() => {
+          retryTimer = null;
+          loadGoogleDriveModule();
+        }, Math.min(30000, 1500 * attempts));
+      }
     } finally {
       loading = false;
     }
@@ -78,7 +90,11 @@
 
   function start(){
     bind();
-    if(hasGoogleSession()) setTimeout(loadGoogleDriveModule,250);
+    if(hasGoogleSession()) {
+      // Load on every remembered connection, even when the storage dialog
+      // is created later by another module. Retry instead of giving up.
+      setTimeout(loadGoogleDriveModule,250);
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
