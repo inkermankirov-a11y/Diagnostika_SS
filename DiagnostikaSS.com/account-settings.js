@@ -323,9 +323,9 @@
     citySuggestions.replaceChildren();
     hideCitySuggestions();
     updateCountryCurrencies('');
-    cityInfo.textContent='Город и страна очищены. Выбери новый город и сохрани карточку.';
     updateCityClear();
     cityInput.dispatchEvent(new Event('input',{bubbles:true}));
+    cityInfo.textContent='Город и страна очищены. Выбери новый город и сохрани карточку.';
     cityInput.focus();
   });
   cityInput.addEventListener('keydown',e=>{
