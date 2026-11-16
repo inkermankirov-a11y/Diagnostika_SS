@@ -169,6 +169,8 @@
   let chosenCity=null,cityTimer=null,cityRequest=0;
   // Render city suggestions outside the scrolling settings pane to avoid clipping.
   document.body.appendChild(citySuggestions);
+  // Picker is portaled to body; clicks must not dismiss the settings panel.
+  citySuggestions.addEventListener('click',event=>event.stopPropagation());
   function placeCitySuggestions(){
     if(citySuggestions.hidden)return;
     const rect=cityInput.getBoundingClientRect();
