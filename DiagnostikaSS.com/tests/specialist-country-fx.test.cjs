@@ -7,6 +7,7 @@ const root=path.resolve(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const profile=read('account-settings.js');
 const currency=read('header-utilities.js');
+const global=read('global-currency-country.js');
 const html=read('index.html');
 
 test('specialist keeps separate surname, validated city and country code',()=>{
@@ -19,13 +20,19 @@ test('experience explicitly labeled in specialist summary',()=>{
   assert.match(profile,/years\+' опыта'/);
   assert.match(profile,/profile\.title,expLabel/);
 });
-test('Russian and Georgian currency reference data have independent country caches',()=>{
-  assert.match(currency,/country==='GE'/);
-  assert.match(currency,/nbg\.gov\.ge\/gw\/api\/ct\/monetarypolicy\/currencies\/en\/json/);
-  assert.match(currency,/cbr-xml-daily\.ru\/daily_json\.js/);
-  assert.match(currency,/diagnostika-currency-rates-'\+country/);
-  assert.match(currency,/rate\/quantity/);
-  assert.match(currency,/country!=='RU'&&country!=='GE'/);
+test('global catalog maps country codes to local currency including Eurasian and eurozone examples',()=>{
+  assert.match(global,/restcountries\.com\/v3\.1\/all\?fields=cca2,currencies,name/);
+  for(const item of ['RU:\'RUB\'','GE:\'GEL\'','KZ:\'KZT\'','JP:\'JPY\'','US:\'USD\'','DE:\'EUR\''])
+    assert.ok(global.includes(item),item);
+  assert.match(global,/currencyForCountry/);
+});
+test('official-provider aggregator supports global FX cross rates with attribution and cache isolation',()=>{
+  assert.match(global,/api\.frankfurter\.dev\/v2\/rates\?base=USD&expand=providers/);
+  assert.match(global,/central/);
+  assert.match(global,/RATE_PREFIX\+base/);
+  assert.match(global,/localPerUsd\/perUsd/);
+  assert.match(currency,/service\.currencyForCountry\(country\)/);
+  assert.match(currency,/service\.referenceRates\(base\)/);
 });
 test('new scripts are cache-busted in production HTML',()=>{
   assert.match(html,/account-settings\.js\?v=20261116-specialist-location-1/);
