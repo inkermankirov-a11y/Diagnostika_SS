@@ -374,8 +374,17 @@
     accountsBtn.classList.remove('active');
   }
   function saveCard(){
+    // Never silently erase a typed city that was not selected from the
+    // verified location list, and never change its country by guessing.
+    const typedCity=cityInput.value.trim();
+    const selectedCity=chosenCity?[chosenCity.name,chosenCity.admin1,chosenCity.country].filter(Boolean).join(', '):'';
+    if(typedCity&&typedCity!==selectedCity){
+      window.AppDialog?.alert?.('Выбери город из выпадающего списка. Введённое название пока не привязано к стране и валюте.','Не выбран город');
+      cityInput.focus();
+      return false;
+    }
     // Review editor is a separate draft until its Add action is pressed.
-    if(reviewTextInput.value.trim()){
+    if(reviewTextInput.value.trim()||reviewAuthorInput.value.trim()){
       window.AppDialog?.alert?.('Сначала нажми «Добавить отзыв», чтобы сохранить набранный отзыв.','Несохранённый отзыв');
       return false;
     }
@@ -517,7 +526,7 @@
   photoReplaceBtn.addEventListener('click',e=>{e.stopPropagation();fileInput.click();});
   photoDeleteBtn.addEventListener('click',e=>{
     e.stopPropagation();const profile=getProfile();profile.avatar='';profile.avatarSource='';profile.avatarCrop={x:50,y:50,zoom:1};
-    if(persistProfile(profile,'specialist-profile-avatar-delete'))render();
+    if(persistProfile(profile,'specialist-profile-avatar-delete'))render({preserveDraft:true});
   });
 
   fileInput.addEventListener('change',async()=>{
