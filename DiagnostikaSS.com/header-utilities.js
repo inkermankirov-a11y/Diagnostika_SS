@@ -427,9 +427,12 @@
   }
   currencyBtn.onclick=showConverter;
   window.addEventListener('diagnostika-specialist-profile-change',()=>{
-    if(profileCountry()===rateCountry)return;
+    // The country can stay the same while its selected tender changes.
+    // Reload after any in-flight request, never leave a stale base rate.
     rates=null;rateError='';rateCountry='';
-    loadRates();
+    if(ratesLoading){
+      ratesLoading.finally(()=>{rateCountry='';loadRates();});
+    }else loadRates();
   });
 
   function refreshLanguage(){
