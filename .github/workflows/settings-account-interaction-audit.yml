@@ -1,0 +1,46 @@
+name: Settings and account interaction audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'DiagnostikaSS.com/settings-menu.js'
+      - 'DiagnostikaSS.com/account-settings.js'
+      - 'DiagnostikaSS.com/tests/settings-account-interaction-audit.mjs'
+      - '.github/workflows/settings-account-interaction-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  interaction:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate scripts
+        run: |
+          node --check settings-menu.js
+          node --check account-settings.js
+          node --check tests/settings-account-interaction-audit.mjs
+          node tests/specialist-profile-card-audit.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser-level settings audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8107 --bind 127.0.0.1 >/tmp/settings-audit-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 1
+          node tests/settings-account-interaction-audit.mjs
