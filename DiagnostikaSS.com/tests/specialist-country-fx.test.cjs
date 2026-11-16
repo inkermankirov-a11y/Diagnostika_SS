@@ -15,6 +15,8 @@ test('specialist keeps separate surname, validated city and country code',()=>{
   assert.match(profile,/countryCode:String\(value\?\.countryCode/);
   assert.match(profile,/geocoding-api\.open-meteo\.com\/v1\/search/);
   assert.match(profile,/chosenCity&&cityInput\.value\.trim\(\)/);
+  assert.match(profile,/account-city-clear/);
+  assert.match(profile,/cityRequest\+=1/);
 });
 test('experience explicitly labeled in specialist summary',()=>{
   assert.match(profile,/years\+' опыта'/);
