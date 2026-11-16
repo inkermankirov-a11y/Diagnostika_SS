@@ -61,6 +61,7 @@
     @keyframes settingsDrivePulse{50%{opacity:.55;box-shadow:0 0 0 1px #fff1a9}}
     @media(prefers-reduced-motion:reduce){.settings-wrap[data-drive-state="working"] .settings-drive-center{animation:none}}
     @keyframes settingsGearSpin{to{transform:rotate(360deg)}}
+    .settings-panel-title{display:flex;align-items:center;gap:7px}.settings-panel-title-text{flex:1;min-width:0}.settings-panel-close{width:28px;height:28px;display:grid;place-items:center;flex:0 0 auto;border:1px solid #a9bfd5;border-radius:7px;background:#eef5fc;color:#304e69;font-size:20px;line-height:1;cursor:pointer}.settings-panel-close:hover{background:#dceafb}
     .settings-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30020;width:min(330px,calc(100vw - 18px));padding:9px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;box-shadow:0 18px 45px rgba(15,23,42,.25);display:none}
     .settings-wrap.open .settings-panel{display:grid;gap:7px;animation:settingsPanelIn .14s ease-out}
     @keyframes settingsPanelIn{from{opacity:0;transform:translateY(-5px) scale(.98)}to{opacity:1;transform:none}}
@@ -119,7 +120,7 @@
       <span class="settings-label">Настройки</span>
     </button>
     <div class="settings-panel" id="settingsPanel">
-      <div class="settings-panel-title"><span class="settings-panel-title-icon" aria-hidden="true">⚙</span><span class="settings-panel-title-text">Настройки</span></div>
+      <div class="settings-panel-title"><span class="settings-panel-title-icon" aria-hidden="true">⚙</span><span class="settings-panel-title-text">Настройки</span><button class="settings-panel-close" type="button" aria-label="Закрыть настройки" title="Закрыть настройки">×</button></div>
       <button type="button" class="settings-section-btn settings-accounts-btn"><span>Учетные записи</span><span>›</span></button>
       <button type="button" class="settings-section-btn settings-interface-btn"><span>Настройки интерфейса</span><span class="settings-section-chevron">⌄</span></button>
       <div class="settings-interface-content"></div>
@@ -273,6 +274,7 @@
     if(window.AppDialog?.alert) await AppDialog.alert(t.coming,t.accounts); else alert(t.coming);
   });
   interfaceBtn.addEventListener('click',e=>{e.stopPropagation();toggleInterface();});
+  panel.querySelector('.settings-panel-close')?.addEventListener('click',e=>{e.stopPropagation();requestClose();});
 
   panel.addEventListener('click',e=>{
     e.stopPropagation();
@@ -312,10 +314,15 @@
     interfaceContent,
     applyTheme:theme=>applyDashboardTheme(theme),
     currentTheme:()=>document.documentElement.getAttribute('data-dashboard-theme')||'theme-1',
-    openInterface(){
+    async openInterface(){
+      if(window.DiagnostikaAccountSettings?.isOpen?.()){
+        const guard=window.DiagnostikaAccountSettings;
+        if(await guard.prepareLeave()===false)return false;
+        guard.collapse();
+      }
       interfaceContent.classList.add('open');
       interfaceBtn.classList.add('active');
-      setOpen(true);
+      setOpen(true);return true;
     }
   };
 
