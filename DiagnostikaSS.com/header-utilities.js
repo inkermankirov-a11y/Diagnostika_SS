@@ -348,14 +348,17 @@
         const service=window.DiagnostikaCountryCurrency;
         if(!service)throw Error('Сервис мировых валют не загружен');
         const info=await service.currencyForCountry(country);
-        const base=info.currency;
+        const preferred=String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.currencyCode||'').toUpperCase();
+        const base=info.options.includes(preferred)?preferred:info.currency;
         // Do not reuse old rates from a previously selected country.
         const data=await service.referenceRates(base);
         if(country!==profileCountry())return;
         baseCurrency=base;
         rates=data.rates;
         rateDate=data.date||'';
-        rateSource=data.provider+(data.stale?' · сохранённая копия (курс может быть устаревшим)':'');
+        rateSource=data.provider+' · страна '+info.country+' · базовая валюта '+base+
+          (data.stale?' · сохранённая копия (курс может быть устаревшим)':'')+
+          (data.providers?.length?' · провайдеры: '+data.providers.slice(0,5).join(', '):'');
         if(data.stale)rateError='Сохранённый курс, источник временно недоступен.';
       }catch(error){
         if(country===profileCountry()){
