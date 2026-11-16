@@ -152,8 +152,9 @@
   const cityInfo=content.querySelector('.account-city-info');
   const currencyInput=content.querySelector('.account-currency');
   const currencyInfo=content.querySelector('.account-currency-info');
-  let currencyOptions=[];
+  let currencyOptions=[],currencyRequest=0,currencyTouched=false;
   async function updateCountryCurrencies(code,preferred=''){
+    const request=++currencyRequest;
     const api=window.DiagnostikaCountryCurrency;
     currencyOptions=[];
     currencyInput.replaceChildren();
@@ -162,21 +163,25 @@
     currencyInfo.textContent='Определяю официальную валюту страны…';
     try{
       const info=await api.currencyForCountry(code);
-      if(String(chosenCity?.country_code||'')!==requested)return;
+      if(request!==currencyRequest||String(chosenCity?.country_code||'')!==requested)return;
       currencyOptions=info.options;
       for(const currency of info.options){const option=document.createElement('option');option.value=currency;option.textContent=currency;currencyInput.appendChild(option);}
       currencyInput.value=info.options.includes(preferred)?preferred:info.currency;
       currencyInput.disabled=info.options.length<=1;
       currencyInfo.textContent=info.options.length>1?'У страны несколько валют — выбери подходящую':'Основная валюта: '+currencyInput.value;
-    }catch(error){currencyInput.disabled=true;currencyInfo.textContent=error?.message||'Валюта страны не определена';}
+    }catch(error){if(request===currencyRequest){currencyInput.disabled=true;currencyInfo.textContent=error?.message||'Валюта страны не определена';}}
   }
   let chosenCity=null,cityTimer=null,cityRequest=0;
+  currencyInput.addEventListener('change',()=>{currencyTouched=true;});
+  const settingsWrap=panel.closest('.settings-wrap');
+  const accountVisible=()=>Boolean(settingsWrap?.classList.contains('open')&&content.classList.contains('open'));
   // Render city suggestions outside the scrolling settings pane to avoid clipping.
   document.body.appendChild(citySuggestions);
   // Picker is portaled to body; clicks must not dismiss the settings panel.
   citySuggestions.addEventListener('click',event=>event.stopPropagation());
   function placeCitySuggestions(){
     if(citySuggestions.hidden)return;
+    if(!accountVisible()){hideCitySuggestions();return;}
     const rect=cityInput.getBoundingClientRect();
     const viewportH=window.innerHeight||document.documentElement.clientHeight;
     const below=viewportH-rect.bottom,above=rect.top;
@@ -189,6 +194,13 @@
     citySuggestions.style.bottom=openAbove?Math.round(viewportH-rect.top+4)+'px':'auto';
   }
   function hideCitySuggestions(){citySuggestions.hidden=true;}
+  function stopCitySearch(){
+    clearTimeout(cityTimer);cityRequest+=1;hideCitySuggestions();
+    citySuggestions.replaceChildren();
+  }
+  window.addEventListener('diagnostika:settings-visibility',event=>{
+    if(event.detail?.open===false)stopCitySearch();
+  });
   window.addEventListener('resize',placeCitySuggestions,{passive:true});
   document.addEventListener('scroll',placeCitySuggestions,true);
   document.addEventListener('pointerdown',event=>{
@@ -283,6 +295,7 @@
   }
 
   function renderCityOptions(items){
+    if(!accountVisible()||document.activeElement!==cityInput){hideCitySuggestions();return;}
     citySuggestions.replaceChildren();
     for(const item of items){
       if(!item.name||!item.country_code)continue;
@@ -290,6 +303,8 @@
       b.textContent=[item.name,item.admin1,item.country].filter(Boolean).join(', ');
       b.onclick=()=>{
         chosenCity={name:item.name,admin1:item.admin1||'',country:item.country||'',country_code:item.country_code};
+        stopCitySearch();
+        currencyTouched=false;
         cityInput.value=b.textContent;updateCityClear();cityInfo.textContent='Страна: '+item.country+' ('+item.country_code+')';
         citySuggestions.hidden=true;
         updateCountryCurrencies(chosenCity.country_code);
@@ -316,9 +331,8 @@
   });
   cityClear.addEventListener('click',event=>{
     event.preventDefault();event.stopPropagation();
-    clearTimeout(cityTimer);
-    cityRequest+=1;
-    chosenCity=null;
+    stopCitySearch();
+    chosenCity=null;currencyTouched=false;
     cityInput.value='';
     citySuggestions.replaceChildren();
     hideCitySuggestions();
@@ -329,7 +343,7 @@
     cityInput.focus();
   });
   cityInput.addEventListener('keydown',e=>{
-    if(e.key==='Escape')citySuggestions.hidden=true;
+    if(e.key==='Escape'&&!citySuggestions.hidden){e.preventDefault();e.stopPropagation();hideCitySuggestions();return;}
     if(e.key==='Enter'&&!citySuggestions.hidden){
       const option=citySuggestions.querySelector('button');
       if(option){e.preventDefault();option.click();}
