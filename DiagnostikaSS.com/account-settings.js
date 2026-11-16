@@ -373,6 +373,12 @@
     content.classList.remove('open');
     accountsBtn.classList.remove('active');
   }
+  function clearAccountDrafts(){
+    const recovery=window.DiagnostikaEditDrafts;
+    if(!recovery?.clearField)return;
+    for(const field of content.querySelectorAll('input:not([type="file"]),textarea'))
+      recovery.clearField(field);
+  }
   function saveCard(){
     // Never silently erase a typed city that was not selected from the
     // verified location list, and never change its country by guessing.
@@ -389,6 +395,7 @@
       return false;
     }
     if(!persistProfile(profileFromForm(),'specialist-profile-card-save'))return false;
+    clearAccountDrafts();
     stopCitySearch();
     render();
     saveBtn.textContent=t().saved;
@@ -406,6 +413,7 @@
         :'cancel';
       if(choice==='save')return saveCard();
       if(choice==='discard'){
+        clearAccountDrafts();
         stopCitySearch();
         if(content.contains(document.activeElement))document.activeElement.blur();
         reviewAuthorInput.value='';reviewTextInput.value='';
@@ -447,7 +455,7 @@
     const profile=profileFromForm();
     profile.reviews.push({id:uid(),author:reviewAuthorInput.value.trim(),text,createdAt:Date.now()});
     if(!persistProfile(profile,'specialist-profile-review-add'))return;
-    reviewAuthorInput.value='';reviewTextInput.value='';render();
+    reviewAuthorInput.value='';reviewTextInput.value='';clearAccountDrafts();render();
   });
 
   const dlg=document.createElement('dialog');
@@ -545,7 +553,7 @@
       profile.avatar=cropAvatar(sourceImage,pos);
       profile.avatarSource=sourceData||profile.avatarSource||profile.avatar;
       profile.avatarCrop={x:pos.x,y:pos.y,zoom:pos.zoom};
-      if(persistProfile(profile,'specialist-profile-avatar-save'))render();
+      if(persistProfile(profile,'specialist-profile-avatar-save')){clearAccountDrafts();render();}
     }catch(err){console.warn('Avatar save failed',err);}
     sourceImage=null;sourceData='';dlg.close();
   });
