@@ -393,7 +393,7 @@
         }
       }catch(_){}
     }
-    if(country!==profileCountry()){rateCountry='';rates=null;return;}
+    if(country!==profileCountry()){rateCountry='';rates=null;setTimeout(loadRates,0);return;}
     const main=currencyBtn.querySelector('.hu-main'),sub=currencyBtn.querySelector('.hu-sub');
     main.textContent=rates?.USD?fmt2(rates.USD.rubPerUnit)+' '+(country==='GE'?'₾':'₽'):'—';
     sub.textContent='USD'+(rateError?' · !':'');
