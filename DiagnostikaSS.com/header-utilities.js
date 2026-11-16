@@ -334,11 +334,15 @@
   };
 
   let rates=null,rateDate='',rateSource='',rateCountry='',rateError='';
+  let ratesLoading=false;
   const profileCountry=()=>String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.countryCode||'RU').toUpperCase();
   const baseCode=()=>rateCountry==='GE'?'GEL':'RUB';
   const unitPer=code=>code===baseCode()?1:rates?.[code]?.rubPerUnit;
   const fmt2=n=>Number(n).toLocaleString(lang()==='ru'?'ru-RU':lang(),{minimumFractionDigits:2,maximumFractionDigits:2});
   async function loadRates(){
+    if(ratesLoading)return;
+    ratesLoading=true;
+    try{
     const country=profileCountry();
     rateCountry=country;rates=null;rateDate='';rateError='';
     const cacheKey='diagnostika-currency-rates-'+country;
@@ -389,13 +393,19 @@
         }
       }catch(_){}
     }
-    if(country!==profileCountry())return loadRates();
+    if(country!==profileCountry()){rateCountry='';rates=null;return;}
     const main=currencyBtn.querySelector('.hu-main'),sub=currencyBtn.querySelector('.hu-sub');
     main.textContent=rates?.USD?fmt2(rates.USD.rubPerUnit)+' '+(country==='GE'?'₾':'₽'):'—';
     sub.textContent='USD'+(rateError?' · !':'');
+    }finally{ratesLoading=false;}
   }
   function showConverter(){
-    const t=tr();if(rateCountry!==profileCountry()){rates=null;rateCountry=profileCountry();loadRates().then(()=>{if(!overlay.hidden)showConverter();});}
+    const t=tr();
+    if(rateCountry!==profileCountry()){
+      rates=null;rateError='';
+      openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div>${t.loading}</div>`,'currency');
+      loadRates().then(()=>{if(!overlay.hidden)showConverter();});return;
+    }
     if(!rates){openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div>${rateError||t.loading}</div>`,'currency');if(!rateError)loadRates().then(()=>{if(!overlay.hidden)showConverter();});return;}
     const priority=[baseCode(),'USD','EUR','RUB','GEL','KZT','CNY','GBP','CHF','JPY','TRY'];
     const all=Object.keys(rates).sort((a,b)=>{
