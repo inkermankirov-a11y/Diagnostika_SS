@@ -74,11 +74,38 @@ try{
   assert.equal(await page.locator('.account-city-suggestions').isVisible(),false,
     'Late geocoder response displayed a floating popup on the dashboard');
   assert.equal(await page.locator('.settings-wrap').evaluate(el=>el.classList.contains('open')),false);
+  // Verify real profile saving, clean closing, reload persistence and
+  // guarded navigation between account and interface settings.
+  await page.locator('#settingsMenuBtn').click();
+  await page.locator('.settings-accounts-btn').click();
+  await page.locator('.account-surname').fill('Проверка-сохранения');
+  await page.locator('.account-save').click();
+  await page.waitForFunction(()=>window.DiagnostikaSpecialistProfile?.getProfile?.()?.surname==='Проверка-сохранения',null,{timeout:8000});
+  assert.equal(await page.locator('.settings-account-content.open').count(),1,'Save unexpectedly closed account');
+  await page.locator('#settingsMenuBtn').click();
+  await page.waitForFunction(()=>!document.querySelector('.settings-wrap')?.classList.contains('open'),null,{timeout:6000});
+  assert.equal(await page.locator('.app-message-dialog[open]').count(),0,'Clean form falsely requests saving');
+  await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+  await page.locator('#settingsMenuBtn').waitFor({state:'visible',timeout:20000});
+  await page.locator('#settingsMenuBtn').click();
+  await page.locator('.settings-accounts-btn').click();
+  assert.equal(await page.locator('.account-surname').inputValue(),'Проверка-сохранения','Surname was not saved across page reload');
+  await page.locator('.account-surname').fill('Изменение-без-сохранения');
+  await page.locator('.settings-interface-btn').click();
+  await modal.waitFor({state:'visible',timeout:6000});
+  await modal.locator('.app-message-no').click();
+  assert.equal(await page.locator('.settings-account-content.open').count(),1,'Cancel navigation lost unsaved account');
+  await page.locator('.settings-interface-btn').click();
+  await modal.waitFor({state:'visible',timeout:6000});
+  await modal.locator('.app-message-discard').click();
+  assert.equal(await page.locator('.settings-account-content.open').count(),0,'Approved navigation failed to collapse account');
+  await page.locator('.settings-theme-option[data-theme="theme-3"]').click();
+  assert.equal(await page.evaluate(()=>localStorage.getItem('diagnostika-dashboard-theme')),'theme-3','Theme selection did not persist');
   assert.deepEqual(crashes,[],'Unexpected JS exceptions');
 
   console.log('SETTINGS_ACCOUNT_INTERACTIONS_OK',JSON.stringify({
     movedMouseSafe:true,clickOutsideSafe:true,languageDraftSafe:true,
-    guardedExit:true,discardRestores:true,cityPickerSafe:true,stalePopupPrevented:true
+    guardedExit:true,discardRestores:true,cityPickerSafe:true,stalePopupPrevented:true,profileSavePersisted:true,cleanClose:true,interfaceGuarded:true,themeSaved:true
   }));
 }finally{
   await context.close();
