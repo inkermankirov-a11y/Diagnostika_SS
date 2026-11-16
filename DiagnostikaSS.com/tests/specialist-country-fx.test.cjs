@@ -41,7 +41,7 @@ test('official-provider aggregator supports global FX cross rates with attributi
   assert.match(currency,/rateSource=data\.provider/);
 });
 test('new scripts are cache-busted in production HTML',()=>{
-  assert.match(html,/account-settings\.js\?v=20261116-city-dropdown-fix-1/);
+  assert.match(html,/account-settings\.js\?v=20261116-account-guard-1/);
   assert.match(html,/global-currency-country\.js\?v=20261116-bank-sources-2/);
   assert.match(html,/header-utilities\.js\?v=20261116-global-fx-1/);
 });
