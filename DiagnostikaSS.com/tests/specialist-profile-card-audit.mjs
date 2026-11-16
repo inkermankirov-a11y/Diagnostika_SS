@@ -8,13 +8,16 @@ const index=fs.readFileSync('index.html','utf8');
 new Function(account);
 new Function(transfer);
 
-assert(index.includes('account-settings.js?v=20261003-specialist-card-1'),'Specialist profile cache marker missing');
+assert(index.includes('account-settings.js?v=20261116-specialist-location-1'),'Specialist profile cache marker missing');
 assert(index.includes('modules/clients/ui/transfer.js?v=20261003-specialist-right-rail-4'),'Specialist transfer cache marker missing');
 assert(account.includes('st.specialistProfile=profile'),'Specialist profile is not stored in application state');
 assert(account.includes("save({source:'specialist-profile-migration'})"),'Legacy specialist profile migration is missing');
 assert(account.includes("specialist-profile-card-save"),'Specialist profile save path missing');
 assert(account.includes("account-title"),'Specialist title field missing');
 assert(account.includes("account-experience"),'Specialist experience field missing');
+assert(account.includes('account-surname'),'Specialist surname field missing');
+assert(account.includes('account-city'),'Specialist city field missing');
+assert(account.includes('account-currency'),'Specialist country currency field missing');
 assert(account.includes("account-areas"),'Specialist work areas field missing');
 assert(account.includes("account-about"),'Specialist about field missing');
 assert(account.includes("account-review-add"),'Specialist review editor missing');
