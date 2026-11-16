@@ -94,6 +94,7 @@
     .account-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .account-label{font-size:11.5px;font-weight:900;color:#26384b}
     .account-input,.account-textarea{width:100%;box-sizing:border-box;border:1px solid #b9c9d9;border-radius:9px;background:#fff;padding:0 10px;font-size:12.5px;color:#26384b;outline:none}
+    .account-city-input-wrap{position:relative;min-width:0}.account-city-input-wrap .account-city{padding-right:38px!important}.account-city-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:27px;height:27px;padding:0;border:0;border-radius:7px;background:#e7f0f9;color:#45627b;font-size:21px;line-height:1;font-weight:500;cursor:pointer}.account-city-clear:hover{background:#d6e8fa;color:#193f66}.account-city-clear:focus-visible{outline:2px solid #4e91d7;outline-offset:1px}.account-city-clear[hidden]{display:none!important}
     .account-city-suggestions{position:fixed;z-index:100100;box-sizing:border-box;display:grid;gap:2px;max-height:min(270px,45dvh);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;border:1px solid #8eb8da;border-radius:9px;background:white;box-shadow:0 12px 30px #16375440;padding:4px;min-width:190px}.account-city-suggestions[hidden]{display:none}.account-city-suggestions button{border:0;padding:9px;text-align:left;background:white;color:#244764;cursor:pointer;font-size:12px}.account-city-suggestions button:hover{background:#e8f3ff}.account-city-info{font-size:11px;color:#637a90}.account-input{height:38px}.account-textarea{min-height:72px;padding:9px 10px;resize:vertical;line-height:1.4}
     .account-input:focus,.account-textarea:focus{border-color:#4f8fd8;box-shadow:0 0 0 2px rgba(79,143,216,.13)}
     .account-save{height:38px;border:0;border-radius:9px;background:linear-gradient(#47b47d,#24945f);color:#fff;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 3px 7px rgba(36,148,95,.22)}
@@ -127,7 +128,7 @@
   content.innerHTML = '<div class="specialist-card-title"></div>'
     +'<div class="account-field"><div class="account-label account-name-label"></div><input class="account-input account-name" type="text" autocomplete="name"></div>'
     +'<div class="account-field"><div class="account-label">Фамилия специалиста</div><input class="account-input account-surname" type="text" autocomplete="family-name"></div>'
-    +'<div class="account-field"><div class="account-label">Город специалиста</div><input class="account-input account-city" type="text" autocomplete="off" placeholder="Начни вводить город…"><div class="account-city-suggestions" hidden></div><div class="account-city-info">Выбери город из списка — определяется страна и источник курса валют</div></div>'
+    +'<div class="account-field"><div class="account-label">Город специалиста</div><div class="account-city-input-wrap"><input class="account-input account-city" type="text" autocomplete="off" placeholder="Начни вводить город…"><button class="account-city-clear" type="button" aria-label="Очистить город и страну" title="Очистить город и страну" hidden>×</button></div><div class="account-city-suggestions" hidden></div><div class="account-city-info">Выбери город из списка — определяется страна и источник курса валют</div></div>'
     +'<div class="account-field"><div class="account-label">Валюта страны</div><select class="account-input account-currency" aria-label="Валюта страны"><option value="">Определяется по стране</option></select><div class="account-city-info account-currency-info">При нескольких официальных валютах можно выбрать нужную</div></div>'
     +'<div class="account-field-grid"><div class="account-field"><div class="account-label account-title-label"></div><input class="account-input account-title" type="text"></div><div class="account-field"><div class="account-label account-experience-label"></div><input class="account-input account-experience" type="text"></div></div>'
     +'<div class="account-field"><div class="account-label account-areas-label"></div><textarea class="account-textarea account-areas"></textarea></div>'
@@ -145,6 +146,8 @@
   const titleInput=content.querySelector('.account-title');
   const surnameInput=content.querySelector('.account-surname');
   const cityInput=content.querySelector('.account-city');
+  const cityClear=content.querySelector('.account-city-clear');
+  const updateCityClear=()=>{cityClear.hidden=!cityInput.value.trim();};
   const citySuggestions=content.querySelector('.account-city-suggestions');
   const cityInfo=content.querySelector('.account-city-info');
   const currencyInput=content.querySelector('.account-currency');
@@ -152,8 +155,9 @@
   let currencyOptions=[];
   async function updateCountryCurrencies(code,preferred=''){
     const api=window.DiagnostikaCountryCurrency;
+    currencyOptions=[];
     currencyInput.replaceChildren();
-    if(!api||!code){currencyInput.disabled=true;currencyInfo.textContent='Сначала выбери город';return;}
+    if(!api||!code){const option=document.createElement('option');option.value='';option.textContent='Выберите город';currencyInput.appendChild(option);currencyInput.disabled=true;currencyInfo.textContent='Сначала выбери город';return;}
     const requested=code;
     currencyInfo.textContent='Определяю официальную валюту страны…';
     try{
@@ -251,6 +255,7 @@
     if(document.activeElement!==nameInput)nameInput.value=profile.name;
     if(document.activeElement!==surnameInput)surnameInput.value=profile.surname;
     if(document.activeElement!==cityInput)cityInput.value=[profile.city,profile.region,profile.country].filter(Boolean).join(', ');
+    updateCityClear();
     if(document.activeElement!==cityInput){
       chosenCity=profile.countryCode?{name:profile.city,admin1:profile.region,country:profile.country,country_code:profile.countryCode}:null;
       updateCountryCurrencies(profile.countryCode,profile.currencyCode);
@@ -285,7 +290,7 @@
       b.textContent=[item.name,item.admin1,item.country].filter(Boolean).join(', ');
       b.onclick=()=>{
         chosenCity={name:item.name,admin1:item.admin1||'',country:item.country||'',country_code:item.country_code};
-        cityInput.value=b.textContent;cityInfo.textContent='Страна: '+item.country+' ('+item.country_code+')';
+        cityInput.value=b.textContent;updateCityClear();cityInfo.textContent='Страна: '+item.country+' ('+item.country_code+')';
         citySuggestions.hidden=true;
         updateCountryCurrencies(chosenCity.country_code);
       };
@@ -295,7 +300,7 @@
     placeCitySuggestions();
   }
   cityInput.addEventListener('input',()=>{
-    chosenCity=null;cityInfo.textContent='Выбери точный город из результатов поиска';
+    chosenCity=null;updateCityClear();updateCountryCurrencies('');cityInfo.textContent='Выбери точный город из результатов поиска';
     const value=cityInput.value.trim();clearTimeout(cityTimer);
     cityRequest+=1;const request=cityRequest;
     if(value.length<2){citySuggestions.hidden=true;return;}
@@ -308,6 +313,20 @@
         if(request===cityRequest)renderCityOptions(data.results||[]);
       }catch(_){if(request===cityRequest){citySuggestions.hidden=true;cityInfo.textContent='Список городов временно недоступен';}}
     },350);
+  });
+  cityClear.addEventListener('click',event=>{
+    event.preventDefault();event.stopPropagation();
+    clearTimeout(cityTimer);
+    cityRequest+=1;
+    chosenCity=null;
+    cityInput.value='';
+    citySuggestions.replaceChildren();
+    hideCitySuggestions();
+    updateCountryCurrencies('');
+    cityInfo.textContent='Город и страна очищены. Выбери новый город и сохрани карточку.';
+    updateCityClear();
+    cityInput.dispatchEvent(new Event('input',{bubbles:true}));
+    cityInput.focus();
   });
   cityInput.addEventListener('keydown',e=>{
     if(e.key==='Escape')citySuggestions.hidden=true;
