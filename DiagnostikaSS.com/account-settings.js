@@ -250,7 +250,20 @@
       item.append(author,text,del);reviewList.appendChild(item);
     });
   }
-  function render(){
+  let committedForm=null;
+  function formSignature(){
+    return JSON.stringify({
+      name:nameInput.value.trim(),surname:surnameInput.value.trim(),
+      title:titleInput.value.trim(),experience:experienceInput.value.trim(),
+      areas:normalizeAreas(areasInput.value),about:aboutInput.value.trim(),
+      city:cityInput.value.trim(),countryCode:chosenCity?.country_code||'',
+      currency:currencyTouched?currencyInput.value:null,
+      reviewAuthor:reviewAuthorInput.value.trim(),reviewText:reviewTextInput.value.trim()
+    });
+  }
+  const hasChanges=()=>committedForm!==null&&formSignature()!==committedForm;
+  function render({preserveDraft=false}={}){
+    const keepDraft=preserveDraft&&hasChanges();
     const tr=t(),profile=getProfile();
     paintSummary(profile);
     content.querySelector('.specialist-card-title').textContent=tr.profile;
@@ -264,6 +277,7 @@
     nameInput.placeholder=tr.name;titleInput.placeholder=tr.titlePlaceholder;experienceInput.placeholder=tr.experiencePlaceholder;areasInput.placeholder=tr.areasPlaceholder;aboutInput.placeholder=tr.aboutPlaceholder;
     reviewAuthorInput.placeholder=tr.reviewAuthor;reviewTextInput.placeholder=tr.reviewText;
     photoEditBtn.textContent=tr.photoEdit;photoReplaceBtn.textContent=tr.photoReplace;photoDeleteBtn.textContent=tr.photoDelete;reviewAddBtn.textContent=tr.reviewAdd;saveBtn.textContent=tr.save;
+    if(!keepDraft){
     if(document.activeElement!==nameInput)nameInput.value=profile.name;
     if(document.activeElement!==surnameInput)surnameInput.value=profile.surname;
     if(document.activeElement!==cityInput)cityInput.value=[profile.city,profile.region,profile.country].filter(Boolean).join(', ');
@@ -277,6 +291,9 @@
     if(document.activeElement!==experienceInput)experienceInput.value=profile.experience;
     if(document.activeElement!==areasInput)areasInput.value=profile.areas.join(', ');
     if(document.activeElement!==aboutInput)aboutInput.value=profile.about;
+      currencyTouched=false;
+      committedForm=formSignature();
+    }
     photoEditBtn.disabled=!profile.avatar;photoDeleteBtn.disabled=!profile.avatar;
     renderReviews(profile);
   }
@@ -285,7 +302,8 @@
     profile.name=nameInput.value.trim();profile.surname=surnameInput.value.trim();
     if(chosenCity&&cityInput.value.trim()===[chosenCity.name,chosenCity.admin1,chosenCity.country].filter(Boolean).join(', ')){
       profile.city=chosenCity.name;profile.region=chosenCity.admin1||'';profile.country=chosenCity.country||'';profile.countryCode=chosenCity.country_code||'';
-      profile.currencyCode=currencyOptions.includes(currencyInput.value)?currencyInput.value:'';
+      profile.currencyCode=currencyOptions.includes(currencyInput.value)?currencyInput.value:
+        (chosenCity.country_code===profile.countryCode?profile.currencyCode:'');
     }else if(cityInput.value.trim()!==[profile.city,profile.region,profile.country].filter(Boolean).join(', ')){
       // Never infer a central bank from free-form text.
       profile.city='';profile.region='';profile.country='';profile.countryCode='';profile.currencyCode='';
@@ -350,29 +368,67 @@
     }
   });
 
-  accountsBtn.addEventListener('click',e=>{
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    const open = !content.classList.contains('open');
-    content.classList.toggle('open',open);
-    accountsBtn.classList.toggle('active',open);
-    if(!open)hideCitySuggestions();
-    const interfaceContent = panel.querySelector('.settings-interface-content');
-    const interfaceBtn = panel.querySelector('.settings-interface-btn');
-    if (open){
-      interfaceContent?.classList.remove('open');
-      interfaceBtn?.classList.remove('active');
+  function collapse(){
+    stopCitySearch();
+    content.classList.remove('open');
+    accountsBtn.classList.remove('active');
+  }
+  function saveCard(){
+    // Review editor is a separate draft until its Add action is pressed.
+    if(reviewTextInput.value.trim()){
+      window.AppDialog?.alert?.('Сначала нажми «Добавить отзыв», чтобы сохранить набранный отзыв.','Несохранённый отзыв');
+      return false;
     }
-    render();
-  },true);
-
-  saveBtn.addEventListener('click',e=>{
-    e.stopPropagation();
-    hideCitySuggestions();
-    if(!persistProfile(profileFromForm(),'specialist-profile-card-save'))return;
+    if(!persistProfile(profileFromForm(),'specialist-profile-card-save'))return false;
+    stopCitySearch();
     render();
     saveBtn.textContent=t().saved;
     setTimeout(()=>{saveBtn.textContent=t().save;},900);
+    return true;
+  }
+  let leaving=false;
+  async function prepareLeave(){
+    if(leaving)return false;
+    if(!hasChanges()){stopCitySearch();return true;}
+    leaving=true;
+    try{
+      const choice=window.AppDialog?.savePrompt
+        ?await window.AppDialog.savePrompt('Есть несохранённые изменения в карточке специалиста. Сохранить перед выходом?')
+        :'cancel';
+      if(choice==='save')return saveCard();
+      if(choice==='discard'){
+        stopCitySearch();
+        if(content.contains(document.activeElement))document.activeElement.blur();
+        reviewAuthorInput.value='';reviewTextInput.value='';
+        render();
+        return true;
+      }
+      return false;
+    }finally{leaving=false;}
+  }
+  window.DiagnostikaAccountSettings=Object.freeze({
+    isOpen:()=>content.classList.contains('open'),
+    hasChanges,prepareLeave,collapse
+  });
+  accountsBtn.addEventListener('click',async e=>{
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if(content.classList.contains('open')){
+      if(await prepareLeave()===false)return;
+      collapse();return;
+    }
+    content.classList.add('open');
+    accountsBtn.classList.add('active');
+    const interfaceContent=panel.querySelector('.settings-interface-content');
+    const interfaceBtn=panel.querySelector('.settings-interface-btn');
+    interfaceContent?.classList.remove('open');
+    interfaceBtn?.classList.remove('active');
+    render({preserveDraft:true});
+  },true);
+
+  saveBtn.addEventListener('click',e=>{
+    e.preventDefault();e.stopPropagation();
+    saveCard();
   });
 
   reviewAddBtn.addEventListener('click',e=>{
@@ -503,7 +559,7 @@
   if(document.readyState==='complete') retryMoveFormsButton();
   else window.addEventListener('load',()=>setTimeout(retryMoveFormsButton,0),{once:true});
 
-  window.addEventListener('diagnostika-language-changed',()=>setTimeout(render,0));
+  window.addEventListener('diagnostika-language-changed',()=>setTimeout(()=>render({preserveDraft:true}),0));
   window.DiagnostikaSpecialistProfile={getName,getAvatar,getProfile:()=>clone(getProfile()),saveProfile:profile=>persistProfile(profile,'specialist-profile-api-save'),nameKey:NAME_KEY,avatarKey:AVATAR_KEY};
   render();
 })();
