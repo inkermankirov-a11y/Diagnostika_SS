@@ -359,7 +359,7 @@
         rateDate=data.date||'';
         rateSource=data.provider;
         rateDetails=[data.provider,'Валюта: '+base,rateDate?'Дата курса: '+rateDate:'',
-          data.mode==='bank'?'Котировки выбранного банка передаются через Frankfurter':'Международные справочные кросс-курсы',
+          data.transport||(data.mode==='bank'?'Котировки банка через Frankfurter':'Международные справочные кросс-курсы'),
           data.stale?'Сохранённая копия — может быть устаревшей':''].filter(Boolean).join(' · ');
         if(data.stale)rateError='Сохранённый курс, источник временно недоступен.';
       }catch(error){
@@ -374,6 +374,7 @@
           const perUsd=rates?.USD?.rubPerUnit;
           main.textContent=perUsd?fmt2(perUsd)+' '+currencySymbol(baseCurrency):'—';
           sub.textContent='USD'+(rateError?' · !':'');
+          currencyBtn.title=rateSource+(rateDate?' · '+rateDate:'');
         }
       }
     })().finally(()=>{
