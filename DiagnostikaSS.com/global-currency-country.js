@@ -13,7 +13,7 @@
     RU:'RUB',GE:'GEL',KZ:'KZT',BY:'BYN',UA:'UAH',AM:'AMD',
     US:'USD',GB:'GBP',CA:'CAD',AU:'AUD',NZ:'NZD',JP:'JPY',CN:'CNY',
     IN:'INR',TR:'TRY',CH:'CHF',NO:'NOK',SE:'SEK',DK:'DKK',
-    PL:'PLN',CZ:'CZK',HU:'HUF',RO:'RON',BG:'BGN',
+    PL:'PLN',CZ:'CZK',HU:'HUF',RO:'RON',BG:'EUR',
     MD:'MDL',AZ:'AZN',UZ:'UZS',KG:'KGS',TJ:'TJS',TM:'TMT',
     IL:'ILS',AE:'AED',SA:'SAR',QA:'QAR',KW:'KWD',BH:'BHD',OM:'OMR',
     SG:'SGD',TH:'THB',MY:'MYR',ID:'IDR',PH:'PHP',VN:'VND',KR:'KRW',
