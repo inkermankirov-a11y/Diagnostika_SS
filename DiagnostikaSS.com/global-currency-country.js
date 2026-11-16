@@ -71,7 +71,7 @@
     VE:{key:'bcv',name:'Центральный банк Венесуэлы'},
     JM:{key:'boja',name:'Банк Ямайки'},
     TT:{key:'cbtt',name:'Центральный банк Тринидада и Тобаго'},
-    AE:{key:'cbu',name:'Центральный банк ОАЭ'}
+    // For countries without a verified bank provider use labeled reference rates.
   });
   const euroCountries=new Set(['AT','BE','BG','CY','DE','EE','ES','FI','FR','GR','HR','IE','IT','LT','LU','LV','MT','NL','PT','SI','SK']);
   function providerFor(country){
