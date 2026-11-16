@@ -94,7 +94,7 @@
     .account-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .account-label{font-size:11.5px;font-weight:900;color:#26384b}
     .account-input,.account-textarea{width:100%;box-sizing:border-box;border:1px solid #b9c9d9;border-radius:9px;background:#fff;padding:0 10px;font-size:12.5px;color:#26384b;outline:none}
-    .account-city-suggestions{display:grid;gap:2px;max-height:180px;overflow:auto;border:1px solid #c3d6e6;border-radius:8px;background:white;box-shadow:0 5px 15px #24436420}.account-city-suggestions[hidden]{display:none}.account-city-suggestions button{border:0;padding:9px;text-align:left;background:white;color:#244764;cursor:pointer;font-size:12px}.account-city-suggestions button:hover{background:#e8f3ff}.account-city-info{font-size:11px;color:#637a90}.account-input{height:38px}.account-textarea{min-height:72px;padding:9px 10px;resize:vertical;line-height:1.4}
+    .account-city-suggestions{position:fixed;z-index:100100;box-sizing:border-box;display:grid;gap:2px;max-height:min(270px,45dvh);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;border:1px solid #8eb8da;border-radius:9px;background:white;box-shadow:0 12px 30px #16375440;padding:4px;min-width:190px}.account-city-suggestions[hidden]{display:none}.account-city-suggestions button{border:0;padding:9px;text-align:left;background:white;color:#244764;cursor:pointer;font-size:12px}.account-city-suggestions button:hover{background:#e8f3ff}.account-city-info{font-size:11px;color:#637a90}.account-input{height:38px}.account-textarea{min-height:72px;padding:9px 10px;resize:vertical;line-height:1.4}
     .account-input:focus,.account-textarea:focus{border-color:#4f8fd8;box-shadow:0 0 0 2px rgba(79,143,216,.13)}
     .account-save{height:38px;border:0;border-radius:9px;background:linear-gradient(#47b47d,#24945f);color:#fff;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 3px 7px rgba(36,148,95,.22)}
     .account-photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.account-photo-actions button{height:34px;border-radius:8px;font-size:11px;font-weight:850;cursor:pointer}
@@ -167,6 +167,27 @@
     }catch(error){currencyInput.disabled=true;currencyInfo.textContent=error?.message||'Валюта страны не определена';}
   }
   let chosenCity=null,cityTimer=null,cityRequest=0;
+  // Render city suggestions outside the scrolling settings pane to avoid clipping.
+  document.body.appendChild(citySuggestions);
+  function placeCitySuggestions(){
+    if(citySuggestions.hidden)return;
+    const rect=cityInput.getBoundingClientRect();
+    const viewportH=window.innerHeight||document.documentElement.clientHeight;
+    const below=viewportH-rect.bottom,above=rect.top;
+    const openAbove=below<190&&above>below;
+    const available=Math.max(100,Math.min(280,(openAbove?above:below)-12));
+    citySuggestions.style.width=Math.max(190,Math.round(rect.width))+'px';
+    citySuggestions.style.left=Math.max(6,Math.min(rect.left,window.innerWidth-rect.width-6))+'px';
+    citySuggestions.style.maxHeight=Math.round(available)+'px';
+    citySuggestions.style.top=openAbove?'auto':Math.round(rect.bottom+4)+'px';
+    citySuggestions.style.bottom=openAbove?Math.round(viewportH-rect.top+4)+'px':'auto';
+  }
+  function hideCitySuggestions(){citySuggestions.hidden=true;}
+  window.addEventListener('resize',placeCitySuggestions,{passive:true});
+  document.addEventListener('scroll',placeCitySuggestions,true);
+  document.addEventListener('pointerdown',event=>{
+    if(!citySuggestions.contains(event.target)&&event.target!==cityInput)hideCitySuggestions();
+  },true);
   const experienceInput=content.querySelector('.account-experience');
   const areasInput=content.querySelector('.account-areas');
   const aboutInput=content.querySelector('.account-about');
@@ -269,6 +290,7 @@
       citySuggestions.appendChild(b);
     }
     citySuggestions.hidden=!citySuggestions.childElementCount;
+    placeCitySuggestions();
   }
   cityInput.addEventListener('input',()=>{
     chosenCity=null;cityInfo.textContent='Выбери точный город из результатов поиска';
@@ -299,6 +321,7 @@
     const open = !content.classList.contains('open');
     content.classList.toggle('open',open);
     accountsBtn.classList.toggle('active',open);
+    if(!open)hideCitySuggestions();
     const interfaceContent = panel.querySelector('.settings-interface-content');
     const interfaceBtn = panel.querySelector('.settings-interface-btn');
     if (open){
@@ -310,6 +333,7 @@
 
   saveBtn.addEventListener('click',e=>{
     e.stopPropagation();
+    hideCitySuggestions();
     if(!persistProfile(profileFromForm(),'specialist-profile-card-save'))return;
     render();
     saveBtn.textContent=t().saved;
