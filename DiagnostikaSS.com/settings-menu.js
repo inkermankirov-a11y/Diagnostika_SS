@@ -290,13 +290,10 @@
     // avatar controls, review actions and city selection.
   });
 
-  document.addEventListener('click',e=>{
-    if(!wrap.classList.contains('open')||wrap.contains(e.target))return;
-    // The user can move or click around the workspace without losing
-    // the specialist form. Closing an open account requires an explicit action.
-    if(window.DiagnostikaAccountSettings?.isOpen?.())return;
-    setOpen(false);
-  });
+  // Closing settings from a generic document click is unsafe.
+  // Confirmation buttons live outside the panel and their click can bubble
+  // after the account has collapsed, closing an unrelated settings section.
+  // Only the settings button, explicit close button and Escape can exit.
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape'||!wrap.classList.contains('open')||e.defaultPrevented)return;
     if(document.querySelector('dialog[open]'))return;
