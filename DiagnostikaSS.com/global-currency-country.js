@@ -157,14 +157,49 @@
       const result={rates,base,date:parsed.date,provider:label,providers:parsed.providers,mode,stale:false};
       put(key,result);return result;
     }
+    async function nationalFallback(){
+      if(country==='RU'&&base==='RUB'){
+        const response=await fetch('https://www.cbr-xml-daily.ru/daily_json.js',{cache:'no-store'});
+        if(!response.ok)throw Error('Недоступны курсы Банка России');
+        const data=await response.json(),rates={RUB:{name:'RUB',rubPerUnit:1}};
+        for(const entry of Object.values(data.Valute||{})){
+          const nominal=Number(entry.Nominal),value=Number(entry.Value);
+          if(validCurrency(entry.CharCode)&&nominal>0&&value>0)
+            rates[entry.CharCode]={name:entry.CharCode,rubPerUnit:value/nominal};
+        }
+        if(!rates.USD)throw Error('Нет долларового курса Банка России');
+        const result={rates,base,date:String(data.Date||'').slice(0,10),
+          provider:'Центральный банк России',mode:'bank',transport:'Публикация через cbr-xml-daily.ru',providers:['CBR'],stale:false};
+        put(key,result);return result;
+      }
+      if(country==='GE'&&base==='GEL'){
+        const response=await fetch('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/',{cache:'no-store'});
+        if(!response.ok)throw Error('Национальный банк Грузии недоступен');
+        const data=await response.json(),day=Array.isArray(data)?data[0]:null;
+        if(!day||!Array.isArray(day.currencies))throw Error('Неверные данные Национального банка Грузии');
+        const rates={GEL:{name:'GEL',rubPerUnit:1}};
+        for(const entry of day.currencies){
+          const rate=Number(entry.rate),qty=Number(entry.quantity),currency=code(entry.code);
+          if(validCurrency(currency)&&rate>0&&qty>0)rates[currency]={name:currency,rubPerUnit:rate/qty};
+        }
+        if(!rates.USD)throw Error('Нет долларового курса Национального банка Грузии');
+        const result={rates,base,date:String(day.date||'').slice(0,10),provider:'Национальный банк Грузии',
+          mode:'bank',transport:'Официальный API Национального банка Грузии',providers:['NBG'],stale:false};
+        put(key,result);return result;
+      }
+      throw Error('Нет отдельного адаптера для этой страны');
+    }
     try{
       if(bank){
         try{
           const url='https://api.frankfurter.dev/v2/providers/'+encodeURIComponent(bank.key)+'/rates?base=USD';
           return await fetchRates(url,bank.name,'bank');
         }catch(error){
-          // Availability and currency coverage vary by national source.
-          // Never mislabel a blended quote as a direct central-bank rate.
+          if(country==='RU'||country==='GE'){
+            try{return await nationalFallback();}catch(_){}
+          }
+          // National provider is unavailable: disclose that the next
+          // quote is a blended reference rate instead of inventing attribution.
         }
       }
       return await fetchRates('https://api.frankfurter.dev/v2/rates?base=USD','Справочные валютные курсы (официальные источники)','reference');
