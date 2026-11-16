@@ -27,15 +27,19 @@ test('global catalog maps country codes to local currency including Eurasian and
   assert.match(global,/currencyForCountry/);
 });
 test('official-provider aggregator supports global FX cross rates with attribution and cache isolation',()=>{
-  assert.match(global,/api\.frankfurter\.dev\/v2\/rates\?base=USD&expand=providers/);
+  assert.match(global,/api\.frankfurter\.dev\/v2\/providers/);
+  assert.match(global,/api\.frankfurter\.dev\/v2\/rates\?base=USD/);
+  assert.match(global,/nationalFallback/);
+  assert.match(global,/Справочные валютные курсы/);
   assert.match(global,/central/);
   assert.match(global,/RATE_PREFIX\+base/);
   assert.match(global,/localPerUsd\/perUsd/);
   assert.match(currency,/service\.currencyForCountry\(country\)/);
-  assert.match(currency,/service\.referenceRates\(base\)/);
+  assert.match(currency,/service\.referenceRates\(base,country\)/);
+  assert.match(currency,/rateSource=data\.provider/);
 });
 test('new scripts are cache-busted in production HTML',()=>{
   assert.match(html,/account-settings\.js\?v=20261116-city-dropdown-fix-1/);
-  assert.match(html,/global-currency-country\.js\?v=20261116-global-fx-1/);
+  assert.match(html,/global-currency-country\.js\?v=20261116-bank-sources-2/);
   assert.match(html,/header-utilities\.js\?v=20261116-global-fx-1/);
 });
