@@ -333,37 +333,93 @@
     refreshWeather({rerender:true});
   };
 
-  let rates=null,rateDate='';
-  const rubPer=code=>code==='RUB'?1:rates?.[code]?.rubPerUnit;
+  let rates=null,rateDate='',rateSource='',rateCountry='',rateError='';
+  const profileCountry=()=>String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.countryCode||'RU').toUpperCase();
+  const baseCode=()=>rateCountry==='GE'?'GEL':'RUB';
+  const unitPer=code=>code===baseCode()?1:rates?.[code]?.rubPerUnit;
   const fmt2=n=>Number(n).toLocaleString(lang()==='ru'?'ru-RU':lang(),{minimumFractionDigits:2,maximumFractionDigits:2});
   async function loadRates(){
-    try{const r=await fetch('https://www.cbr-xml-daily.ru/daily_json.js',{cache:'no-store'});if(!r.ok)throw Error();const data=await r.json();rates={RUB:{name:'Российский рубль',rubPerUnit:1}};for(const v of Object.values(data.Valute||{}))rates[v.CharCode]={name:v.Name,rubPerUnit:Number(v.Value)/Number(v.Nominal)};rateDate=data.Date?new Date(data.Date).toLocaleDateString('ru-RU'):'';localStorage.setItem('diagnostika-currency-rates',JSON.stringify({rates,rateDate}));}
-    catch(e){try{const s=JSON.parse(localStorage.getItem('diagnostika-currency-rates')||'null');if(s?.rates){rates=s.rates;rateDate=s.rateDate||'';}}catch(_){}}
-    if(rates?.USD){currencyBtn.querySelector('.hu-main').textContent=`${fmt2(rates.USD.rubPerUnit)} ₽`;currencyBtn.querySelector('.hu-sub').textContent='USD';}
+    const country=profileCountry();
+    rateCountry=country;rates=null;rateDate='';rateError='';
+    const cacheKey='diagnostika-currency-rates-'+country;
+    if(country!=='RU'&&country!=='GE'){
+      rateSource='Официальный источник для страны '+country+' пока не подключён';
+      rateError=rateSource;
+      currencyBtn.querySelector('.hu-main').textContent='—';
+      currencyBtn.querySelector('.hu-sub').textContent=country;
+      return;
+    }
+    try{
+      if(country==='GE'){
+        rateSource='Национальный банк Грузии';
+        const r=await fetch('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/',{cache:'no-store'});
+        if(!r.ok)throw Error('Источник курсов Грузии недоступен');
+        const data=await r.json(),daily=Array.isArray(data)?data[0]:null;
+        if(!daily||!Array.isArray(daily.currencies))throw Error('Неверный формат курсов Грузии');
+        rates={GEL:{name:'Грузинский лари',rubPerUnit:1}};
+        for(const v of daily.currencies){
+          const rate=Number(v.rate),quantity=Number(v.quantity);
+          if(/^[A-Z]{3}$/.test(v.code||'')&&rate>0&&quantity>0)
+            rates[v.code]={name:v.name||v.code,rubPerUnit:rate/quantity};
+        }
+        rateDate=daily.date?new Date(daily.date).toLocaleDateString('ru-RU'):'';
+      }else{
+        rateSource='Центральный банк России (публикация через cbr-xml-daily.ru)';
+        const r=await fetch('https://www.cbr-xml-daily.ru/daily_json.js',{cache:'no-store'});
+        if(!r.ok)throw Error('Источник курсов России недоступен');
+        const data=await r.json();
+        rates={RUB:{name:'Российский рубль',rubPerUnit:1}};
+        for(const v of Object.values(data.Valute||{})){
+          const value=Number(v.Value),nominal=Number(v.Nominal);
+          if(value>0&&nominal>0)rates[v.CharCode]={name:v.Name,rubPerUnit:value/nominal};
+        }
+        rateDate=data.Date?new Date(data.Date).toLocaleDateString('ru-RU'):'';
+      }
+      if(!rates.USD)throw Error('Нет курса USD');
+      localStorage.setItem(cacheKey,JSON.stringify({rates,rateDate,rateSource}));
+    }catch(error){
+      rateError=error?.message||'Нет доступа к официальному курсу';
+      rates=null;
+      try{
+        const cached=JSON.parse(localStorage.getItem(cacheKey)||'null');
+        if(cached?.rates?.USD&&cached.rates[baseCode()]){
+          rates=cached.rates;
+          rateDate=cached.rateDate||'';
+          rateSource=(cached.rateSource||rateSource)+' · сохранённая копия (неактуальность возможна)';
+        }
+      }catch(_){}
+    }
+    if(country!==profileCountry())return loadRates();
+    const main=currencyBtn.querySelector('.hu-main'),sub=currencyBtn.querySelector('.hu-sub');
+    main.textContent=rates?.USD?fmt2(rates.USD.rubPerUnit)+' '+(country==='GE'?'₾':'₽'):'—';
+    sub.textContent='USD'+(rateError?' · !':'');
   }
   function showConverter(){
-    const t=tr();if(!rates){openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div>${t.loading}</div>`,'currency');loadRates().then(()=>{if(!overlay.hidden)showConverter();});return;}
-    const priority=['RUB','USD','EUR','KZT','CNY','GBP','CHF','JPY','TRY'];
+    const t=tr();if(rateCountry!==profileCountry()){rates=null;rateCountry=profileCountry();loadRates().then(()=>{if(!overlay.hidden)showConverter();});}
+    if(!rates){openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div>${rateError||t.loading}</div>`,'currency');if(!rateError)loadRates().then(()=>{if(!overlay.hidden)showConverter();});return;}
+    const priority=[baseCode(),'USD','EUR','RUB','GEL','KZT','CNY','GBP','CHF','JPY','TRY'];
     const all=Object.keys(rates).sort((a,b)=>{
       const ai=priority.indexOf(a),bi=priority.indexOf(b);
       return(ai<0?999:ai)-(bi<0?999:bi)||a.localeCompare(b);
     });
     const preferences=window.DiagnostikaCurrencyDefaultPair;
-    const defaultPair=preferences?.resolve?.(all)||{from:'USD',to:'RUB'};
+    const savedPair=preferences?.read?.();
+    const defaultPair=savedPair&&all.includes(savedPair.from)&&all.includes(savedPair.to)
+      ?savedPair:{from:'USD',to:baseCode()};
     const opts=selected=>all.map(code=>`<option value="${code}" ${code===selected?'selected':''}>${code}</option>`).join('');
-    openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div class="currency-card"><div class="currency-row"><label class="currency-field">${t.from}<select id="utilCurFrom">${opts(defaultPair.from)}</select></label><button type="button" class="tk-btn currency-swap">⇄</button><label class="currency-field">${t.to}<select id="utilCurTo">${opts(defaultPair.to)}</select></label></div><div class="currency-default-settings"><span id="utilCurDefaultInfo" class="currency-default-info" role="status" aria-live="polite"></span><button id="utilCurSetDefault" type="button" class="tk-btn currency-set-default">${t.setDefaultPair}</button></div><label class="currency-field currency-amount-wrap">${t.amount}<input id="utilCurAmount" inputmode="decimal" value="1"></label><div class="currency-result"><div id="utilCurResult" class="currency-result-main">—</div><div id="utilCurRate" class="currency-rate"></div></div></div><div class="utility-source">${t.sourceCurrency}${rateDate?' · '+rateDate:''}</div>`,'currency');
+    openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div class="currency-card"><div class="currency-row"><label class="currency-field">${t.from}<select id="utilCurFrom">${opts(defaultPair.from)}</select></label><button type="button" class="tk-btn currency-swap">⇄</button><label class="currency-field">${t.to}<select id="utilCurTo">${opts(defaultPair.to)}</select></label></div><div class="currency-default-settings"><span id="utilCurDefaultInfo" class="currency-default-info" role="status" aria-live="polite"></span><button id="utilCurSetDefault" type="button" class="tk-btn currency-set-default">${t.setDefaultPair}</button></div><label class="currency-field currency-amount-wrap">${t.amount}<input id="utilCurAmount" inputmode="decimal" value="1"></label><div class="currency-result"><div id="utilCurResult" class="currency-result-main">—</div><div id="utilCurRate" class="currency-rate"></div></div></div><div class="utility-source">${rateSource}${rateDate?' · '+rateDate:''}</div>`,'currency');
     const from=overlay.querySelector('#utilCurFrom'),to=overlay.querySelector('#utilCurTo'),amount=overlay.querySelector('#utilCurAmount'),result=overlay.querySelector('#utilCurResult'),rate=overlay.querySelector('#utilCurRate'),swap=overlay.querySelector('.currency-swap');
     const defaultInfo=overlay.querySelector('#utilCurDefaultInfo'),defaultButton=overlay.querySelector('#utilCurSetDefault');
     const showDefault=()=>{
       const saved=preferences?.read?.()||null;
-      const effective=saved||preferences?.fallback||{from:'USD',to:'RUB'};
+      const effective=saved||defaultPair;
       defaultInfo.textContent=`${t.defaultPair}: ${effective.from} → ${effective.to}`;
       const selected=Boolean(saved&&from.value===saved.from&&to.value===saved.to);
       defaultButton.disabled=selected;
       defaultButton.textContent=selected?t.pairIsDefault:t.setDefaultPair;
     };
     const update=()=>{
-      const v=Number(amount.value.replace(',','.').replace(/\s/g,'')),a=rubPer(from.value),b=rubPer(to.value);
+      const v=Number(amount.value.replace(',','.').replace(/\s/g,'')),a=unitPer(from.value),b=unitPer(to.value);
       if(!Number.isFinite(v)||!a||!b){result.textContent='—';rate.textContent='';return;}
       const x=v*a/b,one=a/b;
       result.textContent=`${fmt2(x)} ${to.value}`;
@@ -379,6 +435,11 @@
     choose();
   }
   currencyBtn.onclick=showConverter;
+  window.addEventListener('diagnostika-specialist-profile-change',()=>{
+    if(profileCountry()===rateCountry)return;
+    rates=null;rateError='';rateCountry='';
+    loadRates();
+  });
 
   function refreshLanguage(){
     weatherBtn.querySelector('.hu-sub').textContent=weatherLabel||tr().weather;
