@@ -240,6 +240,9 @@
   }
   function setOpen(open){
     const wasOpen=wrap.classList.contains('open');
+    // A closed settings menu must not retain an expanded account section.
+    // Otherwise the next click on "Accounts" unexpectedly hides its fields.
+    if(!open)window.DiagnostikaAccountSettings?.collapse?.();
     wrap.classList.toggle('open',open);
     btn.setAttribute('aria-expanded',String(open));
     updateLabel();
