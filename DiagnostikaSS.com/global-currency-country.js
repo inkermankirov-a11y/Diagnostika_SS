@@ -28,6 +28,57 @@
     PA:'PAB',EC:'USD',SV:'USD',GT:'GTQ',HN:'HNL',NI:'NIO',
     DO:'DOP',JM:'JMD',TT:'TTD',CU:'CUP',HT:'HTG',UY:'UYU'
   });
+  // Verified provider keys from the Frankfurter v2 provider registry.
+  // The institution is only shown when its own provider feed succeeds.
+  const bankByCountry=Object.freeze({
+    RU:{key:'cbr',name:'Центральный банк России'},
+    GE:{key:'nbg',name:'Национальный банк Грузии'},
+    KZ:{key:'nbk',name:'Национальный банк Казахстана'},
+    US:{key:'fred',name:'Федеральный резервный банк Сент-Луиса'},
+    GB:{key:'boe',name:'Банк Англии'},
+    CA:{key:'boc',name:'Банк Канады'},
+    JP:{key:'boj',name:'Банк Японии'},
+    PL:{key:'nbp',name:'Национальный банк Польши'},
+    CZ:{key:'cnb',name:'Чешский национальный банк'},
+    HU:{key:'mnb',name:'Национальный банк Венгрии'},
+    RO:{key:'bnr',name:'Национальный банк Румынии'},
+    NO:{key:'nb',name:'Банк Норвегии'},
+    DK:{key:'dnb',name:'Национальный банк Дании'},
+    AM:{key:'cba',name:'Центральный банк Армении'},
+    AZ:{key:'cbar',name:'Центральный банк Азербайджана'},
+    UZ:{key:'cbu',name:'Центральный банк Узбекистана'},
+    KG:{key:'nbkr',name:'Национальный банк Кыргызстана'},
+    TJ:{key:'nbt',name:'Национальный банк Таджикистана'},
+    MD:{key:'nbm',name:'Национальный банк Молдовы'},
+    IL:{key:'boi',name:'Банк Израиля'},
+    TH:{key:'bot',name:'Банк Таиланда'},
+    MY:{key:'bnm',name:'Центральный банк Малайзии'},
+    ID:{key:'bi',name:'Банк Индонезии'},
+    SG:{key:'mas',name:'Денежно-кредитное управление Сингапура'},
+    SA:{key:'sama',name:'Центральный банк Саудовской Аравии'},
+    KW:{key:'cbkkw',name:'Центральный банк Кувейта'},
+    OM:{key:'cbo',name:'Центральный банк Омана'},
+    LK:{key:'cbsl',name:'Центральный банк Шри-Ланки'},
+    PK:{key:'sbp',name:'Государственный банк Пакистана'},
+    BD:{key:'bb',name:'Банк Бангладеш'},
+    NP:{key:'nrb',name:'Центральный банк Непала'},
+    MN:{key:'bom',name:'Банк Монголии'},
+    KH:{key:'nbc',name:'Национальный банк Камбоджи'},
+    BA:{key:'cbbh',name:'Центральный банк Боснии и Герцеговины'},
+    PY:{key:'bcp',name:'Центральный банк Парагвая'},
+    AR:{key:'bcra',name:'Центральный банк Аргентины'},
+    UY:{key:'bcu',name:'Центральный банк Уругвая'},
+    VE:{key:'bcv',name:'Центральный банк Венесуэлы'},
+    JM:{key:'boja',name:'Банк Ямайки'},
+    TT:{key:'cbtt',name:'Центральный банк Тринидада и Тобаго'},
+    AE:{key:'cbu',name:'Центральный банк ОАЭ'}
+  });
+  const euroCountries=new Set(['AT','BE','BG','CY','DE','EE','ES','FI','FR','GR','HR','IE','IT','LT','LU','LV','MT','NL','PT','SI','SK']);
+  function providerFor(country){
+    const cc=String(country||'').toUpperCase();
+    if(euroCountries.has(cc))return {key:'ecb',name:'Европейский центральный банк'};
+    return bankByCountry[cc]||null;
+  }
   const code=value=>String(value||'').trim().toUpperCase();
   const validCurrency=value=>/^[A-Z]{3}$/.test(value);
   const validCountry=value=>/^[A-Z]{2}$/.test(value);
@@ -88,30 +139,40 @@
     if(Object.keys(usd).length<5)throw Error('Недостаточно официальных котировок для пересчёта.');
     return {perBase:usd,date,providers:[...providers]};
   }
-  async function referenceRates(baseCurrency){
-    const base=code(baseCurrency);
+  async function referenceRates(baseCurrency,countryCode=''){
+    const base=code(baseCurrency),country=code(countryCode);
     if(!validCurrency(base))throw Error('Некорректная базовая валюта.');
-    const key=RATE_PREFIX+base,cached=get(key);
-    try{
-      const url='https://api.frankfurter.dev/v2/rates?base=USD&expand=providers';
+    const bank=providerFor(country);
+    const key=RATE_PREFIX+base+':'+(bank?.key||'reference'),cached=get(key);
+    async function fetchRates(url,label,mode){
       const response=await fetch(url,{cache:'no-store'});
-      if(!response.ok)throw Error('Frankfurter: '+response.status);
-      const raw=await response.json();
-      const parsed=parseRates(raw,'USD');
+      if(!response.ok)throw Error('Котировки недоступны: '+response.status);
+      const parsed=parseRates(await response.json(),'USD');
       const localPerUsd=parsed.perBase[base];
-      if(!(localPerUsd>0))throw Error('В агрегаторе пока нет справочного курса для '+base+'.');
+      if(!(localPerUsd>0))throw Error('Нет курса '+base+' в выбранном наборе.');
       const rates={};
-      for(const [currency,perUsd] of Object.entries(parsed.perBase)){
+      for(const [currency,perUsd] of Object.entries(parsed.perBase))
         rates[currency]={name:currency,rubPerUnit:localPerUsd/perUsd};
-      }
       rates[base]={name:base,rubPerUnit:1};
-      const result={rates,base,date:parsed.date,provider:'Frankfurter — центральные банки и официальные источники (агрегированные и кросс-курсы)',providers:parsed.providers,stale:false};
+      const result={rates,base,date:parsed.date,provider:label,providers:parsed.providers,mode,stale:false};
       put(key,result);return result;
+    }
+    try{
+      if(bank){
+        try{
+          const url='https://api.frankfurter.dev/v2/providers/'+encodeURIComponent(bank.key)+'/rates?base=USD';
+          return await fetchRates(url,bank.name,'bank');
+        }catch(error){
+          // Availability and currency coverage vary by national source.
+          // Never mislabel a blended quote as a direct central-bank rate.
+        }
+      }
+      return await fetchRates('https://api.frankfurter.dev/v2/rates?base=USD','Справочные валютные курсы (официальные источники)','reference');
     }catch(error){
       if(cached?.data&&Date.now()-cached.time<RATE_TTL)
         return {...cached.data,stale:true,error:error.message};
       throw error;
     }
   }
-  window.DiagnostikaCountryCurrency=Object.freeze({currencyForCountry,referenceRates,fallbacks});
+  window.DiagnostikaCountryCurrency=Object.freeze({currencyForCountry,referenceRates,providerFor,fallbacks});
 })();
