@@ -238,19 +238,34 @@
     themeNames.forEach((node,index)=>{if(node)node.textContent=names[index];});
   }
   function setOpen(open){
+    const wasOpen=wrap.classList.contains('open');
     wrap.classList.toggle('open',open);
     btn.setAttribute('aria-expanded',String(open));
     updateLabel();
+    if(wasOpen!==open)
+      window.dispatchEvent(new CustomEvent('diagnostika:settings-visibility',{detail:{open}}));
   }
-  function toggleInterface(){
+  async function requestClose(){
+    if(!wrap.classList.contains('open'))return true;
+    const guard=window.DiagnostikaAccountSettings;
+    if(guard?.isOpen?.() && await guard.prepareLeave()===false)return false;
+    setOpen(false);return true;
+  }
+  async function toggleInterface(){
     const open=!interfaceContent.classList.contains('open');
+    if(open&&window.DiagnostikaAccountSettings?.isOpen?.()){
+      const guard=window.DiagnostikaAccountSettings;
+      if(await guard.prepareLeave()===false)return;
+      guard.collapse();
+    }
     interfaceContent.classList.toggle('open',open);
     interfaceBtn.classList.toggle('active',open);
   }
 
   btn.addEventListener('click',e=>{
     e.stopPropagation();
-    setOpen(!wrap.classList.contains('open'));
+    if(wrap.classList.contains('open'))requestClose();
+    else setOpen(true);
   });
   accountsBtn.addEventListener('click',async e=>{
     e.stopPropagation();
@@ -265,12 +280,24 @@
       setTimeout(updateLabel,0);
       return;
     }
-    if(e.target.closest('.language-btn,.settings-hints-control,.settings-section-btn,.settings-theme-option')) return;
-    if(e.target.closest('button')) setTimeout(()=>setOpen(false),0);
+    // Editing buttons must not dismiss the entire settings window.
+    // A broad "any button" rule previously closed the profile on Save,
+    // avatar controls, review actions and city selection.
   });
 
-  document.addEventListener('click',e=>{if(!wrap.contains(e.target)) setOpen(false);});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape' && wrap.classList.contains('open')) setOpen(false);});
+  document.addEventListener('click',e=>{
+    if(!wrap.classList.contains('open')||wrap.contains(e.target))return;
+    // The user can move or click around the workspace without losing
+    // the specialist form. Closing an open account requires an explicit action.
+    if(window.DiagnostikaAccountSettings?.isOpen?.())return;
+    setOpen(false);
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape'||!wrap.classList.contains('open')||e.defaultPrevented)return;
+    if(document.querySelector('dialog[open]'))return;
+    e.preventDefault();
+    requestClose();
+  });
 
   const oldSetLanguage=window.DiagnostikaI18n?.setLanguage;
   if(oldSetLanguage){
