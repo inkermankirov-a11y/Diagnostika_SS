@@ -31,7 +31,8 @@
   function normalizeReviews(value){return(Array.isArray(value)?value:[]).map(item=>({id:String(item?.id||uid()),author:String(item?.author||'').trim(),text:String(item?.text||'').trim(),createdAt:Number(item?.createdAt)||Date.now()})).filter(item=>item.text);}
   function normalizeProfile(value={}){
     return{
-      name:String(value?.name||'').trim(),title:String(value?.title||'').trim(),experience:String(value?.experience||'').trim(),
+      name:String(value?.name||'').trim(),surname:String(value?.surname||'').trim(),title:String(value?.title||'').trim(),experience:String(value?.experience||'').trim(),
+      city:String(value?.city||'').trim(),region:String(value?.region||'').trim(),country:String(value?.country||'').trim(),countryCode:String(value?.countryCode||'').toUpperCase().trim(),
       areas:normalizeAreas(value?.areas),about:String(value?.about||'').trim(),reviews:normalizeReviews(value?.reviews),
       avatar:String(value?.avatar||''),avatarSource:String(value?.avatarSource||''),
       avatarCrop:{x:clamp(Number(value?.avatarCrop?.x)||50,0,100),y:clamp(Number(value?.avatarCrop?.y)||50,0,100),zoom:clamp(Number(value?.avatarCrop?.zoom)||1,1,3)},
@@ -93,7 +94,7 @@
     .account-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .account-label{font-size:11.5px;font-weight:900;color:#26384b}
     .account-input,.account-textarea{width:100%;box-sizing:border-box;border:1px solid #b9c9d9;border-radius:9px;background:#fff;padding:0 10px;font-size:12.5px;color:#26384b;outline:none}
-    .account-input{height:38px}.account-textarea{min-height:72px;padding:9px 10px;resize:vertical;line-height:1.4}
+    .account-city-suggestions{display:grid;gap:2px;max-height:180px;overflow:auto;border:1px solid #c3d6e6;border-radius:8px;background:white;box-shadow:0 5px 15px #24436420}.account-city-suggestions[hidden]{display:none}.account-city-suggestions button{border:0;padding:9px;text-align:left;background:white;color:#244764;cursor:pointer;font-size:12px}.account-city-suggestions button:hover{background:#e8f3ff}.account-city-info{font-size:11px;color:#637a90}.account-input{height:38px}.account-textarea{min-height:72px;padding:9px 10px;resize:vertical;line-height:1.4}
     .account-input:focus,.account-textarea:focus{border-color:#4f8fd8;box-shadow:0 0 0 2px rgba(79,143,216,.13)}
     .account-save{height:38px;border:0;border-radius:9px;background:linear-gradient(#47b47d,#24945f);color:#fff;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 3px 7px rgba(36,148,95,.22)}
     .account-photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.account-photo-actions button{height:34px;border-radius:8px;font-size:11px;font-weight:850;cursor:pointer}
@@ -125,6 +126,8 @@
   content.className = 'settings-account-content';
   content.innerHTML = '<div class="specialist-card-title"></div>'
     +'<div class="account-field"><div class="account-label account-name-label"></div><input class="account-input account-name" type="text" autocomplete="name"></div>'
+    +'<div class="account-field"><div class="account-label">Фамилия специалиста</div><input class="account-input account-surname" type="text" autocomplete="family-name"></div>'
+    +'<div class="account-field"><div class="account-label">Город специалиста</div><input class="account-input account-city" type="text" autocomplete="off" placeholder="Начни вводить город…"><div class="account-city-suggestions" hidden></div><div class="account-city-info">Выбери город из списка — определяется страна и источник курса валют</div></div>'
     +'<div class="account-field-grid"><div class="account-field"><div class="account-label account-title-label"></div><input class="account-input account-title" type="text"></div><div class="account-field"><div class="account-label account-experience-label"></div><input class="account-input account-experience" type="text"></div></div>'
     +'<div class="account-field"><div class="account-label account-areas-label"></div><textarea class="account-textarea account-areas"></textarea></div>'
     +'<div class="account-field"><div class="account-label account-about-label"></div><textarea class="account-textarea account-about"></textarea></div>'
@@ -139,6 +142,11 @@
   const tagsEl=summary.querySelector('.settings-profile-tags');
   const nameInput=content.querySelector('.account-name');
   const titleInput=content.querySelector('.account-title');
+  const surnameInput=content.querySelector('.account-surname');
+  const cityInput=content.querySelector('.account-city');
+  const citySuggestions=content.querySelector('.account-city-suggestions');
+  const cityInfo=content.querySelector('.account-city-info');
+  let chosenCity=null,cityTimer=null,cityRequest=0;
   const experienceInput=content.querySelector('.account-experience');
   const areasInput=content.querySelector('.account-areas');
   const aboutInput=content.querySelector('.account-about');
@@ -160,8 +168,11 @@
   }
   function paintSummary(profile=getProfile()){
     const tr=t();
-    nameEl.textContent=profile.name||tr.empty;
-    titleEl.textContent=[profile.title,profile.experience].filter(Boolean).join(' • ');
+    nameEl.textContent=[profile.name,profile.surname].filter(Boolean).join(' ')||tr.empty;
+    const years=String(profile.experience||'').trim();
+    const expLabel=years?(years.match(/(?:опыт|стаж|experience|expérience|erfahrung|esperienza)/i)?years:
+      (/^\d+(?:[.,]\d+)?\s*(?:лет|года|год)$/i.test(years)?years+' опыта':'Опыт: '+years)):'';
+    titleEl.textContent=[profile.title,expLabel].filter(Boolean).join(' • ');
     tagsEl.innerHTML='';
     profile.areas.slice(0,4).forEach(area=>{
       const tag=document.createElement('span');tag.className='settings-profile-tag';tag.textContent=area;tagsEl.appendChild(tag);
@@ -195,6 +206,10 @@
     reviewAuthorInput.placeholder=tr.reviewAuthor;reviewTextInput.placeholder=tr.reviewText;
     photoEditBtn.textContent=tr.photoEdit;photoReplaceBtn.textContent=tr.photoReplace;photoDeleteBtn.textContent=tr.photoDelete;reviewAddBtn.textContent=tr.reviewAdd;saveBtn.textContent=tr.save;
     if(document.activeElement!==nameInput)nameInput.value=profile.name;
+    if(document.activeElement!==surnameInput)surnameInput.value=profile.surname;
+    if(document.activeElement!==cityInput)cityInput.value=[profile.city,profile.region,profile.country].filter(Boolean).join(', ');
+    if(document.activeElement!==cityInput){chosenCity=profile.countryCode?{name:profile.city,admin1:profile.region,country:profile.country,country_code:profile.countryCode}:null;}
+    cityInfo.textContent=profile.countryCode?('Страна: '+profile.country+' ('+profile.countryCode+') · источник курса определяется страной'):'Выбери город из списка — определяется страна и источник курса валют';
     if(document.activeElement!==titleInput)titleInput.value=profile.title;
     if(document.activeElement!==experienceInput)experienceInput.value=profile.experience;
     if(document.activeElement!==areasInput)areasInput.value=profile.areas.join(', ');
@@ -204,9 +219,54 @@
   }
   function profileFromForm(){
     const profile=getProfile();
-    profile.name=nameInput.value.trim();profile.title=titleInput.value.trim();profile.experience=experienceInput.value.trim();profile.areas=normalizeAreas(areasInput.value);profile.about=aboutInput.value.trim();
+    profile.name=nameInput.value.trim();profile.surname=surnameInput.value.trim();
+    if(chosenCity&&cityInput.value.trim()===[chosenCity.name,chosenCity.admin1,chosenCity.country].filter(Boolean).join(', ')){
+      profile.city=chosenCity.name;profile.region=chosenCity.admin1||'';profile.country=chosenCity.country||'';profile.countryCode=chosenCity.country_code||'';
+    }else if(cityInput.value.trim()!==[profile.city,profile.region,profile.country].filter(Boolean).join(', ')){
+      // Never infer a central bank from free-form text.
+      profile.city='';profile.region='';profile.country='';profile.countryCode='';
+    }
+    profile.title=titleInput.value.trim();profile.experience=experienceInput.value.trim();profile.areas=normalizeAreas(areasInput.value);profile.about=aboutInput.value.trim();
     return profile;
   }
+
+  function renderCityOptions(items){
+    citySuggestions.replaceChildren();
+    for(const item of items){
+      if(!item.name||!item.country_code)continue;
+      const b=document.createElement('button');b.type='button';
+      b.textContent=[item.name,item.admin1,item.country].filter(Boolean).join(', ');
+      b.onclick=()=>{
+        chosenCity={name:item.name,admin1:item.admin1||'',country:item.country||'',country_code:item.country_code};
+        cityInput.value=b.textContent;cityInfo.textContent='Страна: '+item.country+' ('+item.country_code+')';
+        citySuggestions.hidden=true;
+      };
+      citySuggestions.appendChild(b);
+    }
+    citySuggestions.hidden=!citySuggestions.childElementCount;
+  }
+  cityInput.addEventListener('input',()=>{
+    chosenCity=null;cityInfo.textContent='Выбери точный город из результатов поиска';
+    const value=cityInput.value.trim();clearTimeout(cityTimer);
+    cityRequest+=1;const request=cityRequest;
+    if(value.length<2){citySuggestions.hidden=true;return;}
+    cityTimer=setTimeout(async()=>{
+      try{
+        const u='https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(value)+'&count=10&language=ru&format=json';
+        const response=await fetch(u);
+        if(!response.ok)throw Error('Ошибка сервиса городов');
+        const data=await response.json();
+        if(request===cityRequest)renderCityOptions(data.results||[]);
+      }catch(_){if(request===cityRequest){citySuggestions.hidden=true;cityInfo.textContent='Список городов временно недоступен';}}
+    },350);
+  });
+  cityInput.addEventListener('keydown',e=>{
+    if(e.key==='Escape')citySuggestions.hidden=true;
+    if(e.key==='Enter'&&!citySuggestions.hidden){
+      const option=citySuggestions.querySelector('button');
+      if(option){e.preventDefault();option.click();}
+    }
+  });
 
   accountsBtn.addEventListener('click',e=>{
     e.preventDefault();
