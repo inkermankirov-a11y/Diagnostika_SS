@@ -19,11 +19,8 @@
     const icon=btn.querySelector('.hu-icon');
     const main=btn.querySelector('.hu-main');
     const sub=btn.querySelector('.hu-sub');
-    if(icon)icon.textContent='$';
-    if(main){
-      const clean=main.textContent.replace(/\s*₽\s*$/,'').trim();
-      if(clean!==main.textContent)main.textContent=clean;
-    }
+    if(icon && icon.textContent !== '$')icon.textContent='$';
+    // Keep the national-currency symbol after the exchange-rate amount.
     if(sub&&!sub.textContent.trim())sub.textContent='USD';
     btn.classList.add('currency-compact-display');
     return true;
