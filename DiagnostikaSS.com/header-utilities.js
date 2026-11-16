@@ -333,17 +333,18 @@
     refreshWeather({rerender:true});
   };
 
-  let rates=null,rateDate='',rateSource='',rateCountry='',rateError='',baseCurrency='RUB';
+  let rates=null,rateDate='',rateSource='',rateCountry='',rateError='',rateDetails='',baseCurrency='RUB';
   let ratesLoading=null;
   const profileCountry=()=>String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.countryCode||'RU').toUpperCase();
   const baseCode=()=>baseCurrency;
   const unitPer=code=>code===baseCode()?1:rates?.[code]?.rubPerUnit;
+  const currencySymbol=currency=>({RUB:'₽',GEL:'₾',KZT:'₸',USD:'$',EUR:'€',GBP:'£',JPY:'¥',CNY:'¥',INR:'₹',TRY:'₺',UAH:'₴',KRW:'₩'}[currency]||currency);
   const fmt2=n=>Number(n).toLocaleString(lang()==='ru'?'ru-RU':lang(),{minimumFractionDigits:2,maximumFractionDigits:2});
   function loadRates(){
     if(ratesLoading)return ratesLoading;
     ratesLoading=(async()=>{
       const country=profileCountry();
-      rateCountry=country;rates=null;rateDate='';rateError='';
+      rateCountry=country;rates=null;rateDate='';rateError='';rateDetails='';
       try{
         const service=window.DiagnostikaCountryCurrency;
         if(!service)throw Error('Сервис мировых валют не загружен');
@@ -351,14 +352,15 @@
         const preferred=String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.currencyCode||'').toUpperCase();
         const base=info.options.includes(preferred)?preferred:info.currency;
         // Do not reuse old rates from a previously selected country.
-        const data=await service.referenceRates(base);
+        const data=await service.referenceRates(base,country);
         if(country!==profileCountry())return;
         baseCurrency=base;
         rates=data.rates;
         rateDate=data.date||'';
-        rateSource=data.provider+' · страна '+info.country+' · базовая валюта '+base+
-          (data.stale?' · сохранённая копия (курс может быть устаревшим)':'')+
-          (data.providers?.length?' · провайдеры: '+data.providers.slice(0,5).join(', '):'');
+        rateSource=data.provider;
+        rateDetails=[data.provider,'Валюта: '+base,rateDate?'Дата курса: '+rateDate:'',
+          data.mode==='bank'?'Котировки выбранного банка передаются через Frankfurter':'Международные справочные кросс-курсы',
+          data.stale?'Сохранённая копия — может быть устаревшей':''].filter(Boolean).join(' · ');
         if(data.stale)rateError='Сохранённый курс, источник временно недоступен.';
       }catch(error){
         if(country===profileCountry()){
@@ -370,7 +372,7 @@
         const main=currencyBtn.querySelector('.hu-main'),sub=currencyBtn.querySelector('.hu-sub');
         if(country===profileCountry()){
           const perUsd=rates?.USD?.rubPerUnit;
-          main.textContent=perUsd?fmt2(perUsd)+' '+baseCurrency:'—';
+          main.textContent=perUsd?fmt2(perUsd)+' '+currencySymbol(baseCurrency):'—';
           sub.textContent='USD'+(rateError?' · !':'');
         }
       }
@@ -398,8 +400,10 @@
     const defaultPair=savedPair&&all.includes(savedPair.from)&&all.includes(savedPair.to)
       ?savedPair:{from:'USD',to:baseCode()};
     const opts=selected=>all.map(code=>`<option value="${code}" ${code===selected?'selected':''}>${code}</option>`).join('');
-    openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div class="currency-card"><div class="currency-row"><label class="currency-field">${t.from}<select id="utilCurFrom">${opts(defaultPair.from)}</select></label><button type="button" class="tk-btn currency-swap">⇄</button><label class="currency-field">${t.to}<select id="utilCurTo">${opts(defaultPair.to)}</select></label></div><div class="currency-default-settings"><span id="utilCurDefaultInfo" class="currency-default-info" role="status" aria-live="polite"></span><button id="utilCurSetDefault" type="button" class="tk-btn currency-set-default">${t.setDefaultPair}</button></div><label class="currency-field currency-amount-wrap">${t.amount}<input id="utilCurAmount" inputmode="decimal" value="1"></label><div class="currency-result"><div id="utilCurResult" class="currency-result-main">—</div><div id="utilCurRate" class="currency-rate"></div></div></div><div class="utility-source">${rateSource}${rateDate?' · '+rateDate:''}</div>`,'currency');
+    openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div class="currency-card"><div class="currency-row"><label class="currency-field">${t.from}<select id="utilCurFrom">${opts(defaultPair.from)}</select></label><button type="button" class="tk-btn currency-swap">⇄</button><label class="currency-field">${t.to}<select id="utilCurTo">${opts(defaultPair.to)}</select></label></div><div class="currency-default-settings"><span id="utilCurDefaultInfo" class="currency-default-info" role="status" aria-live="polite"></span><button id="utilCurSetDefault" type="button" class="tk-btn currency-set-default">${t.setDefaultPair}</button></div><label class="currency-field currency-amount-wrap">${t.amount}<input id="utilCurAmount" inputmode="decimal" value="1"></label><div class="currency-result"><div id="utilCurResult" class="currency-result-main">—</div><div id="utilCurRate" class="currency-rate"></div></div></div><div class="utility-source">${rateSource}</div>`,'currency');
     const from=overlay.querySelector('#utilCurFrom'),to=overlay.querySelector('#utilCurTo'),amount=overlay.querySelector('#utilCurAmount'),result=overlay.querySelector('#utilCurResult'),rate=overlay.querySelector('#utilCurRate'),swap=overlay.querySelector('.currency-swap');
+    const sourceNode=overlay.querySelector('.utility-source');
+    if(sourceNode){sourceNode.textContent=rateSource+(rateError?' · сохранённые данные':'');sourceNode.title=rateDetails||rateSource;}
     const defaultInfo=overlay.querySelector('#utilCurDefaultInfo'),defaultButton=overlay.querySelector('#utilCurSetDefault');
     const showDefault=()=>{
       const saved=preferences?.read?.()||null;
