@@ -29,7 +29,7 @@ test('calculator note and source are high contrast and source is one concise ban
 test('national bank provider is authoritative only when that provider supplies rates',()=>{
   assert.match(catalog,/v2\/providers\/.*\/rates\?base=USD/);
   assert.match(catalog,/mode:'bank'/);
-  assert.match(catalog,/mode:'reference'/);
+  assert.match(catalog,/Справочные валютные курсы \(официальные источники\)','reference'/);
   assert.match(catalog,/Справочные валютные курсы/);
   assert.match(catalog,/cbr-xml-daily\.ru\/daily_json\.js/);
   assert.match(catalog,/nbg\.gov\.ge\/gw\/api/);
