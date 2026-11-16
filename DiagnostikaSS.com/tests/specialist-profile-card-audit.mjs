@@ -8,7 +8,7 @@ const index=fs.readFileSync('index.html','utf8');
 new Function(account);
 new Function(transfer);
 
-assert(index.includes('account-settings.js?v=20261116-specialist-location-1'),'Specialist profile cache marker missing');
+assert(index.includes('account-settings.js?v=20261116-city-dropdown-fix-1'),'Specialist profile cache marker missing');
 assert(index.includes('modules/clients/ui/transfer.js?v=20261003-specialist-right-rail-4'),'Specialist transfer cache marker missing');
 assert(account.includes('st.specialistProfile=profile'),'Specialist profile is not stored in application state');
 assert(account.includes("save({source:'specialist-profile-migration'})"),'Legacy specialist profile migration is missing');
