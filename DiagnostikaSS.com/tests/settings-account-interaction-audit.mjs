@@ -99,6 +99,15 @@ try{
   await modal.waitFor({state:'visible',timeout:6000});
   await modal.locator('.app-message-discard').click();
   assert.equal(await page.locator('.settings-account-content.open').count(),0,'Approved navigation failed to collapse account');
+  const navState=await page.evaluate(()=>({
+    menu:document.querySelector('.settings-wrap')?.className,
+    interface:document.querySelector('.settings-interface-content')?.className,
+    interfaceDisplay:getComputedStyle(document.querySelector('.settings-interface-content')).display,
+    themeDisplay:getComputedStyle(document.querySelector('.settings-theme-option[data-theme="theme-3"]')).display,
+    panelDisplay:getComputedStyle(document.getElementById('settingsPanel')).display,
+    openDialogs:[...document.querySelectorAll('dialog[open]')].map(x=>x.className)
+  }));
+  console.log('SETTINGS_NAV_STATE',JSON.stringify(navState));
   await page.locator('.settings-theme-option[data-theme="theme-3"]').click();
   assert.equal(await page.evaluate(()=>localStorage.getItem('diagnostika-dashboard-theme')),'theme-3','Theme selection did not persist');
   assert.deepEqual(crashes,[],'Unexpected JS exceptions');
