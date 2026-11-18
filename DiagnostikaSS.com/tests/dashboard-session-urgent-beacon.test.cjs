@@ -43,7 +43,7 @@ test('urgency refreshes in place without unnecessary re-rendering',()=>{
   assert.match(js,/},60000\);/);
 });
 test('deployed dashboard code uses new cache markers',()=>{
-  assert.match(loader,/home-dashboard\.css\?v=20261118-relative-day-1/);
-  assert.match(loader,/home-dashboard\.js\?v=20261118-relative-day-1/);
-  assert.match(html,/app-loader\.js\?v=20261118-relative-day-tooltip-1/);
+  assert.match(loader,/home-dashboard\.css\?v=20261118-numbered-tooltip-1/);
+  assert.match(loader,/home-dashboard\.js\?v=20261118-numbered-tooltip-1/);
+  assert.match(html,/app-loader\.js\?v=20261118-numbered-events-1/);
 });
