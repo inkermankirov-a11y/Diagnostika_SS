@@ -118,6 +118,8 @@
       document.head.appendChild(script);
     });
 
+    // A temporary network failure must not permanently disable the connect button.
+    googlePromise=googlePromise.catch(error=>{googlePromise=null;throw error;});
     return googlePromise;
   }
 
@@ -126,12 +128,12 @@
       const response = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
-      if (!response.ok) return getStored(USER_KEY);
+      if (!response.ok) return null;
       const user = await response.json();
       setStored(USER_KEY, user);
       return user;
     } catch {
-      return getStored(USER_KEY);
+      return null;
     }
   }
 
@@ -219,12 +221,15 @@
               setTokenRecord(record);
               rememberConnection();
 
-              if (interactive) {
-                delStored(FOLDER_KEY);
-                delStored(USER_KEY);
-              }
-
+              const previousUser = interactive ? getStored(USER_KEY) : null;
               const user = await loadUser(accessToken);
+              // Keep the original Drive folder when reconnecting the SAME verified account.
+              // Never carry a folder ID over to another account or an unverified login.
+              if (interactive && (!previousUser?.email || !user?.email ||
+                String(previousUser.email).toLowerCase()!==String(user.email).toLowerCase())) {
+                delStored(FOLDER_KEY);
+              }
+              if (interactive && !user) delStored(USER_KEY);
               setCardConnected(user);
               window.dispatchEvent(new CustomEvent('diagnostika:google-drive-auth-restored',{detail:{email:user?.email||''}}));
               finish(null, record);
