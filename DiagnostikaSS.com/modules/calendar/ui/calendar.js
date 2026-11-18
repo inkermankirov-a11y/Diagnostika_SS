@@ -157,9 +157,32 @@
   function eventActionLabel(e){
     const type=String(e?.type||'').trim();
     const title=String(e?.title||'').trim();
-    if(type)return type;
-    if(/^сессия(?:\s*№\s*\d+)?$/i.test(title))return 'Сессия';
-    return title||'Запись';
+    if(!/^сессия(?:\s*№\s*\d+)?$/i.test(type)&&
+       !/^сессия(?:\s*№\s*\d+)?$/i.test(title))return type||title||'Запись';
+    // The calendar's event title and sessionNumber are assigned by
+    // session-planning.js; preserve that number in every calendar view.
+    const stored=Number(e?.sessionNumber);
+    if(Number.isSafeInteger(stored)&&stored>0)return 'Сессия №'+stored;
+    const match=title.match(/^сессия\s*№\s*(\d+)$/i)||type.match(/^сессия\s*№\s*(\d+)$/i);
+    if(match&&Number.isSafeInteger(Number(match[1]))&&Number(match[1])>0)
+      return 'Сессия №'+Number(match[1]);
+    // Older records may link to an actual session but have a generic title.
+    const client=clientById(e?.clientId);
+    const linked=(client?.sessions||[]).find(item=>
+      (e?.sessionId&&String(item?.id||'')===String(e.sessionId))||
+      (e?.id&&String(item?.calendarEventId||'')===String(e.id))
+    );
+    const linkedTitle=String(linked?.calendarTitle||'').match(/^сессия\s*№\s*(\d+)$/i);
+    if(linkedTitle&&Number.isSafeInteger(Number(linkedTitle[1]))&&Number(linkedTitle[1])>0)
+      return 'Сессия №'+Number(linkedTitle[1]);
+    return 'Сессия';
+  }
+  function calendarEventDisplayTitle(e){
+    const type=String(e?.type||'').trim();
+    const title=String(e?.title||'').trim();
+    return /^сессия(?:\s*№\s*\d+)?$/i.test(type)||
+      /^сессия(?:\s*№\s*\d+)?$/i.test(title)
+      ?eventActionLabel(e):(title||type||'Запись');
   }
   function eventTooltipNote(e){
     return String(e?.note||e?.meta||'').trim();
@@ -507,7 +530,7 @@
       row.className=`cal-event is-${calendarEventKind(e)}`;
       row.dataset.calendarEventId=String(e.id||'');
       const meta=[e.clientName,e.meta,e.note].filter(Boolean).join(' • ');
-      row.innerHTML=`<div class="cal-event-time">${esc(e.time||'—')}</div><div><div class="cal-event-title">${esc(e.title||e.type||'Запись')}</div><div class="cal-event-meta">${esc(meta)}</div></div><button type="button" class="tk-btn cal-delete" title="Удалить">×</button>`;
+      row.innerHTML=`<div class="cal-event-time">${esc(e.time||'—')}</div><div><div class="cal-event-title">${esc(calendarEventDisplayTitle(e))}</div><div class="cal-event-meta">${esc(meta)}</div></div><button type="button" class="tk-btn cal-delete" title="Удалить">×</button>`;
       row.querySelector('.cal-delete').onclick=()=>{
         const api=calendarApi();
         if(typeof api?.remove!=='function')return;
