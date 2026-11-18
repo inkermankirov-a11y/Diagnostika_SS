@@ -18,6 +18,6 @@ assert.ok(calendar.includes('if(hasEvents)cell.tabIndex=0'),'calendar record day
 assert.ok(calendar.includes('cal-day-tooltip-avatar'),'calendar tooltip client avatar missing');
 assert.ok(calendar.includes('cal-day-tooltip-client-link'),'calendar tooltip client link missing');
 assert.ok(calendar.includes('openClientFromCalendar'),'calendar tooltip cannot navigate to a client');
-assert.ok(index.includes('modules/calendar/ui/calendar.js?v=20261002-tooltip-large-1'),'calendar cache key not bumped');
+assert.ok(index.includes('modules/calendar/ui/calendar.js?v=20261118-session-number-label-1'),'calendar cache key not bumped');
 
 console.log('CALENDAR_DAY_BEACON_TOOLTIP_AUDIT_OK');
