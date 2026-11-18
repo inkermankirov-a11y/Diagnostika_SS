@@ -1,0 +1,47 @@
+name: Calendar session number in UI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'DiagnostikaSS.com/modules/calendar/ui/calendar.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/calendar-session-number-label.test.cjs'
+      - 'DiagnostikaSS.com/tests/calendar-session-number-browser.mjs'
+      - '.github/workflows/calendar-number-label.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  calendar-number:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax and direct label regression
+        run: |
+          node --check modules/calendar/ui/calendar.js
+          node --check tests/calendar-session-number-label.test.cjs
+          node --check tests/calendar-session-number-browser.mjs
+          node --test tests/calendar-session-number-label.test.cjs
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser tooltip and day-view regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8118 --bind 127.0.0.1 >/tmp/calendar-number-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 1
+          node tests/calendar-session-number-browser.mjs
