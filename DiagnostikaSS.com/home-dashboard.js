@@ -299,6 +299,21 @@
     return time<afterTomorrow.getTime();
   }
 
+  // Local-calendar labels remain correct when the user leaves the site open
+  // across midnight. Parse ISO dates without UTC timezone day shifts.
+  function sessionBeaconDay(rawDate,now=new Date()){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(rawDate||'')))return null;
+    const [year,month,day]=rawDate.split('-').map(Number);
+    const date=new Date(year,month-1,day);
+    if(date.getFullYear()!==year||date.getMonth()!==month-1||date.getDate()!==day)return null;
+    const days=Math.round((Date.UTC(year,month-1,day)-
+      Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
+    const weekday=new Intl.DateTimeFormat('ru-RU',{weekday:'long'}).format(date);
+    const dateText=String(day).padStart(2,'0')+'.'+String(month).padStart(2,'0')+'.'+year;
+    const relative=days===0?'Сегодня':days===1?'Завтра':weekday.charAt(0).toUpperCase()+weekday.slice(1);
+    return {relative,weekday,dateText,days};
+  }
+
   function upcomingInteractionLabel(upcoming){
     if(!upcoming?.event)return '';
     const event=upcoming.event;
@@ -862,7 +877,36 @@
     const tooltip=ensureUpcomingTooltip();
     const kind=dot?.dataset?.kind||'neutral';
     tooltip.className=`hd-upcoming-tooltip is-${kind}${dot.classList.contains('is-urgent')?' is-urgent':''}`;
-    tooltip.textContent=text;
+    const dateInfo=kind==='session'?sessionBeaconDay(dot.dataset.date):null;
+    if(dateInfo){
+      const heading=document.createElement('div');
+      heading.className='hd-beacon-tooltip-title';
+      heading.textContent='Предстоящая сессия';
+      const dateRow=document.createElement('div');
+      dateRow.className='hd-beacon-tooltip-date';
+      const day=document.createElement('strong');
+      day.className='hd-beacon-tooltip-day';
+      day.textContent=dateInfo.relative;
+      const details=document.createElement('span');
+      details.className='hd-beacon-tooltip-date-detail';
+      const weekday=dateInfo.days===0||dateInfo.days===1?dateInfo.weekday+', ':'';
+      details.textContent=weekday+dateInfo.dateText;
+      dateRow.append(day,details);
+      const timeRow=document.createElement('div');
+      timeRow.className='hd-beacon-tooltip-time-row';
+      const timeLabel=document.createElement('span');
+      timeLabel.textContent='Начало';
+      const time=document.createElement('strong');
+      time.className='hd-beacon-tooltip-time';
+      const rawTime=String(dot.dataset.time||'');
+      const matched=rawTime.match(/^(\d{1,2}):(\d{2})/);
+      time.textContent=matched?String(matched[1]).padStart(2,'0')+':'+matched[2]:'Не указано';
+      timeRow.append(timeLabel,time);
+      tooltip.replaceChildren(heading,dateRow,timeRow);
+      dot.setAttribute('aria-label','Сессия: '+dateInfo.relative+', '+dateInfo.dateText+', '+time.textContent);
+    }else{
+      tooltip.textContent=text;
+    }
     tooltip.hidden=false;
     const rect=dot.getBoundingClientRect();
     const box=tooltip.getBoundingClientRect();
@@ -1013,7 +1057,7 @@
       const upcomingText=upcoming?upcomingInteractionLabel(upcomingInfo):'';
       const upcomingKind=upcoming?upcomingBeaconKind(upcomingInfo.event):'neutral';
       const urgentSession=upcomingKind==='session'&&isUrgentSessionTime(upcomingInfo.time);
-      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}${urgentSession?' is-urgent':''}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-start="${upcomingInfo.time}" data-tooltip="${esc(upcomingText)}"></span>`:'';
+      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}${urgentSession?' is-urgent':''}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-start="${upcomingInfo.time}" data-date="${esc(upcomingInfo.event?.date||'')}" data-time="${esc(upcomingInfo.event?.time||'')}" data-tooltip="${esc(upcomingText)}"></span>`:'';
       const reminderInfo=nextPendingReminder(c);
       const reminderIsTop=!!reminderInfo&&!reminderInfo.overdue&&upcoming&&upcomingBeaconKind(upcomingInfo.event)==='reminder'
         &&(reminderInfo.event===upcomingInfo.event||(reminderInfo.event?.id&&String(reminderInfo.event.id)===String(upcomingInfo.event?.id||'')));
