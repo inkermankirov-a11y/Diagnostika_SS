@@ -15,6 +15,81 @@
     it:{accounts:'Account',name:'Nome dello specialista',hint:'Inserisci il tuo nome. Verrà registrato durante il trasferimento dei clienti.',save:'Salva',saved:'Salvato',empty:'Nome dello specialista',avatarTitle:'Imposta avatar',avatarHint:'Trascina la foto nel cerchio per posizionarla.',cancel:'Annulla',avatarSave:'Salva'}
   };
 
+
+  // Text used by the settings created dynamically (not covered by the global i18n observer).
+  const ACCOUNT_COPY = {
+    ru:{
+      surname:'Фамилия специалиста',city:'Город специалиста',currency:'Валюта страны',cityPlaceholder:'Начни вводить город…',
+      clearCity:'Очистить город и страну',cityChoose:'Выбери город из списка — определяется страна и источник курса валют',
+      currencyHint:'При нескольких официальных валютах можно выбрать нужную',currencyDefault:'Определяется по стране',
+      chooseCity:'Выберите город',firstCity:'Сначала выбери город',detectCurrency:'Определяю официальную валюту страны…',
+      manyCurrencies:'У страны несколько валют — выбери подходящую',mainCurrency:'Основная валюта: ',
+      country:'Страна: ',rateSource:' · источник курса определяется страной',currencyUnavailable:'Валюта страны не определена',
+      chooseExactCity:'Выбери точный город из результатов поиска',cityUnavailable:'Список городов временно недоступен',
+      cityCleared:'Город и страна очищены. Выбери новый город и сохрани карточку.',
+      selectValidCity:'Выбери город из выпадающего списка. Введённое название пока не привязано к стране и валюте.',
+      noCity:'Не выбран город',addReviewFirst:'Сначала нажми «Добавить отзыв», чтобы сохранить набранный отзыв.',
+      unsavedReview:'Несохранённый отзыв',unsavedChanges:'Есть несохранённые изменения в карточке специалиста. Сохранить перед выходом?',avatar:'Фотография специалиста'
+    },
+    en:{
+      surname:'Specialist surname',city:'Specialist city',currency:'Country currency',cityPlaceholder:'Start typing a city…',
+      clearCity:'Clear city and country',cityChoose:'Choose a city from the list to identify the country and exchange-rate source',
+      currencyHint:'If a country has several official currencies, choose the appropriate one',currencyDefault:'Determined by country',
+      chooseCity:'Choose a city',firstCity:'Choose a city first',detectCurrency:'Detecting the official currency…',
+      manyCurrencies:'This country has multiple currencies — choose one',mainCurrency:'Main currency: ',
+      country:'Country: ',rateSource:' · exchange-rate source follows the country',currencyUnavailable:'Country currency could not be identified',
+      chooseExactCity:'Choose the exact city from the search results',cityUnavailable:'City search is temporarily unavailable',
+      cityCleared:'City and country cleared. Select a new city and save the profile.',
+      selectValidCity:'Choose a city from the suggestions. The typed name is not linked to a country or currency.',
+      noCity:'City not selected',addReviewFirst:'Click “Add review” before saving the profile.',
+      unsavedReview:'Unsaved review',unsavedChanges:'There are unsaved changes in the specialist profile. Save before closing?',avatar:'Specialist photo'
+    },
+    fr:{
+      surname:'Nom de famille du spécialiste',city:'Ville du spécialiste',currency:'Devise du pays',cityPlaceholder:'Commencez à saisir une ville…',
+      clearCity:'Effacer la ville et le pays',cityChoose:'Choisissez une ville pour identifier le pays et la source du taux de change',
+      currencyHint:'Si le pays possède plusieurs devises officielles, sélectionnez celle qui convient',currencyDefault:'Déterminée par le pays',
+      chooseCity:'Choisir une ville',firstCity:'Choisissez d’abord une ville',detectCurrency:'Recherche de la devise officielle…',
+      manyCurrencies:'Plusieurs devises sont utilisées — sélectionnez-en une',mainCurrency:'Devise principale : ',
+      country:'Pays : ',rateSource:' · source du taux selon le pays',currencyUnavailable:'Devise du pays introuvable',
+      chooseExactCity:'Choisissez la ville exacte dans les résultats',cityUnavailable:'La recherche des villes est momentanément indisponible',
+      cityCleared:'Ville et pays effacés. Choisissez une nouvelle ville et enregistrez la fiche.',
+      selectValidCity:'Choisissez une ville dans la liste. Le texte saisi n’est pas associé à un pays ou à une devise.',
+      noCity:'Ville non sélectionnée',addReviewFirst:'Cliquez sur « Ajouter un avis » avant d’enregistrer.',
+      unsavedReview:'Avis non enregistré',unsavedChanges:'Des modifications ne sont pas enregistrées. Les enregistrer avant de fermer ?',avatar:'Photo du spécialiste'
+    },
+    de:{
+      surname:'Nachname der Fachkraft',city:'Stadt der Fachkraft',currency:'Landeswährung',cityPlaceholder:'Stadt eingeben…',
+      clearCity:'Stadt und Land löschen',cityChoose:'Stadt aus der Liste wählen, um Land und Wechselkursquelle zu bestimmen',
+      currencyHint:'Bei mehreren offiziellen Währungen die passende auswählen',currencyDefault:'Durch das Land bestimmt',
+      chooseCity:'Stadt wählen',firstCity:'Bitte zuerst eine Stadt wählen',detectCurrency:'Landeswährung wird ermittelt…',
+      manyCurrencies:'Mehrere Landeswährungen verfügbar — bitte auswählen',mainCurrency:'Hauptwährung: ',
+      country:'Land: ',rateSource:' · Wechselkursquelle richtet sich nach dem Land',currencyUnavailable:'Landeswährung konnte nicht ermittelt werden',
+      chooseExactCity:'Die passende Stadt aus den Suchergebnissen auswählen',cityUnavailable:'Stadtsuche derzeit nicht verfügbar',
+      cityCleared:'Stadt und Land gelöscht. Neue Stadt auswählen und Profil speichern.',
+      selectValidCity:'Bitte eine Stadt aus der Liste auswählen. Der eingegebene Name ist keinem Land oder keiner Währung zugeordnet.',
+      noCity:'Keine Stadt ausgewählt',addReviewFirst:'Vor dem Speichern bitte auf „Bewertung hinzufügen“ klicken.',
+      unsavedReview:'Ungespeicherte Bewertung',unsavedChanges:'Es gibt ungespeicherte Änderungen im Profil. Vor dem Schließen speichern?',avatar:'Foto der Fachkraft'
+    },
+    it:{
+      surname:'Cognome dello specialista',city:'Città dello specialista',currency:'Valuta del paese',cityPlaceholder:'Inizia a digitare una città…',
+      clearCity:'Cancella città e paese',cityChoose:'Seleziona una città per identificare paese e fonte del cambio',
+      currencyHint:'Se il paese ha più valute ufficiali, scegli quella desiderata',currencyDefault:'Determinata dal paese',
+      chooseCity:'Seleziona una città',firstCity:'Seleziona prima una città',detectCurrency:'Ricerca della valuta ufficiale…',
+      manyCurrencies:'Sono disponibili più valute — scegline una',mainCurrency:'Valuta principale: ',
+      country:'Paese: ',rateSource:' · fonte del cambio in base al paese',currencyUnavailable:'Impossibile identificare la valuta',
+      chooseExactCity:'Seleziona la città esatta dai risultati',cityUnavailable:'Ricerca delle città temporaneamente non disponibile',
+      cityCleared:'Città e paese cancellati. Seleziona una nuova città e salva la scheda.',
+      selectValidCity:'Seleziona una città dall’elenco. Il testo inserito non è associato a paese o valuta.',
+      noCity:'Città non selezionata',addReviewFirst:'Premi “Aggiungi recensione” prima di salvare.',
+      unsavedReview:'Recensione non salvata',unsavedChanges:'Ci sono modifiche non salvate nel profilo. Salvarle prima di chiudere?',avatar:'Foto dello specialista'
+    }
+  };
+  const PROFILE_TRANSLATIONS = {
+    fr:{profile:'Fiche du spécialiste',title:'Fonction / spécialité',experience:'Expérience professionnelle',areas:'Domaines d’activité',about:'À propos du spécialiste',reviews:'Avis',reviewAuthor:'Auteur / signature',reviewText:'Texte de l’avis',reviewAdd:'Ajouter un avis',reviewEmpty:'Aucun avis',reviewDelete:'Supprimer',photo:'Photographie',photoEdit:'Modifier la miniature',photoReplace:'Remplacer la photo',photoDelete:'Supprimer la photo',titlePlaceholder:'Par ex. hypnothérapeute',experiencePlaceholder:'Par ex. 8 ans',areasPlaceholder:'Relations, carrière, confiance',aboutPlaceholder:'Description de l’approche et de l’expérience'},
+    de:{profile:'Profil der Fachkraft',title:'Beruf / Spezialisierung',experience:'Berufserfahrung',areas:'Arbeitsbereiche',about:'Über die Fachkraft',reviews:'Bewertungen',reviewAuthor:'Name / Unterschrift',reviewText:'Bewertungstext',reviewAdd:'Bewertung hinzufügen',reviewEmpty:'Noch keine Bewertungen',reviewDelete:'Löschen',photo:'Foto',photoEdit:'Vorschau bearbeiten',photoReplace:'Foto ersetzen',photoDelete:'Foto löschen',titlePlaceholder:'Z. B. Hypnotherapeut',experiencePlaceholder:'Z. B. 8 Jahre',areasPlaceholder:'Beziehungen, Karriere, Selbstvertrauen',aboutPlaceholder:'Ansatz und Erfahrung kurz beschreiben'},
+    it:{profile:'Profilo dello specialista',title:'Ruolo / specializzazione',experience:'Esperienza professionale',areas:'Ambiti di lavoro',about:'Informazioni sullo specialista',reviews:'Recensioni',reviewAuthor:'Autore / firma',reviewText:'Testo della recensione',reviewAdd:'Aggiungi recensione',reviewEmpty:'Nessuna recensione',reviewDelete:'Elimina',photo:'Fotografia',photoEdit:'Modifica miniatura',photoReplace:'Sostituisci foto',photoDelete:'Elimina foto',titlePlaceholder:'Ad es. ipnoterapeuta',experiencePlaceholder:'Ad es. 8 anni',areasPlaceholder:'Relazioni, carriera, autostima',aboutPlaceholder:'Descrizione di approccio ed esperienza'}
+  };
+
   const panel = document.getElementById('settingsPanel');
   const accountsBtn = panel?.querySelector('.settings-accounts-btn');
   if (!panel || !accountsBtn) return;
@@ -23,7 +98,8 @@
     const l = window.DiagnostikaI18n?.language || localStorage.getItem('diagnostika-ui-language') || 'ru';
     return LABELS[l] ? l : 'ru';
   }
-  function t(){ return {...LABELS.en,...(LABELS[lang()]||LABELS.ru)}; }
+  function t(){ return {...LABELS.en,...(LABELS[lang()]||LABELS.ru),...(PROFILE_TRANSLATIONS[lang()]||{})}; }
+  function copy(){return ACCOUNT_COPY[lang()]||ACCOUNT_COPY.ru;}
   const clone=value=>{try{return typeof structuredClone==='function'?structuredClone(value):JSON.parse(JSON.stringify(value));}catch(_){return value&&typeof value==='object'?{...value}:value;}};
   const uid=()=>crypto.randomUUID?crypto.randomUUID():'review_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
   function appState(){try{return typeof state!=='undefined'&&state&&typeof state==='object'?state:null;}catch(_){return null;}}
@@ -127,9 +203,9 @@
   content.className = 'settings-account-content';
   content.innerHTML = '<div class="specialist-card-title"></div>'
     +'<div class="account-field"><div class="account-label account-name-label"></div><input class="account-input account-name" type="text" autocomplete="name"></div>'
-    +'<div class="account-field"><div class="account-label">Фамилия специалиста</div><input class="account-input account-surname" type="text" autocomplete="family-name"></div>'
-    +'<div class="account-field"><div class="account-label">Город специалиста</div><div class="account-city-input-wrap"><input class="account-input account-city" type="text" autocomplete="off" placeholder="Начни вводить город…"><button class="account-city-clear" type="button" aria-label="Очистить город и страну" title="Очистить город и страну" hidden>×</button></div><div class="account-city-suggestions" hidden></div><div class="account-city-info">Выбери город из списка — определяется страна и источник курса валют</div></div>'
-    +'<div class="account-field"><div class="account-label">Валюта страны</div><select class="account-input account-currency" aria-label="Валюта страны"><option value="">Определяется по стране</option></select><div class="account-city-info account-currency-info">При нескольких официальных валютах можно выбрать нужную</div></div>'
+    +'<div class="account-field"><div class="account-label account-surname-label">Фамилия специалиста</div><input class="account-input account-surname" type="text" autocomplete="family-name"></div>'
+    +'<div class="account-field"><div class="account-label account-city-label">Город специалиста</div><div class="account-city-input-wrap"><input class="account-input account-city" type="text" autocomplete="off" placeholder="Начни вводить город…"><button class="account-city-clear" type="button" aria-label="Очистить город и страну" title="Очистить город и страну" hidden>×</button></div><div class="account-city-suggestions" hidden></div><div class="account-city-info">Выбери город из списка — определяется страна и источник курса валют</div></div>'
+    +'<div class="account-field"><div class="account-label account-currency-label">Валюта страны</div><select class="account-input account-currency" aria-label="Валюта страны"><option value="">Определяется по стране</option></select><div class="account-city-info account-currency-info">При нескольких официальных валютах можно выбрать нужную</div></div>'
     +'<div class="account-field-grid"><div class="account-field"><div class="account-label account-title-label"></div><input class="account-input account-title" type="text"></div><div class="account-field"><div class="account-label account-experience-label"></div><input class="account-input account-experience" type="text"></div></div>'
     +'<div class="account-field"><div class="account-label account-areas-label"></div><textarea class="account-textarea account-areas"></textarea></div>'
     +'<div class="account-field"><div class="account-label account-about-label"></div><textarea class="account-textarea account-about"></textarea></div>'
@@ -158,9 +234,9 @@
     const api=window.DiagnostikaCountryCurrency;
     currencyOptions=[];
     currencyInput.replaceChildren();
-    if(!api||!code){const option=document.createElement('option');option.value='';option.textContent='Выберите город';currencyInput.appendChild(option);currencyInput.disabled=true;currencyInfo.textContent='Сначала выбери город';return;}
+    if(!api||!code){const option=document.createElement('option');option.value='';option.textContent=copy().chooseCity;currencyInput.appendChild(option);currencyInput.disabled=true;currencyInfo.textContent=copy().firstCity;return;}
     const requested=code;
-    currencyInfo.textContent='Определяю официальную валюту страны…';
+    currencyInfo.textContent=copy().detectCurrency;
     try{
       const info=await api.currencyForCountry(code);
       if(request!==currencyRequest||String(chosenCity?.country_code||'')!==requested)return;
@@ -168,8 +244,8 @@
       for(const currency of info.options){const option=document.createElement('option');option.value=currency;option.textContent=currency;currencyInput.appendChild(option);}
       currencyInput.value=info.options.includes(preferred)?preferred:info.currency;
       currencyInput.disabled=info.options.length<=1;
-      currencyInfo.textContent=info.options.length>1?'У страны несколько валют — выбери подходящую':'Основная валюта: '+currencyInput.value;
-    }catch(error){if(request===currencyRequest){currencyInput.disabled=true;currencyInfo.textContent=error?.message||'Валюта страны не определена';}}
+      currencyInfo.textContent=info.options.length>1?copy().manyCurrencies:copy().mainCurrency+currencyInput.value;
+    }catch(error){if(request===currencyRequest){currencyInput.disabled=true;currencyInfo.textContent=error?.message||copy().currencyUnavailable;}}
   }
   let chosenCity=null,cityTimer=null,cityRequest=0;
   currencyInput.addEventListener('change',()=>{currencyTouched=true;});
@@ -268,6 +344,13 @@
     paintSummary(profile);
     content.querySelector('.specialist-card-title').textContent=tr.profile;
     content.querySelector('.account-name-label').textContent=tr.name;
+    const strings=copy();
+    content.querySelector('.account-surname-label').textContent=strings.surname;
+    content.querySelector('.account-city-label').textContent=strings.city;
+    content.querySelector('.account-currency-label').textContent=strings.currency;
+    cityInput.placeholder=strings.cityPlaceholder;
+    cityClear.title=strings.clearCity;cityClear.setAttribute('aria-label',strings.clearCity);
+    currencyInput.setAttribute('aria-label',strings.currency);
     content.querySelector('.account-title-label').textContent=tr.title;
     content.querySelector('.account-experience-label').textContent=tr.experience;
     content.querySelector('.account-areas-label').textContent=tr.areas;
@@ -286,7 +369,7 @@
       chosenCity=profile.countryCode?{name:profile.city,admin1:profile.region,country:profile.country,country_code:profile.countryCode}:null;
       updateCountryCurrencies(profile.countryCode,profile.currencyCode);
     }
-    cityInfo.textContent=profile.countryCode?('Страна: '+profile.country+' ('+profile.countryCode+') · источник курса определяется страной'):'Выбери город из списка — определяется страна и источник курса валют';
+    cityInfo.textContent=profile.countryCode?(strings.country+profile.country+' ('+profile.countryCode+')'+strings.rateSource):strings.cityChoose;
     if(document.activeElement!==titleInput)titleInput.value=profile.title;
     if(document.activeElement!==experienceInput)experienceInput.value=profile.experience;
     if(document.activeElement!==areasInput)areasInput.value=profile.areas.join(', ');
@@ -323,7 +406,7 @@
         chosenCity={name:item.name,admin1:item.admin1||'',country:item.country||'',country_code:item.country_code};
         stopCitySearch();
         currencyTouched=false;
-        cityInput.value=b.textContent;updateCityClear();cityInfo.textContent='Страна: '+item.country+' ('+item.country_code+')';
+        cityInput.value=b.textContent;updateCityClear();cityInfo.textContent=copy().country+item.country+' ('+item.country_code+')';
         citySuggestions.hidden=true;
         updateCountryCurrencies(chosenCity.country_code);
       };
@@ -333,7 +416,7 @@
     placeCitySuggestions();
   }
   cityInput.addEventListener('input',()=>{
-    chosenCity=null;updateCityClear();updateCountryCurrencies('');cityInfo.textContent='Выбери точный город из результатов поиска';
+    chosenCity=null;updateCityClear();updateCountryCurrencies('');cityInfo.textContent=copy().chooseExactCity;
     const value=cityInput.value.trim();clearTimeout(cityTimer);
     cityRequest+=1;const request=cityRequest;
     if(value.length<2){citySuggestions.hidden=true;return;}
@@ -344,7 +427,7 @@
         if(!response.ok)throw Error('Ошибка сервиса городов');
         const data=await response.json();
         if(request===cityRequest)renderCityOptions(data.results||[]);
-      }catch(_){if(request===cityRequest){citySuggestions.hidden=true;cityInfo.textContent='Список городов временно недоступен';}}
+      }catch(_){if(request===cityRequest){citySuggestions.hidden=true;cityInfo.textContent=copy().cityUnavailable;}}
     },350);
   });
   cityClear.addEventListener('click',event=>{
@@ -357,7 +440,7 @@
     updateCountryCurrencies('');
     updateCityClear();
     cityInput.dispatchEvent(new Event('input',{bubbles:true}));
-    cityInfo.textContent='Город и страна очищены. Выбери новый город и сохрани карточку.';
+    cityInfo.textContent=copy().cityCleared;
     cityInput.focus();
   });
   cityInput.addEventListener('keydown',e=>{
@@ -385,13 +468,13 @@
     const typedCity=cityInput.value.trim();
     const selectedCity=chosenCity?[chosenCity.name,chosenCity.admin1,chosenCity.country].filter(Boolean).join(', '):'';
     if(typedCity&&typedCity!==selectedCity){
-      window.AppDialog?.alert?.('Выбери город из выпадающего списка. Введённое название пока не привязано к стране и валюте.','Не выбран город');
+      window.AppDialog?.alert?.(copy().selectValidCity,copy().noCity);
       cityInput.focus();
       return false;
     }
     // Review editor is a separate draft until its Add action is pressed.
     if(reviewTextInput.value.trim()||reviewAuthorInput.value.trim()){
-      window.AppDialog?.alert?.('Сначала нажми «Добавить отзыв», чтобы сохранить набранный отзыв.','Несохранённый отзыв');
+      window.AppDialog?.alert?.(copy().addReviewFirst,copy().unsavedReview);
       return false;
     }
     if(!persistProfile(profileFromForm(),'specialist-profile-card-save'))return false;
@@ -409,7 +492,7 @@
     leaving=true;
     try{
       const choice=window.AppDialog?.savePrompt
-        ?await window.AppDialog.savePrompt('Есть несохранённые изменения в карточке специалиста. Сохранить перед выходом?')
+        ?await window.AppDialog.savePrompt(copy().unsavedChanges)
         :'cancel';
       if(choice==='save')return saveCard();
       if(choice==='discard'){
@@ -579,4 +662,9 @@
   window.addEventListener('diagnostika-language-changed',()=>setTimeout(()=>render({preserveDraft:true}),0));
   window.DiagnostikaSpecialistProfile={getName,getAvatar,getProfile:()=>clone(getProfile()),saveProfile:profile=>persistProfile(profile,'specialist-profile-api-save'),nameKey:NAME_KEY,avatarKey:AVATAR_KEY};
   render();
+  // Deferred scripts run in order; the country/currency provider loads after this module.
+  // Retry after all deferred scripts are ready without resetting a draft being edited.
+  if(document.readyState==='loading'||document.readyState==='interactive')
+    document.addEventListener('DOMContentLoaded',()=>render({preserveDraft:true}),{once:true});
+  else setTimeout(()=>render({preserveDraft:true}),0);
 })();
