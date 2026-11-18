@@ -861,7 +861,7 @@
     if(!text)return;
     const tooltip=ensureUpcomingTooltip();
     const kind=dot?.dataset?.kind||'neutral';
-    tooltip.className=`hd-upcoming-tooltip is-${kind}`;
+    tooltip.className=`hd-upcoming-tooltip is-${kind}${dot.classList.contains('is-urgent')?' is-urgent':''}`;
     tooltip.textContent=text;
     tooltip.hidden=false;
     const rect=dot.getBoundingClientRect();
