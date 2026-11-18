@@ -290,6 +290,15 @@
     return !!next&&next.time<Date.now()+days*24*60*60*1000;
   }
 
+  // Urgency uses the specialist's local calendar dates, not a rolling
+  // 48-hour interval: future sessions today or tomorrow are red.
+  function isUrgentSessionTime(time,now=Date.now()){
+    if(!Number.isFinite(time)||time<now)return false;
+    const today=new Date(now);
+    const afterTomorrow=new Date(today.getFullYear(),today.getMonth(),today.getDate()+2);
+    return time<afterTomorrow.getTime();
+  }
+
   function upcomingInteractionLabel(upcoming){
     if(!upcoming?.event)return '';
     const event=upcoming.event;
@@ -1003,7 +1012,8 @@
       const upcoming=!!upcomingInfo&&upcomingInfo.time<Date.now()+7*24*60*60*1000;
       const upcomingText=upcoming?upcomingInteractionLabel(upcomingInfo):'';
       const upcomingKind=upcoming?upcomingBeaconKind(upcomingInfo.event):'neutral';
-      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-tooltip="${esc(upcomingText)}"></span>`:'';
+      const urgentSession=upcomingKind==='session'&&isUrgentSessionTime(upcomingInfo.time);
+      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}${urgentSession?' is-urgent':''}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-start="${upcomingInfo.time}" data-tooltip="${esc(upcomingText)}"></span>`:'';
       const reminderInfo=nextPendingReminder(c);
       const reminderIsTop=!!reminderInfo&&!reminderInfo.overdue&&upcoming&&upcomingBeaconKind(upcomingInfo.event)==='reminder'
         &&(reminderInfo.event===upcomingInfo.event||(reminderInfo.event?.id&&String(reminderInfo.event.id)===String(upcomingInfo.event?.id||'')));
@@ -1176,6 +1186,22 @@
   document.addEventListener('close',e=>{
     if(e.target?.matches?.('dialog.session-edit-dialog,dialog.payment-dialog'))setTimeout(renderClients,0);
   },true);
+
+  // Update beacon urgency as a new day begins without rebuilding the client
+  // list while the specialist is interacting with the page.
+  setInterval(()=>{
+    if(document.hidden||!dashboard.isConnected)return;
+    let elapsed=false;
+    for(const dot of list.querySelectorAll('.hd-upcoming-session-dot.is-session[data-start]')){
+      const time=Number(dot.dataset.start);
+      if(!Number.isFinite(time))continue;
+      if(time<Date.now()){elapsed=true;break;}
+      dot.classList.toggle('is-urgent',isUrgentSessionTime(time));
+    }
+    // Only rerender when an appointment has passed and the next one must
+    // take its place; otherwise the list and scroll position remain untouched.
+    if(elapsed&&!consultationDialogOpen())renderClients();
+  },60000);
 
   window.DiagnostikaHomeDashboard={refresh,renderClients,openCard,addClient,openClientDatabase,showHome,openClient:selectClient,currentView:()=>dashboardView};
 
