@@ -135,12 +135,12 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const css=document.createElement('link');
       css.rel='stylesheet';
-      css.href='home-dashboard.css?v=20261007-brand-hover-1';
+      css.href='home-dashboard.css?v=20261118-session-urgent-1';
       css.setAttribute('data-home-dashboard','1');
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261101-consult-stable-4','data-home-dashboard-preload'],
+      ['home-dashboard.js?v=20261118-session-urgent-1','data-home-dashboard-preload'],
       ['home-dashboard-sessions.js?v=20261112-session-previews-2','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
@@ -180,13 +180,13 @@
     if(!document.querySelector('link[data-home-dashboard]')){
       const l=document.createElement('link');
       l.rel='stylesheet';
-      l.href='home-dashboard.css?v=20261007-brand-hover-1';
+      l.href='home-dashboard.css?v=20261118-session-urgent-1';
       l.setAttribute('data-home-dashboard','1');
       document.head.appendChild(l);
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20261101-consult-stable-4';
+      s.src='home-dashboard.js?v=20261118-session-urgent-1';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         loadHomeWorkspace();
