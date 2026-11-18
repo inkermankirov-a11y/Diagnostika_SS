@@ -272,9 +272,9 @@
     return 'neutral';
   }
 
-  function upcomingBeaconTypeLabel(event){
+  function upcomingBeaconTypeLabel(event,client){
     const kind=upcomingBeaconKind(event);
-    if(kind==='session')return 'Сессия';
+    if(kind==='session')return window.DiagnostikaSessionEventLabel?.title?.(event,client)||'Сессия';
     if(kind==='diagnosis')return 'Диагностика';
     if(kind==='reminder')return 'Напоминание';
     if(kind==='free-consultation')return 'Бесплатная консультация';
@@ -314,7 +314,7 @@
     return {relative,weekday,dateText,days};
   }
 
-  function upcomingInteractionLabel(upcoming){
+  function upcomingInteractionLabel(upcoming,client){
     if(!upcoming?.event)return '';
     const event=upcoming.event;
     const rawDate=String(event.date||'').trim();
@@ -326,7 +326,7 @@
     const rawTime=String(event.time||'').trim();
     const timeMatch=rawTime.match(/^(\d{1,2}):(\d{2})/);
     const timeText=timeMatch?`${pad2(timeMatch[1])}:${pad2(timeMatch[2])}`:'время не указано';
-    return `${upcomingBeaconTypeLabel(event)} • ${dateText} • ${timeText}`;
+    return `${upcomingBeaconTypeLabel(event,client)} • ${dateText} • ${timeText}`;
   }
 
   function calendarEventDateLabel(event){
@@ -879,31 +879,31 @@
     tooltip.className=`hd-upcoming-tooltip is-${kind}${dot.classList.contains('is-urgent')?' is-urgent':''}`;
     const dateInfo=kind==='session'?sessionBeaconDay(dot.dataset.date):null;
     if(dateInfo){
-      const heading=document.createElement('div');
-      heading.className='hd-beacon-tooltip-title';
-      heading.textContent='Предстоящая сессия';
-      const dateRow=document.createElement('div');
-      dateRow.className='hd-beacon-tooltip-date';
-      const day=document.createElement('strong');
+      // Compact, readable information hierarchy: exact session number,
+      // relative day, date and prominent start time in one unobtrusive card.
+      const header=document.createElement('div');
+      header.className='hd-beacon-tooltip-header';
+      const title=document.createElement('strong');
+      title.className='hd-beacon-tooltip-title';
+      title.textContent=dot.dataset.sessionTitle||'Сессия';
+      const day=document.createElement('span');
       day.className='hd-beacon-tooltip-day';
       day.textContent=dateInfo.relative;
-      const details=document.createElement('span');
-      details.className='hd-beacon-tooltip-date-detail';
-      const weekday=dateInfo.days===0||dateInfo.days===1?dateInfo.weekday+', ':'';
-      details.textContent=weekday+dateInfo.dateText;
-      dateRow.append(day,details);
-      const timeRow=document.createElement('div');
-      timeRow.className='hd-beacon-tooltip-time-row';
-      const timeLabel=document.createElement('span');
-      timeLabel.textContent='Начало';
+      header.append(title,day);
+      const bottom=document.createElement('div');
+      bottom.className='hd-beacon-tooltip-bottom';
+      const date=document.createElement('span');
+      date.className='hd-beacon-tooltip-date-detail';
+      const weekday=dateInfo.weekday.charAt(0).toUpperCase()+dateInfo.weekday.slice(1);
+      date.textContent=weekday+', '+dateInfo.dateText;
       const time=document.createElement('strong');
       time.className='hd-beacon-tooltip-time';
       const rawTime=String(dot.dataset.time||'');
-      const matched=rawTime.match(/^(\d{1,2}):(\d{2})/);
-      time.textContent=matched?String(matched[1]).padStart(2,'0')+':'+matched[2]:'Не указано';
-      timeRow.append(timeLabel,time);
-      tooltip.replaceChildren(heading,dateRow,timeRow);
-      dot.setAttribute('aria-label','Сессия: '+dateInfo.relative+', '+dateInfo.dateText+', '+time.textContent);
+      const matched=rawTime.match(/^(\\d{1,2}):(\\d{2})/);
+      time.textContent=matched?String(matched[1]).padStart(2,'0')+':'+matched[2]:'—';
+      bottom.append(date,time);
+      tooltip.replaceChildren(header,bottom);
+      dot.setAttribute('aria-label',title.textContent+': '+dateInfo.relative+', '+dateInfo.dateText+', '+time.textContent);
     }else{
       tooltip.textContent=text;
     }
@@ -1054,14 +1054,14 @@
       const newClient=isNewClient(c);
       const upcomingInfo=nextUpcomingInteraction(c);
       const upcoming=!!upcomingInfo&&upcomingInfo.time<Date.now()+7*24*60*60*1000;
-      const upcomingText=upcoming?upcomingInteractionLabel(upcomingInfo):'';
+      const upcomingText=upcoming?upcomingInteractionLabel(upcomingInfo,c):'';
       const upcomingKind=upcoming?upcomingBeaconKind(upcomingInfo.event):'neutral';
       const urgentSession=upcomingKind==='session'&&isUrgentSessionTime(upcomingInfo.time);
-      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}${urgentSession?' is-urgent':''}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-start="${upcomingInfo.time}" data-date="${esc(upcomingInfo.event?.date||'')}" data-time="${esc(upcomingInfo.event?.time||'')}" data-tooltip="${esc(upcomingText)}"></span>`:'';
+      const upcomingDot=upcoming?`<span class="hd-upcoming-session-dot is-${upcomingKind}${urgentSession?' is-urgent':''}" tabindex="0" aria-label="Ближайшая запись: ${esc(upcomingText)}" data-kind="${upcomingKind}" data-start="${upcomingInfo.time}" data-date="${esc(upcomingInfo.event?.date||'')}" data-time="${esc(upcomingInfo.event?.time||'')}" data-session-title="${upcomingKind==='session'?esc(upcomingBeaconTypeLabel(upcomingInfo.event,c)):''}" data-tooltip="${esc(upcomingText)}"></span>`:'';
       const reminderInfo=nextPendingReminder(c);
       const reminderIsTop=!!reminderInfo&&!reminderInfo.overdue&&upcoming&&upcomingBeaconKind(upcomingInfo.event)==='reminder'
         &&(reminderInfo.event===upcomingInfo.event||(reminderInfo.event?.id&&String(reminderInfo.event.id)===String(upcomingInfo.event?.id||'')));
-      const reminderText=reminderInfo?upcomingInteractionLabel(reminderInfo):'';
+      const reminderText=reminderInfo?upcomingInteractionLabel(reminderInfo,c):'';
       const reminderPrefix=reminderInfo?.overdue?'Просроченное напоминание':'Напоминание';
       const reminderDot=reminderInfo&&!reminderIsTop
         ?`<span class="hd-upcoming-session-dot is-reminder${reminderInfo.overdue?' is-overdue':''}" tabindex="0" aria-label="${reminderPrefix}: ${esc(reminderText)}" data-kind="reminder" data-tooltip="${esc(reminderPrefix+': '+reminderText)}"></span>`
