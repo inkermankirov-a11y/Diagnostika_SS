@@ -11,6 +11,7 @@ on:
       - 'DiagnostikaSS.com/app-loader.js'
       - 'DiagnostikaSS.com/index.html'
       - 'DiagnostikaSS.com/tests/dashboard-session-urgent-beacon.test.cjs'
+      - 'DiagnostikaSS.com/tests/dashboard-session-tooltip.test.cjs'
       - 'DiagnostikaSS.com/tests/dashboard-session-card-layout.test.cjs'
       - '.github/workflows/dashboard-session-urgent-beacon.yml'
 
@@ -29,7 +30,7 @@ jobs:
       - name: Check syntax
         run: node --check home-dashboard.js
       - name: Test beacon urgency
-        run: node --test tests/dashboard-session-urgent-beacon.test.cjs tests/dashboard-session-card-layout.test.cjs
+        run: node --test tests/dashboard-session-urgent-beacon.test.cjs tests/dashboard-session-card-layout.test.cjs tests/dashboard-session-tooltip.test.cjs
       - name: Check existing dashboard beacon rules
         run: |
           node tests/dashboard-client-markers-audit.mjs
