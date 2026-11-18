@@ -167,7 +167,7 @@
         if(!Number.isFinite(at))continue;
         raw.push({key:'event:'+e.id,at,scheduledDate,scheduledTime,
           kind:eventType(e),clientId:e.clientId,
-          label:String(e.title||e.type||'Запись').trim(),eventId:e.id,source:'calendar'});
+          label:String(e.title||e.type||'Запись').trim(),event:e,eventId:e.id,source:'calendar'});
       }
     }catch(error){console.warn('Home workspace calendar snapshot unavailable',error);}
     // Some legacy planned sessions have no associated calendar event.
@@ -185,7 +185,12 @@
         if(!Number.isFinite(at))continue;
         raw.push({key:'session:'+c.id+':'+s.id,at,scheduledDate,scheduledTime,
           kind:/диагност/i.test(String(s.appointmentType||''))?'diagnosis':'session',
-          clientId:c.id,label:String(s.calendarTitle||s.appointmentType||'Сессия'),source:'session'});
+          clientId:c.id,label:String(s.calendarTitle||s.appointmentType||'Сессия'),
+          event:{id:s.calendarEventId||'',sessionId:s.id,clientId:c.id,
+            requestId:s.requestId||'',date:scheduledDate,time:scheduledTime,
+            type:/диагност/i.test(String(s.appointmentType||''))?'Диагностика':'Сессия',
+            title:s.calendarTitle||s.appointmentType||'Сессия'},
+          source:'session'});
       }
     }
     return raw.sort((a,b)=>a.at-b.at);
@@ -206,9 +211,12 @@
       const scheduledDate=formatScheduledDate(e.scheduledDate);
       const scheduledTime=formatScheduledTime(e.scheduledTime);
       const name=c?String(c.name||'Без имени').trim():'Общая запись';
+      const label=e.kind==='session'
+        ?(window.DiagnostikaSessionEventLabel?.title?.(e.event,c)||e.label)
+        :e.label;
       return '<div class="hws-event-row"><div class="hws-event-type is-'+e.kind+'">'+
         (e.kind==='reminder'?'◎':'◷')+'</div><div class="hws-event-body">'+
-        '<strong>'+esc(e.label)+'</strong>'+
+        '<strong>'+esc(label)+'</strong>'+
         '<span class="hws-event-person">'+esc(name)+'</span>'+
         '<span class="hws-event-scheduled">Запланировано: <b>'+esc(scheduledDate)+'</b>'+
         ' <span class="hws-event-time">'+esc(scheduledTime)+'</span></span></div>'+
