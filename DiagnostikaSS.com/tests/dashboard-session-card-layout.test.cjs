@@ -29,5 +29,5 @@ test('small-screen session cards have room for wrapping badges and labels',()=>{
 });
 test('new client session preview is deployed under cache-busted assets',()=>{
   assert.match(loader,/home-dashboard-sessions\.js\?v=20261118-expanded-preview-4/);
-  assert.match(html,/app-loader\.js\?v=20261118-relative-day-tooltip-1/);
+  assert.match(html,/app-loader\.js\?v=20261118-numbered-events-1/);
 });
