@@ -65,7 +65,13 @@
         };
         const effective=sessionPrice(draft);
         const final=wrap.querySelector('#sessionFinalPrice');
-        if(final)final.innerHTML=draft.sessionDiscount>0?`Цена после скидки: <strong>${money(effective)} ₽</strong> <span style="color:#728092">(базовая ${money(draft.sessionAmount)} ₽, скидка ${draft.sessionDiscount}%)</span>`:`Итог за сессию: <strong>${money(effective)} ₽</strong>`;
+        const c=currentClient(),r=requestShownInDialog(c,dlg),p=paymentOf(c,r);
+        const symbol=({RUB:'₽',USD:'$',EUR:'€',KZT:'₸'}[p?.currency]||'₽');
+        if(!final)return;
+        if(!draft.sessionAmount){final.textContent='Стоимость сессии не указана';return;}
+        final.innerHTML=draft.sessionDiscount>0
+          ?`Цена после скидки: <strong>${money(effective)} ${symbol}</strong> <span style="color:#728092">(базовая ${money(draft.sessionAmount)} ${symbol}, скидка ${draft.sessionDiscount}%)</span>`
+          :`Итог за сессию: <strong>${money(effective)} ${symbol}</strong>`;
       };
       base.addEventListener('input',preview);discount.addEventListener('input',preview);
     }
@@ -81,8 +87,15 @@
     const base=wrap.querySelector('#sessionBasePrice'),discount=wrap.querySelector('#sessionDiscount'),final=wrap.querySelector('#sessionFinalPrice');
     if(document.activeElement!==base)base.value=p.sessionAmount||'';
     if(document.activeElement!==discount)discount.value=p.sessionDiscount||'';
-    const effective=sessionPrice(p);
-    final.innerHTML=p.sessionDiscount>0?`Цена после скидки: <strong>${money(effective)} ₽</strong> <span style="color:#728092">(базовая ${money(p.sessionAmount)} ₽, скидка ${p.sessionDiscount}%)</span>`:`Итог за сессию: <strong>${money(effective)} ₽</strong>`;
+    const editing=base===document.activeElement||discount===document.activeElement;
+    const amount=editing?Math.max(0,Number(base.value)||0):Math.max(0,Number(p.sessionAmount)||0);
+    const rate=editing?Math.min(100,Math.max(0,Number(discount.value)||0)):Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));
+    const effective=sessionPrice({sessionAmount:amount,sessionDiscount:rate});
+    const symbol=({RUB:'₽',USD:'$',EUR:'€',KZT:'₸'}[p?.currency]||'₽');
+    if(!amount){final.textContent='Стоимость сессии не указана';return;}
+    final.innerHTML=rate>0
+      ?`Цена после скидки: <strong>${money(effective)} ${symbol}</strong> <span style="color:#728092">(базовая ${money(amount)} ${symbol}, скидка ${rate}%)</span>`
+      :`Итог за сессию: <strong>${money(effective)} ${symbol}</strong>`;
   }
 
   function ensurePreviousSummary(){
