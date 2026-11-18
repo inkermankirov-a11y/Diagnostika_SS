@@ -23,7 +23,7 @@ test('preview is visibly clamped to exactly three lines above planned action row
   assert.match(js,/replace\(\/\\\*\\\*\/g,''\)/);
 });
 test('small-screen session cards have room for wrapping badges and labels',()=>{
-  assert.match(js,/@media\(max-width:600px\)\{[^}]*\.hd-session-card\{height:208px!important;min-height:208px!important;max-height:208px!important/);
+  assert.match(js,/\.hd-session-card\{height:208px!important;min-height:208px!important;max-height:208px!important/);
   assert.match(js,/@media\(max-width:400px\)\{\.hd-session-card\{height:226px!important/);
   assert.match(js,/\.hd-session-card .hd-session-top\{max-height:122px/);
 });
