@@ -28,11 +28,15 @@
   function renderFinal(dlg,p){
     const final=dlg.querySelector('#sessionFinalPrice');
     if(!final||!p)return;
-    const d=Math.min(100,Math.max(0,Number(p.sessionDiscount)||0));
-    const price=Math.max(0,(Number(p.sessionAmount)||0)*(1-d/100));
-    final.innerHTML=`Итог за сессию: <strong>${money(price)} ₽</strong>${d?` <span style="color:#728092">(скидка ${d}%)</span>`:''}`;
+    const baseField=dlg.querySelector('#sessionBasePrice');
+    const discountField=dlg.querySelector('#sessionDiscount');
+    const editing=baseField===document.activeElement||discountField===document.activeElement;
+    const base=editing&&baseField?Math.max(0,num(baseField.value)):Math.max(0,num(p.sessionAmount));
+    const discount=Math.min(100,Math.max(0,editing&&discountField?num(discountField.value):num(p.sessionDiscount)));
+    if(!base){final.textContent='Стоимость сессии не указана';return;}
+    const symbol=({RUB:'₽',USD:'$',EUR:'€',KZT:'₸'}[dlg.querySelector('#paymentCurrency')?.value||p.currency]||'₽');
+    final.innerHTML=`Итог за сессию: <strong>${money(base*(1-discount/100))} ${symbol}</strong>${discount?` <span style="color:#728092">(скидка ${discount}%)</span>`:''}`;
   }
-
   function persistSessionSettings(dlg){
     const c=currentClient(),r=requestShownInDialog(c,dlg);if(!c||!r)return;
     const mode=dlg.querySelector('#paymentMode')?.value||'';
@@ -51,11 +55,12 @@
       changes,
       {client:c,source:'payment-session-settings'}
     );
-    if(!p)return;
+    if(!p)return false;
     try{window.DiagnostikaPayments?.refresh?.();}catch(e){}
     try{window.DiagnostikaSessionPayments?.refresh?.();}catch(e){}
     try{window.DiagnostikaClientPaymentFlags?.refresh?.();}catch(e){}
     renderFinal(dlg,p);
+    return true;
   }
 
   function ensureSaveButton(dlg){
@@ -67,7 +72,7 @@
     btn.type='button';btn.id='paymentSaveSettings';btn.className='tk-btn payment-save-settings';btn.textContent='Сохранить оплату';
     footer.insertBefore(btn,footer.firstChild);
     btn.addEventListener('click',()=>{
-      persistSessionSettings(dlg);
+      if(!persistSessionSettings(dlg))return;
       apply();
       btn.textContent='✓ Сохранено';
       setTimeout(()=>{if(btn.isConnected)btn.textContent='Сохранить оплату';},1200);
