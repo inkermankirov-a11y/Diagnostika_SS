@@ -1,0 +1,34 @@
+name: Dashboard session urgency audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/home-dashboard.css'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/dashboard-session-urgent-beacon.test.cjs'
+      - '.github/workflows/dashboard-session-urgent-beacon.yml'
+
+jobs:
+  urgent-beacon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check syntax
+        run: node --check home-dashboard.js
+      - name: Test beacon urgency
+        run: node --test tests/dashboard-session-urgent-beacon.test.cjs
+      - name: Check existing dashboard beacon rules
+        run: |
+          node tests/dashboard-client-markers-audit.mjs
+          node tests/dashboard-diagnosis-beacon-audit.mjs
