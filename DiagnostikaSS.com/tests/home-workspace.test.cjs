@@ -195,11 +195,11 @@ test('calendar and client links remain functional',()=>{
 });
 
 test('scripts are wired only to com and use fresh cache versions',()=>{
-  assert.match(loader,/home-start-workspace\.js\?v=20261109-seven-days-1/);
-  assert.match(loader,/home-start-workspace\.css\?v=20261109-seven-days-1/);
+  assert.match(loader,/home-start-workspace\.js\?v=20261118-numbered-events-1/);
+  assert.match(loader,/home-start-workspace\.css\?v=20261118-numbered-events-1/);
   assert.match(loader,/loadHomeWorkspace\(\)/);
   assert.match(notes,/openQuickThoughts/);
   assert.match(notes,/addQuickThought/);
-  assert.match(index,/app-loader\.js\?v=20261109-seven-days-1/);
+  assert.match(index,/app-loader\.js\?v=20261118-numbered-events-1/);
   assert.match(index,/quick-notes\.js\?v=20261107-quick-thoughts-tabs-2/);
 });
