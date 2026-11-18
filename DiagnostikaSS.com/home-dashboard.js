@@ -899,7 +899,7 @@
       const time=document.createElement('strong');
       time.className='hd-beacon-tooltip-time';
       const rawTime=String(dot.dataset.time||'');
-      const matched=rawTime.match(/^(\\d{1,2}):(\\d{2})/);
+      const matched=rawTime.match(/^(\d{1,2}):(\d{2})/);
       time.textContent=matched?String(matched[1]).padStart(2,'0')+':'+matched[2]:'—';
       bottom.append(date,time);
       tooltip.replaceChildren(header,bottom);
