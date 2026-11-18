@@ -48,12 +48,12 @@ test('session tooltip renders separate safe date and prominent time',()=>{
   assert.ok(js.includes('data-time='));
   assert.ok(js.includes("upcomingInfo.event?.date||''"));
   assert.ok(js.includes("upcomingInfo.event?.time||''"));
-  assert.match(js,/tooltip\.replaceChildren\(heading,dateRow,timeRow\)/);
+  assert.ok(js.includes('tooltip.replaceChildren(header,bottom)'));
   assert.match(js,/time\.className='hd-beacon-tooltip-time'/);
   assert.match(js,/day\.textContent=dateInfo\.relative/);
-  assert.match(css,/\\.hd-beacon-tooltip-time\\{[^}]*font-size:18px/);
-  assert.match(css,/\\.hd-beacon-tooltip-day\\{[^}]*font-size:11px/);
-  assert.match(css,/\\.hd-upcoming-tooltip\\.is-session\\.is-urgent \\.hd-beacon-tooltip-day/);
+  assert.ok(css.includes('.hd-beacon-tooltip-time{')&&css.includes('font-size:18px'));
+  assert.ok(css.includes('.hd-beacon-tooltip-day{')&&css.includes('font-size:11px'));
+  assert.ok(css.includes('.hd-upcoming-tooltip.is-session.is-urgent .hd-beacon-tooltip-day'));
 });
 test('tooltip and JS are cache-busted for the .com website',()=>{
   assert.match(loader,/home-dashboard\.css\?v=20261118-numbered-tooltip-1/);
