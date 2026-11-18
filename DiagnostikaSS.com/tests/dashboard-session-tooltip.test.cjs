@@ -51,12 +51,12 @@ test('session tooltip renders separate safe date and prominent time',()=>{
   assert.match(js,/tooltip\.replaceChildren\(heading,dateRow,timeRow\)/);
   assert.match(js,/time\.className='hd-beacon-tooltip-time'/);
   assert.match(js,/day\.textContent=dateInfo\.relative/);
-  assert.match(css,/\.hd-beacon-tooltip-time\{[^}]*font:900 20px/);
-  assert.match(css,/\.hd-beacon-tooltip-day\{[^}]*font-size:17px/);
-  assert.match(css,/\.hd-upcoming-tooltip\.is-session\.is-urgent \.hd-beacon-tooltip-time/);
+  assert.match(css,/\\.hd-beacon-tooltip-time\\{[^}]*font-size:18px/);
+  assert.match(css,/\\.hd-beacon-tooltip-day\\{[^}]*font-size:11px/);
+  assert.match(css,/\\.hd-upcoming-tooltip\\.is-session\\.is-urgent \\.hd-beacon-tooltip-day/);
 });
 test('tooltip and JS are cache-busted for the .com website',()=>{
-  assert.match(loader,/home-dashboard\.css\?v=20261118-relative-day-1/);
-  assert.match(loader,/home-dashboard\.js\?v=20261118-relative-day-1/);
-  assert.match(html,/app-loader\.js\?v=20261118-relative-day-tooltip-1/);
+  assert.match(loader,/home-dashboard\.css\?v=20261118-numbered-tooltip-1/);
+  assert.match(loader,/home-dashboard\.js\?v=20261118-numbered-tooltip-1/);
+  assert.match(html,/app-loader\.js\?v=20261118-numbered-events-1/);
 });
