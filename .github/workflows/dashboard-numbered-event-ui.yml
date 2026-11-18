@@ -1,0 +1,56 @@
+name: Dashboard numbered session events
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'DiagnostikaSS.com/session-event-label.js'
+      - 'DiagnostikaSS.com/home-dashboard.js'
+      - 'DiagnostikaSS.com/home-dashboard.css'
+      - 'DiagnostikaSS.com/home-start-workspace.js'
+      - 'DiagnostikaSS.com/app-loader.js'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/tests/session-event-label.test.cjs'
+      - 'DiagnostikaSS.com/tests/dashboard-numbered-event-browser.mjs'
+      - 'DiagnostikaSS.com/tests/dashboard-session-tooltip.test.cjs'
+      - '.github/workflows/dashboard-numbered-event-ui.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  numbered-events:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate scripts
+        run: |
+          node --check session-event-label.js
+          node --check home-dashboard.js
+          node --check home-start-workspace.js
+          node --check app-loader.js
+          node --check tests/dashboard-numbered-event-browser.mjs
+      - name: Exercise session numbers and existing home UI
+        run: |
+          node --test tests/session-event-label.test.cjs tests/home-workspace.test.cjs tests/dashboard-session-tooltip.test.cjs tests/dashboard-session-urgent-beacon.test.cjs
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser check for multi-client titles and tooltip layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8131 --bind 127.0.0.1 >/tmp/dashboard-numbered-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 1
+          node tests/dashboard-numbered-event-browser.mjs
