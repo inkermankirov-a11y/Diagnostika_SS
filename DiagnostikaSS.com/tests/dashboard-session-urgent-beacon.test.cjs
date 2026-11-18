@@ -45,5 +45,5 @@ test('urgency refreshes in place without unnecessary re-rendering',()=>{
 test('deployed dashboard code uses new cache markers',()=>{
   assert.match(loader,/home-dashboard\.css\?v=20261118-session-urgent-1/);
   assert.match(loader,/home-dashboard\.js\?v=20261118-session-urgent-1/);
-  assert.match(html,/app-loader\.js\?v=20261118-session-urgent-1/);
+  assert.match(html,/app-loader\.js\?v=20261118-session-cards-and-beacon-3/);
 });
