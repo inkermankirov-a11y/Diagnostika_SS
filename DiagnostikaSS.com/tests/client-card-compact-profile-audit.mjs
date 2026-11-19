@@ -34,7 +34,10 @@ assert(js.includes("data-photo-action=\"delete\""),'Delete-photo action missing'
 assert(js.includes('photoSourceData:photoSourceData || photoData ||'),'Photo source is not persisted');
 assert(js.includes('photoCrop:{...photoCrop}'),'Photo crop is not persisted');
 assert(js.includes('cropClientPhoto(img,crop)'),'Client photo crop editor missing');
-assert(!js.includes("dlg.addEventListener('click', e => { if(e.target === dlg) closeDraftAware(); });"),'Client card still closes on backdrop click');
+assert(js.includes("backdropPointer===e.pointerId&&onBackdrop(e)"),'Client card must close only after a full outside click');
+assert(js.includes('JSON.stringify(collectData())!==initialCardSnapshot'),'Client card must prompt only for genuine edits');
+assert(js.includes("window.AppDialog.savePrompt"),'Missing save/discard/stay confirmation');
+assert(js.includes('ccDesiredOutcomeShort'),'Editable short desired result missing');
 
 assert(css.includes('grid-template-columns:166px minmax(370px,1fr) 165px 170px'),'Compact desktop profile layout missing');
 assert(css.includes('.cc-social-column{display:grid;grid-template-columns:1fr'),'Social links are not vertical');
@@ -45,8 +48,8 @@ assert(css.includes('.cc-photo-editor-preview'),'Client photo thumbnail editor s
 
 assert(app.includes("birthTime:''")&&app.includes("photoSourceData:''"),'Legacy newClient defaults missing new profile fields');
 assert(service.includes("birthTime: ''")&&service.includes("photoSourceData: ''"),'Client service defaults missing new profile fields');
-assert(loader.includes('modules/clients/client-service.js?v=20261005-archive-1&db=14b&pin=18a&cleanup=23b&profile=20261003-1'),'Client service cache marker missing');
-assert(index.includes('modules/clients/ui/card.css?v=20261003-work-actions-2'),'Client card CSS cache marker missing');
-assert(index.includes('modules/clients/ui/card.js?v=20261003-work-actions-2'),'Client card JS cache marker missing');
+assert(loader.includes('modules/clients/client-service.js?v=20261109-save-rollback-1'),'Client service cache marker missing');
+assert(index.includes('modules/clients/ui/card.css?v=20261119-card-goal-1'),'Client card CSS cache marker missing');
+assert(index.includes('modules/clients/ui/card.js?v=20261119-outside-close-1'),'Client card JS cache marker missing');
 
 console.log('CLIENT_CARD_COMPACT_PROFILE_AUDIT_SUCCESS');
