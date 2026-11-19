@@ -1117,28 +1117,9 @@
     // a compact preview, falling back to situation-level results for older data.
     const desiredResults=(currentReq?.situations||[]).map(s=>String(s.result||'').trim()).filter(Boolean);
     const desiredResultFull=String(c.desiredOutcome||'').trim()||desiredResults[desiredResults.length-1]||'';
-    const compactOutcome=(text)=>{
-      const source=String(text||'').replace(/\s+/g,' ').trim();
-      if(!source)return '';
-      // Distill distinct goals from the original text; never display a paragraph fragment.
-      const goals=[];
-      const has=re=>re.test(source);
-      if(has(/(?:выйти|выход|уйти|уход|освободиться)\s+из\s+найма/i))goals.push('выйти из найма');
-      if(has(/интернет[- ]магазин/i))goals.push('развивать интернет-магазин');
-      if(has(/целительств/i))goals.push('вернуться к целительству');
-      if(has(/продаж/i))goals.push('заниматься продажами');
-      if(has(/путешеств/i))goals.push('свободно путешествовать');
-      if(has(/финансов\w* свобод|финансов\w* независим/i))goals.push('обрести финансовую свободу');
-      if(goals.length>=2)return goals.slice(0,5).join(', ').replace(/^./,ch=>ch.toUpperCase())+'.';
-      // For unrecognized requests choose a short complete sentence, never a cut-off fragment.
-      const sentences=source.split(/(?<=[.!?])\s+/).filter(Boolean);
-      const first=sentences[0]||source;
-      const short=first.split(/[,;]/)[0].replace(/^(?:клиент(?:ка)?\s+)?(?:хочет|желает)\s+/i,'').trim();
-      const words=short.split(/\s+/).filter(Boolean);
-      const result=words.length<=13?short:words.slice(0,13).join(' ');
-      return result.replace(/[.!?…,:;\s]+$/,'').replace(/^./,ch=>ch.toUpperCase())+'.';
-    };
-    const desiredResult=desiredResultFull?compactOutcome(desiredResultFull):'Не указан';
+    const desiredResult=String(c.desiredOutcomeShort||'').trim()
+      ||window.DiagnostikaDesiredOutcomeSummary?.fromText?.(desiredResultFull)
+      ||(desiredResultFull?'Уточните краткий результат в карточке':'Не указан');
     const items=[
       ['Текущий запрос',currentReq?.title||'Не указан','hd-summary-current'],
       ['Сессии',String((c.sessions||[]).length),'hd-summary-sessions'],
