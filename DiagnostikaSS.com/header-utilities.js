@@ -367,7 +367,9 @@
     rates=data.rates;
     rateDate=data.date||'';
     rateSource=data.provider||'';
-    rateError=data.stale?'Сохранённый курс: сегодняшнее обновление ещё не получено.':'';
+    rateError=data.stale?'Сохранённый курс: сегодняшнее обновление ещё не получено.':
+      (data.mode==='reference'&&window.DiagnostikaCountryCurrency?.providerFor(country))
+        ?'Национальный банк недоступен, показан справочный курс.':'';
     rateDetails=[rateSource,'Валюта: '+baseCurrency,rateDate?'Дата курса: '+rateDate:'',
       data.transport||(data.mode==='bank'?'Котировки банка через Frankfurter':'Международные справочные кросс-курсы'),
       data.stale?'Сохранённая копия — может быть устаревшей':''].filter(Boolean).join(' · ');
@@ -401,9 +403,11 @@
     // Display the last saved quote before any network request, including after reload.
     const saved=showSavedRate(country,service);
     if(saved&&!saved.stale){
-      rateError='';
+      // A working fallback is still degraded when the selected national bank failed.
+      rateError=saved.mode==='reference'&&service?.providerFor(country)
+        ?'Национальный банк недоступен, показан справочный курс.':'';
       paintRate();
-      setRateState('ready');
+      setRateState(rateError?'error':'ready');
       return Promise.resolve(saved);
     }
     rateCountry=country;
@@ -428,7 +432,9 @@
         const data=await service.referenceRates(base,country);
         if(country!==profileCountry()||preferred!==profileCurrency())return;
         applyRateData(data,country);
-        rateError=data.stale?'Не удалось обновить курс, показаны сохранённые данные.':'';
+        rateError=data.stale?'Не удалось обновить курс, показаны сохранённые данные.':
+          (data.mode==='reference'&&service.providerFor(country))
+            ?'Национальный банк недоступен, показан справочный курс.':'';
       }catch(error){
         if(country!==profileCountry())return;
         rateError=error?.message||'Нет доступных курсов';
