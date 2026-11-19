@@ -36,9 +36,9 @@ test('national bank provider is authoritative only when that provider supplies r
 });
 test('cache-busted national rate and styling modules are deployed',()=>{
   for(const f of [
-    'global-currency-country.js?v=20261116-bank-sources-2',
-    'header-utilities.js?v=20261116-bank-sources-2',
-    'header-currency-display.js?v=20261116-header-currency-2',
+    'global-currency-country.js?v=20261119-daily-cache-1',
+    'header-utilities.js?v=20261119-daily-cache-1',
+    'header-currency-display.js?v=20261119-status-beacon-1',
     'currency-ui-readability.js?v=20261116-visible-1'
   ])assert.ok(html.includes(f),f);
 });
