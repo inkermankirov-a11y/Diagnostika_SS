@@ -336,50 +336,112 @@
   let rates=null,rateDate='',rateSource='',rateCountry='',rateError='',rateDetails='',baseCurrency='RUB';
   let ratesLoading=null;
   const profileCountry=()=>String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.countryCode||'RU').toUpperCase();
+  const profileCurrency=()=>String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.currencyCode||'').toUpperCase();
   const baseCode=()=>baseCurrency;
   const unitPer=code=>code===baseCode()?1:rates?.[code]?.rubPerUnit;
   const currencySymbol=currency=>({RUB:'₽',GEL:'₾',KZT:'₸',USD:'$',EUR:'€',GBP:'£',JPY:'¥',CNY:'¥',INR:'₹',TRY:'₺',UAH:'₴',KRW:'₩'}[currency]||currency);
   const fmt2=n=>Number(n).toLocaleString(lang()==='ru'?'ru-RU':lang(),{minimumFractionDigits:2,maximumFractionDigits:2});
+  const rateStatusLabel=state=>({
+    ru:{sync:'Обновление курса…',ready:'Курс загружен',error:'Ошибка загрузки курса'},
+    en:{sync:'Updating exchange rate…',ready:'Exchange rate ready',error:'Exchange rate unavailable'},
+    fr:{sync:'Actualisation du taux…',ready:'Taux disponible',error:'Taux indisponible'},
+    de:{sync:'Wechselkurs wird aktualisiert…',ready:'Wechselkurs verfügbar',error:'Wechselkurs nicht verfügbar'},
+    it:{sync:'Aggiornamento del cambio…',ready:'Cambio disponibile',error:'Cambio non disponibile'}
+  }[lang()]||{sync:'Updating exchange rate…',ready:'Exchange rate ready',error:'Exchange rate unavailable'})[state]||'';
+  function setRateState(state){
+    currencyBtn.dataset.rateState=state;
+    const description=[rateStatusLabel(state),rateError,rateSource,rateDate?'Дата курса: '+rateDate:''].filter(Boolean).join(' · ');
+    currencyBtn.title=description;
+    currencyBtn.setAttribute('aria-label',tr().converter+'. '+description);
+  }
+  function paintRate(){
+    const main=currencyBtn.querySelector('.hu-main'),sub=currencyBtn.querySelector('.hu-sub');
+    const perUsd=Number(rates?.USD?.rubPerUnit);
+    main.textContent=Number.isFinite(perUsd)&&perUsd>0?fmt2(perUsd)+' '+currencySymbol(baseCurrency):'—';
+    sub.textContent='USD';
+  }
+  function applyRateData(data,country){
+    if(!data?.rates)return;
+    rateCountry=country;
+    baseCurrency=data.base||baseCurrency;
+    rates=data.rates;
+    rateDate=data.date||'';
+    rateSource=data.provider||'';
+    rateError=data.stale?'Сохранённый курс: сегодняшнее обновление ещё не получено.':'';
+    rateDetails=[rateSource,'Валюта: '+baseCurrency,rateDate?'Дата курса: '+rateDate:'',
+      data.transport||(data.mode==='bank'?'Котировки банка через Frankfurter':'Международные справочные кросс-курсы'),
+      data.stale?'Сохранённая копия — может быть устаревшей':''].filter(Boolean).join(' · ');
+    paintRate();
+  }
+  function showSavedRate(country,service){
+    if(!service?.cachedRates)return null;
+    const base=profileCurrency()||service.fallbacks?.[country]||'RUB';
+    const cached=service.cachedRates(base,country);
+    if(cached&&(!rates||rateCountry!==country||baseCurrency!==base))applyRateData(cached,country);
+    return cached;
+  }
+  function refreshConverterView(){
+    if(overlay.hidden||overlay.dataset.theme!=='currency')return;
+    const from=overlay.querySelector('#utilCurFrom');
+    if(!from){showConverter();return;}
+    // Recalculate with the newly fetched data without clearing a user's input.
+    overlay.querySelector('#utilCurAmount')?.dispatchEvent(new Event('input',{bubbles:false}));
+    const source=overlay.querySelector('.utility-source');
+    if(source){
+      source.textContent=[rateSource,rateDate?'Дата курса: '+rateDate:'',rateError?'Сохранённые данные':''].filter(Boolean).join(' · ');
+      source.title=rateDetails||rateSource;
+    }
+  }
   function loadRates(){
     if(ratesLoading)return ratesLoading;
+    const country=profileCountry();
+    const service=window.DiagnostikaCountryCurrency;
+    // Display the last saved quote before any network request, including after reload.
+    const saved=showSavedRate(country,service);
+    if(saved&&!saved.stale){
+      rateError='';
+      paintRate();
+      setRateState('ready');
+      return Promise.resolve(saved);
+    }
+    rateCountry=country;
+    if(!service){
+      rateError='Сервис мировых валют не загружен';
+      paintRate();setRateState('error');
+      return Promise.resolve(null);
+    }
+    setRateState('sync');
     ratesLoading=(async()=>{
-      const country=profileCountry();
-      rateCountry=country;rates=null;rateDate='';rateError='';rateDetails='';
       try{
-        const service=window.DiagnostikaCountryCurrency;
-        if(!service)throw Error('Сервис мировых валют не загружен');
         const info=await service.currencyForCountry(country);
-        const preferred=String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.currencyCode||'').toUpperCase();
+        const preferred=profileCurrency();
         const base=info.options.includes(preferred)?preferred:info.currency;
-        // Do not reuse old rates from a previously selected country.
+        if(country!==profileCountry()||preferred!==profileCurrency())return;
+        // Country and preferred currency determine which cached quote is valid.
+        if(base!==baseCurrency){
+          const exact=service.cachedRates?.(base,country);
+          rates=null;rateError='';baseCurrency=base;
+          if(exact)applyRateData(exact,country);
+        }
         const data=await service.referenceRates(base,country);
-        if(country!==profileCountry())return;
-        baseCurrency=base;
-        rates=data.rates;
-        rateDate=data.date||'';
-        rateSource=data.provider;
-        rateDetails=[data.provider,'Валюта: '+base,rateDate?'Дата курса: '+rateDate:'',
-          data.transport||(data.mode==='bank'?'Котировки банка через Frankfurter':'Международные справочные кросс-курсы'),
-          data.stale?'Сохранённая копия — может быть устаревшей':''].filter(Boolean).join(' · ');
-        if(data.stale)rateError='Сохранённый курс, источник временно недоступен.';
+        if(country!==profileCountry()||preferred!==profileCurrency())return;
+        applyRateData(data,country);
+        rateError=data.stale?'Не удалось обновить курс, показаны сохранённые данные.':'';
       }catch(error){
-        if(country===profileCountry()){
-          rateError=error?.message||'Нет доступных курсов';
-          rateSource='Источник курса недоступен';
-          rates=null;
-        }
-      }finally{
-        const main=currencyBtn.querySelector('.hu-main'),sub=currencyBtn.querySelector('.hu-sub');
-        if(country===profileCountry()){
-          const perUsd=rates?.USD?.rubPerUnit;
-          main.textContent=perUsd?fmt2(perUsd)+' '+currencySymbol(baseCurrency):'—';
-          sub.textContent='USD'+(rateError?' · !':'');
-          currencyBtn.title=rateSource+(rateDate?' · '+rateDate:'');
-        }
+        if(country!==profileCountry())return;
+        rateError=error?.message||'Нет доступных курсов';
+        if(!rates)rateSource='Источник курса недоступен';
       }
     })().finally(()=>{
       ratesLoading=null;
-      if(rateCountry!==profileCountry()){rateCountry='';loadRates();}
+      if(country!==profileCountry()){
+        rateCountry='';
+        loadRates();
+        return;
+      }
+      paintRate();
+      setRateState(rateError||!rates?'error':'ready');
+      refreshConverterView();
     });
     return ratesLoading;
   }
