@@ -396,6 +396,8 @@
     if(ratesLoading)return ratesLoading;
     const country=profileCountry();
     const service=window.DiagnostikaCountryCurrency;
+    // Never show the previous country's quote as the newly selected country's rate.
+    if(rateCountry&&rateCountry!==country){rates=null;rateDate='';rateSource='';rateDetails='';rateError='';}
     // Display the last saved quote before any network request, including after reload.
     const saved=showSavedRate(country,service);
     if(saved&&!saved.stale){
