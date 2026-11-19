@@ -94,7 +94,7 @@
   document.addEventListener('click',event=>{
     const button=event.target?.closest?.('button');
     const dlg=button?.closest?.('dialog');
-    if(!button||!dlg||dlg.classList.contains('session-edit-dialog')||dlg.classList.contains('session-rich-dialog'))return;
+    if(!button||!dlg||dlg.classList.contains('session-edit-dialog')||dlg.classList.contains('session-rich-dialog')||dlg.classList.contains('client-card-dialog'))return;
     const label=(button.getAttribute('aria-label')||button.title||button.textContent||'').trim().toLowerCase();
     if(!/^(?:закрыть|отмена|отменить|×|✕|close|cancel)$/.test(label)||!dirty(dlg))return;
     event.preventDefault();event.stopImmediatePropagation();
@@ -103,7 +103,7 @@
   // Esc should not silently throw away entered text. Backdrop is handled separately.
   document.addEventListener('cancel',event=>{
     const dlg=event.target;
-    if(!(dlg instanceof HTMLDialogElement)||dlg.classList.contains('session-edit-dialog')||dlg.classList.contains('session-rich-dialog')||!dirty(dlg))return;
+    if(!(dlg instanceof HTMLDialogElement)||dlg.classList.contains('session-edit-dialog')||dlg.classList.contains('session-rich-dialog')||dlg.classList.contains('client-card-dialog')||!dirty(dlg))return;
     event.preventDefault();
     // Keeping the dialog open is safer than auto-discarding.
     Promise.resolve(window.AppDialog?.confirm?.('Есть несохранённый текст. Закрыть окно? Черновик сохранится.','Несохранённые изменения','Закрыть','Остаться')).then(ok=>{if(ok)dlg.close();});
