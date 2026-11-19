@@ -447,12 +447,15 @@
   }
   function showConverter(){
     const t=tr();
-    if(rateCountry!==profileCountry()){
-      rates=null;rateError='';
-      openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div>${t.loading}</div>`,'currency');
-      loadRates().then(()=>{if(!overlay.hidden)showConverter();});return;
+    if(rateCountry!==profileCountry())loadRates();
+    if(!rates){
+      openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div id="currencyLoadState"></div><button id="currencyRetry" type="button" class="tk-btn" ${rateError?'':'hidden'}>${t.retry}</button>`,'currency');
+      overlay.querySelector('#currencyLoadState').textContent=rateError||t.loading;
+      const retry=overlay.querySelector('#currencyRetry');
+      if(retry)retry.onclick=()=>{rateError='';showConverter();loadRates();};
+      if(!rateError&&!ratesLoading)loadRates();
+      return;
     }
-    if(!rates){openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div>${rateError||t.loading}</div>`,'currency');if(!rateError&&!ratesLoading)loadRates().then(()=>{if(!overlay.hidden)showConverter();});return;}
     const priority=[baseCode(),'USD','EUR','RUB','GEL','KZT','CNY','GBP','CHF','JPY','TRY'];
     const all=Object.keys(rates).sort((a,b)=>{
       const ai=priority.indexOf(a),bi=priority.indexOf(b);
@@ -466,7 +469,7 @@
     openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div class="currency-card"><div class="currency-row"><label class="currency-field">${t.from}<select id="utilCurFrom">${opts(defaultPair.from)}</select></label><button type="button" class="tk-btn currency-swap">⇄</button><label class="currency-field">${t.to}<select id="utilCurTo">${opts(defaultPair.to)}</select></label></div><div class="currency-default-settings"><span id="utilCurDefaultInfo" class="currency-default-info" role="status" aria-live="polite"></span><button id="utilCurSetDefault" type="button" class="tk-btn currency-set-default">${t.setDefaultPair}</button></div><label class="currency-field currency-amount-wrap">${t.amount}<input id="utilCurAmount" inputmode="decimal" value="1"></label><div class="currency-result"><div id="utilCurResult" class="currency-result-main">—</div><div id="utilCurRate" class="currency-rate"></div></div></div><div class="utility-source">${rateSource}</div>`,'currency');
     const from=overlay.querySelector('#utilCurFrom'),to=overlay.querySelector('#utilCurTo'),amount=overlay.querySelector('#utilCurAmount'),result=overlay.querySelector('#utilCurResult'),rate=overlay.querySelector('#utilCurRate'),swap=overlay.querySelector('.currency-swap');
     const sourceNode=overlay.querySelector('.utility-source');
-    if(sourceNode){sourceNode.textContent=rateSource+(rateError?' · сохранённые данные':'');sourceNode.title=rateDetails||rateSource;}
+    if(sourceNode){sourceNode.textContent=[rateSource,rateDate?'Дата курса: '+rateDate:'',rateError?'Сохранённые данные':''].filter(Boolean).join(' · ');sourceNode.title=rateDetails||rateSource;}
     const defaultInfo=overlay.querySelector('#utilCurDefaultInfo'),defaultButton=overlay.querySelector('#utilCurSetDefault');
     const showDefault=()=>{
       const saved=preferences?.read?.()||null;
