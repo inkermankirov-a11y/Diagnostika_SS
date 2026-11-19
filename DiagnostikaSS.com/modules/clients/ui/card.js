@@ -54,6 +54,7 @@
           <label>Ключевой запрос<textarea id="ccMainRequest"></textarea></label>
           <label>Предыдущие попытки решения<textarea id="ccTried"></textarea></label>
           <label>Желаемый результат<textarea id="ccDesiredOutcome"></textarea></label>
+          <label class="cc-desired-short-label">Кратко для главной страницы<textarea id="ccDesiredOutcomeShort" rows="3" placeholder="Короткие цели по пунктам. Можно изменить вручную."></textarea></label>
           <label>Рабочие заметки<textarea id="ccClientNotes"></textarea></label>
         </div>
       </div>
@@ -70,10 +71,13 @@
   document.body.appendChild(dlg);
 
   const q = id => document.getElementById(id);
-  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccBirthTime','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccClientNotes'];
+  const fieldIds=['ccName','ccPhone','ccEmail','ccGender','ccCountry','ccCity','ccBirth','ccBirthTime','ccAge','ccVk','ccTelegram','ccMax','ccInitialProblem','ccMainRequest','ccTried','ccDesiredOutcome','ccDesiredOutcomeShort','ccClientNotes'];
   let draftMode=false;
   let draft=null;
   let dirty=false;
+  let initialCardSnapshot='';
+  let shortSummaryAuto=true;
+  let closePending=false;
   let photoData='';
   let photoSourceData='';
   let photoCrop={x:50,y:50,zoom:1};
@@ -770,10 +774,14 @@
     q('ccMainRequest').value = c.mainRequest || '';
     q('ccTried').value = c.tried || '';
     q('ccDesiredOutcome').value = c.desiredOutcome || '';
+    const generated=window.DiagnostikaDesiredOutcomeSummary?.fromText?.(c.desiredOutcome||'')||'';
+    shortSummaryAuto=!String(c.desiredOutcomeShort||'').trim();
+    q('ccDesiredOutcomeShort').value = shortSummaryAuto?generated:String(c.desiredOutcomeShort);
     q('ccClientNotes').value = c.clientNotes || c.notes || '';
     setPhoto(c.photoData||'',c.photoSourceData||c.photoData||'',c.photoCrop||{x:50,y:50,zoom:1});
     dirty=false;
     updateClientTime();
+    initialCardSnapshot=JSON.stringify(collectData());
   }
 
   function collectData(){
@@ -800,6 +808,7 @@
       mainRequest:q('ccMainRequest').value,
       tried:q('ccTried').value,
       desiredOutcome:q('ccDesiredOutcome').value,
+      desiredOutcomeShort:q('ccDesiredOutcomeShort').value.trim(),
       clientNotes:q('ccClientNotes').value,
       photoData:photoData || '',
       photoSourceData:photoSourceData || photoData || '',
@@ -873,6 +882,17 @@
     }
   }
 
+  function hasUnsavedChanges(){
+    return JSON.stringify(collectData())!==initialCardSnapshot;
+  }
+
+  function clearRecoveredFieldDrafts(){
+    const recovery=window.DiagnostikaEditDrafts;
+    if(!recovery?.clearField)return;
+    for(const field of dlg.querySelectorAll('input:not([type="file"]),textarea,select'))
+      recovery.clearField(field);
+  }
+
   function saveCard(){
     const api=clientsApi();
     if(!api) return alert('Модуль клиентов не загрузился. Обновите страницу.');
@@ -882,6 +902,7 @@
       const created=api.create?.({...draft,...collectData()},{source:'client-card-create'});
       if(!created){showSaveFailure();return;}
       draftMode=false;draft=null;dirty=false;
+      clearRecoveredFieldDrafts();
       dlg.close();
       return;
     }
@@ -891,18 +912,34 @@
     const updated=api.update?.(c.id,collectData(),{source:'client-card'});
     if(!updated){showSaveFailure();return;}
     dirty=false;
+    clearRecoveredFieldDrafts();
     dlg.close();
   }
 
-  function closeDraftAware(){
-    if(draftMode){
-      if(!hasAnyDraftData()){
-        draftMode=false;draft=null;dirty=false;dlg.close();return;
-      }
-      if(window.confirm('Сохранить клиента?')){saveCard();return;}
-      draftMode=false;draft=null;dirty=false;dlg.close();return;
+  async function closeDraftAware(){
+    if(closePending||!dlg.open)return;
+    if(!hasUnsavedChanges()){
+      draftMode=false;draft=null;dirty=false;
+      clearRecoveredFieldDrafts();
+      dlg.close();
+      return;
     }
-    dlg.close();
+    closePending=true;
+    try{
+      const choice=window.AppDialog?.savePrompt
+        ?await window.AppDialog.savePrompt('В карточке клиента есть несохранённые изменения. Сохранить перед выходом?')
+        :(window.confirm('Сохранить изменения в карточке клиента?')?'save':'cancel');
+      if(choice==='save'){
+        // Keep the form open when the database refuses the write.
+        saveCard();
+      }else if(choice==='discard'){
+        draftMode=false;draft=null;dirty=false;
+        clearRecoveredFieldDrafts();
+        dlg.close();
+      }
+    }finally{
+      closePending=false;
+    }
   }
 
   function openExisting(){
@@ -927,6 +964,19 @@
     setTimeout(()=>q('ccName')?.focus(),0);
   }
 
+  q('ccDesiredOutcome').addEventListener('input',()=>{
+    if(shortSummaryAuto){
+      q('ccDesiredOutcomeShort').value=
+        window.DiagnostikaDesiredOutcomeSummary?.fromText?.(q('ccDesiredOutcome').value)||'';
+    }
+  });
+  q('ccDesiredOutcomeShort').addEventListener('input',()=>{
+    shortSummaryAuto=!q('ccDesiredOutcomeShort').value.trim();
+    if(shortSummaryAuto){
+      q('ccDesiredOutcomeShort').value=
+        window.DiagnostikaDesiredOutcomeSummary?.fromText?.(q('ccDesiredOutcome').value)||'';
+    }
+  });
   q('ccBirth').addEventListener('input',()=>{if(q('ccAgeAuto').checked)applyAgeMode();dirty=true;});
   q('ccAgeAuto').addEventListener('change',()=>{applyAgeMode();dirty=true;});
   q('ccAge').addEventListener('input',()=>{if(q('ccAgeAuto').checked)q('ccAgeAuto').checked=false;applyAgeMode();dirty=true;});
@@ -996,6 +1046,23 @@
     reader.readAsDataURL(file);
   };
 
+  // Only a click that STARTS and ENDS on the dialog backdrop may close the card.
+  // Dragging a text selection out of the editor must never close it.
+  const onBackdrop=e=>{
+    if(e.target!==dlg)return false;
+    const r=dlg.getBoundingClientRect();
+    return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom;
+  };
+  let backdropPointer=null;
+  dlg.addEventListener('pointerdown',e=>{
+    backdropPointer=e.button===0&&onBackdrop(e)?e.pointerId:null;
+  });
+  dlg.addEventListener('pointerup',e=>{
+    if(backdropPointer===e.pointerId&&onBackdrop(e)
+      &&!photoActionsDlg.open&&!photoEditorDlg.open)closeDraftAware();
+    backdropPointer=null;
+  });
+  dlg.addEventListener('pointercancel',()=>{backdropPointer=null;});
   dlg.addEventListener('cancel',e=>{e.preventDefault();closeDraftAware();});
   dlg.addEventListener('close',stopClientClock);
 
