@@ -355,3 +355,39 @@
   max-height:none!important;
   overflow-y:visible!important;
 }
+
+/* Site-wide relocation notice: shown to every specialist on the home screen. */
+.home-dashboard .hws-workspace-simple .hws-transfer-notice{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding:11px 14px;
+  border:1px solid #d99b9b;
+  border-left:3px solid #b84b4b;
+  border-radius:10px;
+  background:#fff7f7;
+  box-shadow:0 2px 8px rgba(112,35,35,.045);
+  color:#6b3333;
+  min-width:0;
+}
+.home-dashboard .hws-workspace-simple .hws-transfer-title{
+  display:block;
+  color:#9a3434;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.35;
+}
+.home-dashboard .hws-workspace-simple .hws-transfer-notice p{
+  margin:0!important;
+  font-size:12px!important;
+  line-height:1.5!important;
+  color:#633b3b!important;
+  overflow-wrap:anywhere;
+}
+.home-dashboard .hws-workspace-simple .hws-transfer-notice strong{
+  color:#8f2e2e;
+  font-weight:800;
+}
+@media(max-width:530px){
+  .home-dashboard .hws-workspace-simple .hws-transfer-notice{padding:10px 12px}
+}
