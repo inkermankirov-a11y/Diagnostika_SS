@@ -10,6 +10,35 @@
     #headerCurrencyBtn.currency-compact-display .hu-icon{grid-area:icon!important;font-size:24px!important;font-weight:900!important;line-height:1!important;text-align:center!important;padding-right:6px!important;border-right:1px solid rgba(255,255,255,.28)!important}
     #headerCurrencyBtn.currency-compact-display .hu-sub{grid-area:code!important;margin:0!important;max-width:none!important;overflow:visible!important;text-overflow:clip!important;text-align:left!important;justify-self:start!important;font-size:10px!important;font-weight:800!important;letter-spacing:.7px!important;line-height:1!important;align-self:end!important;color:#dbeafe!important}
     #headerCurrencyBtn.currency-compact-display .hu-main{grid-area:rate!important;text-align:left!important;justify-self:start!important;font-size:13px!important;font-weight:900!important;line-height:1!important;align-self:start!important;overflow:visible!important;text-overflow:clip!important;color:#fff!important}
+
+    /* The dollar icon is a compact status beacon, the whole button stays unchanged. */
+    #headerCurrencyBtn.currency-compact-display .hu-icon{
+      border-radius:7px!important;border-right:0!important;
+      color:#fff!important;
+      background:linear-gradient(145deg,#498b7d,#195d55)!important;
+      box-shadow:inset 0 1px 1px rgba(255,255,255,.35),0 0 0 1px rgba(119,233,196,.46)!important;
+      transition:background .2s ease,box-shadow .2s ease!important;
+    }
+    #headerCurrencyBtn.currency-compact-display[data-rate-state="sync"] .hu-icon{
+      background:linear-gradient(145deg,#e8b54d,#ab6a0a)!important;
+      box-shadow:inset 0 1px 1px rgba(255,255,255,.45),0 0 0 1px rgba(255,197,75,.75)!important;
+      animation:diagnostika-currency-sync 1.15s ease-in-out infinite!important;
+    }
+    #headerCurrencyBtn.currency-compact-display[data-rate-state="error"] .hu-icon{
+      background:linear-gradient(145deg,#db6e68,#8d252c)!important;
+      box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 0 0 1px rgba(255,103,110,.75)!important;
+      animation:none!important;
+    }
+    #headerCurrencyBtn.currency-compact-display[data-rate-state="ready"] .hu-icon{
+      animation:none!important;
+    }
+    @keyframes diagnostika-currency-sync{
+      0%,100%{filter:brightness(.88)}
+      50%{filter:brightness(1.28)}
+    }
+    @media(prefers-reduced-motion:reduce){
+      #headerCurrencyBtn.currency-compact-display[data-rate-state="sync"] .hu-icon{animation:none!important}
+    }
   `;
   document.head.appendChild(style);
 
