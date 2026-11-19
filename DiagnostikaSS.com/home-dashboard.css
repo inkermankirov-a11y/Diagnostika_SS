@@ -2597,3 +2597,6 @@ body:has(.home-dashboard:not([hidden])) .app-header h1.hd-home-trigger:focus-vis
     transition:none!important;
   }
 }
+
+/* Short desired-outcome bullets must remain readable within the client summary. */
+.home-dashboard .hd-client-view .hd-summary-result .hd-summary-value{white-space:pre-line!important;overflow-wrap:anywhere!important;text-overflow:clip!important;max-height:none!important;display:block!important}
