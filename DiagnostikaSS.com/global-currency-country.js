@@ -9,6 +9,7 @@
   const DAY=86400000;
   const COUNTRY_TTL=30*DAY;
   const RATE_TTL=3*DAY;
+  const MAX_SAVED_RATE_AGE=7*DAY;
   const fallbacks=Object.freeze({
     RU:'RUB',GE:'GEL',KZ:'KZT',BY:'BYN',UA:'UAH',AM:'AMD',
     US:'USD',GB:'GBP',CA:'CAD',AU:'AUD',NZ:'NZD',JP:'JPY',CN:'CNY',
@@ -116,6 +117,8 @@
   async function currencyForCountry(country){
     const cc=code(country);
     if(!validCountry(cc))throw Error('Выберите страну из списка городов.');
+    // RU always uses RUB. Avoid a needless country-directory request on startup.
+    if(cc==='RU')return {country:cc,currency:'RUB',options:['RUB'],countryName:'Россия'};
     let map=null;
     try{map=await countryCatalog();}catch(error){
       if(!fallbacks[cc])throw error;
@@ -139,11 +142,34 @@
     if(Object.keys(usd).length<5)throw Error('Недостаточно официальных котировок для пересчёта.');
     return {perBase:usd,date,providers:[...providers]};
   }
+  const localDay=t=>{
+    const d=new Date(t);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  };
+  function cachedRates(baseCurrency,countryCode=''){
+    const base=code(baseCurrency),country=code(countryCode);
+    if(!validCurrency(base))return null;
+    const bank=providerFor(country);
+    const saved=get(RATE_PREFIX+base+':'+(bank?.key||'reference'));
+    const age=Date.now()-Number(saved?.time);
+    const data=saved?.data;
+    // A previously saved, verified rate can be shown instantly while refreshing.
+    if(!data||!Number.isFinite(age)||age<0||age>MAX_SAVED_RATE_AGE
+      ||data.base!==base||!data.rates||typeof data.rates!=='object'
+      ||!(Number(data.rates.USD?.rubPerUnit)>0)
+      ||!(Number(data.rates[base]?.rubPerUnit)>0))return null;
+    return {...data,cachedAt:Number(saved.time),
+      stale:Boolean(data.stale)||localDay(saved.time)!==localDay(Date.now())};
+  }
   async function referenceRates(baseCurrency,countryCode=''){
     const base=code(baseCurrency),country=code(countryCode);
     if(!validCurrency(base))throw Error('Некорректная базовая валюта.');
     const bank=providerFor(country);
     const key=RATE_PREFIX+base+':'+(bank?.key||'reference'),cached=get(key);
+    const saved=cachedRates(base,country);
+    // A successfully retrieved quote is stable for the current local calendar day.
+    // Reopening the converter or reloading the page does not call the providers.
+    if(saved&&!saved.stale)return saved;
     async function fetchRates(url,label,mode){
       const response=await fetch(url,{cache:'no-store'});
       if(!response.ok)throw Error('Котировки недоступны: '+response.status);
@@ -204,10 +230,9 @@
       }
       return await fetchRates('https://api.frankfurter.dev/v2/rates?base=USD','Справочные валютные курсы (официальные источники)','reference');
     }catch(error){
-      if(cached?.data&&Date.now()-cached.time<RATE_TTL)
-        return {...cached.data,stale:true,error:error.message};
+      if(saved)return {...saved,stale:true,error:error.message};
       throw error;
     }
   }
-  window.DiagnostikaCountryCurrency=Object.freeze({currencyForCountry,referenceRates,providerFor,fallbacks});
+  window.DiagnostikaCountryCurrency=Object.freeze({currencyForCountry,referenceRates,cachedRates,providerFor,fallbacks});
 })();
