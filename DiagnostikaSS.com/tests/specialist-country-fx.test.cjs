@@ -43,5 +43,5 @@ test('official-provider aggregator supports global FX cross rates with attributi
 test('new scripts are cache-busted in production HTML',()=>{
   assert.match(html,/account-settings\.js\?v=20261118-currency-locales-1/);
   assert.match(html,/global-currency-country\.js\?v=20261119-daily-cache-1/);
-  assert.match(html,/header-utilities\.js\?v=20261119-daily-cache-1/);
+  assert.match(html,/header-utilities\.js\?v=20261119-daily-cache-2/);
 });
