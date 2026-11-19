@@ -112,6 +112,6 @@ test('UI button saves the selected pair while changing or swapping only previews
 });
 test('storage loads before converter and scripts use cache-busting versions',()=>{
   assert.ok(page.indexOf('src="currency-default-pair.js')<page.indexOf('src="header-utilities.js'));
-  assert.match(page,/header-utilities\.js\?v=20261119-daily-cache-1/);
+  assert.match(page,/header-utilities\.js\?v=20261119-daily-cache-2/);
   assert.match(page,/currency-default-pair\.js\?v=20261101-default-pair-1/);
 });
