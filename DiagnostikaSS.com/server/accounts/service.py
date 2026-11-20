@@ -1,5 +1,5 @@
 """ZABVENYE account service. Separate from client records. Pilot only."""
-import os, sqlite3, hashlib, secrets, hmac, time, json, re, getpass, sys, urllib.request, urllib.parse, threading
+import base64, os, sqlite3, hashlib, secrets, hmac, time, json, re, getpass, sys, urllib.request, urllib.parse, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from contextlib import contextmanager
 from pathlib import Path
@@ -119,6 +119,26 @@ def audit_rows(c,offset):
         d["target"]=d["details"].get("target",snapshot(c,r["target"]))
         out.append(d)
     return out
+def invite_key():
+    path=DATA/"invite-signing.key"
+    try:
+        fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    except FileExistsError:
+        key=path.read_bytes()
+        if len(key)!=32: raise RuntimeError("Invalid invitation key")
+        return key
+    key=secrets.token_bytes(32)
+    with os.fdopen(fd,"wb") as out:
+        out.write(key); out.flush(); os.fsync(out.fileno())
+    return key
+# A separate secret on the server permits authorized code retrieval without storing plaintext codes.
+INVITE_KEY=invite_key()
+def derive_invite_code(ident):
+    raw=hmac.new(INVITE_KEY,("zabvenye-invite-v1:"+ident).encode(),hashlib.sha256).digest()
+    return "ZBV-"+base64.urlsafe_b64encode(raw).decode().rstrip("=")
+def recover_invite_code(row):
+    candidate=derive_invite_code(row["public_id"])
+    return candidate if hmac.compare_digest(digest(candidate),row["token"]) else None
 def invite_status(row,now):
     if row["used_at"] is not None: return "used"
     if row["revoked_at"] is not None: return "revoked"
@@ -131,8 +151,8 @@ def create_invite(c,actor,email,hours,comment):
     if hours not in (24,72,168,0) or type(hours) is not int: raise Error(400,"Некорректный срок")
     if not isinstance(comment,str) or len(comment)>250: raise Error(400,"Комментарий до 250 символов")
     if email and c.execute("SELECT 1 FROM users WHERE email=?",(email,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует")
-    token="ZBV-"+secrets.token_urlsafe(32)
-    ident=secrets.token_hex(12)
+    ident=secrets.token_hex(16)
+    token=derive_invite_code(ident)
     expiry=now+hours*3600 if hours else 0
     c.execute("INSERT INTO invites(token,email,expires,public_id,preview,created,comment,created_by) VALUES(?,?,?,?,?,?,?,?)",(digest(token),email,expiry,ident,token[:12]+"…",now,comment.strip(),actor))
     audit(c,actor,"invite",email or "Без привязки",{"invitation":{"from":None,"to":token[:12]+"…"},"expiry":{"from":None,"to":hours or "Бессрочно"}})
@@ -271,6 +291,14 @@ class Handler(BaseHTTPRequestHandler):
                     total=c.execute("SELECT count(*) FROM users u WHERE "+clause,args).fetchone()[0]
                     rows=c.execute("SELECT u.* FROM users u JOIN public_ids p ON u.id=p.owner AND p.kind='specialist' WHERE "+clause+" ORDER BY p.number LIMIT 50 OFFSET ?",args+[offset]).fetchall()
                     return self.reply(200,{"items":[public(c,x) for x in rows],"total":total})
+                if path=="/account/api/admin/invite-detail":
+                    ident=param("id")
+                    row=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
+                    if not row: raise Error(404,"Приглашение не найдено")
+                    detail=invite_public(c,row,int(time.time()))
+                    detail["code"]=recover_invite_code(row) if detail["status"]=="active" else None
+                    detail["created_by"]=snapshot(c,row["created_by"]) if row["created_by"] else None
+                    return self.reply(200,detail)
                 if path=="/account/api/admin/invites":
                     now=int(time.time()); state=param("status")
                     where={"active":"used_at IS NULL AND revoked_at IS NULL AND (expires=0 OR expires>?)","expired":"used_at IS NULL AND revoked_at IS NULL AND expires>0 AND expires<=?","used":"used_at IS NOT NULL","revoked":"used_at IS NULL AND revoked_at IS NOT NULL"}.get(state,"1=1")
@@ -355,9 +383,17 @@ class Handler(BaseHTTPRequestHandler):
                 e=e.strip().lower()
                 if e and not valid_email(e): raise Error(400,"Некорректный email")
                 payload=create_invite(c,u["id"],e,b.get("hours",24),b.get("comment",""))
+            elif path=="/account/api/admin/invite-comment":
+                ident=b.get("id"); comment=b.get("comment")
+                if not isinstance(ident,str) or not isinstance(comment,str) or len(comment)>250: raise Error(400,"Некорректный комментарий")
+                inv=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
+                if not inv: raise Error(404,"Приглашение не найдено")
+                c.execute("UPDATE invites SET comment=? WHERE public_id=?",(comment.strip(),ident))
+                audit(c,u["id"],"invite-comment",ident,{"comment":{"from":inv["comment"],"to":comment.strip()}})
+                payload={"ok":True}
             elif path in ("/account/api/admin/invite-revoke","/account/api/admin/invite-reissue"):
                 ident=b.get("id")
-                if not isinstance(ident,str) or not re.fullmatch(r"[a-f0-9]{24}",ident): raise Error(400,"Некорректное приглашение")
+                if not isinstance(ident,str) or not re.fullmatch(r"[a-f0-9]{24}|[a-f0-9]{32}",ident): raise Error(400,"Некорректное приглашение")
                 inv=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
                 now=int(time.time())
                 if not inv or invite_status(inv,now)!="active": raise Error(409,"Приглашение больше не действует")
