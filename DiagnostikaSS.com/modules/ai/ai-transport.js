@@ -5,11 +5,11 @@
 
   async function postForm(url,form){
     try{
-      const response=await fetch(url,{
+      const response=await fetch(location.hostname==='zabvenye.com'?'/account/api/ai/diagnosis':url,{
         method:'POST',
         body:form,
         cache:'no-store',
-        credentials:'omit',
+        credentials:location.hostname==='zabvenye.com'?'same-origin':'omit',
         redirect:'follow'
       });
       const text=await response.text();
