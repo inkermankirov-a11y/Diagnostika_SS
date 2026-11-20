@@ -184,6 +184,20 @@ class Handler(BaseHTTPRequestHandler):
                 typ={"index.html":"text/html","ui.js":"application/javascript","ui.css":"text/css"}[file]
                 return self.reply(200,(Path(__file__).parent/file).read_bytes(),ctype=typ)
             if path=="/account/api/config": return self.reply(200,{"sitekey":SITE if SECRET else ""})
+            if path=="/account/api/cities":
+                q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                name=q.get("q",[""])[0].strip()
+                country=q.get("country",[""])[0].upper()
+                if not 2<=len(name)<=100 or not re.fullmatch(r"[A-Z]{2}",country): raise Error(400,"Укажите страну и город")
+                if not allowed("global-geocoding",90,60): raise Error(429,"Слишком много запросов")
+                params=urllib.parse.urlencode({"name":name,"countryCode":country,"count":15,"language":"ru","format":"json"})
+                try:
+                    with urllib.request.urlopen("https://geocoding-api.open-meteo.com/v1/search?"+params,timeout=5) as response:
+                        result=json.loads(response.read(262144))
+                    rows=[{"name":v["name"],"region":v.get("admin1",""),"timezone":v.get("timezone","")} for v in result.get("results",[]) if v.get("country_code")==country and isinstance(v.get("name"),str)]
+                    return self.reply(200,rows[:12])
+                except Exception: raise Error(503,"Справочник городов временно недоступен")
+
             with db() as c:
                 c.execute("BEGIN IMMEDIATE")
                 u=self.user(c,path.startswith("/account/api/admin/"))
@@ -256,7 +270,7 @@ class Handler(BaseHTTPRequestHandler):
                 first,last,gender,birth,country,city,tz=profile(b)
                 changes={k:{"from":u[k],"to":v} for k,v in (("first_name",first),("last_name",last),("gender",gender),("birth_date",birth),("country",country),("city",city),("timezone",tz)) if u[k]!=v}
                 c.execute("UPDATE users SET first_name=?,last_name=?,gender=?,birth_date=?,country=?,city=?,timezone=? WHERE id=?",(first,last,gender,birth,country,city,tz,u["id"]))
-                if changes: audit(c,u["id"],"profile",u["id"],changes)
+                if changes: audit(c,u["id"],"profile",u["id"],{k:({"from":"—","to":"Обновлено"} if k in ("birth_date","country","city","timezone") else v) for k,v in changes.items()})
                 payload={"ok":True}
             elif path=="/account/api/admin/delete":
                 target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(b.get("id"),)).fetchone()
