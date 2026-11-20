@@ -66,8 +66,8 @@ def password_ok(p,stored):
     return hmac.compare_digest(val.hex(),expected)
 def valid_email(e): return isinstance(e,str) and len(e)<=254 and bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+",e))
 def valid_password(p): return isinstance(p,str) and 12<=len(p)<=128 and len(p.encode())<=512
-def public(u):
-    with db() as c: nums=ids(c,u["id"])
+def public(c,u):
+    nums=ids(c,u["id"])
     return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
@@ -170,8 +170,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200,(Path(__file__).parent/file).read_bytes(),ctype=typ)
             if path=="/account/api/config": return self.reply(200,{"sitekey":SITE if SECRET else ""})
             with db() as c:
+                c.execute("BEGIN IMMEDIATE")
                 u=self.user(c,path.startswith("/account/api/admin/"))
-                if path=="/account/api/me": return self.reply(200,public(u))
+                if path=="/account/api/me": return self.reply(200,public(c,u))
                 q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
                 def param(k): return q.get(k,[""])[0][:254]
                 try: offset=max(0,min(1000000,int(param("offset") or "0")))
@@ -194,7 +195,7 @@ class Handler(BaseHTTPRequestHandler):
                     clause=" AND ".join(where)
                     total=c.execute("SELECT count(*) FROM users u WHERE "+clause,args).fetchone()[0]
                     rows=c.execute("SELECT u.* FROM users u JOIN public_ids p ON u.id=p.owner AND p.kind='specialist' WHERE "+clause+" ORDER BY p.number LIMIT 50 OFFSET ?",args+[offset]).fetchall()
-                    return self.reply(200,{"items":[public(x) for x in rows],"total":total})
+                    return self.reply(200,{"items":[public(c,x) for x in rows],"total":total})
                 if path=="/account/api/admin/audit":
                     return self.reply(200,{"items":audit_rows(c,offset),"total":c.execute("SELECT count(*) FROM audit").fetchone()[0]})
             raise Error(404,"Не найдено")
@@ -223,16 +224,18 @@ class Handler(BaseHTTPRequestHandler):
                     else:
                         u=c.execute("SELECT * FROM users WHERE email=?",(e,)).fetchone()
                         ok=password_ok(p,u["password"] if u else DUMMY)
-                        if not ok or not u or not u["enabled"]: raise Error(401,"Неверные данные или аккаунт недоступен")
+                        if not ok or not u or not u["enabled"] or u["deleted"]: raise Error(401,"Неверные данные или аккаунт недоступен")
                         c.execute("UPDATE users SET last_seen=? WHERE id=?",(int(time.time()),u["id"])); audit(c,u["id"],"login",u["id"])
                     cookie=self.issue(c,u); uid=u["id"]
-                with db() as c: payload=public(c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone())
+                with db() as c: payload=public(c,c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone())
                 return self.reply(200,payload,cookie)
             finally: HASH_SLOT.release()
         with db() as c:
+            c.execute("BEGIN IMMEDIATE")
             u=self.user(c,path.startswith("/account/api/admin/"))
             if path=="/account/api/logout":
                 c.execute("DELETE FROM sessions WHERE token=?",(digest(self.token()),))
+                audit(c,u["id"],"logout",u["id"])
                 return self.reply(200,{"ok":True},"__Host-zabvenye_account=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")
             if path=="/account/api/profile":
                 first,last,gender=profile(b)
