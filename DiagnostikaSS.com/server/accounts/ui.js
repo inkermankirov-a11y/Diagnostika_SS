@@ -56,7 +56,7 @@ function query(){const p=new URLSearchParams();for(const [k,v] of new FormData($
 function detail(u){const card=el('div',undefined,'detail');card.append(el('h3',fullName(u)),el('p','ID специалиста: '+u.id+(u.admin_id?' · ID администратора: '+u.admin_id:'')),el('p',u.email+' · '+genderLabel(u.gender)),el('p','Регистрация: '+date(u.created)+' · Последняя активность: '+date(u.last_seen)));card.append(el('p','Дата рождения: '+(u.birth_date?u.birth_date.split('-').reverse().join('.'):'—')+' · Возраст: '+age(u.birth_date,u.timezone||'UTC')),el('p','Страна: '+(u.country||'—')+' · Город: '+(u.city||'—')));if(u.timezone){const clock=el('strong',formatClock(u.timezone));clock.dataset.clockZone=u.timezone;const line=el('p','Местное время ('+u.timezone+'): ');line.append(clock);card.append(line);}if(u.role==='admin'||u.deleted){card.append(el('p',u.deleted?'Аккаунт архивирован':'Администратор — ограничения не применяются'));return card}
 card.append(el('p','AI сегодня: '+(u.ai_usage?.total??0)+' · чат '+(u.ai_usage?.areas?.chat??0)+' · сессии '+(u.ai_usage?.areas?.session??0)+' · гипотезы '+(u.ai_usage?.areas?.hypothesis??0)+' · диагностика '+(u.ai_usage?.areas?.diagnosis??0)));const grid=el('div',undefined,'limits'),inputs={};for(const [key,value] of Object.entries(u.limits)){const l=el('label',labels[key]),i=el('input');if(key==='clients'||key==='sessions'||key==='ai_daily'||['ai_chat','ai_session','ai_hypothesis','ai_diagnosis'].includes(key)){i.type='number';i.min='0';i.max='1000000';i.placeholder='Без лимита';i.value=value??'';}else{i.type='checkbox';i.checked=value;}l.append(i);grid.append(l);inputs[key]=i;}const l=el('label','Аккаунт активен'),enabled=el('input');enabled.type='checkbox';enabled.checked=u.enabled;l.append(enabled);grid.append(l);
 const save=el('button','Сохранить ограничения'),del=el('button','Удалить специалиста','danger');save.onclick=async()=>{save.disabled=true;try{const limits={};for(const [k,i] of Object.entries(inputs))limits[k]=i.type==='checkbox'?i.checked:i.value===''?null:Number(i.value);await api('admin/update',{id:u.id,limits,enabled:enabled.checked});$('userDialog').close();await loadAdmin();msg('Настройки сохранены.')}catch(e){msg(e.message)}finally{save.disabled=false}};
-del.onclick=async()=>{if(!confirm('Архивировать специалиста '+u.id+' и завершить все его сеансы? ID останется зарезервированным.'))return;try{await api('admin/delete',{id:u.id});$('userDialog').close();await loadAdmin();msg('Специалист архивирован.')}catch(e){msg(e.message)}};const actions=el('div',undefined,'actions');actions.append(save,del);card.append(grid,actions);return card}
+del.onclick=async()=>{if(!await confirmAction('Архивировать специалиста '+u.id+' и завершить все его сеансы? ID останется зарезервированным.','Архивация специалиста','Архивировать'))return;try{await api('admin/delete',{id:u.id});$('userDialog').close();await loadAdmin();msg('Специалист архивирован.')}catch(e){msg(e.message)}};const actions=el('div',undefined,'actions');actions.append(save,del);card.append(grid,actions);return card}
 async function loadUsers(){const result=await api('admin/users?'+query());$('totalUsers').textContent=result.total;$('userCount').textContent='Найдено: '+result.total+' · Страница '+(Math.floor(userOffset/50)+1);$('prevUsers').disabled=userOffset===0;$('nextUsers').disabled=userOffset+50>=result.total;const wrap=el('div',undefined,'tablewrap'),table=el('table'),head=el('tr');for(const title of ['ID','Имя и фамилия','Email','Пол','Регистрация','Активность','Статус'])head.append(el('th',title));const thead=el('thead');thead.append(head);table.append(thead);const tbody=el('tbody');for(const u of result.items){const row=el('tr'),id=el('button',u.id,'idbutton'),td=el('td');id.type='button';id.setAttribute('aria-expanded','false');td.append(id);if(u.admin_id)td.append(el('div','Админ: '+u.admin_id));row.append(td);for(const value of [fullName(u),u.email,genderLabel(u.gender),date(u.created),date(u.last_seen),u.deleted?'Удалён':u.role==='admin'?'Администратор':u.enabled?'Активен':'Заблокирован'])row.append(el('td',value));id.removeAttribute('aria-expanded');id.setAttribute('aria-haspopup','dialog');id.onclick=()=>{$('dialogBody').replaceChildren(detail(u));$('userDialog').showModal()};tbody.append(row)}if(!result.items.length){const tr=el('tr'),td=el('td','Специалисты не найдены','empty');td.colSpan=7;tr.append(td);tbody.append(tr)}table.append(tbody);wrap.append(table);$('users').replaceChildren(wrap)}
 const actionsText={'login':'Вход','registered':'Регистрация специалиста','invite':'Создание приглашения','invite-revoke':'Отзыв приглашения','update-access':'Изменение прав','delete':'Удаление (архивирование)','profile':'Изменение профиля','logout':'Выход'};
 function person(u){return [u.admin_id?'Админ #'+u.admin_id:u.id?'#'+u.id:'',u.first_name,u.last_name,u.email].filter(Boolean).join(' ')}
@@ -107,40 +107,69 @@ $('onboardingLogout').onclick=async()=>{try{await api('logout',{});location.relo
 $('logout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
 
 let inviteOffset=0;
+
+function confirmAction(message,title='Подтверждение действия',positive='Подтвердить'){
+ return new Promise(resolve=>{
+  const d=$('actionConfirm'),form=$('actionConfirmForm');
+  if(d.open){resolve(false);return}
+  $('actionConfirmTitle').textContent=title;$('actionConfirmText').textContent=message;$('actionConfirmYes').textContent=positive;
+  d.returnValue='cancel';d.addEventListener('close',()=>resolve(d.returnValue==='yes'),{once:true});d.showModal();form.querySelector('[value=cancel]').focus();
+ });
+}
+function shortPerson(u){return u?[u.first_name,u.last_name].filter(Boolean).join(' ')||'Не указано':'—'}
+function statusBadge(status){return el('span',inviteStates[status]||status,'invite-status '+status)}
+async function copyCode(code,button){try{await navigator.clipboard.writeText(code.value);button.textContent='Скопировано'}catch{code.focus();code.select();button.textContent='Скопируйте выделенный код'}}
+let detailRequest=0;
 async function openInvite(row,number){
- const d=$('inviteDetailDialog'),body=$('inviteDetailBody');body.replaceChildren(el('p','Загрузка…'));if(!d.open)d.showModal();
+ const d=$('inviteDetailDialog'),body=$('inviteDetailBody'),request=++detailRequest;body.replaceChildren(el('p','Загрузка…'));if(!d.open)d.showModal();
  try{
-  const item=await api('admin/invite-detail?id='+encodeURIComponent(row.id));if(!d.open)return;
-  body.replaceChildren();body.append(el('h3','Приглашение № '+number));
-  for(const [k,v] of [['Статус',inviteStates[item.status]],['Email',item.email||'Без привязки'],['Создано',date(item.created)],['Действует до',item.expires?date(item.expires):'Бессрочно'],['Создал',item.created_by?person(item.created_by):'—'],['Кем использовано',item.used_by?person(item.used_by):'—'],['Дата использования',date(item.used_at)]]){
-   const line=el('div',undefined,'policy-row');line.append(el('span',k),el('strong',v));body.append(line);
+  const item=await api('admin/invite-detail?id='+encodeURIComponent(row.id));if(!d.open||request!==detailRequest)return;
+  body.replaceChildren();
+  const top=el('div',undefined,'invite-detail-top');top.append(el('h3','Приглашение № '+number),statusBadge(item.status));body.append(top);
+  const keybox=el('div',undefined,'invite-keybox');keybox.append(el('strong','Код приглашения'));
+  if(item.code){const code=el('textarea');code.readOnly=true;code.rows=2;code.value=item.code;code.className='invite-full-code';code.setAttribute('aria-label','Полный код приглашения');const copy=el('button','Копировать код');copy.type='button';copy.onclick=()=>copyCode(code,copy);keybox.append(code,copy)}
+  else keybox.append(el('p',item.status==='active'?'Старый код невозможно восстановить из хеша. Перевыпустите приглашение.':'Код больше не действует.','muted'));
+  body.append(keybox);
+  const label=el('label','Для кого создано / комментарий'),comment=el('textarea');comment.maxLength=250;comment.rows=2;comment.value=item.comment||'';comment.placeholder='Имя специалиста или примечание';label.append(comment);body.append(label);
+  const save=el('button','Сохранить комментарий','secondary');save.type='button';save.onclick=async()=>{save.disabled=true;try{await api('admin/invite-comment',{id:row.id,comment:comment.value});await loadInvites();save.textContent='Сохранено'}catch(e){save.textContent=e.message}finally{save.disabled=false}};body.append(save);
+  const info=el('div',undefined,'invite-detail-info');
+  for(const [k,v] of [['Создал',shortPerson(item.created_by)],['Email',item.email||'Без привязки'],['Создано',date(item.created)],['Действует до',item.expires?date(item.expires):'Бессрочно'],...(item.used_by?[['Активировал',shortPerson(item.used_by)],['Дата активации',date(item.used_at)]]:[]),...(item.revoked_at?[['Автоудаление',date(item.revoked_at+86400)]]:[])]){
+   const line=el('div',undefined,'invite-meta');line.append(el('small',k),el('strong',v));info.append(line);
   }
-  const label=el('label','Для кого создано / комментарий'),comment=el('textarea');comment.maxLength=250;comment.rows=3;comment.value=item.comment||'';label.append(comment);body.append(label);
-  const save=el('button','Сохранить комментарий','secondary');save.type='button';save.onclick=async()=>{save.disabled=true;try{await api('admin/invite-comment',{id:row.id,comment:comment.value});await loadInvites();save.textContent='Сохранено'}catch(e){msg(e.message);save.textContent='Ошибка: '+e.message}finally{save.disabled=false}};body.append(save);
-  if(item.code){const code=el('input');code.readOnly=true;code.value=item.code;code.setAttribute('aria-label','Полный код приглашения');body.append(el('h3','Код приглашения'),code);const copy=el('button','Копировать код');copy.type='button';copy.onclick=async()=>{try{await navigator.clipboard.writeText(code.value);copy.textContent='Скопировано'}catch{code.focus();code.select();copy.textContent='Скопируйте выделенный код'}};body.append(copy)}
-  else body.append(el('p',item.status==='active'?'Старый код сохранён только в виде хеша. Для копирования перевыпустите его в реестре. Старый код при этом будет отозван.':'Приглашение больше не действует.','muted'));
- }catch(e){body.replaceChildren(el('p',e.message))}
+  body.append(info);
+  const actions=el('div',undefined,'invite-actions');addInviteActions(actions,item,()=>d.close());body.append(actions);
+ }catch(e){if(request===detailRequest)body.replaceChildren(el('p',e.message))}
 }
 $('closeInviteDetail').onclick=()=>$('inviteDetailDialog').close();
-$('inviteDetailDialog').addEventListener('close',()=>{$('inviteDetailBody').replaceChildren()});
-
+$('inviteDetailDialog').addEventListener('close',()=>{detailRequest++;$('inviteDetailBody').replaceChildren()});
 const inviteForm=$('invite'),inviteFilters=$('inviteFilters');
-const inviteStates={active:'Действует',used:'Использован',expired:'Истёк',revoked:'Отозван'};
+const inviteStates={active:'Действует',used:'Активирован',expired:'Истёк',revoked:'Отозван'};
 function setInviteMode(){const required=inviteForm.elements.mode.value==='email';$('inviteEmailRow').hidden=!required;inviteForm.elements.email.required=required;inviteForm.elements.email.disabled=!required}
 inviteForm.elements.mode.onchange=setInviteMode;setInviteMode();
 function showInviteCode(r){$('newInviteResult').hidden=false;$('inviteCode').textContent=r.invite;$('inviteCode').dataset.code=r.invite;$('copyInvite').hidden=false}
 function inviteQuery(){const q=new URLSearchParams(new FormData(inviteFilters));q.set('offset',String(inviteOffset));return q.toString()}
-async function loadInvites(){const result=await api('admin/invites?'+inviteQuery());$('inviteCount').textContent='Найдено: '+result.total+' · Страница '+(Math.floor(inviteOffset/50)+1);$('prevInvites').disabled=inviteOffset===0;$('nextInvites').disabled=inviteOffset+50>=result.total;
+
+function addInviteActions(group,row,after=()=>{}){
+ function action(label,cls,endpoint,message,extra={},success='Готово'){
+  const b=el('button',label,cls);b.type='button';group.append(b);
+  b.onclick=async()=>{if(!await confirmAction(message,label,label))return;for(const btn of group.querySelectorAll('button'))btn.disabled=true;
+   try{const result=await api(endpoint,{id:row.id,...extra});after();if(result.invite){showInviteCode(result);inviteOffset=0;}await loadInvites();msg(success)}
+   catch(e){msg(e.message)}finally{for(const btn of group.querySelectorAll('button'))btn.disabled=false}
+  };
+ }
+ if(row.status==='active'){
+  action('Отозвать','secondary','admin/invite-revoke','Код перестанет действовать и будет удалён через сутки.',{},'Приглашение отозвано.');
+  action('Перевыпустить','secondary','admin/invite-reissue','Создать новый код? Старый перестанет действовать.',{hours:Number(inviteForm.elements.hours.value)},'Новый код создан.');
+ }else if(['revoked','expired'].includes(row.status))action('Удалить','danger','admin/invite-delete','Удалить приглашение из реестра без возможности восстановления?',{},'Приглашение удалено.');
+}
+async function loadInvites(){const result=await api('admin/invites?'+inviteQuery());if(!result.items.length&&inviteOffset>0){inviteOffset=Math.max(0,inviteOffset-50);return loadInvites()}$('inviteCount').textContent='Найдено: '+result.total+' · Страница '+(Math.floor(inviteOffset/50)+1);$('prevInvites').disabled=inviteOffset===0;$('nextInvites').disabled=inviteOffset+50>=result.total;
  const wrap=el('div',undefined,'tablewrap'),table=el('table'),thead=el('thead'),head=el('tr'),body=el('tbody');
- for(const t of ['№','Код / комментарий','Email','Создан','Действует до','Статус','Кем использован','Действия'])head.append(el('th',t));thead.append(head);table.append(thead);
- for(const [index,row] of result.items.entries()){const number=inviteOffset+index+1,tr=el('tr'),code=el('td');const open=el('button',row.preview,'invite-open');open.type='button';open.onclick=()=>openInvite(row,number);code.append(open,el('small',row.comment||'Комментарий не указан'));tr.append(el('td',String(number)),code,el('td',row.email||'Без привязки'),el('td',date(row.created)),el('td',row.expires?date(row.expires):'Бессрочно'));
- const status=el('td'),badge=el('span',inviteStates[row.status]||row.status,'invite-status '+row.status);status.append(badge);tr.append(status);
- const used=el('td');if(row.used_by){used.append(el('div',person(row.used_by)),el('small',date(row.used_at)))}else used.textContent='—';tr.append(used);
- const actions=el('td');const detail=el('button','Открыть','secondary');detail.type='button';detail.onclick=()=>openInvite(row,number);actions.append(detail);if(row.status==='active'){const revoke=el('button','Отозвать','secondary'),replace=el('button','Перевыпустить','secondary');revoke.type=replace.type='button';
- revoke.onclick=async()=>{if(!confirm('Отозвать приглашение? Оно больше не позволит зарегистрироваться.'))return;revoke.disabled=replace.disabled=true;try{await api('admin/invite-revoke',{id:row.id});await loadInvites();msg('Приглашение отозвано.')}catch(e){msg(e.message);revoke.disabled=replace.disabled=false}};
- replace.onclick=async()=>{if(!confirm('Создать новый код на выбранный в генераторе срок? Старый код перестанет действовать.'))return;revoke.disabled=replace.disabled=true;try{const result=await api('admin/invite-reissue',{id:row.id,hours:Number(inviteForm.elements.hours.value)});showInviteCode(result);inviteOffset=0;await loadInvites();msg('Новый код создан. Старый отозван.')}catch(e){msg(e.message);revoke.disabled=replace.disabled=false}};
- const group=el('div',undefined,'invite-actions');group.append(revoke,replace);actions.append(group)}tr.append(actions);body.append(tr)}
- if(!result.items.length){const tr=el('tr'),td=el('td','Приглашений пока нет','empty');td.colSpan=8;tr.append(td);body.append(tr)}table.append(body);wrap.append(table);$('inviteList').replaceChildren(wrap);
+ for(const t of ['№','Приглашение / для кого','Создано','Действует до','Статус','Активировал','Действия'])head.append(el('th',t));thead.append(head);table.append(thead);
+ for(const [index,row] of result.items.entries()){const number=inviteOffset+index+1,tr=el('tr'),code=el('td'),open=el('button',row.preview,'invite-open');open.type='button';open.onclick=()=>openInvite(row,number);code.append(open,el('small',row.comment||row.email||'Не указано'));tr.append(el('td',String(number)),code,el('td',date(row.created)),el('td',row.expires?date(row.expires):'Бессрочно'));
+ const status=el('td');status.append(statusBadge(row.status));tr.append(status);
+ const used=el('td');used.textContent=shortPerson(row.used_by);tr.append(used);
+ const actions=el('td'),group=el('div',undefined,'invite-actions'),detail=el('button','Открыть','secondary');detail.type='button';detail.onclick=()=>openInvite(row,number);group.append(detail);addInviteActions(group,row);actions.append(group);tr.append(actions);body.append(tr)}
+ if(!result.items.length){const tr=el('tr'),td=el('td','Приглашений пока нет','empty');td.colSpan=7;tr.append(td);body.append(tr)}table.append(body);wrap.append(table);$('inviteList').replaceChildren(wrap);
 }
 $('refreshInvites').onclick=()=>go(loadInvites);
 inviteFilters.onsubmit=e=>{e.preventDefault();inviteOffset=0;go(loadInvites)};
