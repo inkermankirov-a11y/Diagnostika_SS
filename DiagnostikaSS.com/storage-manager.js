@@ -12,6 +12,28 @@
   let syncing=false;
   let pendingSync=false;
   let folderState=null;
+  let backupState='offline', armed=false, revision=0, verifiedRevision=-1;
+  const syncLabels={offline:'Папка не подключена или нет доступа',pending:'Есть несохранённые изменения',working:'Синхронизация выполняется',ready:'Данные синхронизированы',error:'Синхронизация не завершена',restore:'Найдена база — сначала восстановите её'};
+  function paintSync(value){
+    backupState=value;
+    for(const dot of document.querySelectorAll('.local-sync-dot')){
+      dot.dataset.syncState=value;
+      dot.title=syncLabels[value];
+      dot.setAttribute('aria-label',syncLabels[value]);
+    }
+    const label=document.querySelector('#localSyncLabel');if(label)label.textContent=syncLabels[value];
+  }
+  function attachSyncDot(button){
+    if(!button||button.querySelector('.local-sync-dot'))return;
+    const dot=document.createElement('span');dot.className='local-sync-dot';dot.setAttribute('role','img');button.append(dot);paintSync(backupState);
+  }
+  async function verifyCore(){
+    const saved=await readFolderState();
+    if(!saved||JSON.stringify(saved)!==JSON.stringify(state))throw Error('Проверка сохранённой базы не пройдена');
+    folderState=saved;
+  }
+  function markDirty(){revision++;if(armed&&rootHandle){if(!syncing)paintSync('pending');scheduleSync();}}
+
 
   function writeCanonicalDatabase(value,source){
     const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;
@@ -259,7 +281,7 @@
   }
   window.DiagnostikaReceiptDisk=Object.freeze({sync:syncReceiptDisk});
   window.addEventListener('diagnostika:payment-receipt-saved',()=>{
-    syncReceiptDisk().catch(e=>console.warn('Резервирование чеков на диск:',e.message));
+    markDirty();
   });
 
   async function fullExport(){
@@ -301,6 +323,7 @@
     const receiptResult=await syncReceiptDisk(folderState);
     if(receiptResult.missing.length)throw Error('В папке отсутствуют файлы чеков: '+receiptResult.missing.length+'. Сначала восстанови недостающие файлы.');
     writeCanonicalDatabase(folderState,'storage-manager-restore');
+    try{localStorage.setItem('diagnostika-folder-restore-confirmed','1');}catch(_){}
 
     await AppDialog.alert(`База восстановлена. Клиентов: ${count}.\nСтраница сейчас перезагрузится.`,'Готово');
     location.reload();
@@ -309,14 +332,19 @@
 
   async function doSync(){
     if(syncing){pendingSync=true;return;}
-    if(!rootHandle) return;
+    if(!rootHandle||!armed) return;
     syncing=true;
+    const started=revision;paintSync("working");
     try{
       const result=await syncReceiptDisk();
       if(result.missing.length)throw Error('Не найдены файлы чеков: '+result.missing.length+'.');
-      await writeCoreState();
+      await fullExport();
+      await verifyCore();
+      verifiedRevision=started;
+      paintSync(revision===started?'ready':'pending');
       await updateStatus();
     }catch(e){
+      paintSync('error');
       console.warn('Синхронизация папки не выполнена',e);
       const status=document.querySelector('#storageStatus');if(status)status.textContent='Синхронизация не завершена: '+(e.message||'ошибка записи');
     }finally{
@@ -326,6 +354,7 @@
   }
 
   function scheduleSync(){
+    if(!armed||!rootHandle)return;
     clearTimeout(syncTimer);
     syncTimer=setTimeout(doSync,450);
   }
@@ -347,7 +376,7 @@
   dlg.innerHTML=`
     <div class="storage-shell">
       <div class="storage-title">ХРАНИЛИЩЕ ДАННЫХ</div>
-      <div id="storageStatus" class="storage-status"></div>
+      <div id="storageStatus" class="storage-status"></div><div class="local-sync-line"><span class="local-sync-dot" role="img"></span><span id="localSyncLabel" role="status"></span></div>
       <div class="storage-info">
         База клиентов хранится и в браузере, и в выбранной папке. При работе с другого браузера или компьютера сначала восстанови базу из этой папки.
       </div>
@@ -361,6 +390,7 @@
       <div class="storage-footer"><button id="storageClose" type="button">Закрыть</button></div>
     </div>`;
   document.body.appendChild(dlg);
+  attachSyncDot(btn);attachSyncDot(dlg.querySelector("#storageExport"));paintSync("offline");
 
   const status=dlg.querySelector('#storageStatus');
   const restoreBtn=dlg.querySelector('#storageRestore');
@@ -376,6 +406,7 @@
     }
 
     if(!rootHandle){
+      paintSync('offline');
       status.className='storage-status neutral';
       status.textContent='Папка пока не выбрана.';
       restoreBtn.disabled=true;exportBtn.disabled=true;disconnectBtn.disabled=true;
@@ -385,6 +416,7 @@
     let p='prompt';
     try{p=await permission(rootHandle,false);}catch(e){}
     if(p!=='granted'){
+      paintSync('offline');
       status.className='storage-status warn';
       status.textContent=`Папка ${rootHandle.name} сохранена, но браузеру нужно снова разрешить доступ.`;
       restoreBtn.disabled=true;exportBtn.disabled=true;disconnectBtn.disabled=false;
@@ -412,6 +444,8 @@
         return;
       }
 
+      if(syncing)throw Error('Дождитесь окончания синхронизации');
+      clearTimeout(syncTimer);armed=false;verifiedRevision=-1;paintSync('pending');
       rootHandle=h;
       appHandle=null;
       folderState=null;
@@ -419,19 +453,21 @@
       folderState=await readFolderState();
 
       if(folderState){
+        paintSync('restore');
         await updateStatus();
         await AppDialog.alert(
           `В папке найдена база: ${folderClientCount()} клиент(ов).\nОна НЕ будет перезаписана автоматически.\nНажми «Восстановить базу из папки», чтобы открыть её в этом браузере.`,
           'База найдена'
         );
       }else{
-        await fullExport();
+        syncing=true;paintSync('working');const started=revision;
+        try{await fullExport();await verifyCore();armed=true;verifiedRevision=started;paintSync(revision===started?'ready':'pending');}finally{syncing=false;}
         await updateStatus();
         await AppDialog.alert('Новая папка подключена. Текущая база и файлы сохранены в неё.','Папка подключена');
       }
     }catch(e){
       if(e?.name!=='AbortError'){
-        console.error(e);
+        paintSync('error');console.error(e);
         await AppDialog.alert('Не удалось подключить папку.','Ошибка');
       }
     }
@@ -452,7 +488,7 @@
   };
 
   exportBtn.onclick=async()=>{
-    if(!rootHandle) return;
+    if(!rootHandle||syncing) return;
     try{
       if(await permission(rootHandle,true)!=='granted'){
         await AppDialog.alert('Разреши доступ к папке.','Нужен доступ');
@@ -473,20 +509,23 @@
       }
 
       exportBtn.disabled=true;
-      exportBtn.textContent='Сохраняю…';
-      await fullExport();
+      exportBtn.textContent='Сохраняю…';attachSyncDot(exportBtn);
+      syncing=true;paintSync('working');const started=revision;
+      await fullExport();await verifyCore();armed=true;verifiedRevision=started;paintSync(revision===started?'ready':'pending');
       await updateStatus();
       await AppDialog.alert('База клиентов и файлы сохранены в папку.','Готово');
     }catch(e){
-      console.error(e);
+      paintSync('error');console.error(e);
       await AppDialog.alert('Не удалось сохранить данные в папку.','Ошибка');
     }finally{
-      exportBtn.textContent='Сохранить текущую базу и файлы в папку';
-      exportBtn.disabled=false;
+      syncing=false;
+      exportBtn.textContent='Сохранить текущую базу и файлы в папку';attachSyncDot(exportBtn);
+      exportBtn.disabled=false;if(armed&&revision!==verifiedRevision)scheduleSync();
     }
   };
 
   disconnectBtn.onclick=async()=>{
+    if(syncing)return;
     const ok=await AppDialog.confirm(
       'Данные в самой папке удалены не будут.',
       'Отключить папку?',
@@ -494,6 +533,7 @@
       'Отмена'
     );
     if(!ok) return;
+    armed=false;verifiedRevision=-1;paintSync('offline');
     rootHandle=null;
     appHandle=null;
     folderState=null;
@@ -509,7 +549,7 @@
   const originalSave=save;
   save=function(){
     originalSave();
-    if(rootHandle && folderState) scheduleSync();
+    markDirty();
   };
 
   let fileEventsBound=false;
@@ -520,16 +560,15 @@
 
     bus.on('file:created',detail=>{
       Promise.resolve().then(async()=>{
-        if(!rootHandle)return;
-        const rec=detail?.record||await filesApi()?.get?.(detail?.fileId);
-        if(rec)await mirrorRecord(rec);
+        if(!rootHandle||!armed)return;
+        markDirty();
       }).catch(e=>console.warn('Файл сохранён в браузере, но не скопирован в папку',e));
     });
 
     bus.on('file:deleted',detail=>{
       Promise.resolve().then(async()=>{
-        if(!rootHandle||!detail?.record)return;
-        await removeMirroredRecord(detail.record);
+        if(!rootHandle||!armed||!detail?.record)return;
+        await removeMirroredRecord(detail.record);markDirty();
       }).catch(e=>console.warn('Файл удалён из браузера, но зеркальная копия не удалена',e));
     });
 
@@ -547,9 +586,10 @@
       if(rootHandle && await permission(rootHandle,false)==='granted'){
         appHandle=null;
         folderState=await readFolderState();
+        if(folderState&&JSON.stringify(folderState)===JSON.stringify(state)){armed=true;paintSync('pending');scheduleSync();}else paintSync(folderState?'restore':'pending');
       }
     }catch(e){
-      console.warn('Не удалось восстановить выбранную папку',e);
+      paintSync('error');console.warn('Не удалось восстановить выбранную папку',e);
     }
   })();
 })();
