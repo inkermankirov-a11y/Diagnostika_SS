@@ -322,7 +322,7 @@
     async function save(action){
       if(busy)return;busy=true;file.disabled=true;saveUrl.disabled=true;remove.disabled=true;
       report('Сохраняю чек…');
-      try{await action();refresh();report('Чек сохранён для этого платежа.');}
+      try{await action();refresh();report('Чек сохранён для платежа. Статус резервных копий проверь в разделе «Хранилище».');}
       catch(e){console.warn('[Payment receipt]',e?.name||'Error');report(e?.message||'Не удалось сохранить чек.',true);}
       finally{busy=false;file.disabled=false;saveUrl.disabled=false;remove.disabled=false;file.value='';}
     }
@@ -345,7 +345,7 @@
       catch(e){report(e?.message||'Не удалось открыть чек.',true);}
     };
     download.onclick=async()=>{try{await openFile(ref,true,kind);}catch(e){report(e?.message||'Не удалось скачать чек.',true);}};
-    share.onclick=async()=>{try{const item=itemOf(ref,kind);if(!item.url)throw Error('Этот файл есть только в браузере. Для отправки другим людям сначала загрузите его в защищённое облако и укажите доступную HTTPS-ссылку.');await navigator.clipboard.writeText(validateUrl(item.url));report('Ссылка скопирована.');}catch(e){report(e?.message||'Не удалось скопировать ссылку.',true);}};
+    share.onclick=async()=>{try{const item=itemOf(ref,kind);if(!item.url)throw Error('У файла резервной копии нет публичной ссылки. Для отправки скачай чек или укажи отдельную защищённую HTTPS-ссылку.');await navigator.clipboard.writeText(validateUrl(item.url));report('Ссылка скопирована.');}catch(e){report(e?.message||'Не удалось скопировать ссылку.',true);}};
     dlg.addEventListener('close',()=>dlg.remove(),{once:true});
     refresh();dlg.showModal();paste.focus();return dlg;
   }
