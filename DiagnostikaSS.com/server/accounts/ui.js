@@ -107,6 +107,23 @@ $('onboardingLogout').onclick=async()=>{try{await api('logout',{});location.relo
 $('logout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
 
 let inviteOffset=0;
+async function openInvite(row,number){
+ const d=$('inviteDetailDialog'),body=$('inviteDetailBody');body.replaceChildren(el('p','Загрузка…'));if(!d.open)d.showModal();
+ try{
+  const item=await api('admin/invite-detail?id='+encodeURIComponent(row.id));if(!d.open)return;
+  body.replaceChildren();body.append(el('h3','Приглашение № '+number));
+  for(const [k,v] of [['Статус',inviteStates[item.status]],['Email',item.email||'Без привязки'],['Создано',date(item.created)],['Действует до',item.expires?date(item.expires):'Бессрочно'],['Создал',item.created_by?person(item.created_by):'—'],['Кем использовано',item.used_by?person(item.used_by):'—'],['Дата использования',date(item.used_at)]]){
+   const line=el('div',undefined,'policy-row');line.append(el('span',k),el('strong',v));body.append(line);
+  }
+  const label=el('label','Для кого создано / комментарий'),comment=el('textarea');comment.maxLength=250;comment.rows=3;comment.value=item.comment||'';label.append(comment);body.append(label);
+  const save=el('button','Сохранить комментарий','secondary');save.type='button';save.onclick=async()=>{save.disabled=true;try{await api('admin/invite-comment',{id:row.id,comment:comment.value});await loadInvites();save.textContent='Сохранено'}catch(e){msg(e.message);save.textContent='Ошибка: '+e.message}finally{save.disabled=false}};body.append(save);
+  if(item.code){const code=el('input');code.readOnly=true;code.value=item.code;code.setAttribute('aria-label','Полный код приглашения');body.append(el('h3','Код приглашения'),code);const copy=el('button','Копировать код');copy.type='button';copy.onclick=async()=>{try{await navigator.clipboard.writeText(code.value);copy.textContent='Скопировано'}catch{code.focus();code.select();copy.textContent='Скопируйте выделенный код'}};body.append(copy)}
+  else body.append(el('p',item.status==='active'?'Старый код сохранён только в виде хеша. Для копирования перевыпустите его в реестре. Старый код при этом будет отозван.':'Приглашение больше не действует.','muted'));
+ }catch(e){body.replaceChildren(el('p',e.message))}
+}
+$('closeInviteDetail').onclick=()=>$('inviteDetailDialog').close();
+$('inviteDetailDialog').addEventListener('close',()=>{$('inviteDetailBody').replaceChildren()});
+
 const inviteForm=$('invite'),inviteFilters=$('inviteFilters');
 const inviteStates={active:'Действует',used:'Использован',expired:'Истёк',revoked:'Отозван'};
 function setInviteMode(){const required=inviteForm.elements.mode.value==='email';$('inviteEmailRow').hidden=!required;inviteForm.elements.email.required=required;inviteForm.elements.email.disabled=!required}
@@ -115,15 +132,15 @@ function showInviteCode(r){$('newInviteResult').hidden=false;$('inviteCode').tex
 function inviteQuery(){const q=new URLSearchParams(new FormData(inviteFilters));q.set('offset',String(inviteOffset));return q.toString()}
 async function loadInvites(){const result=await api('admin/invites?'+inviteQuery());$('inviteCount').textContent='Найдено: '+result.total+' · Страница '+(Math.floor(inviteOffset/50)+1);$('prevInvites').disabled=inviteOffset===0;$('nextInvites').disabled=inviteOffset+50>=result.total;
  const wrap=el('div',undefined,'tablewrap'),table=el('table'),thead=el('thead'),head=el('tr'),body=el('tbody');
- for(const t of ['Код / комментарий','Email','Создан','Действует до','Статус','Кем использован','Действия'])head.append(el('th',t));thead.append(head);table.append(thead);
- for(const row of result.items){const tr=el('tr'),code=el('td');code.append(el('strong',row.preview));if(row.comment)code.append(el('small',row.comment));tr.append(code,el('td',row.email||'Без привязки'),el('td',date(row.created)),el('td',row.expires?date(row.expires):'Бессрочно'));
+ for(const t of ['№','Код / комментарий','Email','Создан','Действует до','Статус','Кем использован','Действия'])head.append(el('th',t));thead.append(head);table.append(thead);
+ for(const [index,row] of result.items.entries()){const number=inviteOffset+index+1,tr=el('tr'),code=el('td');const open=el('button',row.preview,'invite-open');open.type='button';open.onclick=()=>openInvite(row,number);code.append(open,el('small',row.comment||'Комментарий не указан'));tr.append(el('td',String(number)),code,el('td',row.email||'Без привязки'),el('td',date(row.created)),el('td',row.expires?date(row.expires):'Бессрочно'));
  const status=el('td'),badge=el('span',inviteStates[row.status]||row.status,'invite-status '+row.status);status.append(badge);tr.append(status);
  const used=el('td');if(row.used_by){used.append(el('div',person(row.used_by)),el('small',date(row.used_at)))}else used.textContent='—';tr.append(used);
- const actions=el('td');if(row.status==='active'){const revoke=el('button','Отозвать','secondary'),replace=el('button','Перевыпустить','secondary');revoke.type=replace.type='button';
+ const actions=el('td');const detail=el('button','Открыть','secondary');detail.type='button';detail.onclick=()=>openInvite(row,number);actions.append(detail);if(row.status==='active'){const revoke=el('button','Отозвать','secondary'),replace=el('button','Перевыпустить','secondary');revoke.type=replace.type='button';
  revoke.onclick=async()=>{if(!confirm('Отозвать приглашение? Оно больше не позволит зарегистрироваться.'))return;revoke.disabled=replace.disabled=true;try{await api('admin/invite-revoke',{id:row.id});await loadInvites();msg('Приглашение отозвано.')}catch(e){msg(e.message);revoke.disabled=replace.disabled=false}};
  replace.onclick=async()=>{if(!confirm('Создать новый код на выбранный в генераторе срок? Старый код перестанет действовать.'))return;revoke.disabled=replace.disabled=true;try{const result=await api('admin/invite-reissue',{id:row.id,hours:Number(inviteForm.elements.hours.value)});showInviteCode(result);inviteOffset=0;await loadInvites();msg('Новый код создан. Старый отозван.')}catch(e){msg(e.message);revoke.disabled=replace.disabled=false}};
- const group=el('div',undefined,'invite-actions');group.append(revoke,replace);actions.append(group)}else actions.textContent='—';tr.append(actions);body.append(tr)}
- if(!result.items.length){const tr=el('tr'),td=el('td','Приглашений пока нет','empty');td.colSpan=7;tr.append(td);body.append(tr)}table.append(body);wrap.append(table);$('inviteList').replaceChildren(wrap);
+ const group=el('div',undefined,'invite-actions');group.append(revoke,replace);actions.append(group)}tr.append(actions);body.append(tr)}
+ if(!result.items.length){const tr=el('tr'),td=el('td','Приглашений пока нет','empty');td.colSpan=8;tr.append(td);body.append(tr)}table.append(body);wrap.append(table);$('inviteList').replaceChildren(wrap);
 }
 $('refreshInvites').onclick=()=>go(loadInvites);
 inviteFilters.onsubmit=e=>{e.preventDefault();inviteOffset=0;go(loadInvites)};
