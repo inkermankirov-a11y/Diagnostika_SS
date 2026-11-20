@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from contextlib import contextmanager
 from pathlib import Path
 from http.cookies import SimpleCookie
+from datetime import date, datetime, timezone, timedelta
 
 DATA=Path(os.getenv("ACCOUNT_DATA","/data")); DATA.mkdir(mode=0o700,parents=True,exist_ok=True)
 os.umask(0o077)
@@ -44,7 +45,7 @@ with db() as c:
     c.execute("BEGIN IMMEDIATE")
     c.execute("CREATE TABLE IF NOT EXISTS public_ids(number TEXT PRIMARY KEY,owner TEXT NOT NULL,kind TEXT NOT NULL,UNIQUE(owner,kind))")
     cols={r[1] for r in c.execute("PRAGMA table_info(users)")}
-    for name,typ in (("first_name","TEXT NOT NULL DEFAULT ''"),("last_name","TEXT NOT NULL DEFAULT ''"),("gender","TEXT NOT NULL DEFAULT ''"),("last_seen","INTEGER"),("deleted","INTEGER NOT NULL DEFAULT 0")):
+    for name,typ in (("first_name","TEXT NOT NULL DEFAULT ''"),("last_name","TEXT NOT NULL DEFAULT ''"),("gender","TEXT NOT NULL DEFAULT ''"),("last_seen","INTEGER"),("deleted","INTEGER NOT NULL DEFAULT 0"),("birth_date","TEXT NOT NULL DEFAULT ''"),("country","TEXT NOT NULL DEFAULT ''"),("city","TEXT NOT NULL DEFAULT ''"),("timezone","TEXT NOT NULL DEFAULT ''")):
         if name not in cols: c.execute("ALTER TABLE users ADD COLUMN "+name+" "+typ)
     if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
         c.execute("ALTER TABLE audit ADD COLUMN details TEXT NOT NULL DEFAULT '{}'")
@@ -56,7 +57,16 @@ def profile(b):
     first=b.get("first_name",""); last=b.get("last_name",""); gender=b.get("gender","")
     if not isinstance(first,str) or not isinstance(last,str) or not 1<=len(first.strip())<=80 or not 1<=len(last.strip())<=80 or gender not in ("male","female"):
         raise Error(400,"Укажите имя, фамилию и пол")
-    return first.strip(),last.strip(),gender
+    birth=b.get("birth_date",""); country=b.get("country",""); city=b.get("city",""); tz=b.get("timezone","")
+    if not all(isinstance(v,str) for v in (birth,country,city,tz)) or not 1<=len(country.strip())<=100 or not 1<=len(city.strip())<=100 or not 1<=len(tz)<=100:
+        raise Error(400,"Укажите дату рождения, страну, город и часовой пояс")
+    try:
+        if not re.fullmatch(r"(?:[A-Za-z0-9_+\-]+/)*[A-Za-z0-9_+\-]+",tz): raise ValueError()
+        today=datetime.now(timezone.utc).date()+timedelta(days=1)
+        born=date.fromisoformat(birth)
+        if born.isoformat()!=birth or born>today or born.year<1900: raise ValueError()
+    except ValueError: raise Error(400,"Проверьте дату рождения и часовой пояс")
+    return first.strip(),last.strip(),gender,birth,country.strip(),city.strip(),tz
 def ids(c,uid):
     return {r["kind"]:r["number"] for r in c.execute("SELECT kind,number FROM public_ids WHERE owner=?",(uid,))}
 def digest(s): return hashlib.sha256(s.encode()).hexdigest()
@@ -72,7 +82,7 @@ def valid_email(e): return isinstance(e,str) and len(e)<=254 and bool(re.fullmat
 def valid_password(p): return isinstance(p,str) and 12<=len(p)<=128 and len(p.encode())<=512
 def public(c,u):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u: return {"email":uid}
@@ -220,9 +230,9 @@ class Handler(BaseHTTPRequestHandler):
                         c.execute("BEGIN IMMEDIATE")
                         inv=c.execute("SELECT * FROM invites WHERE token=? AND email=? AND expires>?",(digest(tok),e,int(time.time()))).fetchone()
                         if not inv or c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(400,"Недействительное приглашение")
-                        first,last,gender=profile(b)
+                        first,last,gender,birth,country,city,tz=profile(b)
                         uid=create_user(c,e,p,"specialist")
-                        c.execute("UPDATE users SET first_name=?,last_name=?,gender=?,last_seen=? WHERE id=?",(first,last,gender,int(time.time()),uid))
+                        c.execute("UPDATE users SET first_name=?,last_name=?,gender=?,birth_date=?,country=?,city=?,timezone=?,last_seen=? WHERE id=?",(first,last,gender,birth,country,city,tz,int(time.time()),uid))
                         c.execute("DELETE FROM invites WHERE token=?",(digest(tok),)); audit(c,uid,"registered",uid)
                         u=c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone()
                     else:
@@ -242,9 +252,9 @@ class Handler(BaseHTTPRequestHandler):
                 audit(c,u["id"],"logout",u["id"])
                 return self.reply(200,{"ok":True},"__Host-zabvenye_account=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")
             if path=="/account/api/profile":
-                first,last,gender=profile(b)
-                changes={k:{"from":u[k],"to":v} for k,v in (("first_name",first),("last_name",last),("gender",gender)) if u[k]!=v}
-                c.execute("UPDATE users SET first_name=?,last_name=?,gender=? WHERE id=?",(first,last,gender,u["id"]))
+                first,last,gender,birth,country,city,tz=profile(b)
+                changes={k:{"from":u[k],"to":v} for k,v in (("first_name",first),("last_name",last),("gender",gender),("birth_date",birth),("country",country),("city",city),("timezone",tz)) if u[k]!=v}
+                c.execute("UPDATE users SET first_name=?,last_name=?,gender=?,birth_date=?,country=?,city=?,timezone=? WHERE id=?",(first,last,gender,birth,country,city,tz,u["id"]))
                 if changes: audit(c,u["id"],"profile",u["id"],changes)
                 payload={"ok":True}
             elif path=="/account/api/admin/delete":
