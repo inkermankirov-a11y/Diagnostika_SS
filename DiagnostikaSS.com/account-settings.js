@@ -213,6 +213,47 @@
     +'<div class="account-field account-reviews"><div class="account-label account-reviews-label"></div><div class="account-review-editor"><input class="account-input account-review-author-input" type="text"><textarea class="account-textarea account-review-text-input"></textarea><button type="button" class="account-review-add"></button></div><div class="account-review-list"></div></div>'
     +'<button type="button" class="account-save"></button><input class="account-avatar-input" type="file" accept="image/*" hidden>';
   accountsBtn.insertAdjacentElement('afterend',content);
+  // Server account is distinct from the local specialist profile.
+  if(location.hostname==='zabvenye.com'){
+    const box=document.createElement('div');
+    box.style.cssText='display:grid;gap:8px;padding:12px;margin:0 0 12px;border:1px solid #8eb8da;border-radius:10px';
+    const title=document.createElement('strong');title.textContent='Учётная запись ZABVENYE';
+    const identity=document.createElement('div');identity.style.cssText='font-size:12px;overflow-wrap:anywhere';identity.textContent='Проверка входа…';
+    const cabinet=document.createElement('button');cabinet.type='button';cabinet.textContent='Личный кабинет';cabinet.className='account-save';
+    const exit=document.createElement('button');exit.type='button';exit.textContent='Выйти из учётной записи';exit.className='account-save';exit.hidden=true;
+    const notice=document.createElement('div');notice.style.fontSize='12px';notice.setAttribute('role','status');
+    box.append(title,identity,cabinet,exit,notice);content.prepend(box);
+    let request=0;
+    async function refreshAccount(){
+      const current=++request;
+      try{
+        const response=await fetch('/account/api/me',{credentials:'same-origin',cache:'no-store'});
+        if(current!==request)return;
+        if(response.status===401){identity.textContent='Вход не выполнен';cabinet.textContent='Войти в аккаунт';exit.hidden=true;return;}
+        if(!response.ok)throw Error();
+        const u=await response.json();if(current!==request)return;
+        identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист');
+        cabinet.textContent=u.role==='admin'?'Личный кабинет / Админка':'Личный кабинет';exit.hidden=false;
+      }catch{if(current===request){identity.textContent='Сервис аккаунтов недоступен';exit.hidden=false;}}
+    }
+    async function canNavigate(){
+      if(typeof prepareLeave==='function' && await prepareLeave()===false)return false;
+      return window.confirm('Перейти из рабочего пространства? Убедитесь, что изменения в клиентских карточках сохранены. Локальная база и настройки синхронизации не удаляются.');
+    }
+    cabinet.addEventListener('click',async()=>{if(await canNavigate())location.assign('/account');});
+    exit.addEventListener('click',async()=>{
+      if(!await canNavigate())return;
+      exit.disabled=true;cabinet.disabled=true;notice.textContent='Завершение сеанса…';
+      try{
+        const response=await fetch('/account/api/logout',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
+        if(!response.ok&&response.status!==401)throw Error();
+        location.replace('/account');
+      }catch{notice.textContent='Не удалось завершить сеанс. Проверьте соединение и повторите.';exit.disabled=false;cabinet.disabled=false;}
+    });
+    accountsBtn.addEventListener('click',refreshAccount,true);
+    refreshAccount();
+  }
+
 
   const avatarBtn=summary.querySelector('.settings-profile-avatar');
   const nameEl=summary.querySelector('.settings-profile-name');
