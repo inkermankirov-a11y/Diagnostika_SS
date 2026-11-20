@@ -223,8 +223,48 @@
     }
   }
 
+  async function syncReceiptDisk(data=state){
+    if(!rootHandle){rootHandle=await loadHandle();appHandle=null;}
+    if(!rootHandle||await permission(rootHandle,false)!=='granted')throw Error('Подключи папку на компьютере в разделе «Хранилище».');
+    const receipts=window.DiagnostikaPaymentReceipts;
+    if(!receipts)return {count:0,missing:[]};
+    async function dir(entry,create){
+      const client=(data.clients||[]).find(c=>String(c.id)===entry.clientId);
+      if(!client)return null;
+      let cd=await findClientDirById(entry.clientId);
+      if(!cd&&create)cd=await ensureClientDir(client);
+      if(!cd)return null;
+      let parent=cd;
+      if(entry.sessionId){
+        parent=await findSessionDirById(entry.clientId,entry.sessionId);
+        if(!parent&&create){
+          const index=(client.sessions||[]).findIndex(s=>String(s.id)===entry.sessionId);
+          if(index<0)return null;
+          parent=await ensureSessionDir(client,client.sessions[index],index);
+        }
+        if(!parent)return null;
+      }
+      try{return await parent.getDirectoryHandle('receipts',{create});}
+      catch(e){if(e.name==='NotFoundError')return null;throw e;}
+    }
+    return receipts.syncReceiptFiles(data,{
+      async find(entry){
+        const d=await dir(entry,false);if(!d)return null;
+        try{return await d.getFileHandle(safeName(entry.filename),{create:false});}
+        catch(e){if(e.name==='NotFoundError')return null;throw e;}
+      },
+      async read(entry,h){return h.getFile();},
+      async write(entry,blob){const d=await dir(entry,true);if(!d)throw Error('Не найдена папка чека.');await writeBlob(d,safeName(entry.filename),blob);}
+    });
+  }
+  window.DiagnostikaReceiptDisk=Object.freeze({sync:syncReceiptDisk});
+  window.addEventListener('diagnostika:payment-receipt-saved',()=>{
+    syncReceiptDisk().catch(e=>console.warn('Резервирование чеков на диск:',e.message));
+  });
+
   async function fullExport(){
     await writeCoreState();
+    await syncReceiptDisk();
     const api=filesApi();
     if(api?.list){
       for(const c of state.clients||[]){
@@ -257,6 +297,8 @@
     );
     if(!ok) return false;
 
+    const receiptResult=await syncReceiptDisk(folderState);
+    if(receiptResult.missing.length)throw Error('В папке отсутствуют файлы чеков: '+receiptResult.missing.length+'. Сначала восстанови недостающие файлы.');
     writeCanonicalDatabase(folderState,'storage-manager-restore');
 
     await AppDialog.alert(`База восстановлена. Клиентов: ${count}.\nСтраница сейчас перезагрузится.`,'Готово');
@@ -270,6 +312,7 @@
     syncing=true;
     try{
       await writeCoreState();
+      await syncReceiptDisk();
       await updateStatus();
     }catch(e){
       console.warn('Синхронизация папки не выполнена',e);
