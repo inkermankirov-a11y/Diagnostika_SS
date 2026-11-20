@@ -227,15 +227,23 @@
     const exit=document.createElement('button');exit.type='button';exit.textContent='Выйти из учётной записи';exit.className='account-save';exit.hidden=true;
     const notice=document.createElement('div');notice.style.fontSize='12px';notice.setAttribute('role','status');
     box.append(title,identity,cabinet,exit,notice);content.prepend(box);
+    const reminder=document.createElement('aside');reminder.hidden=true;reminder.setAttribute('aria-label','Заполнение профиля');
+    reminder.style.cssText='position:fixed;right:20px;bottom:20px;z-index:9990;max-width:calc(100vw - 40px);padding:12px 15px;background:#fff8e8;color:#604519;border:1px solid #d9b66f;border-radius:10px;box-shadow:0 4px 15px #18304730;display:none;font:13px system-ui;gap:8px;align-items:center;flex-wrap:wrap';
+    const reminderText=document.createElement('span');reminderText.textContent='Вы ввели не все данные профиля';
+    const complete=document.createElement('button');complete.type='button';complete.textContent='Заполнить';complete.style.cssText='border:0;background:#285481;color:white;padding:7px 12px;border-radius:6px;cursor:pointer';
+    complete.onclick=()=>window.open('/account#profile','_blank','noopener,noreferrer');
+    reminder.append(reminderText,complete);document.body.append(reminder);
     let request=0;
     async function refreshAccount(){
       const current=++request;
       try{
         const response=await fetch('/account/api/me',{credentials:'same-origin',cache:'no-store'});
         if(current!==request)return;
-        if(response.status===401){identity.textContent='Вход не выполнен';cabinet.textContent='Войти в аккаунт';exit.hidden=true;return;}
+        if(response.status===401){location.replace('/account');return;}
         if(!response.ok)throw Error();
         const u=await response.json();if(current!==request)return;
+        if(u.onboarding_required){location.replace('/account');return;}
+        const incomplete=['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);reminder.hidden=!incomplete;reminder.style.display=incomplete?'flex':'none';
         identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист');
         cabinet.textContent=u.role==='admin'?'Личный кабинет / Админка':'Личный кабинет';exit.hidden=false;
       }catch{if(current===request){identity.textContent='Сервис аккаунтов недоступен';exit.hidden=false;}}
@@ -256,6 +264,7 @@
     });
     accountsBtn.addEventListener('click',refreshAccount,true);
     refreshAccount();
+    window.addEventListener('focus',refreshAccount);
     setInterval(()=>{if(document.visibilityState==="visible")refreshAccount();},60000);
   }
 
