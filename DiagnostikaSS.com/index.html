@@ -9,15 +9,17 @@
   <meta name="diagnostika-build" content="20260919-db14d">
   <meta name="diagnostika-release" content="v1.0.0">
   <meta name="diagnostika-instance" content="DiagnostikaSS.com">
-  <title>DiagnostikaSS.com — Психологическая диагностика</title>
+  <title>ZABVENYE.COM — Психологическая диагностика</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261116-brand-1" sizes="any">
   <script>
     try{
+      if(/^(www\.)?zabvenye\.com$/i.test(location.hostname))document.documentElement.setAttribute('data-zabvenye-host','');
       const theme=localStorage.getItem('diagnostika-dashboard-theme')||'theme-1';
       document.documentElement.setAttribute('data-dashboard-theme',/^theme-[1-4]$/.test(theme)?theme:'theme-1');
     }catch(_){document.documentElement.setAttribute('data-dashboard-theme','theme-1');}
   </script>
   <style>
+    html[data-zabvenye-host] .hws-transfer-notice{display:none!important}
     [hidden],#diagnosisWorkspace[hidden],.home-dashboard[hidden]{display:none!important}
     html:not(.diagnostika-dashboard-ready) #diagnosisWorkspace,html:not(.diagnostika-dashboard-ready) .home-dashboard{display:none!important}
     #appStartupStatus{margin:24px auto;padding:24px;max-width:640px;background:#fff;border:1px solid #d7dbe0;border-radius:12px}
@@ -112,8 +114,8 @@
 <script defer src="core/bootstrap.js?v=20260919-db14d&api=13d&cleanup=24a"></script>
 <script defer src="core/shell-bridge.js?v=20260929-modular24a" data-diagnostika-core-part="shell"></script>
 <script defer src="session-event-label.js?v=20261118-numbered-events-1"></script>
-<script defer src="app-loader.js?v=20261120-advance-payment-1"></script>
-  <script defer src="site-relocation-notice.js?v=20261119-home-visible-1"></script>
+<script defer src="app-loader.js?v=20261120-zabvenye-1"></script>
+  <script defer src="site-relocation-notice.js?v=20261120-zabvenye-1"></script>
 <script defer src="modules/clients/ui/delete.js?v=20260930-modular-stage5-21"></script>
 <script defer src="dev-tools-loader.js?v=20260921-hardening19a"></script>
 <script defer src="modules/diagnosis/ui/navigation.js?v=20261101-diagnosis-status-1"></script>
