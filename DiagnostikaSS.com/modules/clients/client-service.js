@@ -306,6 +306,7 @@
   }
 
   function create(data = {}, options = {}) {
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.allowClient(list().length))return null;
     const created = freshClient(data);
     if (findById(created.id) || findArchivedById(created.id)) return null;
 
@@ -472,6 +473,7 @@
   }
 
   function unarchive(id, options = {}) {
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.allowClient(list().length))return null;
     const archiveState = ensureArchiveState({ persist: false });
     if (!archiveState) return null;
 
@@ -585,6 +587,7 @@
   }
 
   function restore(id, options = {}) {
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.allowClient(list().length))return null;
     const trash = ensureTrashState({ persist: false });
     if (!trash) return null;
 
