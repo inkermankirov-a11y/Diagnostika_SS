@@ -142,7 +142,9 @@
 
   function nextSessionNumber(c,r){
     if(!c||!r)return 1;
-    return actualSessionsFor(c,r).length+plannedSessionsFor(c,r).length+1;
+    const rows=(sessionsApi()?.list?.(c)||[]).filter(isTherapySessionRecord);
+    const unlinked=events().filter(e=>String(e?.clientId||'')===String(c.id)&&isPlannableEvent(e)&&isSessionEvent(e)&&!sessionForEvent(c,e));
+    return rows.length+unlinked.length+1;
   }
 
   function requestComment(r){return r?.title?`Запрос: ${String(r.title).trim()}`:'';}
@@ -231,39 +233,24 @@
     let changed=false;
     clients().forEach(c=>{
       const sessionEvents=api.list({clientId:c.id}).filter(e=>isSessionEvent(e)&&(e.plannedSessionSkeleton===true||!!e.sessionId));
-      const groups=new Map();
+      const rows=(sessionsApi()?.list?.(c)||[]).filter(isTherapySessionRecord)
+        .map((s,index)=>({s,index,time:typeof sessionTimeValue==='function'?sessionTimeValue(s,index):new Date(s.date||0).getTime()||index}))
+        .sort((a,b)=>a.time-b.time||a.index-b.index);
       sessionEvents.forEach(e=>{
-        const r=requestForEvent(c,e);
-        if(!r)return;
-        const key=String(r.id);
-        if(!groups.has(key))groups.set(key,{r,items:[]});
-        groups.get(key).items.push(e);
-      });
-
-      groups.forEach(({r,items})=>{
-        items.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||''))||String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
-        let number=actualSessionsFor(c,r).length+1;
-        items.forEach(e=>{
+          const linked=sessionForEvent(c,e);
+          const index=linked?rows.findIndex(row=>String(row.s.id)===String(linked.id)):-1;
+          if(index<0)return;
+          const number=index+1;
+          const r=requestForEvent(c,e);
+          if(!r)return;
           const title=`Сессия №${number}`;
-          const reqText=requestComment(r);
           const patch={};
-
           if(e.sessionNumber!==number)patch.sessionNumber=number;
           if(String(e.title||'')!==title)patch.title=title;
-          if(String(e.type||'')!=='Сессия')patch.type='Сессия';
-          if(String(e.requestId||'')!==String(r.id))patch.requestId=r.id;
-          if(String(e.requestTitle||'')!==String(r.title||''))patch.requestTitle=r.title||'';
-
-          const old=String(e.note||'').trim();
-          if(reqText&&!old)patch.note=reqText;
-          else if(reqText&&old&&!old.includes(String(r.title||'').trim()))patch.note=`${reqText}\n${old}`;
-
           if(Object.keys(patch).length){
             const updated=api.update(e.id,patch,{source:'calendar-session-linkage'});
             if(updated)changed=true;
           }
-          number++;
-        });
       });
     });
     return changed;
@@ -366,8 +353,9 @@
     syncing=true;
     try{
       const repaired=repairAutoMigratedAppointments();
-      const normalized=normalizePlannedSessions();
       const skeletons=syncPlannedSkeletons();
+      const normalized=normalizePlannedSessions();
+      if(normalized)syncPlannedSkeletons();
       if(repaired||normalized||skeletons)window.DiagnostikaCalendar?.refresh?.();
       updateForm();
       return repaired||normalized||skeletons;
