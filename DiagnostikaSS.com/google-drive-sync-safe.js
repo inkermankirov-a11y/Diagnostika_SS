@@ -393,13 +393,26 @@
       if(f)cache.set(key,f);
       return f;
     }
+    async function namedIdentityFolder(parent,kind,id,label,create){
+      const key=parent+'|'+kind+'|'+id;
+      if(cache.has(key))return cache.get(key);
+      const q=encodeURIComponent(`'${esc(parent)}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='receiptIdentity' and value='${esc(kind+':'+id)}' }`);
+      const found=await driveFetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name)&pageSize=100');
+      let f=found?.files?.[0]||await findFolder(parent,kind+'_'+segment(id));
+      if(!f&&create){
+        const body={name:segment(label)+'_'+segment(id),mimeType:'application/vnd.google-apps.folder',parents:[parent],appProperties:{receiptIdentity:kind+':'+id}};
+        f=await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id,name',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      }
+      if(f)cache.set(key,f);
+      return f;
+    }
     async function dir(entry,create){
       let f=await sub(root.id,'clients',create);if(!f)return null;
-      // Use immutable IDs in cloud paths so client renames and rescheduling do not orphan receipts.
-      f=await sub(f.id,'client_'+segment(entry.clientId),create);if(!f)return null;
+      f=await namedIdentityFolder(f.id,'client',entry.clientId,entry.clientName||'Клиент',create);if(!f)return null;
       if(entry.sessionId){
         f=await sub(f.id,'sessions',create);if(!f)return null;
-        f=await sub(f.id,'session_'+segment(entry.sessionId),create);if(!f)return null;
+        const label='Сессия '+String(entry.ordinal||0).padStart(3,'0')+' '+entry.sessionDate;
+        f=await namedIdentityFolder(f.id,'session',entry.sessionId,label,create);if(!f)return null;
       }
       return sub(f.id,'receipts',create);
     }
