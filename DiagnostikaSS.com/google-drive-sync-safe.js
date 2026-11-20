@@ -416,7 +416,8 @@
       }
       return sub(f.id,'receipts',create);
     }
-    return receipts.syncReceiptFiles(data,{
+    try{await window.DiagnostikaReceiptDisk?.sync?.(data);}catch(_){} // Recover existing disk backups before uploading.
+    const result=await receipts.syncReceiptFiles(data,{
       async find(entry){const d=await dir(entry,false);return d?findFile(d.id,entry.filename):null;},
       async read(entry,file){return driveFetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(file.id)+'?alt=media',{receiptBinary:true});},
       async write(entry,blob){
@@ -427,6 +428,8 @@
         if(!result?.id||Number(result.size)!==blob.size)throw Error('Google Drive не подтвердил сохранение полного файла чека.');
       }
     });
+    try{await window.DiagnostikaReceiptDisk?.sync?.(data);}catch(_){} // Mirror any recovered cloud files to disk.
+    return result;
   }
   window.DiagnostikaReceiptDrive=Object.freeze({sync:(data)=>syncReceiptDrive(data)});
 
