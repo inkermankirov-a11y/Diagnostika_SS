@@ -34,5 +34,22 @@
     try{const data=await subtle.decrypt({name:'AES-GCM',iv,additionalData:encoder.encode(JSON.stringify(h)),tagLength:128},key,unb64(doc.data));return JSON.parse(decoder.decode(data))}
     catch{throw Error('Неверный ключ или файл повреждён. Данные не изменены.')}
   }
-  window.DiagnostikaVaultCrypto=Object.freeze({seal,open,recoveryKey,b64,unb64});
+
+  function requestSecret({generate=false,title='Ключ ZABVENYE'}={}){
+    return new Promise(resolve=>{
+      const d=document.createElement('dialog');d.className='storage-dialog';
+      d.innerHTML='<form class="storage-shell"><div class="storage-title"></div><p>Ключ передавайте отдельно от файла. Потерянный ключ восстановить невозможно.</p><label>Ключ / пароль<input type="password" autocomplete="off" required minlength="16" maxlength="512" style="width:100%"></label><div class="storage-actions-main"><button type="button" data-generate>Создать случайный ключ</button><button type="button" data-copy>Скопировать ключ</button><button type="submit" class="storage-primary">Продолжить</button><button type="button" data-cancel>Отмена</button></div><p role="status"></p></form>';
+      d.querySelector('.storage-title').textContent=title;
+      const input=d.querySelector('input'),status=d.querySelector('[role=status]'),generator=d.querySelector('[data-generate]');generator.hidden=!generate;d.querySelector('[data-copy]').hidden=!generate;
+      let copied=false;
+      generator.onclick=()=>{input.value=recoveryKey();input.type='text';copied=false;status.textContent='Скопируйте и сохраните ключ.'};
+      input.oninput=()=>{copied=false};
+      d.querySelector('[data-copy]').onclick=async()=>{try{await navigator.clipboard.writeText(input.value);copied=true;status.textContent='Ключ скопирован. Сохраните его отдельно.'}catch{input.type='text';input.select();status.textContent='Скопируйте ключ вручную.'}};
+      d.querySelector('[data-cancel]').onclick=()=>d.close();
+      d.querySelector('form').onsubmit=e=>{e.preventDefault();if(generate&&!copied&&!confirm('Вы сохранили ключ отдельно? Без него файл не откроется.'))return;const secret=input.value;input.value='';d.close('ok');resolve(secret)};
+      d.onclose=()=>{input.value='';d.remove();if(d.returnValue!=='ok')resolve(null)};
+      document.body.append(d);d.showModal();
+    })
+  }
+  window.DiagnostikaVaultCrypto=Object.freeze({seal,open,recoveryKey,b64,unb64,requestSecret});
 })();
