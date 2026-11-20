@@ -213,11 +213,24 @@
     meta.currentSpecialist=name;
     if(!meta.originalSpecialist) meta.originalSpecialist=name;
     const pkg={format:TRANSFER_FORMAT,version:1,exportedAt:new Date().toISOString(),exportedBy:name,client:copy};
-    const blob=new Blob([JSON.stringify(pkg,null,2)],{type:'application/json;charset=utf-8'});
+    let raw=JSON.stringify(pkg,null,2),filename=`Diagnostika_${safeFileName(copy.name)}.json`;
+    if(location.hostname==='zabvenye.com'){
+      try{
+        const vault=window.DiagnostikaVaultCrypto;
+        if(!vault?.requestSecret)throw Error('Модуль Vault недоступен');
+        const secret=await vault.requestSecret({generate:true,title:'Защищённая передача клиента'});
+        if(!secret)return;
+        raw=await vault.seal(pkg,secret,'client');
+        const checked=await vault.open(raw,secret,'client');
+        if(JSON.stringify(checked)!==JSON.stringify(pkg))throw Error('Проверка экспорта не пройдена');
+        filename='ZABVENYE-client-'+crypto.randomUUID()+'.zbv';
+      }catch(e){await AppDialog.alert(e.message,'Ошибка защищённого экспорта');return;}
+    }
+    const blob=new Blob([raw],{type:location.hostname==='zabvenye.com'?'application/octet-stream':'application/json;charset=utf-8'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
-    a.download=`Diagnostika_${safeFileName(copy.name)}.json`;
+    a.download=filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -257,7 +270,7 @@
 
   async function importPackage(pkg){
     if(!pkg || pkg.format!==TRANSFER_FORMAT || !pkg.client || typeof pkg.client!=='object'){
-      if(window.AppDialog?.alert) await AppDialog.alert(t('badFile'),t('badTitle')); else alert(t('badFile'));
+      if(window.AppDialog?.alert) await AppDialog.alert(file.name.toLowerCase().endsWith('.zbv')?(e.message||t('badFile')):t('badFile'),t('badTitle')); else alert(t('badFile'));
       return;
     }
     const current=await requireSpecialist();
@@ -324,7 +337,7 @@
     add.insertAdjacentElement('afterend',btn);
     const input=document.createElement('input');
     input.type='file';
-    input.accept='.json,application/json';
+    input.accept='.json,.zbv,application/json,application/octet-stream';
     input.hidden=true;
     input.dataset.clientTransferImport='1';
     document.body.appendChild(input);
@@ -333,7 +346,7 @@
       const file=input.files?.[0];
       input.value='';
       if(!file) return;
-      try{await importPackage(JSON.parse(await file.text()));}
+      try{const raw=await file.text();let pkg;if(file.name.toLowerCase().endsWith('.zbv')){const vault=window.DiagnostikaVaultCrypto;if(!vault?.requestSecret)throw Error('Модуль Vault недоступен');const secret=await vault.requestSecret({title:'Ключ передачи клиента'});if(!secret)return;pkg=await vault.open(raw,secret,'client');}else pkg=JSON.parse(raw);await importPackage(pkg);}
       catch(e){console.error(e);if(window.AppDialog?.alert) await AppDialog.alert(t('badFile'),t('badTitle'));else alert(t('badFile'));}
     };
     return true;
