@@ -163,7 +163,7 @@
     }
     if(!document.querySelector('script[data-home-workspace]')){
       const script=document.createElement('script');
-      script.src='home-start-workspace.js?v=20261119-relocation-notice-1';
+      script.src='home-start-workspace.js?v=20261120-zabvenye-1';
       script.setAttribute('data-home-workspace','1');
       document.body.appendChild(script);
     }
