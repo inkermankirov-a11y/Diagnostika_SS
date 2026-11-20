@@ -175,8 +175,8 @@ test('gear holds a colored dot inside its existing icon, without polling',()=>{
 });
 
 test('versioned loader and disconnect event are wired',()=>{
-  assert.match(loader,/google-drive-sync-safe\.js\?v=20261111-gear-indicator-1/);
-  assert.match(loader,/google-drive-auth-popup-fix\.js\?v=20261111-auto-beacon-1/);
-  assert.match(html,/google-drive-lazy-loader\.js\?v=20261111-gear-indicator-1/);
+  assert.match(loader,/google-drive-sync-safe\.js\?v=20261120-receipt-backups-1/);
+  assert.match(loader,/google-drive-auth-popup-fix\.js\?v=20261118-reconnect-1/);
+  assert.match(html,/google-drive-lazy-loader\.js\?v=20261120-receipt-backups-1/);
   assert.match(auth,/diagnostika:google-drive-disconnected/);
 });
