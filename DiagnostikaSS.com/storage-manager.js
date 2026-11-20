@@ -12,24 +12,25 @@
   let syncing=false;
   let pendingSync=false;
   let folderState=null;
-  let backupState='offline', armed=false, revision=0, verifiedRevision=-1;
+  let backupState='offline', armed=false, revision=0, verifiedRevision=-1, syncError='';
   const syncLabels={offline:'Папка не подключена или нет доступа',pending:'Есть несохранённые изменения',working:'Синхронизация выполняется',ready:'Данные синхронизированы',error:'Синхронизация не завершена',restore:'Найдена база — сначала восстановите её'};
   function paintSync(value){
-    backupState=value;
+    backupState=value;if(value!=='error')syncError='';
     for(const dot of document.querySelectorAll('.local-sync-dot')){
       dot.dataset.syncState=value;
-      dot.title=syncLabels[value];
+      dot.title=syncLabels[value]+(value==='error'&&syncError?': '+syncError:'');
       dot.setAttribute('aria-label',syncLabels[value]);
     }
-    const label=document.querySelector('#localSyncLabel');if(label)label.textContent=syncLabels[value];
+    const label=document.querySelector('#localSyncLabel');if(label)label.textContent=syncLabels[value]+(value==='error'&&syncError?': '+syncError:'');
   }
   function attachSyncDot(button){
     if(!button||button.querySelector('.local-sync-dot'))return;
     const dot=document.createElement('span');dot.className='local-sync-dot';dot.setAttribute('role','img');button.append(dot);paintSync(backupState);
   }
-  async function verifyCore(){
+  function canonical(v){return JSON.stringify(v,(_,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x)}
+  async function verifyCore(expected=state){
     const saved=await readFolderState();
-    if(!saved||JSON.stringify(saved)!==JSON.stringify(state))throw Error('Проверка сохранённой базы не пройдена');
+    if(!saved||canonical(saved)!==canonical(expected))throw Error('Проверка сохранённой базы не пройдена');
     folderState=saved;
   }
   function markDirty(){revision++;if(armed&&rootHandle){if(!syncing)paintSync('pending');scheduleSync();}}
@@ -198,17 +199,17 @@
     return null;
   }
 
-  async function writeCoreState(){
+  async function writeCoreState(data=state){
     if(!rootHandle) return;
     const app=await getOrCreateAppHandle();
-    await writeJson(app,'database.json',state);
+    await writeJson(app,'database.json',data);
     await writeJson(app,'settings.json',{
       format:'diagnostika-folder-v2',
       updatedAt:new Date().toISOString(),
-      clientCount:Array.isArray(state.clients)?state.clients.length:0
+      clientCount:Array.isArray(data.clients)?data.clients.length:0
     });
 
-    for(const c of state.clients||[]){
+    for(const c of data.clients||[]){
       const cd=await ensureClientDir(c);
       await writeJson(cd,'client.json',{...c,sessions:(c.sessions||[]).map(s=>({...s}))});
       const sessions=c.sessions||[];
@@ -217,12 +218,12 @@
         await writeJson(sd,'session.json',sessions[i]);
       }
     }
-    folderState=JSON.parse(JSON.stringify(state));
+    folderState=JSON.parse(JSON.stringify(data));
   }
 
-  async function mirrorRecord(rec){
+  async function mirrorRecord(rec,data=state){
     if(!rec?.blob || !rootHandle) return;
-    const c=(state.clients||[]).find(x=>x.id===rec.clientId);
+    const c=(data.clients||[]).find(x=>x.id===rec.clientId);
     if(!c) return;
     const index=(c.sessions||[]).findIndex(x=>x.id===rec.sessionId);
     if(index<0) return;
@@ -284,16 +285,16 @@
     markDirty();
   });
 
-  async function fullExport(){
-    const result=await syncReceiptDisk();
+  async function fullExport(data=state){
+    const result=await syncReceiptDisk(data);
     if(result.missing.length)throw Error('Не найдены файлы чеков: '+result.missing.length+'.');
-    await writeCoreState();
+    await writeCoreState(data);
     const api=filesApi();
     if(api?.list){
       for(const c of state.clients||[]){
         for(const s of c.sessions||[]){
           const files=await api.list({sessionId:s.id});
-          for(const rec of files) await mirrorRecord(rec);
+          for(const rec of files) await mirrorRecord(rec,data);
         }
       }
     }
@@ -336,15 +337,14 @@
     syncing=true;
     const started=revision;paintSync("working");
     try{
-      const result=await syncReceiptDisk();
-      if(result.missing.length)throw Error('Не найдены файлы чеков: '+result.missing.length+'.');
-      await fullExport();
-      await verifyCore();
+      const snapshot=JSON.parse(JSON.stringify(state));
+      await fullExport(snapshot);
+      await verifyCore(snapshot);
       verifiedRevision=started;
       paintSync(revision===started?'ready':'pending');
       await updateStatus();
     }catch(e){
-      paintSync('error');
+      syncError=e.message||'Ошибка записи';paintSync('error');
       console.warn('Синхронизация папки не выполнена',e);
       const status=document.querySelector('#storageStatus');if(status)status.textContent='Синхронизация не завершена: '+(e.message||'ошибка записи');
     }finally{
@@ -353,6 +353,26 @@
     }
   }
 
+  // Both manual merge and automatic backup use this single lock and indicator.
+  window.DiagnostikaLocalFolderSync=Object.freeze({
+    async begin(handle){
+      if(syncing)throw Error('Синхронизация уже выполняется. Повторите после её завершения.');
+      if(!handle||await permission(handle,false)!=='granted')throw Error('Нет доступа к папке');
+      if(syncing)throw Error('Синхронизация уже выполняется.');
+      clearTimeout(syncTimer);syncing=true;armed=false;pendingSync=false;rootHandle=handle;appHandle=null;verifiedRevision=-1;paintSync('working');
+    },
+    async complete(data){
+      if(!syncing)throw Error('Синхронизация не запущена');
+      try{
+        await fullExport(data);await verifyCore(data);
+        verifiedRevision=revision;paintSync('ready');
+      }catch(e){syncError=e.message||'Ошибка записи';paintSync('error');throw e;}
+      finally{syncing=false;armed=false;}
+    },
+    fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync('error');},
+    folderChanged(){if(syncing)throw Error('Синхронизация уже выполняется');clearTimeout(syncTimer);armed=false;rootHandle=null;appHandle=null;folderState=null;paintSync('offline');},
+    attach:attachSyncDot
+  });
   function scheduleSync(){
     if(!armed||!rootHandle)return;
     clearTimeout(syncTimer);
@@ -586,7 +606,7 @@
       if(rootHandle && await permission(rootHandle,false)==='granted'){
         appHandle=null;
         folderState=await readFolderState();
-        if(folderState&&JSON.stringify(folderState)===JSON.stringify(state)){armed=true;paintSync('pending');scheduleSync();}else paintSync(folderState?'restore':'pending');
+        if(folderState&&canonical(folderState)===canonical(state)){armed=true;paintSync('pending');scheduleSync();}else paintSync(folderState?'restore':'pending');
       }
     }catch(e){
       paintSync('error');console.warn('Не удалось восстановить выбранную папку',e);
