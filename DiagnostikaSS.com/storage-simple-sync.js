@@ -1,6 +1,7 @@
 'use strict';
 
 (() => {
+  if(window.__localSimpleSyncReady)return;window.__localSimpleSyncReady=true;
   const HANDLE_DB='diagnostika-storage-handles-v1';
   const HANDLE_STORE='handles';
   const HANDLE_KEY='data-root';
@@ -414,6 +415,9 @@
   async function synchronize(){
     if(!('showDirectoryPicker' in window)) throw new Error('Этот браузер не поддерживает синхронизацию с папкой. Используй Chrome или Edge.');
     const handle=await getWriteHandle();
+    const manager=window.DiagnostikaLocalFolderSync;if(!manager)throw Error('Обновите страницу для проверки синхронизации.');
+    await manager.begin(handle);
+    try{
     let app;
     try{app=await handle.getDirectoryHandle(APP_DIR,{create:false});}
     catch(e){if(e?.name==='NotFoundError')app=await handle.getDirectoryHandle(APP_DIR,{create:true});else throw e;}
@@ -463,6 +467,7 @@
     merged=filterDeletedFromClientSet(merged,deletedIds);
     writeCanonicalDatabase(merged,'storage-simple-sync');
     await writeStateTree(app,merged);
+    await manager.complete(merged);
     markBrowserUpdated();
     return {
       count:merged.clients?.length||0,
@@ -475,6 +480,7 @@
       removedPurgedFolders,
       errors:scanned.errors
     };
+    }catch(e){manager.fail(e);throw e;}
   }
 
   function simplifyDialog(){
@@ -492,7 +498,7 @@
     actions.querySelector('#storageExport')?.remove();
 
     const sync=document.createElement('button');
-    sync.id='storageSync';sync.type='button';sync.className='storage-primary';sync.textContent='Синхронизировать';actions.prepend(sync);
+    sync.id='storageSync';sync.type='button';sync.className='storage-primary';sync.textContent='Синхронизировать';actions.prepend(sync);window.DiagnostikaLocalFolderSync?.attach(sync);
 
     const disconnect=actions.querySelector('#storageDisconnect');
     if(disconnect){disconnect.textContent='Отключить папку';disconnect.style.background='transparent';disconnect.style.boxShadow='none';disconnect.style.border='0';disconnect.style.textDecoration='underline';disconnect.style.opacity='.72';}
@@ -505,7 +511,7 @@
         location.reload();
       }catch(e){
         if(e?.name!=='AbortError')await AppDialog.alert(e?.message||'Не удалось выполнить синхронизацию.','Ошибка');
-      }finally{sync.disabled=false;sync.textContent='Синхронизировать';}
+      }finally{sync.disabled=false;sync.textContent='Синхронизировать';window.DiagnostikaLocalFolderSync?.attach(sync);}
     };
   }
 
