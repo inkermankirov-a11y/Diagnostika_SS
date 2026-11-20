@@ -184,6 +184,12 @@ class Handler(BaseHTTPRequestHandler):
                 typ={"index.html":"text/html","ui.js":"application/javascript","ui.css":"text/css"}[file]
                 return self.reply(200,(Path(__file__).parent/file).read_bytes(),ctype=typ)
             if path=="/account/api/config": return self.reply(200,{"sitekey":SITE if SECRET else ""})
+            # Traefik/nginx forward an opaque session cookie; no public data is returned.
+            if path=="/account/api/workspace-auth":
+                with db() as c:
+                    u=c.execute("SELECT 1 FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0",(digest(self.token()),int(time.time()))).fetchone()
+                return self.reply(200 if u else 401,{"ok":bool(u)})
+
             if path=="/account/api/cities":
                 q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
                 name=q.get("q",[""])[0].strip()
