@@ -130,3 +130,34 @@
   .app-header>.header-buttons{grid-column:2}
   .header-flip-clock-wrap{display:none!important}
 }
+
+/* Reserve the real width of the controls instead of splitting the header
+   into equal side tracks. The clock yields space, not the settings button. */
+@media(min-width:1181px){
+  .desktop-app > .app-header{
+    grid-template-columns:minmax(0,1fr) auto max-content!important;
+    column-gap:clamp(10px,1vw,18px)!important;
+    padding-right:24px!important;
+    max-width:100%!important;
+    box-sizing:border-box!important;
+  }
+  .app-header>.header-buttons.settings-only{
+    width:max-content!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    gap:8px!important;
+    flex-wrap:nowrap!important;
+  }
+  .app-header .header-utility-group{gap:8px!important}
+  .app-header>.header-title-group{max-width:100%}
+}
+@media(min-width:821px) and (max-width:1180px){
+  .desktop-app > .app-header{
+    grid-template-columns:minmax(0,1fr) max-content!important;
+    column-gap:10px!important;
+    padding-right:18px!important;
+    max-width:100%!important;
+  }
+  .app-header>.header-buttons.settings-only{width:max-content!important;margin-left:0!important;gap:6px!important}
+  .app-header .header-utility-group{gap:6px!important}
+}
