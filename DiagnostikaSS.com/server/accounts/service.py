@@ -48,6 +48,12 @@ with db() as c:
     cols={r[1] for r in c.execute("PRAGMA table_info(users)")}
     for name,typ in (("first_name","TEXT NOT NULL DEFAULT ''"),("last_name","TEXT NOT NULL DEFAULT ''"),("gender","TEXT NOT NULL DEFAULT ''"),("last_seen","INTEGER"),("deleted","INTEGER NOT NULL DEFAULT 0"),("birth_date","TEXT NOT NULL DEFAULT ''"),("country","TEXT NOT NULL DEFAULT ''"),("city","TEXT NOT NULL DEFAULT ''"),("timezone","TEXT NOT NULL DEFAULT ''"),("onboarding_required","INTEGER NOT NULL DEFAULT 0")):
         if name not in cols: c.execute("ALTER TABLE users ADD COLUMN "+name+" "+typ)
+    invite_cols={r[1] for r in c.execute("PRAGMA table_info(invites)")}
+    for name,typ in (("public_id","TEXT"),("preview","TEXT NOT NULL DEFAULT ''"),("created","INTEGER"),("comment","TEXT NOT NULL DEFAULT ''"),("used_at","INTEGER"),("used_by","TEXT"),("revoked_at","INTEGER"),("created_by","TEXT")):
+        if name not in invite_cols: c.execute("ALTER TABLE invites ADD COLUMN "+name+" "+typ)
+    for inv in c.execute("SELECT token FROM invites WHERE public_id IS NULL").fetchall():
+        c.execute("UPDATE invites SET public_id=?,preview=? WHERE token=?",(secrets.token_hex(12),"Старый код",inv["token"]))
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS invite_public_id_unique ON invites(public_id)")
     if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
         c.execute("ALTER TABLE audit ADD COLUMN details TEXT NOT NULL DEFAULT '{}'")
     for u in c.execute("SELECT id,role FROM users ORDER BY CASE WHEN role='admin' THEN 0 ELSE 1 END").fetchall():
@@ -97,6 +103,24 @@ def audit_rows(c,offset):
         d["target"]=d["details"].get("target",snapshot(c,r["target"]))
         out.append(d)
     return out
+def invite_status(row,now):
+    if row["used_at"] is not None: return "used"
+    if row["revoked_at"] is not None: return "revoked"
+    if row["expires"] and row["expires"]<=now: return "expired"
+    return "active"
+def invite_public(c,row,now):
+    return {"id":row["public_id"],"preview":row["preview"],"email":row["email"],"created":row["created"],"expires":row["expires"],"comment":row["comment"],"status":invite_status(row,now),"used_at":row["used_at"],"used_by":snapshot(c,row["used_by"]) if row["used_by"] else None,"revoked_at":row["revoked_at"]}
+def create_invite(c,actor,email,hours,comment):
+    now=int(time.time())
+    if hours not in (24,72,168,0) or type(hours) is not int: raise Error(400,"Некорректный срок")
+    if not isinstance(comment,str) or len(comment)>250: raise Error(400,"Комментарий до 250 символов")
+    if email and c.execute("SELECT 1 FROM users WHERE email=?",(email,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует")
+    token="ZBV-"+secrets.token_urlsafe(32)
+    ident=secrets.token_hex(12)
+    expiry=now+hours*3600 if hours else 0
+    c.execute("INSERT INTO invites(token,email,expires,public_id,preview,created,comment,created_by) VALUES(?,?,?,?,?,?,?,?)",(digest(token),email,expiry,ident,token[:12]+"…",now,comment.strip(),actor))
+    audit(c,actor,"invite",email or "Без привязки",{"invitation":{"from":None,"to":token[:12]+"…"},"expiry":{"from":None,"to":hours or "Бессрочно"}})
+    return {"invite":token,"id":ident}
 def audit(c,actor,action,target,changes=None):
     d={"actor":snapshot(c,actor),"target":snapshot(c,target),"changes":changes or {}}
     c.execute("INSERT INTO audit(actor,action,target,created,details) VALUES(?,?,?,?,?)",(actor,action,target,int(time.time()),json.dumps(d,ensure_ascii=False)))
@@ -231,6 +255,17 @@ class Handler(BaseHTTPRequestHandler):
                     total=c.execute("SELECT count(*) FROM users u WHERE "+clause,args).fetchone()[0]
                     rows=c.execute("SELECT u.* FROM users u JOIN public_ids p ON u.id=p.owner AND p.kind='specialist' WHERE "+clause+" ORDER BY p.number LIMIT 50 OFFSET ?",args+[offset]).fetchall()
                     return self.reply(200,{"items":[public(c,x) for x in rows],"total":total})
+                if path=="/account/api/admin/invites":
+                    now=int(time.time()); state=param("status")
+                    where={"active":"used_at IS NULL AND revoked_at IS NULL AND (expires=0 OR expires>?)","expired":"used_at IS NULL AND revoked_at IS NULL AND expires>0 AND expires<=?","used":"used_at IS NOT NULL","revoked":"used_at IS NULL AND revoked_at IS NOT NULL"}.get(state,"1=1")
+                    args=[now] if state in ("active","expired") else []
+                    qtext=param("q")
+                    if qtext:
+                        where+=" AND (instr(casefold(email),casefold(?))>0 OR instr(casefold(comment),casefold(?))>0 OR instr(casefold(preview),casefold(?))>0)"
+                        args.extend([qtext]*3)
+                    total=c.execute("SELECT count(*) FROM invites WHERE "+where,args).fetchone()[0]
+                    rows=c.execute("SELECT * FROM invites WHERE "+where+" ORDER BY created DESC,public_id LIMIT 50 OFFSET ?",args+[offset]).fetchall()
+                    return self.reply(200,{"items":[invite_public(c,row,now) for row in rows],"total":total})
                 if path=="/account/api/admin/audit":
                     return self.reply(200,{"items":audit_rows(c,offset),"total":c.execute("SELECT count(*) FROM audit").fetchone()[0]})
             raise Error(404,"Не найдено")
@@ -247,14 +282,14 @@ class Handler(BaseHTTPRequestHandler):
                 with db() as c:
                     if path.endswith("/register"):
                         tok=b.get("invite","")
-                        if not isinstance(tok,str) or len(tok)>128: raise Error(400,"Недействительное приглашение")
+                        if not isinstance(tok,str) or not 1<=len(tok.strip())<=128: raise Error(400,"Недействительное приглашение")
                         c.execute("BEGIN IMMEDIATE")
-                        inv=c.execute("SELECT * FROM invites WHERE token=? AND email=? AND expires>?",(digest(tok),e,int(time.time()))).fetchone()
+                        inv=c.execute("SELECT * FROM invites WHERE token=? AND (email=? OR email='') AND (expires=0 OR expires>?) AND used_at IS NULL AND revoked_at IS NULL",(digest(tok.strip()),e,int(time.time()))).fetchone()
                         if not inv or c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(400,"Недействительное приглашение")
                         if b.get("password_repeat")!=p: raise Error(400,"Пароли не совпадают")
                         uid=create_user(c,e,p,"specialist")
                         c.execute("UPDATE users SET onboarding_required=1,last_seen=? WHERE id=?",(int(time.time()),uid))
-                        c.execute("DELETE FROM invites WHERE token=?",(digest(tok),)); audit(c,uid,"registered",uid)
+                        c.execute("UPDATE invites SET used_at=?,used_by=? WHERE token=?",(int(time.time()),uid,inv["token"])); audit(c,uid,"registered",uid,{"invitation":{"from":None,"to":inv["preview"]}})
                         u=c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone()
                     else:
                         u=c.execute("SELECT * FROM users WHERE email=?",(e,)).fetchone()
@@ -298,13 +333,23 @@ class Handler(BaseHTTPRequestHandler):
                 audit(c,u["id"],"delete",target["id"],{"deleted":{"from":False,"to":True}})
                 payload={"ok":True}
             elif path=="/account/api/admin/invite":
-                e=b.get("email")
-                if not valid_email(e): raise Error(400,"Некорректный email")
-                e=e.strip().lower(); t=secrets.token_urlsafe(32)
-                if c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует")
-                c.execute("DELETE FROM invites WHERE email=? OR expires<=?",(e,int(time.time())))
-                c.execute("INSERT INTO invites VALUES(?,?,?)",(digest(t),e,int(time.time())+86400)); audit(c,u["id"],"invite",e)
-                payload={"invite":t}
+                e=b.get("email","")
+                if not isinstance(e,str): raise Error(400,"Некорректный email")
+                e=e.strip().lower()
+                if e and not valid_email(e): raise Error(400,"Некорректный email")
+                payload=create_invite(c,u["id"],e,b.get("hours",24),b.get("comment",""))
+            elif path in ("/account/api/admin/invite-revoke","/account/api/admin/invite-reissue"):
+                ident=b.get("id")
+                if not isinstance(ident,str) or not re.fullmatch(r"[a-f0-9]{24}",ident): raise Error(400,"Некорректное приглашение")
+                inv=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
+                now=int(time.time())
+                if not inv or invite_status(inv,now)!="active": raise Error(409,"Приглашение больше не действует")
+                c.execute("UPDATE invites SET revoked_at=? WHERE public_id=?",(now,ident))
+                audit(c,u["id"],"invite-revoke",inv["email"] or "Без привязки",{"invitation":{"from":inv["preview"],"to":"Отозвано"}})
+                if path.endswith("reissue"):
+                    hours=b.get("hours",24)
+                    payload=create_invite(c,u["id"],inv["email"],hours,inv["comment"])
+                else: payload={"ok":True}
             elif path=="/account/api/admin/update":
                 uid=b.get("id"); limits=b.get("limits"); enabled=b.get("enabled")
                 if not isinstance(uid,str) or type(enabled) is not bool or not isinstance(limits,dict) or set(limits)!=set(FEATURES): raise Error(400,"Некорректные параметры")
