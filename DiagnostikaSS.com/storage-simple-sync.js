@@ -8,7 +8,7 @@
   const BROWSER_UPDATED_KEY='diagnostika-browser-updated-at';
   const DELETED_LEDGER_KEY='diagnostika-storage-deleted-client-ids-v1';
 
-  const clone=v=>JSON.parse(JSON.stringify(v));
+  const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
 
   function readDeletedLedger(){
     try{
@@ -89,6 +89,9 @@
       const keys=new Set([...Object.keys(primary),...Object.keys(secondary)]);
       for(const k of keys){
         const a=primary[k], b=secondary[k];
+        if(a===undefined&&b===undefined)continue;
+        if(a===undefined){out[k]=clone(b);continue;}
+        if(b===undefined){out[k]=clone(a);continue;}
         if(Array.isArray(a) || Array.isArray(b)) out[k]=mergeArrays(Array.isArray(a)?a:[],Array.isArray(b)?b:[]);
         else if(a && typeof a==='object' && b && typeof b==='object') out[k]=mergeObjects(a,b);
         else if(isBlank(a,k) && !isBlank(b,k)) out[k]=clone(b);
@@ -253,7 +256,8 @@
     try{
       const fh=await dir.getFileHandle(name,{create:false});
       const f=await fh.getFile();
-      return JSON.parse(await f.text());
+      const raw=await f.text();
+      try{return JSON.parse(raw);}catch(e){throw new Error('Файл '+name+' содержит некорректные данные. Исходная папка не будет перезаписана. Выберите другую папку для резервной копии.');}
     }catch(e){
       if(e?.name==='NotFoundError') return null;
       throw e;
@@ -416,8 +420,10 @@
 
     const deletedIds=seedDeletedLedger(state);
     const permanentIds=permanentDeletedIds(state);
-    const removedPurgedFolders=await removeClientFoldersByIds(app,permanentIds);
     const databaseState=await readJson(app,'database.json');
+    if(databaseState!==null&&(!databaseState||!Array.isArray(databaseState.clients)))throw new Error('Некорректная база в папке. Выберите другую папку для резервной копии.');
+    const folderSettings=await readJson(app,'settings.json');
+    const removedPurgedFolders=await removeClientFoldersByIds(app,permanentIds);
     const scanned=await readClientsFromFolders(app);
     const suppressedDeleted=scanned.clients.filter(c=>c?.id&&deletedIds.has(String(c.id))).length;
     const folderOnlyState=filterDeletedFromClientSet({clients:scanned.clients},deletedIds);
@@ -428,7 +434,6 @@
     // могут воскресить удалённого клиента.
     const folderState=safeDatabaseState?mergeStatesKeepClientSet(safeDatabaseState,folderOnlyState):folderOnlyState;
 
-    const folderSettings=await readJson(app,'settings.json');
     const browserUpdated=Math.max(
       Date.parse(localStorage.getItem(BROWSER_UPDATED_KEY)||'')||0,
       latestDeletedAt(state)
