@@ -57,9 +57,9 @@
     notice.setAttribute('aria-label','Уведомление о смене адреса сайта');
     const title = document.createElement('span');
     title.className = 'hws-transfer-title';
-    title.textContent = 'Важное уведомление';
+    title.textContent = 'Переезд на ZABVENYE.COM — 1 декабря 2026';
     const message = document.createElement('p');
-    message.innerHTML = 'В ближайшее время этот сайт будет перенесён на <strong>новый адрес</strong>. Новая ссылка появится здесь заранее. После переноса текущий адрес станет неактуальным. Следите за обновлениями, чтобы не потерять доступ.';
+    message.innerHTML = 'С <strong>1 декабря 2026 года</strong> обычная работа продолжится на новой платформе <a href="https://zabvenye.com/" target="_blank" rel="noopener noreferrer">ZABVENYE.COM</a>. Не переходите на новый сайт без локальной копии базы. Даже если ранее использовали Google Drive, создайте отдельную папку на компьютере, например <strong>Diagnostika</strong>. На старом сайте откройте «Хранилище», выберите эту папку и нажмите «Сохранить текущую базу и файлы в папку». Дождитесь зелёного индикатора. Затем на новой платформе подключите ту же папку, выберите восстановление базы и проверьте клиентов, сессии и файлы. Не удаляйте исходные данные. Для регистрации потребуется приглашение администратора.';
     notice.append(title,message);
     return notice;
   }
