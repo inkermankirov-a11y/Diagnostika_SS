@@ -294,6 +294,7 @@
             plan:'',
             status:'planned',
             planned:true,
+            payment:{paid:false,amount:0,receiptUrl:'',note:''},
             calendarEventId:e.id,
             appointmentType,
             calendarTitle:e.title||appointmentType
