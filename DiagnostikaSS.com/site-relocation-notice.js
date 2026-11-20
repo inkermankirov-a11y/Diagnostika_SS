@@ -2,6 +2,7 @@
 
 /* Public informational notice. No storage, network, or personal data access. */
 (() => {
+  if (/^(www\.)?zabvenye\.com$/i.test(location.hostname)) return;
   if (window.__diagnostikaRelocationNoticeReady) return;
   window.__diagnostikaRelocationNoticeReady = true;
 
