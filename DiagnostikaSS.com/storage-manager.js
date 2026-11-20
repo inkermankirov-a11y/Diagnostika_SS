@@ -13,8 +13,25 @@
   let pendingSync=false;
   let folderState=null;
   let backupState='offline', armed=false, revision=0, verifiedRevision=-1, syncError='';
-  const syncLabels={offline:'Папка не подключена или нет доступа',pending:'Есть несохранённые изменения',working:'Синхронизация выполняется',ready:'Данные синхронизированы',error:'Синхронизация не завершена',restore:'Найдена база — сначала восстановите её'};
+  let missingReceipts=[];
+  const syncLabels={partial:'База сохранена и проверена; отсутствуют отдельные чеки',offline:'Папка не подключена или нет доступа',pending:'Есть несохранённые изменения',working:'Синхронизация выполняется',ready:'Данные синхронизированы',error:'Синхронизация не завершена',restore:'Найдена база — сначала восстановите её'};
+  function receiptDetails(data,ids){
+    const entries=window.DiagnostikaPaymentReceipts?.receiptEntries?.(data)||[];
+    const missing=new Set(ids.map(String));
+    return entries.filter(e=>missing.has(String(e.id)));
+  }
+  function receiptDescription(e){
+    return (e.clientName||'Клиент ID '+e.clientId)+' — '+(e.ordinal?'сессия № '+e.ordinal+(e.sessionDate?' ('+e.sessionDate+')':''):e.paymentId?'платёж '+e.paymentId:'платёж')+' — '+e.name+(e.date?' · '+e.date:'');
+  }
+  function showReceiptDetails(){
+    const panel=document.querySelector('#localMissingReceipts');if(!panel)return;
+    panel.hidden=backupState!=='partial'||!missingReceipts.length;
+    const list=panel.querySelector('ul');list.replaceChildren();
+    for(const e of missingReceipts){const li=document.createElement('li');li.textContent=receiptDescription(e);list.append(li);}
+    panel.querySelector('summary').textContent='Отсутствующие чеки: '+missingReceipts.length+' — подробнее';
+  }
   function paintSync(value){
+    if(value==='ready'&&missingReceipts.length)value='partial';
     backupState=value;if(value!=='error')syncError='';
     for(const dot of document.querySelectorAll('.local-sync-dot')){
       dot.dataset.syncState=value;
@@ -22,6 +39,7 @@
       dot.setAttribute('aria-label',syncLabels[value]);
     }
     const label=document.querySelector('#localSyncLabel');if(label)label.textContent=syncLabels[value]+(value==='error'&&syncError?': '+syncError:'');
+    showReceiptDetails();
   }
   function attachSyncDot(button){
     if(!button||button.querySelector('.local-sync-dot'))return;
@@ -287,17 +305,18 @@
 
   async function fullExport(data=state){
     const result=await syncReceiptDisk(data);
-    if(result.missing.length)throw Error('Не найдены файлы чеков: '+result.missing.length+'.');
+    missingReceipts=receiptDetails(data,result.missing);
     await writeCoreState(data);
     const api=filesApi();
     if(api?.list){
-      for(const c of state.clients||[]){
+      for(const c of data.clients||[]){
         for(const s of c.sessions||[]){
           const files=await api.list({sessionId:s.id});
           for(const rec of files) await mirrorRecord(rec,data);
         }
       }
     }
+    return missingReceipts.map(receiptDescription);
   }
 
   function browserClientCount(){
@@ -322,11 +341,11 @@
     if(!ok) return false;
 
     const receiptResult=await syncReceiptDisk(folderState);
-    if(receiptResult.missing.length)throw Error('В папке отсутствуют файлы чеков: '+receiptResult.missing.length+'. Сначала восстанови недостающие файлы.');
+    missingReceipts=receiptDetails(folderState,receiptResult.missing);
     writeCanonicalDatabase(folderState,'storage-manager-restore');
     try{localStorage.setItem('diagnostika-folder-restore-confirmed','1');}catch(_){}
 
-    await AppDialog.alert(`База восстановлена. Клиентов: ${count}.\nСтраница сейчас перезагрузится.`,'Готово');
+    await AppDialog.alert(`База восстановлена. Клиентов: ${count}.`+(missingReceipts.length?'\nОтсутствуют чеки (записи об оплатах сохранены):\n'+missingReceipts.map(receiptDescription).join('\n'):'')+'\nСтраница сейчас перезагрузится.','Готово');
     location.reload();
     return true;
   }
@@ -366,11 +385,12 @@
       try{
         await fullExport(data);await verifyCore(data);
         verifiedRevision=revision;paintSync('ready');
+        return missingReceipts.map(receiptDescription);
       }catch(e){syncError=e.message||'Ошибка записи';paintSync('error');throw e;}
       finally{syncing=false;armed=false;}
     },
     fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync('error');},
-    folderChanged(){if(syncing)throw Error('Синхронизация уже выполняется');clearTimeout(syncTimer);armed=false;rootHandle=null;appHandle=null;folderState=null;paintSync('offline');},
+    folderChanged(){if(syncing)throw Error('Синхронизация уже выполняется');clearTimeout(syncTimer);armed=false;rootHandle=null;appHandle=null;folderState=null;missingReceipts=[];paintSync('offline');},
     attach:attachSyncDot
   });
   function scheduleSync(){
@@ -397,6 +417,7 @@
     <div class="storage-shell">
       <div class="storage-title">ХРАНИЛИЩЕ ДАННЫХ</div>
       <div id="storageStatus" class="storage-status"></div><div class="local-sync-line"><span class="local-sync-dot" role="img"></span><span id="localSyncLabel" role="status"></span></div>
+      <details id="localMissingReceipts" class="local-missing-receipts" hidden><summary></summary><p>Эти файлы не найдены ни в браузере, ни в выбранной папке. Записи об оплатах сохранены. При необходимости прикрепите чек заново или удалите его привязку в оплатах.</p><ul></ul></details>
       <div class="storage-info">
         База клиентов хранится и в браузере, и в выбранной папке. При работе с другого браузера или компьютера сначала восстанови базу из этой папки.
       </div>
@@ -533,7 +554,7 @@
       syncing=true;paintSync('working');const started=revision;
       await fullExport();await verifyCore();armed=true;verifiedRevision=started;paintSync(revision===started?'ready':'pending');
       await updateStatus();
-      await AppDialog.alert('База клиентов и файлы сохранены в папку.','Готово');
+      await AppDialog.alert('База клиентов и доступные файлы сохранены в папку.'+(missingReceipts.length?'\nОтсутствующие чеки:\n'+missingReceipts.map(receiptDescription).join('\n'):''),'Готово');
     }catch(e){
       paintSync('error');console.error(e);
       await AppDialog.alert('Не удалось сохранить данные в папку.','Ошибка');
