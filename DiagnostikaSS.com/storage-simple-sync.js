@@ -467,9 +467,10 @@
     merged=filterDeletedFromClientSet(merged,deletedIds);
     writeCanonicalDatabase(merged,'storage-simple-sync');
     await writeStateTree(app,merged);
-    await manager.complete(merged);
+    const missingReceipts=await manager.complete(merged);
     markBrowserUpdated();
     return {
+      missingReceipts,
       count:merged.clients?.length||0,
       folder:handle.name,
       scannedFolders:scanned.folders,
@@ -507,7 +508,7 @@
       try{
         sync.disabled=true;sync.textContent='Синхронизация…';
         const result=await synchronize();
-        await AppDialog.alert(`Клиентов в базе: ${result.count}.`,'Синхронизация завершена');
+        await AppDialog.alert(`Клиентов в базе: ${result.count}. База и доступные файлы сохранены.`+(result.missingReceipts?.length?'\n\nОтсутствующие чеки (не блокируют сохранение):\n'+result.missingReceipts.join('\n')+'\n\nЗаписи об оплатах сохранены. При необходимости прикрепите чек заново или удалите его привязку.':''),'Синхронизация завершена');
         location.reload();
       }catch(e){
         if(e?.name!=='AbortError')await AppDialog.alert(e?.message||'Не удалось выполнить синхронизацию.','Ошибка');
