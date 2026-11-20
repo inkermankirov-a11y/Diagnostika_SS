@@ -39,7 +39,8 @@
 
   function sessionsForRequest(clientRef,requestRef){
     const rows=sessions()?.forRequest?.(requestRef,clientRef)||[];
-    return rows.filter(s=>!(s?.planned===true||String(s?.status||'')==='planned'));
+    // Include advance payments in financial totals, without treating unpaid future appointments as debt.
+    return rows.filter(s=>!(s?.planned===true||String(s?.status||'')==='planned')||s?.payment?.paid===true);
   }
 
   function refreshSessions(){
