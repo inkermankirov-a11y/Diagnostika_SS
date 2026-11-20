@@ -211,7 +211,7 @@
     +'<div class="account-field"><div class="account-label account-about-label"></div><textarea class="account-textarea account-about"></textarea></div>'
     +'<div class="account-field"><div class="account-label account-photo-label"></div><div class="account-photo-actions"><button type="button" class="account-photo-edit"></button><button type="button" class="account-photo-replace"></button><button type="button" class="account-photo-delete"></button></div></div>'
     +'<div class="account-field account-reviews"><div class="account-label account-reviews-label"></div><div class="account-review-editor"><input class="account-input account-review-author-input" type="text"><textarea class="account-textarea account-review-text-input"></textarea><button type="button" class="account-review-add"></button></div><div class="account-review-list"></div></div>'
-    +'<button type="button" class="account-save"></button><input class="account-avatar-input" type="file" accept="image/*" hidden>';
+    +'<button type="button" class="account-save account-profile-save">Сохранить карточку</button><input class="account-avatar-input" type="file" accept="image/*" hidden>';
   accountsBtn.insertAdjacentElement('afterend',content);
   // Reviews belong to their own dedicated module; keep stored records intact.
   const reviewsSection=content.querySelector('.account-reviews');
@@ -331,7 +331,7 @@
   const experienceInput=content.querySelector('.account-experience');
   const areasInput=content.querySelector('.account-areas');
   const aboutInput=content.querySelector('.account-about');
-  const saveBtn=content.querySelector('.account-save');
+  const saveBtn=content.querySelector('.account-profile-save');
   const fileInput=content.querySelector('.account-avatar-input');
   const photoEditBtn=content.querySelector('.account-photo-edit');
   const photoReplaceBtn=content.querySelector('.account-photo-replace');
