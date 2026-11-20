@@ -16,7 +16,7 @@
   }
   function getMode(){try{return localStorage.getItem(MODE_KEY)==='deep'?'deep':'short';}catch(_){return'short';}}
   function setMode(mode){
-    const next=mode==='deep'?'deep':'short';
+    const next=mode==='deep'&&window.DiagnostikaLimits?.detailed()?'deep':'short';
     const clientBtn=document.querySelector(`#hdClientAiWidget .hd-ai-mode-btn[data-mode="${next}"]`);
     if(clientBtn){clientBtn.click();return;}
     try{localStorage.setItem(MODE_KEY,next);}catch(_){}
@@ -132,8 +132,8 @@
     const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);
     try{
       onProgress('ИИ анализирует данные выбранной сессии…');
-      const r=await fetch(PROD_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:controller.signal});
+      const r=await fetch(location.hostname==='zabvenye.com'?'/account/api/ai/session':PROD_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),cache:'no-store',credentials:location.hostname==='zabvenye.com'?'same-origin':'omit',signal:controller.signal});
       const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{};}catch(_){data={text:raw};}
       if([401,403].includes(r.status))throw new Error('n8n отклонил ключ доступа.');
       if(!r.ok)throw new Error('ИИ помощник: HTTP '+r.status);
