@@ -193,13 +193,13 @@
       console.warn('Client AI payload preparation failed',err);
     }
     let attempt;
-    try{attempt=await fetchJson(TEST_URL,payload);}catch(_){attempt=null;}
+    if(location.hostname!=='zabvenye.com')try{attempt=await fetchJson(TEST_URL,payload);}catch(_){attempt=null;}
     if(attempt?.r?.ok){const t=replyText(attempt.data);if(t)return t;}
     if(attempt?.r && [401,403].includes(attempt.r.status))throw new Error('n8n отклонил ключ доступа.');
     const prod=await fetchJson(PROD_URL,payload);
     if([404,405,409,410].includes(prod.r.status))throw new Error('AI-чат ещё не подключён в n8n. Нужно импортировать и включить workflow diagnostika-client-chat-v1.');
-    if([401,403].includes(prod.r.status))throw new Error('n8n отклонил ключ доступа.');
-    if(!prod.r.ok)throw new Error(`AI-чат: HTTP ${prod.r.status}`);
+    if([401,403].includes(prod.r.status))throw new Error(prod.data?.error||'Нет доступа к AI.');
+    if(!prod.r.ok)throw new Error(prod.data?.error||`AI-чат: HTTP ${prod.r.status}`);
     const text=replyText(prod.data);if(!text)throw new Error('AI не вернул текст ответа.');return text;
   }
 
