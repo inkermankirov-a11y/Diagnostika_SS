@@ -172,7 +172,7 @@
   async function fetchJson(url,payload){
     const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),60000);
     try{
-      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:controller.signal});
+      const r=await fetch(location.hostname==='zabvenye.com'?'/account/api/ai/chat':url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:location.hostname==='zabvenye.com'?'same-origin':'omit',signal:controller.signal});
       const text=await r.text();let data={};try{data=text?JSON.parse(text):{};}catch(_){data={text};}return {r,data};
     }finally{clearTimeout(timer);}
   }
