@@ -449,7 +449,7 @@
       card.classList.toggle('is-diagnosis',diagnosis);
       card.classList.toggle('is-overdue',overdue);
       const req=requestForSession(c,s);
-      const showPayment=!planned&&req?.payment?.mode==='session';
+      const showPayment=req?.payment?.mode==='session';
       const paid=Boolean(s?.payment?.paid);
       const paymentHtml=showPayment?`<span class="hd-session-pay ${paid?'paid':'unpaid'}"><span class="hd-session-flag">⚑</span>${paid?'Оплачено':'Не оплачено'}</span>`:'';
       const plannedHtml=planned
