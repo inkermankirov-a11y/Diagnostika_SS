@@ -330,6 +330,30 @@ function openSessionEditor(c,s,number){
   const planInline=createInlineRich(planInput,planRichHtml,'План на сессию',(html,text)=>{
     planRichHtml=html;planRichBase=text;
   });
+  if(planned){
+    const aiBtn=document.createElement('button');aiBtn.type='button';aiBtn.className='session-plan-ai-btn';aiBtn.textContent='Сформировать план · AI';
+    const aiStatus=document.createElement('div');aiStatus.className='session-plan-editor-hint';aiStatus.setAttribute('role','status');
+    planRichRow.prepend(aiBtn);planBlock.append(aiStatus);
+    aiBtn.onclick=async()=>{
+      if(aiBtn.disabled)return;
+      const original=planInput.value,selected=link.value;
+      if(original.trim()&&!await AppDialog.confirm('Заменить текущий черновик плана новым?','Сформировать план','Сформировать','Отмена'))return;
+      if(!selected){await AppDialog.alert('Выберите запрос для этой сессии.','План сессии');return;}
+      aiBtn.disabled=true;aiStatus.textContent='Подготовка контекста…';
+      try{
+        const api=window.DiagnostikaSessionPlanAI;if(!api)throw Error('Модуль AI ещё не загружен.');
+        const result=await api.generate(c,s,selected,number,t=>{aiStatus.textContent=t});
+        if(!dlg.open)return;
+        if(link.value!==selected||planInput.value!==original){aiStatus.textContent='Запрос или план изменился. Ответ не применён.';return;}
+        planInput.value=result.text;planRichBase=result.text;planRichHtml=richHelper?.plainToHtml?.(result.text)||'';
+        planInline.assign(planRichHtml,result.text);
+        planInput.dispatchEvent(new Event('input',{bubbles:true}));
+        aiStatus.textContent='Учтены предыдущие сессии: '+result.sessions+'; текстовые файлы: '+result.count+'. Проверьте и сохраните план.';
+        if(result.skipped.length){const details=document.createElement('details'),summary=document.createElement('summary'),list=document.createElement('ul');summary.textContent='Не полностью обработанные материалы: '+result.skipped.length;for(const item of result.skipped){const li=document.createElement('li');li.textContent=item;list.append(li)}details.append(summary,list);aiStatus.append(details);}
+        window.DiagnostikaLimits?.refresh?.();
+      }catch(e){aiStatus.textContent=e.message||'Не удалось сформировать план';}finally{aiBtn.disabled=false;}
+    };
+  }
   const notesInline=createInlineRich(ta,notesRichHtml,'Заметки после сессии',(html,text)=>{
     notesRichHtml=html;notesRichBase=text;
   });
