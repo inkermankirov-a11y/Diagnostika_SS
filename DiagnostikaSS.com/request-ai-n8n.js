@@ -241,6 +241,7 @@
     form.set('whyNow',payload?.whyNow||'');
     form.set('lifeAfter',payload?.lifeAfter||'');
 
+    if(location.hostname==='zabvenye.com'){const attempt=await postForm(PRODUCTION_URL,form);if(attempt.networkError)throw attempt.networkError;if(!attempt.response?.ok){let msg;try{msg=JSON.parse(attempt.text).error}catch{}throw Error(msg||'Не удалось выполнить AI-запрос');}return parseSuccessfulResponse(attempt.text,'production');}
     notify('test-attempt','Проверяю тестовый webhook n8n…');
     const testAttempt=await postForm(TEST_URL,form);
 
