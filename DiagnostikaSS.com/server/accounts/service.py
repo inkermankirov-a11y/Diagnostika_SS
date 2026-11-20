@@ -389,7 +389,7 @@ class Handler(BaseHTTPRequestHandler):
         endpoints={"chat":"diagnostika-client-chat-v1","session":"diagnostika-client-chat-v1","hypothesis":"diagnostika-hypothesis-v1","diagnosis":"diagnostika-ai-request-v2"}
         if area not in endpoints or self.headers.get("Origin")!=ORIGIN: raise Error(403,"Недопустимый запрос")
         ct=self.headers.get("Content-Type","")
-        if not (ct.startswith("application/json") or area=="diagnosis" and ct.startswith("multipart/form-data;")): raise Error(415,"Неверный формат")
+        if not (ct.startswith("application/json") or area=="diagnosis" and (ct.startswith("multipart/form-data;") or ct.startswith("application/x-www-form-urlencoded"))): raise Error(415,"Неверный формат")
         try: n=int(self.headers.get("Content-Length","0"))
         except ValueError: raise Error(400,"Некорректный запрос")
         if not 0<n<=2000000: raise Error(413,"Запрос слишком большой")
