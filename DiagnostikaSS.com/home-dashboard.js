@@ -66,16 +66,22 @@
     </aside>`;
   header.insertAdjacentElement('afterend',dashboard);
 
-  const clientBaseButton=document.getElementById('clientBaseBtn');
+  // Keep the existing client dialog trigger in the client-list sidebar on every origin.
   const clientBaseSlot=dashboard.querySelector('#hdClientBaseSlot');
-  if(clientBaseButton&&clientBaseSlot){
-    clientBaseButton.classList.remove('header-btn');
-    clientBaseButton.classList.add('hd-client-base-btn');
-    clientBaseButton.removeAttribute('style');
-    clientBaseButton.textContent='Клиенты';
-    clientBaseSlot.appendChild(clientBaseButton);
+  function placeClientBaseButton(){
+    const button=document.getElementById('clientBaseBtn');
+    if(!button||!clientBaseSlot||button.parentElement===clientBaseSlot)return;
+    button.classList.remove('header-btn');
+    button.classList.add('hd-client-base-btn');
+    button.removeAttribute('style');
+    button.textContent='Клиенты';
+    clientBaseSlot.appendChild(button);
     requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
   }
+  placeClientBaseButton();
+  const clientButtonObserver=new MutationObserver(placeClientBaseButton);
+  clientButtonObserver.observe(header,{childList:true,subtree:true});
+  clientButtonObserver.observe(clientBaseSlot,{childList:true});
 
   const $=s=>dashboard.querySelector(s);
   const list=$('#hdClientList');
