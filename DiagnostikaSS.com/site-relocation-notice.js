@@ -53,7 +53,7 @@
   function makeNotice() {
     const notice = document.createElement('aside');
     notice.className = 'hws-transfer-notice';
-    notice.dataset.migrationVersion='39';
+    notice.dataset.migrationVersion='40';
     notice.setAttribute('role','note');
     notice.setAttribute('aria-label','Уведомление о смене адреса сайта');
     const title = document.createElement('span');
@@ -62,7 +62,14 @@
     const message = document.createElement('p');
     message.innerHTML = 'До <strong>1 декабря 2026 года</strong> обязательно сохраните клиентскую базу на компьютере. Создайте отдельную папку <strong>Diagnostika</strong>, откройте «Хранилище», подключите папку и нажмите «Синхронизировать». Дождитесь успешного завершения. На новом сайте подключите эту же папку и проверьте данные. <strong>Google Drive на новой платформе временно недоступен. Переносите базу только через локальную папку.</strong> Для доступа запросите код приглашения у администратора.';
     const link=document.createElement('a');link.href='https://zabvenye.com/';link.target='_blank';link.rel='noopener noreferrer';link.textContent='ПЕРЕЙТИ НА ZABVENYE.COM';link.style.cssText='display:inline-block;align-self:flex-start;background:#a53737;color:white;padding:10px 16px;border-radius:8px;font-weight:800;text-decoration:none;margin-top:6px';
-    notice.append(title,message,link);
+    const community=document.createElement('div');
+    community.style.cssText='display:flex;flex-direction:column;gap:8px;border-top:1px solid #e7b8b8;padding-top:13px;margin-top:10px';
+    const heading=document.createElement('strong');heading.textContent='ZABVENYE в Telegram';
+    const description=document.createElement('p');description.textContent='Присоединяйтесь к официальному каналу: здесь публикуются новости, обновления и инструкции. Задавайте вопросы, обсуждайте работу программы, оставляйте предложения и сообщайте разработчику об ошибках. Не публикуйте персональные данные клиентов.';
+    const telegram=document.createElement('a');telegram.href='https://t.me/zabvenye_com';telegram.target='_blank';telegram.rel='noopener noreferrer';telegram.textContent='ПРИСОЕДИНИТЬСЯ В TELEGRAM';
+    telegram.style.cssText='display:inline-block;align-self:flex-start;background:#167ba9;color:white;padding:10px 16px;border-radius:8px;font-weight:800;text-decoration:none';
+    community.append(heading,description,telegram);
+    notice.append(title,message,link,community);
     return notice;
   }
 
@@ -71,7 +78,7 @@
     if (!home) return;
     // If the home workspace already rendered the notice, avoid duplicates.
     const existing=home.querySelector('.hws-transfer-notice');
-    if(existing?.dataset.migrationVersion==='39')return;
+    if(existing?.dataset.migrationVersion==='40')return;
     if(existing)existing.remove();
     const workspace = home.querySelector('.hws-workspace') || home;
     const notice = makeNotice();
