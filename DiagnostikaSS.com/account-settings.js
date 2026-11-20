@@ -256,6 +256,7 @@
     });
     accountsBtn.addEventListener('click',refreshAccount,true);
     refreshAccount();
+    setInterval(()=>{if(document.visibilityState==="visible")refreshAccount();},60000);
   }
 
 
