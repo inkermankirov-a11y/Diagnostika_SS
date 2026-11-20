@@ -14,9 +14,9 @@
   function currentClient(){
     return window.DiagnostikaAIUIContext?.currentClient?.()||null;
   }
-  function getMode(){try{return localStorage.getItem(MODE_KEY)==='deep'?'deep':'short';}catch(_){return'short';}}
+  function getMode(){try{return localStorage.getItem(MODE_KEY)==='deep'&&(location.hostname!=='zabvenye.com'||window.DiagnostikaLimits?.detailed())?'deep':'short';}catch(_){return'short';}}
   function setMode(mode){
-    const next=mode==='deep'&&window.DiagnostikaLimits?.detailed()?'deep':'short';
+    const next=mode==='deep'&&(location.hostname!=='zabvenye.com'||window.DiagnostikaLimits?.detailed())?'deep':'short';
     const clientBtn=document.querySelector(`#hdClientAiWidget .hd-ai-mode-btn[data-mode="${next}"]`);
     if(clientBtn){clientBtn.click();return;}
     try{localStorage.setItem(MODE_KEY,next);}catch(_){}
