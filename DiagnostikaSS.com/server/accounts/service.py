@@ -64,6 +64,9 @@ with db() as c:
     for inv in c.execute("SELECT token FROM invites WHERE public_id IS NULL").fetchall():
         c.execute("UPDATE invites SET public_id=?,preview=? WHERE token=?",(secrets.token_hex(12),"Старый код",inv["token"]))
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS invite_public_id_unique ON invites(public_id)")
+    c.execute("CREATE TABLE IF NOT EXISTS license_archive(public_id TEXT PRIMARY KEY,token TEXT NOT NULL,deleted_at INTEGER NOT NULL)")
+    c.execute("CREATE TABLE IF NOT EXISTS specialist_metrics(user_id TEXT PRIMARY KEY,client_count INTEGER,reported_at INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS specialist_days(user_id TEXT NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))")
     if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
         c.execute("ALTER TABLE audit ADD COLUMN details TEXT NOT NULL DEFAULT '{}'")
     for u in c.execute("SELECT id,role FROM users ORDER BY CASE WHEN role='admin' THEN 0 ELSE 1 END").fetchall():
@@ -103,9 +106,12 @@ def usage(c,u):
     for row in c.execute("SELECT area,count FROM ai_usage WHERE user_id=? AND day=?",(u["id"],day)):
         if row["area"] in areas: areas[row["area"]]=row["count"]
     return {"day":day,"total":sum(areas.values()),"areas":areas,"reset":"00:00 UTC"}
+def specialist_metrics(c,u):
+    m=c.execute("SELECT client_count,reported_at FROM specialist_metrics WHERE user_id=?",(u["id"],)).fetchone()
+    return {"clients":m["client_count"] if m else None,"reported_at":m["reported_at"] if m else None,"logins":c.execute("SELECT count(*) FROM audit WHERE actor=? AND action='login'",(u["id"],)).fetchone()[0],"days30":c.execute("SELECT count(*) FROM specialist_days WHERE user_id=? AND day>=?",(u["id"],(datetime.now(timezone.utc).date()-timedelta(days=29)).isoformat())).fetchone()[0]}
 def public(c,u):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u: return {"email":uid}
@@ -160,6 +166,7 @@ def create_invite(c,actor,email,hours,comment):
     if not isinstance(comment,str) or len(comment)>250: raise Error(400,"Комментарий до 250 символов")
     if email and c.execute("SELECT 1 FROM users WHERE email=?",(email,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует")
     ident=secrets.token_hex(16)
+    while c.execute("SELECT 1 FROM license_archive WHERE public_id=? UNION SELECT 1 FROM invites WHERE public_id=?",(ident,ident)).fetchone(): ident=secrets.token_hex(16)
     token=derive_invite_code(ident)
     expiry=now+hours*3600 if hours else 0
     c.execute("INSERT INTO invites(token,email,expires,public_id,preview,created,comment,created_by) VALUES(?,?,?,?,?,?,?,?)",(digest(token),email,expiry,ident,token[:12]+"…",now,comment.strip(),actor))
@@ -299,13 +306,18 @@ class Handler(BaseHTTPRequestHandler):
                     total=c.execute("SELECT count(*) FROM users u WHERE "+clause,args).fetchone()[0]
                     rows=c.execute("SELECT u.* FROM users u JOIN public_ids p ON u.id=p.owner AND p.kind='specialist' WHERE "+clause+" ORDER BY p.number LIMIT 50 OFFSET ?",args+[offset]).fetchall()
                     return self.reply(200,{"items":[public(c,x) for x in rows],"total":total})
-                if path.startswith("/account/api/admin/invite"): cleanup_revoked(c)
+                # License records are retained until explicit archival.
                 if path=="/account/api/admin/invite-detail":
                     ident=param("id")
                     row=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
                     if not row: raise Error(404,"Приглашение не найдено")
                     detail=invite_public(c,row,int(time.time()))
-                    detail["code"]=recover_invite_code(row) if detail["status"]=="active" else None
+                    detail["code"]=recover_invite_code(row)
+                    detail["license_number"]=row["public_id"]
+                    detail["specialist"]=None
+                    if row["used_by"]:
+                        owner=c.execute("SELECT * FROM users WHERE id=?",(row["used_by"],)).fetchone()
+                        if owner: detail["specialist"]=public(c,owner)
                     detail["created_by"]=snapshot(c,row["created_by"]) if row["created_by"] else None
                     return self.reply(200,detail)
                 if path=="/account/api/admin/invites":
@@ -372,6 +384,13 @@ class Handler(BaseHTTPRequestHandler):
                 c.execute("UPDATE users SET first_name=?,last_name=?,birth_date=?,onboarding_required=0 WHERE id=?",(first.strip(),last.strip(),birth,u["id"]))
                 audit(c,u["id"],"onboarding",u["id"])
                 payload={"ok":True}
+            elif path=="/account/api/metrics":
+                count=b.get("clients")
+                if type(count) is not int or not 0<=count<=1000000: raise Error(400,"Некорректное количество клиентов")
+                now=int(time.time())
+                c.execute("INSERT INTO specialist_metrics VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET client_count=excluded.client_count,reported_at=excluded.reported_at",(u["id"],count,now))
+                c.execute("INSERT OR IGNORE INTO specialist_days VALUES(?,?)",(u["id"],datetime.now(timezone.utc).date().isoformat()))
+                payload={"ok":True}
             elif path=="/account/api/profile":
                 if u["onboarding_required"]: raise Error(403,"Сначала завершите первичную настройку")
                 first,last,gender,birth,country,city,tz=profile(b)
@@ -399,6 +418,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not inv: raise Error(404,"Приглашение не найдено")
                 if invite_status(inv,int(time.time())) not in ("revoked","expired"): raise Error(409,"Удалять можно только отозванные или истёкшие приглашения")
                 audit(c,u["id"],"invite-delete",ident,{"invitation":{"from":inv["preview"],"to":"Удалено"}})
+                c.execute("INSERT INTO license_archive VALUES(?,?,?)",(ident,inv["token"],int(time.time())))
                 c.execute("DELETE FROM invites WHERE public_id=?",(ident,))
                 payload={"ok":True}
             elif path=="/account/api/admin/invite-comment":
@@ -498,5 +518,4 @@ class Server(ThreadingHTTPServer):
         try: super().process_request_thread(*args)
         finally: REQUESTS.release()
 if __name__=="__main__":
-    threading.Thread(target=invite_cleanup_loop,daemon=True).start()
     Server(("0.0.0.0",8080),Handler).serve_forever()
