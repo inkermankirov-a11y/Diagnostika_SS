@@ -33,3 +33,5 @@ form.onsubmit=async e=>{e.preventDefault();$('submit').disabled=true;try{const d
 $('logout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
 $('invite').onsubmit=async e=>{e.preventDefault();try{const r=await api('admin/invite',{email:e.target.elements.email.value.trim().toLowerCase()});$('inviteCode').textContent='Код для специалиста (24 часа): '+r.invite;msg('Приглашение создано. Передайте код лично.');auditOffset=0;await loadAudit()}catch(e){msg(e.message)}};
 (async()=>{try{show(await api('me'));return}catch(_){}try{sitekey=(await api('config')).sitekey;renderCaptcha()}catch(e){msg('Сервис аккаунтов недоступен.')}})();
+// Update activity only while the authenticated cabinet is visible.
+setInterval(()=>{if(currentUser&&document.visibilityState==='visible')api('me').catch(()=>{});},60000);
