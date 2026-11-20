@@ -213,6 +213,10 @@
     +'<div class="account-field account-reviews"><div class="account-label account-reviews-label"></div><div class="account-review-editor"><input class="account-input account-review-author-input" type="text"><textarea class="account-textarea account-review-text-input"></textarea><button type="button" class="account-review-add"></button></div><div class="account-review-list"></div></div>'
     +'<button type="button" class="account-save"></button><input class="account-avatar-input" type="file" accept="image/*" hidden>';
   accountsBtn.insertAdjacentElement('afterend',content);
+  // Reviews belong to their own dedicated module; keep stored records intact.
+  const reviewsSection=content.querySelector('.account-reviews');
+  if(reviewsSection){reviewsSection.hidden=true;reviewsSection.style.setProperty('display','none','important');}
+
   // Server account is distinct from the local specialist profile.
   if(location.hostname==='zabvenye.com'){
     const box=document.createElement('div');
@@ -240,7 +244,7 @@
       if(typeof prepareLeave==='function' && await prepareLeave()===false)return false;
       return window.confirm('Перейти из рабочего пространства? Убедитесь, что изменения в клиентских карточках сохранены. Локальная база и настройки синхронизации не удаляются.');
     }
-    cabinet.addEventListener('click',async()=>{if(await canNavigate())location.assign('/account');});
+    cabinet.addEventListener('click',()=>{window.open('/account','_blank','noopener,noreferrer');});
     exit.addEventListener('click',async()=>{
       if(!await canNavigate())return;
       exit.disabled=true;cabinet.disabled=true;notice.textContent='Завершение сеанса…';
