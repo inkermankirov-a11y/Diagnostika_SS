@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id),form=$('login'),labels={clients:'Клиенты',sessions:'Сессии',ai:'AI-инструменты',export:'Экспорт',calendar:'Календарь',drive:'Google Drive'};
 let widget=null,register=false,sitekey='',captchaToken='';
-function msg(t){const target=currentUser?$('status'):$('authStatus');target.textContent=t||'';target.hidden=!t;}
+function msg(t){const target=currentUser&&!currentUser.onboarding_required?$('status'):$('authStatus');target.textContent=t||'';target.hidden=!t;}
 async function api(path,data){const res=await fetch('/account/api/'+path,{credentials:'same-origin',cache:'no-store',...(data===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})});const b=await res.json();if(!res.ok)throw Error(b.error||'Ошибка сервера');return b;}
 function reset(){captchaToken='';$('submit').disabled=true;if(widget!==null)window.turnstile?.reset(widget);}
 function renderCaptcha(){if(!sitekey){msg('CAPTCHA пока не настроена. Вход закрыт.');return;}if(!window.turnstile){msg('CAPTCHA не загрузилась. Обновите страницу.');return;}widget=turnstile.render('#captcha',{sitekey,action:'account',callback:t=>{captchaToken=t;$('submit').disabled=false;msg('')},'expired-callback':()=>{$('submit').disabled=true;captchaToken=''},'error-callback':()=>{$('submit').disabled=true;captchaToken='';msg('Ошибка CAPTCHA.')}});}
@@ -44,7 +44,7 @@ const val=v=>v===null?'Без лимита':typeof v==='boolean'?(v?'Да':'Не
 function el(tag,value,cls){const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(cls)e.className=cls;return e}
 const titles={registry:'Специалисты',invitations:'Приглашения',events:'Журнал действий',profileView:'Мой профиль'};
 function navigate(view){if(!currentUser)return;if(currentUser.role!=='admin')view='profileView';activeView=view;$('pageTitle').textContent=titles[view];$('admin').hidden=view==='profileView';$('cabinet').hidden=view!=='profileView';for(const id of ['registry','invitations','events'])$(id).hidden=id!==view;for(const b of document.querySelectorAll('[data-view]')){b.classList.toggle('selected',b.dataset.view===view);if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}if(view==='registry')go(loadUsers);if(view==='events')go(loadAudit);}
-function show(u){currentUser=u;$('authMain').hidden=true;document.querySelector('.public-header').hidden=true;$('authStatus').hidden=true;$('shell').hidden=false;document.body.classList.add('signed-in');$('identity').textContent=u.email+' · ID специалиста: '+u.id+(u.admin_id?' · ID администратора: '+u.admin_id:'');$('sideName').textContent=fullName(u)==='Не заполнено'?u.email:fullName(u);$('sideRole').textContent=u.admin_id?'Администратор · '+u.admin_id:'Специалист · '+u.id;$('rolePill').textContent=u.role==='admin'?'Администратор':'Специалист';for(const b of document.querySelectorAll('[data-admin]'))b.hidden=u.role!=='admin';for(const k of ['first_name','last_name','gender','birth_date','country','city','timezone'])if(k==='timezone')addZone($('profile').elements[k],u[k]||browserZone);else $('profile').elements[k].value=k==='birth_date'?displayBirth(u[k]):u[k]||'';refreshClocks();$('policies').replaceChildren();for(const [key,value] of Object.entries(u.limits)){const row=el('div',undefined,'policy-row');row.append(el('span',labels[key]),el('strong',val(value)));$('policies').append(row)}navigate(activeView||(u.role==='admin'?'registry':'profileView'));}
+function show(u){currentUser=u;if(u.onboarding_required){$('shell').hidden=true;$('authMain').hidden=false;$('auth').hidden=true;$('onboarding').hidden=false;return;}$('onboarding').hidden=true;$('profileReminder').hidden=!['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);$('authMain').hidden=true;document.querySelector('.public-header').hidden=true;$('authStatus').hidden=true;$('shell').hidden=false;document.body.classList.add('signed-in');$('identity').textContent=u.email+' · ID специалиста: '+u.id+(u.admin_id?' · ID администратора: '+u.admin_id:'');$('sideName').textContent=fullName(u)==='Не заполнено'?u.email:fullName(u);$('sideRole').textContent=u.admin_id?'Администратор · '+u.admin_id:'Специалист · '+u.id;$('rolePill').textContent=u.role==='admin'?'Администратор':'Специалист';for(const b of document.querySelectorAll('[data-admin]'))b.hidden=u.role!=='admin';for(const k of ['first_name','last_name','gender','birth_date','country','city','timezone'])if(k==='timezone')addZone($('profile').elements[k],u[k]||browserZone);else $('profile').elements[k].value=k==='birth_date'?displayBirth(u[k]):u[k]||'';refreshClocks();$('policies').replaceChildren();for(const [key,value] of Object.entries(u.limits)){const row=el('div',undefined,'policy-row');row.append(el('span',labels[key]),el('strong',val(value)));$('policies').append(row)}navigate(activeView||(u.role==='admin'?'registry':'profileView'));}
 for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>navigate(b.dataset.view);
 $('newInvite').onclick=()=>navigate('invitations');
 $('toggleFilters').onclick=()=>{const f=$('advancedFilters');f.hidden=!f.hidden;$('toggleFilters').setAttribute('aria-expanded',String(!f.hidden));};
@@ -67,8 +67,43 @@ $('filters').onsubmit=e=>{e.preventDefault();userOffset=0;go(loadUsers)};
 $('clearFilters').onclick=()=>{$('filters').reset();userOffset=0;go(loadUsers)};
 $('prevUsers').onclick=()=>{userOffset=Math.max(0,userOffset-50);go(loadUsers)};$('nextUsers').onclick=()=>{userOffset+=50;go(loadUsers)};
 $('prevAudit').onclick=()=>{auditOffset=Math.max(0,auditOffset-100);go(loadAudit)};$('nextAudit').onclick=()=>{auditOffset+=100;go(loadAudit)};
-$('mode').onclick=()=>{register=!register;$('registrationProfile').hidden=!register;for(const k of ['first_name','last_name','gender','birth_date','country','city','timezone'])form.elements[k].required=register;$('inviteRow').hidden=!register;form.elements.invite.required=register;$('submit').textContent=register?'Зарегистрироваться':'Войти';$('mode').textContent=register?'Уже есть аккаунт':'Регистрация по приглашению';$('auth').querySelector('h1').textContent=register?'Регистрация':'Вход в аккаунт';form.elements.password.autocomplete=register?'new-password':'current-password';};
-form.onsubmit=async e=>{e.preventDefault();$('submit').disabled=true;try{const data=register?profileData(form):Object.fromEntries(new FormData(form));data.email=data.email.trim().toLowerCase();data.captcha=captchaToken;const u=await api(register?'register':'login',data);form.reset();addZone(form.elements.timezone,browserZone);refreshClocks();msg('');show(u)}catch(e){msg(e.message);reset()}};
+
+$('completeProfile').onclick=()=>navigate('profileView');
+$('mode').onclick=()=>{
+ register=!register;
+ $('repeatRow').hidden=!register;form.elements.password_repeat.disabled=!register;form.elements.password_repeat.required=register;
+ $('inviteRow').hidden=!register;form.elements.invite.required=register;
+ $('submit').textContent=register?'Проверить приглашение и продолжить':'Войти';
+ $('mode').textContent=register?'Уже есть аккаунт':'Регистрация по приглашению';
+ $('auth').querySelector('h1').textContent=register?'Регистрация · шаг 1 из 2':'Вход в аккаунт';
+ form.elements.password.autocomplete=register?'new-password':'current-password';
+ reset();
+};
+form.onsubmit=async e=>{
+ e.preventDefault();$('submit').disabled=true;
+ try{
+  const data=Object.fromEntries(new FormData(form));data.email=data.email.trim().toLowerCase();data.captcha=captchaToken;
+  if(register&&data.password!==data.password_repeat)throw Error('Пароли не совпадают');
+  const u=await api(register?'register':'login',data);
+  form.reset();msg('');show(u);
+ }catch(e){msg(e.message);reset()}
+};
+const onboard=$('onboardingForm');
+onboard.elements.birth_date.addEventListener('input',e=>{
+ if(e.inputType?.startsWith('delete'))return;
+ const input=e.target,digits=input.value.replace(/\D/g,'').slice(0,8);
+ const formatted=[digits.slice(0,2),digits.slice(2,4),digits.slice(4)].filter(Boolean).join('.');
+ if(input.value!==formatted)input.value=formatted;
+});
+onboard.onsubmit=async e=>{
+ e.preventDefault();const button=onboard.querySelector('button[type="submit"]')||onboard.querySelector('button');button.disabled=true;
+ try{
+  const data=Object.fromEntries(new FormData(onboard));data.birth_date=isoBirth(data.birth_date);
+  if(!data.birth_date||data.birth_date<'1900-01-01'||data.birth_date>localDate(browserZone))throw Error('Введите корректную дату рождения.');
+  await api('onboarding',data);location.replace('/');
+ }catch(e){msg(e.message);button.disabled=false}
+};
+$('onboardingLogout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
 $('logout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
 $('invite').onsubmit=async e=>{e.preventDefault();try{const r=await api('admin/invite',{email:e.target.elements.email.value.trim().toLowerCase()});$('inviteCode').textContent=r.invite;$('inviteCode').dataset.code=r.invite;$('copyInvite').hidden=false;msg('Приглашение создано. Передайте код лично.');auditOffset=0;await loadAudit()}catch(e){msg(e.message)}};
 (async()=>{try{show(await api('me'));return}catch(_){}try{sitekey=(await api('config')).sitekey;renderCaptcha()}catch(e){msg('Сервис аккаунтов недоступен.')}})();
