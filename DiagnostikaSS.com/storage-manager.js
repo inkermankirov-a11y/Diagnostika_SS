@@ -263,8 +263,9 @@
   });
 
   async function fullExport(){
+    const result=await syncReceiptDisk();
+    if(result.missing.length)throw Error('Не найдены файлы чеков: '+result.missing.length+'.');
     await writeCoreState();
-    await syncReceiptDisk();
     const api=filesApi();
     if(api?.list){
       for(const c of state.clients||[]){
@@ -311,11 +312,13 @@
     if(!rootHandle) return;
     syncing=true;
     try{
+      const result=await syncReceiptDisk();
+      if(result.missing.length)throw Error('Не найдены файлы чеков: '+result.missing.length+'.');
       await writeCoreState();
-      await syncReceiptDisk();
       await updateStatus();
     }catch(e){
       console.warn('Синхронизация папки не выполнена',e);
+      const status=document.querySelector('#storageStatus');if(status)status.textContent='Синхронизация не завершена: '+(e.message||'ошибка записи');
     }finally{
       syncing=false;
       if(pendingSync){pendingSync=false;scheduleSync();}
