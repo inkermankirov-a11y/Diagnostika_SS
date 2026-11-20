@@ -23,11 +23,11 @@
   function getMode(){
     try{
       const saved=localStorage.getItem(MODE_KEY);
-      return saved==='deep'?'deep':'short';
+      return saved==='deep'&&(location.hostname!=='zabvenye.com'||window.DiagnostikaLimits?.detailed())?'deep':'short';
     }catch(_){return 'short';}
   }
   function setMode(mode){
-    const next=mode==='deep'?'deep':'short';
+    const next=mode==='deep'&&(location.hostname!=='zabvenye.com'||window.DiagnostikaLimits?.detailed())?'deep':'short';
     try{localStorage.setItem(MODE_KEY,next);}catch(_){}
     updateModeButtons();
   }
