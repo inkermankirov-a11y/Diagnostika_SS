@@ -1,6 +1,7 @@
 'use strict';
 
 (() => {
+  if(window.__localFolderControlsReady)return;window.__localFolderControlsReady=true;
   const HANDLE_DB='diagnostika-storage-handles-v1';
   const HANDLE_STORE='handles';
   const HANDLE_KEY='data-root';
@@ -40,6 +41,7 @@
         await AppDialog.alert('Доступ к выбранной папке не разрешён.','Нет доступа');
         return;
       }
+      window.DiagnostikaLocalFolderSync?.folderChanged();
       await saveHandle(handle);
       await AppDialog.alert(
         `Выбрана папка: ${handle.name}.\nТеперь нажми «Синхронизировать», чтобы объединить базу браузера и этой папки.`,
