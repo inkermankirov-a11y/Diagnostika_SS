@@ -105,6 +105,7 @@
         throw new Error(message);
       }
       if(res.status===204)return null;
+      if(options.receiptBinary)return res.blob();
       const ct=res.headers.get('content-type')||'';
       return ct.includes('application/json')?res.json():res.text();
     }catch(error){
@@ -377,6 +378,45 @@
     return false;
   }
 
+  async function syncReceiptDrive(data,root){
+    const receipts=window.DiagnostikaPaymentReceipts;
+    if(!receipts)return {count:0,missing:[]};
+    if(!token())throw Error('Для синхронизации чеков восстанови доступ Google Drive.');
+    root=root||await ensureFolder();
+    const segment=v=>String(v||'item').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').slice(0,120);
+    const cache=new Map();
+    async function sub(parent,name,create){
+      const key=parent+'|'+name;
+      if(cache.has(key))return cache.get(key);
+      let f=await findFolder(parent,name);
+      if(!f&&create)f=await createFolder(name,parent);
+      if(f)cache.set(key,f);
+      return f;
+    }
+    async function dir(entry,create){
+      let f=await sub(root.id,'clients',create);if(!f)return null;
+      // Use immutable IDs in cloud paths so client renames and rescheduling do not orphan receipts.
+      f=await sub(f.id,'client_'+segment(entry.clientId),create);if(!f)return null;
+      if(entry.sessionId){
+        f=await sub(f.id,'sessions',create);if(!f)return null;
+        f=await sub(f.id,'session_'+segment(entry.sessionId),create);if(!f)return null;
+      }
+      return sub(f.id,'receipts',create);
+    }
+    return receipts.syncReceiptFiles(data,{
+      async find(entry){const d=await dir(entry,false);return d?findFile(d.id,entry.filename):null;},
+      async read(entry,file){return driveFetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(file.id)+'?alt=media',{receiptBinary:true});},
+      async write(entry,blob){
+        const d=await dir(entry,true);if(!d)throw Error('Не удалось создать папку чека.');
+        const boundary='receipt_'+crypto.randomUUID(),meta={name:entry.filename,parents:[d.id],mimeType:entry.type,description:[entry.clientName,entry.ordinal?'Сессия №'+entry.ordinal:'Платёж',entry.sessionDate].filter(Boolean).join(' · ')};
+        const body=new Blob(['--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n',JSON.stringify(meta),'\r\n--'+boundary+'\r\nContent-Type: '+entry.type+'\r\n\r\n',blob,'\r\n--'+boundary+'--\r\n']);
+        const result=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,size',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});
+        if(!result?.id||Number(result.size)!==blob.size)throw Error('Google Drive не подтвердил сохранение полного файла чека.');
+      }
+    });
+  }
+  window.DiagnostikaReceiptDrive=Object.freeze({sync:(data)=>syncReceiptDrive(data)});
+
   async function safeSync(setStatus){
     setStatus('Подготавливаю локальную базу…');
     try{window.DiagnostikaRequestAI?.migrateLegacyKey?.();}catch(error){console.warn('[Google Drive auto sync] AI key migration skipped',error);}
@@ -396,6 +436,8 @@
       &&(remote.copies||[]).every(copy=>equal(copy.data,remote.data));
 
     if(remote.data&&equal(local,remote.data)&&cloudAligned){
+      const receiptResult=await syncReceiptDrive(local,remote.folder);
+      if(receiptResult.missing.length)throw Error('Не найдены файлы чеков: '+receiptResult.missing.length+'. Подключи устройство или папку с оригиналами.');
       await setBase(local);
       setStatus(`Актуально: ${local.clients?.length||0} клиент(ов)`);
       return {
@@ -431,6 +473,9 @@
     const conflicts=[...(remote.cloudConflicts||[]),...(localMerge.conflicts||[])];
     await pause();
 
+    setStatus('Синхронизирую файлы чеков…');
+    const receiptResult=await syncReceiptDrive(merged,remote.folder);
+    if(receiptResult.missing.length)throw Error('Не найдены файлы чеков: '+receiptResult.missing.length+'. Подключи устройство или папку с оригиналами.');
     setStatus('Проверяю, не менялась ли база на другом устройстве…');
     await assertRemoteUnchanged(remote);
     setStatus('Привожу все database.json в Google Drive к одной базе…');
@@ -492,6 +537,9 @@
       await backupSnapshot(remote.folder.id,'local-before-restore',local,backupFolder);
     }
 
+    setStatus('Восстанавливаю файлы чеков…');
+    const receiptResult=await syncReceiptDrive(remote.data,remote.folder);
+    if(receiptResult.missing.length)throw Error('В облаке и браузере отсутствуют файлы чеков: '+receiptResult.missing.length+'.');
     setStatus('Сохраняю облачную базу в браузер…');
     if(!writeCanonicalDatabase(remote.data,'google-drive-safe-restore'))throw new Error('Не удалось сохранить облачную базу в браузере. Текущая локальная база не изменена.');
     await setBase(remote.data);
