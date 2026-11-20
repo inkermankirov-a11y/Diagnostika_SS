@@ -139,6 +139,14 @@ def derive_invite_code(ident):
 def recover_invite_code(row):
     candidate=derive_invite_code(row["public_id"])
     return candidate if hmac.compare_digest(digest(candidate),row["token"]) else None
+def cleanup_revoked(c):
+    c.execute("DELETE FROM invites WHERE revoked_at IS NOT NULL AND used_at IS NULL AND revoked_at<=?",(int(time.time())-86400,))
+def invite_cleanup_loop():
+    while True:
+        try:
+            with db() as c: cleanup_revoked(c)
+        except sqlite3.Error: pass
+        time.sleep(60)
 def invite_status(row,now):
     if row["used_at"] is not None: return "used"
     if row["revoked_at"] is not None: return "revoked"
@@ -291,6 +299,7 @@ class Handler(BaseHTTPRequestHandler):
                     total=c.execute("SELECT count(*) FROM users u WHERE "+clause,args).fetchone()[0]
                     rows=c.execute("SELECT u.* FROM users u JOIN public_ids p ON u.id=p.owner AND p.kind='specialist' WHERE "+clause+" ORDER BY p.number LIMIT 50 OFFSET ?",args+[offset]).fetchall()
                     return self.reply(200,{"items":[public(c,x) for x in rows],"total":total})
+                if path.startswith("/account/api/admin/invite"): cleanup_revoked(c)
                 if path=="/account/api/admin/invite-detail":
                     ident=param("id")
                     row=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
@@ -383,6 +392,15 @@ class Handler(BaseHTTPRequestHandler):
                 e=e.strip().lower()
                 if e and not valid_email(e): raise Error(400,"Некорректный email")
                 payload=create_invite(c,u["id"],e,b.get("hours",24),b.get("comment",""))
+            elif path=="/account/api/admin/invite-delete":
+                ident=b.get("id")
+                if not isinstance(ident,str): raise Error(400,"Некорректное приглашение")
+                inv=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
+                if not inv: raise Error(404,"Приглашение не найдено")
+                if invite_status(inv,int(time.time())) not in ("revoked","expired"): raise Error(409,"Удалять можно только отозванные или истёкшие приглашения")
+                audit(c,u["id"],"invite-delete",ident,{"invitation":{"from":inv["preview"],"to":"Удалено"}})
+                c.execute("DELETE FROM invites WHERE public_id=?",(ident,))
+                payload={"ok":True}
             elif path=="/account/api/admin/invite-comment":
                 ident=b.get("id"); comment=b.get("comment")
                 if not isinstance(ident,str) or not isinstance(comment,str) or len(comment)>250: raise Error(400,"Некорректный комментарий")
@@ -480,4 +498,5 @@ class Server(ThreadingHTTPServer):
         try: super().process_request_thread(*args)
         finally: REQUESTS.release()
 if __name__=="__main__":
+    threading.Thread(target=invite_cleanup_loop,daemon=True).start()
     Server(("0.0.0.0",8080),Handler).serve_forever()
