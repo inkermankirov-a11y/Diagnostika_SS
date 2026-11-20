@@ -16,7 +16,7 @@
       gap:5px;
       margin:0;
       min-width:0;
-      padding:12px 15px;
+      padding:18px 20px;
       border:1px solid #dc9696!important;
       border-left:4px solid #bb4545!important;
       border-radius:11px;
@@ -29,13 +29,13 @@
     }
     .home-dashboard #hdHomeView .hws-transfer-title{
       color:#a53737!important;
-      font-size:12px!important;
+      font-size:20px!important;
       font-weight:850!important;
       line-height:1.4!important;
     }
     .home-dashboard #hdHomeView .hws-transfer-notice p{
       margin:0!important;
-      font-size:12px!important;
+      font-size:15px!important;
       line-height:1.5!important;
       color:#653636!important;
       overflow-wrap:anywhere;
@@ -53,14 +53,16 @@
   function makeNotice() {
     const notice = document.createElement('aside');
     notice.className = 'hws-transfer-notice';
+    notice.dataset.migrationVersion='39';
     notice.setAttribute('role','note');
     notice.setAttribute('aria-label','Уведомление о смене адреса сайта');
     const title = document.createElement('span');
     title.className = 'hws-transfer-title';
-    title.textContent = 'Переезд на ZABVENYE.COM — 1 декабря 2026';
+    title.textContent = 'ВАЖНО: С 1 ДЕКАБРЯ — НОВЫЙ САЙТ';
     const message = document.createElement('p');
-    message.innerHTML = 'С <strong>1 декабря 2026 года</strong> обычная работа продолжится на новой платформе <a href="https://zabvenye.com/" target="_blank" rel="noopener noreferrer">ZABVENYE.COM</a>. Не переходите на новый сайт без локальной копии базы. Даже если ранее использовали Google Drive, создайте отдельную папку на компьютере, например <strong>Diagnostika</strong>. На старом сайте откройте «Хранилище», выберите эту папку и нажмите «Сохранить текущую базу и файлы в папку». Дождитесь зелёного индикатора. Затем на новой платформе подключите ту же папку, выберите восстановление базы и проверьте клиентов, сессии и файлы. Не удаляйте исходные данные. Для регистрации потребуется приглашение администратора.';
-    notice.append(title,message);
+    message.innerHTML = 'До <strong>1 декабря 2026 года</strong> обязательно сохраните клиентскую базу на компьютере. Создайте отдельную папку <strong>Diagnostika</strong>, откройте «Хранилище», подключите папку и нажмите «Синхронизировать». Дождитесь успешного завершения. На новом сайте подключите эту же папку и проверьте данные. <strong>Google Drive на новой платформе временно недоступен. Переносите базу только через локальную папку.</strong> Для доступа запросите код приглашения у администратора.';
+    const link=document.createElement('a');link.href='https://zabvenye.com/';link.target='_blank';link.rel='noopener noreferrer';link.textContent='ПЕРЕЙТИ НА ZABVENYE.COM';link.style.cssText='display:inline-block;align-self:flex-start;background:#a53737;color:white;padding:10px 16px;border-radius:8px;font-weight:800;text-decoration:none;margin-top:6px';
+    notice.append(title,message,link);
     return notice;
   }
 
@@ -68,7 +70,9 @@
     const home = document.querySelector('.home-dashboard #hdHomeView');
     if (!home) return;
     // If the home workspace already rendered the notice, avoid duplicates.
-    if (home.querySelector('.hws-transfer-notice')) return;
+    const existing=home.querySelector('.hws-transfer-notice');
+    if(existing?.dataset.migrationVersion==='39')return;
+    if(existing)existing.remove();
     const workspace = home.querySelector('.hws-workspace') || home;
     const notice = makeNotice();
     const schedule = workspace.querySelector('.hws-schedule');
