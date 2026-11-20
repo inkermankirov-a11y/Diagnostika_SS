@@ -1,6 +1,5 @@
 'use strict';
-/* Individual payment receipts; binary data remains local FileService data until
-   remote attachment synchronization is implemented. */
+/* Individual payment receipts with local and Drive backup adapters. */
 (() => {
   if(window.DiagnostikaPaymentReceipts)return;
   const MAX_BYTES=15*1024*1024;
@@ -101,12 +100,62 @@
     const a=document.createElement('a');a.href=validateUrl(url);
     a.rel='noopener noreferrer';a.target='_blank';document.body.appendChild(a);a.click();a.remove();
   }
+  // Receipt bytes are mirrored independently of the JSON database, using immutable file IDs.
+  // Never delete a backup just because a receipt was replaced or unlinked.
+  function receiptEntries(data){
+    const out=[];
+    for(const c of data?.clients||[]){
+      const sessions=c.sessions||[];
+      const chronological=sessions.map((s,i)=>({s,i})).sort((a,b)=>String(a.s.date||'').localeCompare(String(b.s.date||''))||String(a.s.scheduledTime||'').localeCompare(String(b.s.scheduledTime||''))||a.i-b.i);
+      function collect(record,ref,session){
+        for(const kind of ['client','issued']){
+          const k=keyFor(kind),id=record?.[k+'FileId'];
+          if(!id)continue;
+          const date=String(record[k+'UpdatedAt']||record.paidAt||session?.date||record.date||'').slice(0,10);
+          const name=String(record[k+'FileName']||'Чек');
+          const ext=(name.match(/\.[a-z0-9]{1,5}$/i)||[])[0]||'.bin';
+          const ordinal=session?chronological.findIndex(x=>String(x.s.id)===String(session.id))+1:0;
+          out.push({id:String(id),clientId:String(c.id),scope:scope(ref,kind),clientName:c.name||'',sessionId:session?String(session.id):'',ordinal,sessionDate:session?.date||'',requestId:ref.requestId||'',paymentId:ref.paymentId||'',name,type:record[k+'FileType']||'application/octet-stream',date,filename:(date||'undated')+'_'+(kind==='issued'?'Мой чек':'Чек клиента')+'_'+String(id)+ext});
+        }
+      }
+      for(const session of sessions)collect(session.payment,{kind:'session',sessionId:String(session.id)},session);
+      for(const r of c.requests||[])for(const pay of r.payment?.payments||[])collect(pay,{kind:'request',requestId:String(r.id),paymentId:String(pay.id)},sessions.find(s=>String(s.id)===String(pay.sessionId||'')));
+    }
+    return out;
+  }
+  async function syncReceiptFiles(data,adapter){
+    const store=files();if(!store)throw Error('Файловое хранилище недоступно.');
+    let count=0;const missing=[];
+    for(const entry of receiptEntries(data)){
+      let local=await store.get(entry.id);
+      if(local&&(String(local.clientId)!==entry.clientId||String(local.sessionId)!==entry.scope))throw Error('Конфликт идентификатора чека.');
+      let remote=await adapter.find(entry);
+      if(local?.blob){
+        if(!remote)await adapter.write(entry,local.blob);
+      }else if(remote){
+        const blob=await adapter.read(entry,remote);
+        if(!blob?.size)throw Error('Резервная копия чека пуста.');
+        await store.put({id:entry.id,clientId:entry.clientId,sessionId:entry.scope,name:entry.name,type:entry.type,blob,size:blob.size},{overwrite:true,source:'receipt-backup-restore'});
+      }else{missing.push(entry.id);continue;}
+      count++;
+    }
+    return {count,missing};
+  }
+  async function recoverReceipt(ref,record){
+    const data={clients:[currentClient()]};
+    const entry=receiptEntries(data).find(x=>x.id===String(record.id));
+    if(!entry)return null;
+    for(const backend of [window.DiagnostikaReceiptDisk,window.DiagnostikaReceiptDrive]){
+      try{await backend?.sync?.(data);const file=await files()?.get(record.id);if(file?.blob)return file;}catch(_){}
+    }
+    return null;
+  }
   async function openFile(ref,download=false,kind='client'){
     const record=itemOf(ref,kind);
     if(!record.id)throw Error('Файл чека не прикреплён.');
-    const file=await files()?.get(record.id);
+    const file=await files()?.get(record.id)||await recoverReceipt(ref,record);
     if(!file?.blob||String(file.clientId)!==String(ref.clientId)||String(file.sessionId)!==scope(ref,kind))
-      throw Error('Файл чека отсутствует на этом компьютере. Проверь устройство, на котором он был добавлен.');
+      throw Error('Чек не найден в браузере и доступных резервных копиях. Проверь подключение папки и Google Drive.');
     if(!download){return showViewer(file.blob,file.name||record.name,file.type||record.type);}
     const url=URL.createObjectURL(file.blob),a=document.createElement('a');
     a.href=url;a.rel='noopener noreferrer';
@@ -257,7 +306,7 @@
     controls.append(fileLabel,file,paste,urlLabel,input,saveUrl);
     const status=document.createElement('div');status.className='payment-receipt-status';status.setAttribute('role','status');
     const warning=document.createElement('div');warning.className='payment-receipt-local-warning';
-    warning.textContent='Файлы хранятся локально в этом браузере. Для передачи чека другому человеку нужна доступная HTTPS-ссылка; локальный файл не имеет публичной ссылки. Ссылка сохраняется в базе.';
+    warning.textContent='Чеки сохраняются в браузере и копируются в подключённую папку и Google Drive при синхронизации. До успешной синхронизации файл может быть только в браузере. Ссылки сохраняются в базе.';
     panel.append(head,tabs,description,actions,controls,status,warning);dlg.appendChild(panel);document.body.appendChild(dlg);
     const refresh=()=>{
       const row=itemOf(ref,kind),hasFile=!!row.id,hasUrl=!!row.url;
@@ -300,7 +349,7 @@
     dlg.addEventListener('close',()=>dlg.remove(),{once:true});
     refresh();dlg.showModal();paste.focus();return dlg;
   }
-  window.DiagnostikaPaymentReceipts=Object.freeze({
+  window.DiagnostikaPaymentReceipts=Object.freeze({receiptEntries,syncReceiptFiles,
     requestRef,sessionRef,resolve,mount,open,putFile,putLink,erase,itemOf,validateFile,validateUrl
   });
 })();
