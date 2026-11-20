@@ -169,7 +169,7 @@
     };
 
     let test=null;
-    try{test=await fetchJson(TEST_URL,payload);}catch(_){test=null;}
+    if(location.hostname!=='zabvenye.com')try{test=await fetchJson(TEST_URL,payload);}catch(_){test=null;}
     if(test?.response?.ok){
       const text=replyText(test.data);
       if(text)return text;
@@ -181,9 +181,9 @@
     if([404,405,409,410].includes(prod.response.status)){
       throw new Error('Отдельный workflow «Гипотеза» ещё не включён в n8n.');
     }
-    if(!prod.response.ok)throw new Error(`Гипотеза AI: HTTP ${prod.response.status}`);
+    if(!prod.response.ok)throw new Error(prod.data?.error||`Гипотеза AI: HTTP ${prod.response.status}`);
 
-    const text=replyText(prod.data);
+    const text=location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.detailed()&&prod.data?.shortHypothesis?String(prod.data.shortHypothesis):replyText(prod.data);
     if(!text)throw new Error('AI не вернул текст гипотезы.');
     return text;
   }
