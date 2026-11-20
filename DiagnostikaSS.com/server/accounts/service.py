@@ -15,7 +15,7 @@ FEATURES=("clients","sessions","ai","export","calendar","drive")
 DEFAULT={"clients":None,"sessions":None,"ai":True,"export":True,"calendar":True,"drive":True}
 @contextmanager
 def db():
-    con=sqlite3.connect(DB,timeout=5); con.row_factory=sqlite3.Row
+    con=sqlite3.connect(DB,timeout=5); con.row_factory=sqlite3.Row; con.create_function("casefold",1,lambda v: str(v or "").casefold(),deterministic=True)
     try:
         with con: yield con
     finally: con.close()
@@ -35,7 +35,11 @@ def allocate_id(c,owner,kind,preferred=None):
             c.execute("INSERT INTO public_ids VALUES(?,?,?)",(number,owner,kind)); return number
         except sqlite3.IntegrityError:
             if preferred: preferred=None
-    raise RuntimeError("Public ID allocation exhausted")
+    # Near exhaustion, select a free slot rather than failing by chance.
+    free=c.execute("SELECT printf('%06d',n) FROM (SELECT 1 AS n UNION ALL SELECT CAST(number AS INTEGER)+1 FROM public_ids WHERE CAST(number AS INTEGER)<999999) q WHERE NOT EXISTS(SELECT 1 FROM public_ids WHERE number=printf('%06d',q.n)) LIMIT 1").fetchone()
+    if not free: raise RuntimeError("Public ID allocation exhausted")
+    c.execute("INSERT INTO public_ids VALUES(?,?,?)",(free[0],owner,kind))
+    return free[0]
 with db() as c:
     c.execute("BEGIN IMMEDIATE")
     c.execute("CREATE TABLE IF NOT EXISTS public_ids(number TEXT PRIMARY KEY,owner TEXT NOT NULL,kind TEXT NOT NULL,UNIQUE(owner,kind))")
@@ -44,7 +48,7 @@ with db() as c:
         if name not in cols: c.execute("ALTER TABLE users ADD COLUMN "+name+" "+typ)
     if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
         c.execute("ALTER TABLE audit ADD COLUMN details TEXT NOT NULL DEFAULT '{}'")
-    for u in c.execute("SELECT id,role FROM users").fetchall():
+    for u in c.execute("SELECT id,role FROM users ORDER BY CASE WHEN role='admin' THEN 0 ELSE 1 END").fetchall():
         if u["role"]=="admin": allocate_id(c,u["id"],"admin","777777")
         allocate_id(c,u["id"],"specialist","888888" if u["role"]=="admin" else None)
     c.execute("UPDATE users SET last_seen=(SELECT MAX(created) FROM audit WHERE actor=users.id AND action IN ('login','registered')) WHERE last_seen IS NULL")
@@ -181,10 +185,10 @@ class Handler(BaseHTTPRequestHandler):
                     where=["1=1"]; args=[]
                     search=param("q")
                     if search:
-                        where.append("(instr(lower(u.email),lower(?))>0 OR instr(lower(u.first_name || ' ' || u.last_name),lower(?))>0 OR EXISTS(SELECT 1 FROM public_ids p WHERE p.owner=u.id AND instr(p.number,?)>0))"); args.extend([search]*3)
+                        where.append("(instr(casefold(u.email),casefold(?))>0 OR instr(casefold(u.first_name || ' ' || u.last_name),casefold(?))>0 OR EXISTS(SELECT 1 FROM public_ids p WHERE p.owner=u.id AND instr(p.number,?)>0))"); args.extend([search]*3)
                     for k in ("gender","email"):
                         if param(k):
-                            where.append("u."+k+"=?" if k=="gender" else "instr(lower(u.email),lower(?))>0"); args.append(param(k))
+                            where.append("u."+k+"=?" if k=="gender" else "instr(casefold(u.email),casefold(?))>0"); args.append(param(k))
                     if param("status") in ("active","blocked","deleted"):
                         where.append({"active":"u.enabled=1 AND u.deleted=0","blocked":"u.enabled=0 AND u.deleted=0","deleted":"u.deleted=1"}[param("status")])
                     for k,col,op in (("created_from","created",">="),("created_to","created","<"),("seen_from","last_seen",">="),("seen_to","last_seen","<")):
