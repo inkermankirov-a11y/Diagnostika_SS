@@ -46,7 +46,7 @@ with db() as c:
     c.execute("BEGIN IMMEDIATE")
     c.execute("CREATE TABLE IF NOT EXISTS public_ids(number TEXT PRIMARY KEY,owner TEXT NOT NULL,kind TEXT NOT NULL,UNIQUE(owner,kind))")
     cols={r[1] for r in c.execute("PRAGMA table_info(users)")}
-    for name,typ in (("first_name","TEXT NOT NULL DEFAULT ''"),("last_name","TEXT NOT NULL DEFAULT ''"),("gender","TEXT NOT NULL DEFAULT ''"),("last_seen","INTEGER"),("deleted","INTEGER NOT NULL DEFAULT 0"),("birth_date","TEXT NOT NULL DEFAULT ''"),("country","TEXT NOT NULL DEFAULT ''"),("city","TEXT NOT NULL DEFAULT ''"),("timezone","TEXT NOT NULL DEFAULT ''")):
+    for name,typ in (("first_name","TEXT NOT NULL DEFAULT ''"),("last_name","TEXT NOT NULL DEFAULT ''"),("gender","TEXT NOT NULL DEFAULT ''"),("last_seen","INTEGER"),("deleted","INTEGER NOT NULL DEFAULT 0"),("birth_date","TEXT NOT NULL DEFAULT ''"),("country","TEXT NOT NULL DEFAULT ''"),("city","TEXT NOT NULL DEFAULT ''"),("timezone","TEXT NOT NULL DEFAULT ''"),("onboarding_required","INTEGER NOT NULL DEFAULT 0")):
         if name not in cols: c.execute("ALTER TABLE users ADD COLUMN "+name+" "+typ)
     if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
         c.execute("ALTER TABLE audit ADD COLUMN details TEXT NOT NULL DEFAULT '{}'")
@@ -83,7 +83,7 @@ def valid_email(e): return isinstance(e,str) and len(e)<=254 and bool(re.fullmat
 def valid_password(p): return isinstance(p,str) and 12<=len(p)<=128 and len(p.encode())<=512
 def public(c,u):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u: return {"email":uid}
@@ -187,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
             # Traefik/nginx forward an opaque session cookie; no public data is returned.
             if path=="/account/api/workspace-auth":
                 with db() as c:
-                    u=c.execute("SELECT 1 FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0",(digest(self.token()),int(time.time()))).fetchone()
+                    u=c.execute("SELECT 1 FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0 AND u.onboarding_required=0",(digest(self.token()),int(time.time()))).fetchone()
                 return self.reply(200 if u else 401,{"ok":bool(u)})
 
             if path=="/account/api/cities":
@@ -251,9 +251,9 @@ class Handler(BaseHTTPRequestHandler):
                         c.execute("BEGIN IMMEDIATE")
                         inv=c.execute("SELECT * FROM invites WHERE token=? AND email=? AND expires>?",(digest(tok),e,int(time.time()))).fetchone()
                         if not inv or c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(400,"Недействительное приглашение")
-                        first,last,gender,birth,country,city,tz=profile(b)
+                        if b.get("password_repeat")!=p: raise Error(400,"Пароли не совпадают")
                         uid=create_user(c,e,p,"specialist")
-                        c.execute("UPDATE users SET first_name=?,last_name=?,gender=?,birth_date=?,country=?,city=?,timezone=?,last_seen=? WHERE id=?",(first,last,gender,birth,country,city,tz,int(time.time()),uid))
+                        c.execute("UPDATE users SET onboarding_required=1,last_seen=? WHERE id=?",(int(time.time()),uid))
                         c.execute("DELETE FROM invites WHERE token=?",(digest(tok),)); audit(c,uid,"registered",uid)
                         u=c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone()
                     else:
@@ -272,7 +272,19 @@ class Handler(BaseHTTPRequestHandler):
                 c.execute("DELETE FROM sessions WHERE token=?",(digest(self.token()),))
                 audit(c,u["id"],"logout",u["id"])
                 return self.reply(200,{"ok":True},"__Host-zabvenye_account=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")
-            if path=="/account/api/profile":
+            if path=="/account/api/onboarding":
+                first=b.get("first_name",""); last=b.get("last_name",""); birth=b.get("birth_date","")
+                if not all(isinstance(v,str) for v in (first,last,birth)) or not 1<=len(first.strip())<=80 or not 1<=len(last.strip())<=80: raise Error(400,"Укажите имя и фамилию")
+                try:
+                    born=date.fromisoformat(birth)
+                    if born.isoformat()!=birth or born.year<1900 or born>datetime.now(timezone.utc).date()+timedelta(days=1): raise ValueError()
+                except ValueError: raise Error(400,"Проверьте дату рождения")
+                if not u["onboarding_required"]: raise Error(409,"Первичная настройка уже завершена")
+                c.execute("UPDATE users SET first_name=?,last_name=?,birth_date=?,onboarding_required=0 WHERE id=?",(first.strip(),last.strip(),birth,u["id"]))
+                audit(c,u["id"],"onboarding",u["id"])
+                payload={"ok":True}
+            elif path=="/account/api/profile":
+                if u["onboarding_required"]: raise Error(403,"Сначала завершите первичную настройку")
                 first,last,gender,birth,country,city,tz=profile(b)
                 changes={k:{"from":u[k],"to":v} for k,v in (("first_name",first),("last_name",last),("gender",gender),("birth_date",birth),("country",country),("city",city),("timezone",tz)) if u[k]!=v}
                 c.execute("UPDATE users SET first_name=?,last_name=?,gender=?,birth_date=?,country=?,city=?,timezone=? WHERE id=?",(first,last,gender,birth,country,city,tz,u["id"]))
@@ -288,7 +300,8 @@ class Handler(BaseHTTPRequestHandler):
             elif path=="/account/api/admin/invite":
                 e=b.get("email")
                 if not valid_email(e): raise Error(400,"Некорректный email")
-                e=e.lower(); t=secrets.token_urlsafe(32)
+                e=e.strip().lower(); t=secrets.token_urlsafe(32)
+                if c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует")
                 c.execute("DELETE FROM invites WHERE email=? OR expires<=?",(e,int(time.time())))
                 c.execute("INSERT INTO invites VALUES(?,?,?)",(digest(t),e,int(time.time())+86400)); audit(c,u["id"],"invite",e)
                 payload={"invite":t}
