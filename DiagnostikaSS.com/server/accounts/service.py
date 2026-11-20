@@ -25,6 +25,36 @@ with db() as c:
     CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,actor TEXT,action TEXT,target TEXT,created INTEGER);
     CREATE TABLE IF NOT EXISTS invites(token TEXT PRIMARY KEY,email TEXT NOT NULL,expires INTEGER NOT NULL);
     """)
+# Public IDs are independent of internal authentication identifiers.
+def allocate_id(c,owner,kind,preferred=None):
+    old=c.execute("SELECT number FROM public_ids WHERE owner=? AND kind=?",(owner,kind)).fetchone()
+    if old: return old[0]
+    for _ in range(10000):
+        number=preferred or f"{secrets.randbelow(999999)+1:06d}"
+        try:
+            c.execute("INSERT INTO public_ids VALUES(?,?,?)",(number,owner,kind)); return number
+        except sqlite3.IntegrityError:
+            if preferred: preferred=None
+    raise RuntimeError("Public ID allocation exhausted")
+with db() as c:
+    c.execute("BEGIN IMMEDIATE")
+    c.execute("CREATE TABLE IF NOT EXISTS public_ids(number TEXT PRIMARY KEY,owner TEXT NOT NULL,kind TEXT NOT NULL,UNIQUE(owner,kind))")
+    cols={r[1] for r in c.execute("PRAGMA table_info(users)")}
+    for name,typ in (("first_name","TEXT NOT NULL DEFAULT ''"),("last_name","TEXT NOT NULL DEFAULT ''"),("gender","TEXT NOT NULL DEFAULT ''"),("last_seen","INTEGER"),("deleted","INTEGER NOT NULL DEFAULT 0")):
+        if name not in cols: c.execute("ALTER TABLE users ADD COLUMN "+name+" "+typ)
+    if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
+        c.execute("ALTER TABLE audit ADD COLUMN details TEXT NOT NULL DEFAULT '{}'")
+    for u in c.execute("SELECT id,role FROM users").fetchall():
+        if u["role"]=="admin": allocate_id(c,u["id"],"admin","777777")
+        allocate_id(c,u["id"],"specialist","888888" if u["role"]=="admin" else None)
+    c.execute("UPDATE users SET last_seen=(SELECT MAX(created) FROM audit WHERE actor=users.id AND action IN ('login','registered')) WHERE last_seen IS NULL")
+def profile(b):
+    first=b.get("first_name",""); last=b.get("last_name",""); gender=b.get("gender","")
+    if not isinstance(first,str) or not isinstance(last,str) or not 1<=len(first.strip())<=80 or not 1<=len(last.strip())<=80 or gender not in ("male","female"):
+        raise Error(400,"Укажите имя, фамилию и пол")
+    return first.strip(),last.strip(),gender
+def ids(c,uid):
+    return {r["kind"]:r["number"] for r in c.execute("SELECT kind,number FROM public_ids WHERE owner=?",(uid,))}
 def digest(s): return hashlib.sha256(s.encode()).hexdigest()
 def password_hash(p):
     salt=secrets.token_hex(16)
@@ -36,11 +66,30 @@ def password_ok(p,stored):
     return hmac.compare_digest(val.hex(),expected)
 def valid_email(e): return isinstance(e,str) and len(e)<=254 and bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+",e))
 def valid_password(p): return isinstance(p,str) and 12<=len(p)<=128 and len(p.encode())<=512
-def public(u): return {"id":u["id"],"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"created":u["created"]}
-def audit(c,actor,action,target): c.execute("INSERT INTO audit(actor,action,target,created) VALUES(?,?,?,?)",(actor,action,target,int(time.time())))
+def public(u):
+    with db() as c: nums=ids(c,u["id"])
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
+def snapshot(c,uid):
+    u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
+    if not u: return {"email":uid}
+    nums=ids(c,uid)
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),**dict(u)}
+def audit_rows(c,offset):
+    out=[]
+    for r in c.execute("SELECT * FROM audit ORDER BY id DESC LIMIT 100 OFFSET ?",(offset,)):
+        d=dict(r); d["details"]=json.loads(d["details"])
+        d["actor"]=d["details"].get("actor",snapshot(c,r["actor"]))
+        d["target"]=d["details"].get("target",snapshot(c,r["target"]))
+        out.append(d)
+    return out
+def audit(c,actor,action,target,changes=None):
+    d={"actor":snapshot(c,actor),"target":snapshot(c,target),"changes":changes or {}}
+    c.execute("INSERT INTO audit(actor,action,target,created,details) VALUES(?,?,?,?,?)",(actor,action,target,int(time.time()),json.dumps(d,ensure_ascii=False)))
 def create_user(c,e,p,role):
     ident=secrets.token_hex(16)
-    c.execute("INSERT INTO users VALUES(?,?,?,?,?,?,?)",(ident,e,password_hash(p),role,1,json.dumps(DEFAULT),int(time.time())))
+    c.execute("INSERT INTO users(id,email,password,role,enabled,limits,created) VALUES(?,?,?,?,?,?,?)",(ident,e,password_hash(p),role,1,json.dumps(DEFAULT),int(time.time())))
+    if role=="admin": allocate_id(c,ident,"admin","777777")
+    allocate_id(c,ident,"specialist","888888" if role=="admin" else None)
     return ident
 if len(sys.argv)>1 and sys.argv[1]=="admin":
     email=input("Admin email: ").strip().lower(); p=getpass.getpass("Password (12+ characters): ")
@@ -100,9 +149,12 @@ class Handler(BaseHTTPRequestHandler):
         except Exception: return ""
     def user(self,c,admin=False):
         t=self.token()
-        u=c.execute("SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1",(digest(t),int(time.time()))).fetchone()
+        u=c.execute("SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0",(digest(t),int(time.time()))).fetchone()
         if not u: raise Error(401,"Войдите в аккаунт")
         if admin and u["role"]!="admin": raise Error(403,"Нет доступа")
+        now=int(time.time())
+        if not u["last_seen"] or now-u["last_seen"]>=60:
+            c.execute("UPDATE users SET last_seen=? WHERE id=?",(now,u["id"]))
         return u
     def issue(self,c,u):
         t=secrets.token_urlsafe(32); now=int(time.time())
@@ -120,8 +172,31 @@ class Handler(BaseHTTPRequestHandler):
             with db() as c:
                 u=self.user(c,path.startswith("/account/api/admin/"))
                 if path=="/account/api/me": return self.reply(200,public(u))
-                if path=="/account/api/admin/users": return self.reply(200,[public(x) for x in c.execute("SELECT * FROM users ORDER BY created DESC LIMIT 500")])
-                if path=="/account/api/admin/audit": return self.reply(200,[dict(x) for x in c.execute("SELECT actor,action,target,created FROM audit ORDER BY id DESC LIMIT 100")])
+                q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                def param(k): return q.get(k,[""])[0][:254]
+                try: offset=max(0,min(1000000,int(param("offset") or "0")))
+                except ValueError: raise Error(400,"Некорректная страница")
+                if path=="/account/api/admin/users":
+                    where=["1=1"]; args=[]
+                    search=param("q")
+                    if search:
+                        where.append("(instr(lower(u.email),lower(?))>0 OR instr(lower(u.first_name || ' ' || u.last_name),lower(?))>0 OR EXISTS(SELECT 1 FROM public_ids p WHERE p.owner=u.id AND instr(p.number,?)>0))"); args.extend([search]*3)
+                    for k in ("gender","email"):
+                        if param(k):
+                            where.append("u."+k+"=?" if k=="gender" else "instr(lower(u.email),lower(?))>0"); args.append(param(k))
+                    if param("status") in ("active","blocked","deleted"):
+                        where.append({"active":"u.enabled=1 AND u.deleted=0","blocked":"u.enabled=0 AND u.deleted=0","deleted":"u.deleted=1"}[param("status")])
+                    for k,col,op in (("created_from","created",">="),("created_to","created","<"),("seen_from","last_seen",">="),("seen_to","last_seen","<")):
+                        if param(k):
+                            try: value=int(param(k))
+                            except ValueError: raise Error(400,"Некорректная дата")
+                            where.append("u."+col+op+"?"); args.append(value)
+                    clause=" AND ".join(where)
+                    total=c.execute("SELECT count(*) FROM users u WHERE "+clause,args).fetchone()[0]
+                    rows=c.execute("SELECT u.* FROM users u JOIN public_ids p ON u.id=p.owner AND p.kind='specialist' WHERE "+clause+" ORDER BY p.number LIMIT 50 OFFSET ?",args+[offset]).fetchall()
+                    return self.reply(200,{"items":[public(x) for x in rows],"total":total})
+                if path=="/account/api/admin/audit":
+                    return self.reply(200,{"items":audit_rows(c,offset),"total":c.execute("SELECT count(*) FROM audit").fetchone()[0]})
             raise Error(404,"Не найдено")
         b=self.body()
         if path in ("/account/api/login","/account/api/register"):
@@ -140,14 +215,18 @@ class Handler(BaseHTTPRequestHandler):
                         c.execute("BEGIN IMMEDIATE")
                         inv=c.execute("SELECT * FROM invites WHERE token=? AND email=? AND expires>?",(digest(tok),e,int(time.time()))).fetchone()
                         if not inv or c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(400,"Недействительное приглашение")
-                        uid=create_user(c,e,p,"specialist"); c.execute("DELETE FROM invites WHERE token=?",(digest(tok),)); audit(c,uid,"registered",uid)
+                        first,last,gender=profile(b)
+                        uid=create_user(c,e,p,"specialist")
+                        c.execute("UPDATE users SET first_name=?,last_name=?,gender=?,last_seen=? WHERE id=?",(first,last,gender,int(time.time()),uid))
+                        c.execute("DELETE FROM invites WHERE token=?",(digest(tok),)); audit(c,uid,"registered",uid)
                         u=c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone()
                     else:
                         u=c.execute("SELECT * FROM users WHERE email=?",(e,)).fetchone()
                         ok=password_ok(p,u["password"] if u else DUMMY)
                         if not ok or not u or not u["enabled"]: raise Error(401,"Неверные данные или аккаунт недоступен")
-                        audit(c,u["id"],"login",u["id"])
-                    cookie=self.issue(c,u); payload=public(u)
+                        c.execute("UPDATE users SET last_seen=? WHERE id=?",(int(time.time()),u["id"])); audit(c,u["id"],"login",u["id"])
+                    cookie=self.issue(c,u); uid=u["id"]
+                with db() as c: payload=public(c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone())
                 return self.reply(200,payload,cookie)
             finally: HASH_SLOT.release()
         with db() as c:
@@ -155,7 +234,20 @@ class Handler(BaseHTTPRequestHandler):
             if path=="/account/api/logout":
                 c.execute("DELETE FROM sessions WHERE token=?",(digest(self.token()),))
                 return self.reply(200,{"ok":True},"__Host-zabvenye_account=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")
-            if path=="/account/api/admin/invite":
+            if path=="/account/api/profile":
+                first,last,gender=profile(b)
+                changes={k:{"from":u[k],"to":v} for k,v in (("first_name",first),("last_name",last),("gender",gender)) if u[k]!=v}
+                c.execute("UPDATE users SET first_name=?,last_name=?,gender=? WHERE id=?",(first,last,gender,u["id"]))
+                if changes: audit(c,u["id"],"profile",u["id"],changes)
+                payload={"ok":True}
+            elif path=="/account/api/admin/delete":
+                target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(b.get("id"),)).fetchone()
+                if not target: raise Error(404,"Специалист не найден")
+                c.execute("UPDATE users SET deleted=1,enabled=0 WHERE id=?",(target["id"],))
+                c.execute("DELETE FROM sessions WHERE user_id=?",(target["id"],))
+                audit(c,u["id"],"delete",target["id"],{"deleted":{"from":False,"to":True}})
+                payload={"ok":True}
+            elif path=="/account/api/admin/invite":
                 e=b.get("email")
                 if not valid_email(e): raise Error(400,"Некорректный email")
                 e=e.lower(); t=secrets.token_urlsafe(32)
@@ -169,11 +261,15 @@ class Handler(BaseHTTPRequestHandler):
                     if k in ("clients","sessions"):
                         if v is not None and (type(v) is not int or not 0<=v<=1000000): raise Error(400,"Некорректный лимит")
                     elif type(v) is not bool: raise Error(400,"Некорректный переключатель")
-                target=c.execute("SELECT * FROM users WHERE id=? AND role='specialist'",(uid,)).fetchone()
+                target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(uid,)).fetchone()
                 if not target: raise Error(404,"Специалист не найден")
+                uid=target["id"]
+                old=json.loads(target["limits"]); changes={k:{"from":old[k],"to":v} for k,v in limits.items() if old[k]!=v}
+                if bool(target["enabled"])!=enabled: changes["enabled"]={"from":bool(target["enabled"]),"to":enabled}
                 c.execute("UPDATE users SET enabled=?,limits=? WHERE id=?",(int(enabled),json.dumps(limits),uid))
                 if not enabled: c.execute("DELETE FROM sessions WHERE user_id=?",(uid,))
-                audit(c,u["id"],"update-access",uid); payload={"ok":True}
+                if changes: audit(c,u["id"],"update-access",uid,changes)
+                payload={"ok":True}
             else: raise Error(404,"Не найдено")
         return self.reply(200,payload)
     def do_GET(self): self.run()
