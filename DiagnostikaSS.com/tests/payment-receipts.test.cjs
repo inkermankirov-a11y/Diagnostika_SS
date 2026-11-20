@@ -64,6 +64,7 @@ function makeHarness(){
       files.set(entry.id,entry);return entry;
     },
     async get(id){return files.get(id)||null;},
+    async put(record){files.set(record.id,record);return record;},
     async remove(id){
       removed.push(id);files.delete(id);
       return true;
@@ -224,4 +225,27 @@ test('issued link does not overwrite original receipt URL',async()=>{
   await h.api.putLink(ref,'https://example.test/issued','issued');
   assert.equal(h.api.itemOf(ref).url,'https://example.test/client');
   assert.equal(h.api.itemOf(ref,'issued').url,'https://example.test/issued');
+});
+
+test('both receipt binaries are mirrored and restored with their original IDs',async()=>{
+  const h=makeHarness(),session=h.client.sessions[1];
+  session.date='2026-11-26';
+  const ref=h.api.sessionRef(h.client,session,h.client.requests[0]);
+  await h.api.putFile(ref,new FakeBlob(120,'image/png','client.png'),'client');
+  await h.api.putFile(ref,new FakeBlob(90,'application/pdf','issued.pdf'),'issued');
+  const data={clients:[h.client]},backup=new Map();
+  const adapter={find:async e=>backup.has(e.id)?e.id:null,write:async(e,blob)=>backup.set(e.id,blob),read:async(e,id)=>backup.get(id)};
+  const first=await h.api.syncReceiptFiles(data,adapter);
+  assert.equal(first.count,2);assert.equal(first.missing.length,0);
+  const entries=h.api.receiptEntries(data);
+  assert(entries.some(e=>e.filename.includes('Чек клиента')));
+  assert(entries.some(e=>e.filename.includes('Мой чек')));
+  assert(entries.every(e=>e.sessionId===session.id));
+  h.files.clear();
+  const restored=await h.api.syncReceiptFiles(data,adapter);
+  assert.equal(restored.count,2);assert.equal(h.files.size,2);
+  for(const e of entries)assert.equal(h.files.get(e.id).sessionId,e.scope);
+  h.files.clear();backup.clear();
+  const missing=await h.api.syncReceiptFiles(data,adapter);
+  assert.equal(missing.missing.length,2);
 });
