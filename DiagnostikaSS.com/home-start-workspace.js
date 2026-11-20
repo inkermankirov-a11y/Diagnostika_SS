@@ -95,6 +95,7 @@
     '</div>'
   ].join('');
 
+  if(/^(www\.)?zabvenye\.com$/i.test(location.hostname))home.querySelector('.hws-transfer-notice')?.remove();
   const rail=document.createElement('div');
   rail.className='hd-home-only hws-rail';
   rail.innerHTML=[
