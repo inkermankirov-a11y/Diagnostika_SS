@@ -12,9 +12,11 @@ ORIGIN=os.getenv("ACCOUNT_ORIGIN","https://zabvenye.com").rstrip("/")
 SITE=os.getenv("TURNSTILE_SITE_KEY","")
 SECRET=os.getenv("TURNSTILE_SECRET_KEY","")
 DB=DATA/"accounts.sqlite3"
-FEATURES=("clients","sessions","ai","export","calendar","drive")
+AI_AREAS=("chat","session","hypothesis","diagnosis")
+FEATURES=("clients","sessions","ai","export","calendar","drive","ai_daily","ai_detailed")+tuple("ai_"+a for a in AI_AREAS)
 VALID_ZONES=set(["UTC","Etc/UTC","Etc/GMT","Asia/Kolkata","Europe/Kyiv","Africa/Abidjan","Africa/Accra","Africa/Addis_Ababa","Africa/Algiers","Africa/Asmera","Africa/Bamako","Africa/Bangui","Africa/Banjul","Africa/Bissau","Africa/Blantyre","Africa/Brazzaville","Africa/Bujumbura","Africa/Cairo","Africa/Casablanca","Africa/Ceuta","Africa/Conakry","Africa/Dakar","Africa/Dar_es_Salaam","Africa/Djibouti","Africa/Douala","Africa/El_Aaiun","Africa/Freetown","Africa/Gaborone","Africa/Harare","Africa/Johannesburg","Africa/Juba","Africa/Kampala","Africa/Khartoum","Africa/Kigali","Africa/Kinshasa","Africa/Lagos","Africa/Libreville","Africa/Lome","Africa/Luanda","Africa/Lubumbashi","Africa/Lusaka","Africa/Malabo","Africa/Maputo","Africa/Maseru","Africa/Mbabane","Africa/Mogadishu","Africa/Monrovia","Africa/Nairobi","Africa/Ndjamena","Africa/Niamey","Africa/Nouakchott","Africa/Ouagadougou","Africa/Porto-Novo","Africa/Sao_Tome","Africa/Tripoli","Africa/Tunis","Africa/Windhoek","America/Adak","America/Anchorage","America/Anguilla","America/Antigua","America/Araguaina","America/Argentina/La_Rioja","America/Argentina/Rio_Gallegos","America/Argentina/Salta","America/Argentina/San_Juan","America/Argentina/San_Luis","America/Argentina/Tucuman","America/Argentina/Ushuaia","America/Aruba","America/Asuncion","America/Bahia","America/Bahia_Banderas","America/Barbados","America/Belem","America/Belize","America/Blanc-Sablon","America/Boa_Vista","America/Bogota","America/Boise","America/Buenos_Aires","America/Cambridge_Bay","America/Campo_Grande","America/Cancun","America/Caracas","America/Catamarca","America/Cayenne","America/Cayman","America/Chicago","America/Chihuahua","America/Ciudad_Juarez","America/Coral_Harbour","America/Cordoba","America/Costa_Rica","America/Coyhaique","America/Creston","America/Cuiaba","America/Curacao","America/Danmarkshavn","America/Dawson","America/Dawson_Creek","America/Denver","America/Detroit","America/Dominica","America/Edmonton","America/Eirunepe","America/El_Salvador","America/Fort_Nelson","America/Fortaleza","America/Glace_Bay","America/Godthab","America/Goose_Bay","America/Grand_Turk","America/Grenada","America/Guadeloupe","America/Guatemala","America/Guayaquil","America/Guyana","America/Halifax","America/Havana","America/Hermosillo","America/Indiana/Knox","America/Indiana/Marengo","America/Indiana/Petersburg","America/Indiana/Tell_City","America/Indiana/Vevay","America/Indiana/Vincennes","America/Indiana/Winamac","America/Indianapolis","America/Inuvik","America/Iqaluit","America/Jamaica","America/Jujuy","America/Juneau","America/Kentucky/Monticello","America/Kralendijk","America/La_Paz","America/Lima","America/Los_Angeles","America/Louisville","America/Lower_Princes","America/Maceio","America/Managua","America/Manaus","America/Marigot","America/Martinique","America/Matamoros","America/Mazatlan","America/Mendoza","America/Menominee","America/Merida","America/Metlakatla","America/Mexico_City","America/Miquelon","America/Moncton","America/Monterrey","America/Montevideo","America/Montserrat","America/Nassau","America/New_York","America/Nome","America/Noronha","America/North_Dakota/Beulah","America/North_Dakota/Center","America/North_Dakota/New_Salem","America/Ojinaga","America/Panama","America/Paramaribo","America/Phoenix","America/Port-au-Prince","America/Port_of_Spain","America/Porto_Velho","America/Puerto_Rico","America/Punta_Arenas","America/Rankin_Inlet","America/Recife","America/Regina","America/Resolute","America/Rio_Branco","America/Santarem","America/Santiago","America/Santo_Domingo","America/Sao_Paulo","America/Scoresbysund","America/Sitka","America/St_Barthelemy","America/St_Johns","America/St_Kitts","America/St_Lucia","America/St_Thomas","America/St_Vincent","America/Swift_Current","America/Tegucigalpa","America/Thule","America/Tijuana","America/Toronto","America/Tortola","America/Vancouver","America/Whitehorse","America/Winnipeg","America/Yakutat","Antarctica/Casey","Antarctica/Davis","Antarctica/DumontDUrville","Antarctica/Macquarie","Antarctica/Mawson","Antarctica/McMurdo","Antarctica/Palmer","Antarctica/Rothera","Antarctica/Syowa","Antarctica/Troll","Antarctica/Vostok","Arctic/Longyearbyen","Asia/Aden","Asia/Almaty","Asia/Amman","Asia/Anadyr","Asia/Aqtau","Asia/Aqtobe","Asia/Ashgabat","Asia/Atyrau","Asia/Baghdad","Asia/Bahrain","Asia/Baku","Asia/Bangkok","Asia/Barnaul","Asia/Beirut","Asia/Bishkek","Asia/Brunei","Asia/Calcutta","Asia/Chita","Asia/Colombo","Asia/Damascus","Asia/Dhaka","Asia/Dili","Asia/Dubai","Asia/Dushanbe","Asia/Famagusta","Asia/Gaza","Asia/Hebron","Asia/Hong_Kong","Asia/Hovd","Asia/Irkutsk","Asia/Jakarta","Asia/Jayapura","Asia/Jerusalem","Asia/Kabul","Asia/Kamchatka","Asia/Karachi","Asia/Katmandu","Asia/Khandyga","Asia/Krasnoyarsk","Asia/Kuala_Lumpur","Asia/Kuching","Asia/Kuwait","Asia/Macau","Asia/Magadan","Asia/Makassar","Asia/Manila","Asia/Muscat","Asia/Nicosia","Asia/Novokuznetsk","Asia/Novosibirsk","Asia/Omsk","Asia/Oral","Asia/Phnom_Penh","Asia/Pontianak","Asia/Pyongyang","Asia/Qatar","Asia/Qostanay","Asia/Qyzylorda","Asia/Rangoon","Asia/Riyadh","Asia/Saigon","Asia/Sakhalin","Asia/Samarkand","Asia/Seoul","Asia/Shanghai","Asia/Singapore","Asia/Srednekolymsk","Asia/Taipei","Asia/Tashkent","Asia/Tbilisi","Asia/Tehran","Asia/Thimphu","Asia/Tokyo","Asia/Tomsk","Asia/Ulaanbaatar","Asia/Urumqi","Asia/Ust-Nera","Asia/Vientiane","Asia/Vladivostok","Asia/Yakutsk","Asia/Yekaterinburg","Asia/Yerevan","Atlantic/Azores","Atlantic/Bermuda","Atlantic/Canary","Atlantic/Cape_Verde","Atlantic/Faeroe","Atlantic/Madeira","Atlantic/Reykjavik","Atlantic/South_Georgia","Atlantic/St_Helena","Atlantic/Stanley","Australia/Adelaide","Australia/Brisbane","Australia/Broken_Hill","Australia/Darwin","Australia/Eucla","Australia/Hobart","Australia/Lindeman","Australia/Lord_Howe","Australia/Melbourne","Australia/Perth","Australia/Sydney","Europe/Amsterdam","Europe/Andorra","Europe/Astrakhan","Europe/Athens","Europe/Belgrade","Europe/Berlin","Europe/Bratislava","Europe/Brussels","Europe/Bucharest","Europe/Budapest","Europe/Busingen","Europe/Chisinau","Europe/Copenhagen","Europe/Dublin","Europe/Gibraltar","Europe/Guernsey","Europe/Helsinki","Europe/Isle_of_Man","Europe/Istanbul","Europe/Jersey","Europe/Kaliningrad","Europe/Kiev","Europe/Kirov","Europe/Lisbon","Europe/Ljubljana","Europe/London","Europe/Luxembourg","Europe/Madrid","Europe/Malta","Europe/Mariehamn","Europe/Minsk","Europe/Monaco","Europe/Moscow","Europe/Oslo","Europe/Paris","Europe/Podgorica","Europe/Prague","Europe/Riga","Europe/Rome","Europe/Samara","Europe/San_Marino","Europe/Sarajevo","Europe/Saratov","Europe/Simferopol","Europe/Skopje","Europe/Sofia","Europe/Stockholm","Europe/Tallinn","Europe/Tirane","Europe/Ulyanovsk","Europe/Vaduz","Europe/Vatican","Europe/Vienna","Europe/Vilnius","Europe/Volgograd","Europe/Warsaw","Europe/Zagreb","Europe/Zurich","Indian/Antananarivo","Indian/Chagos","Indian/Christmas","Indian/Cocos","Indian/Comoro","Indian/Kerguelen","Indian/Mahe","Indian/Maldives","Indian/Mauritius","Indian/Mayotte","Indian/Reunion","Pacific/Apia","Pacific/Auckland","Pacific/Bougainville","Pacific/Chatham","Pacific/Easter","Pacific/Efate","Pacific/Enderbury","Pacific/Fakaofo","Pacific/Fiji","Pacific/Funafuti","Pacific/Galapagos","Pacific/Gambier","Pacific/Guadalcanal","Pacific/Guam","Pacific/Honolulu","Pacific/Kiritimati","Pacific/Kosrae","Pacific/Kwajalein","Pacific/Majuro","Pacific/Marquesas","Pacific/Midway","Pacific/Nauru","Pacific/Niue","Pacific/Norfolk","Pacific/Noumea","Pacific/Pago_Pago","Pacific/Palau","Pacific/Pitcairn","Pacific/Ponape","Pacific/Port_Moresby","Pacific/Rarotonga","Pacific/Saipan","Pacific/Tahiti","Pacific/Tarawa","Pacific/Tongatapu","Pacific/Truk","Pacific/Wake","Pacific/Wallis"])
-DEFAULT={"clients":None,"sessions":None,"ai":True,"export":True,"calendar":True,"drive":True}
+DEFAULT={"clients":10,"sessions":None,"ai":True,"export":True,"calendar":True,"drive":True,"ai_daily":10,"ai_detailed":False,**{"ai_"+a:None for a in AI_AREAS}}
+ADMIN_DEFAULT={**DEFAULT,"clients":None,"ai_daily":None,"ai_detailed":True}
 @contextmanager
 def db():
     con=sqlite3.connect(DB,timeout=5); con.row_factory=sqlite3.Row; con.create_function("casefold",1,lambda v: str(v or "").casefold(),deterministic=True)
@@ -26,6 +28,7 @@ with db() as c:
     CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT NOT NULL,expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,actor TEXT,action TEXT,target TEXT,created INTEGER);
     CREATE TABLE IF NOT EXISTS invites(token TEXT PRIMARY KEY,email TEXT NOT NULL,expires INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS ai_usage(user_id TEXT NOT NULL,day TEXT NOT NULL,area TEXT NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(user_id,day,area));
     """)
 # Public IDs are independent of internal authentication identifiers.
 def allocate_id(c,owner,kind,preferred=None):
@@ -45,6 +48,13 @@ def allocate_id(c,owner,kind,preferred=None):
 with db() as c:
     c.execute("BEGIN IMMEDIATE")
     c.execute("CREATE TABLE IF NOT EXISTS public_ids(number TEXT PRIMARY KEY,owner TEXT NOT NULL,kind TEXT NOT NULL,UNIQUE(owner,kind))")
+    for row in c.execute("SELECT id,role,limits FROM users").fetchall():
+        old=json.loads(row["limits"])
+        if "ai_daily" not in old:
+            defaults=ADMIN_DEFAULT if row["role"]=="admin" else DEFAULT
+            limits={**defaults,**old}
+            if row["role"]!="admin" and limits["clients"] is None: limits["clients"]=10
+            c.execute("UPDATE users SET limits=? WHERE id=?",(json.dumps(limits),row["id"]))
     cols={r[1] for r in c.execute("PRAGMA table_info(users)")}
     for name,typ in (("first_name","TEXT NOT NULL DEFAULT ''"),("last_name","TEXT NOT NULL DEFAULT ''"),("gender","TEXT NOT NULL DEFAULT ''"),("last_seen","INTEGER"),("deleted","INTEGER NOT NULL DEFAULT 0"),("birth_date","TEXT NOT NULL DEFAULT ''"),("country","TEXT NOT NULL DEFAULT ''"),("city","TEXT NOT NULL DEFAULT ''"),("timezone","TEXT NOT NULL DEFAULT ''"),("onboarding_required","INTEGER NOT NULL DEFAULT 0")):
         if name not in cols: c.execute("ALTER TABLE users ADD COLUMN "+name+" "+typ)
@@ -87,9 +97,15 @@ def password_ok(p,stored):
     return hmac.compare_digest(val.hex(),expected)
 def valid_email(e): return isinstance(e,str) and len(e)<=254 and bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+",e))
 def valid_password(p): return isinstance(p,str) and 12<=len(p)<=128 and len(p.encode())<=512
+def usage(c,u):
+    day=datetime.now(timezone.utc).date().isoformat()
+    areas={a:0 for a in AI_AREAS}
+    for row in c.execute("SELECT area,count FROM ai_usage WHERE user_id=? AND day=?",(u["id"],day)):
+        if row["area"] in areas: areas[row["area"]]=row["count"]
+    return {"day":day,"total":sum(areas.values()),"areas":areas,"reset":"00:00 UTC"}
 def public(c,u):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u: return {"email":uid}
@@ -126,7 +142,7 @@ def audit(c,actor,action,target,changes=None):
     c.execute("INSERT INTO audit(actor,action,target,created,details) VALUES(?,?,?,?,?)",(actor,action,target,int(time.time()),json.dumps(d,ensure_ascii=False)))
 def create_user(c,e,p,role):
     ident=secrets.token_hex(16)
-    c.execute("INSERT INTO users(id,email,password,role,enabled,limits,created) VALUES(?,?,?,?,?,?,?)",(ident,e,password_hash(p),role,1,json.dumps(DEFAULT),int(time.time())))
+    c.execute("INSERT INTO users(id,email,password,role,enabled,limits,created) VALUES(?,?,?,?,?,?,?)",(ident,e,password_hash(p),role,1,json.dumps(ADMIN_DEFAULT if role=="admin" else DEFAULT),int(time.time())))
     if role=="admin": allocate_id(c,ident,"admin","777777")
     allocate_id(c,ident,"specialist","888888" if role=="admin" else None)
     return ident
@@ -269,6 +285,7 @@ class Handler(BaseHTTPRequestHandler):
                 if path=="/account/api/admin/audit":
                     return self.reply(200,{"items":audit_rows(c,offset),"total":c.execute("SELECT count(*) FROM audit").fetchone()[0]})
             raise Error(404,"Не найдено")
+        if path.startswith("/account/api/ai/"): return self.ai_proxy(path.rsplit("/",1)[-1])
         b=self.body()
         if path in ("/account/api/login","/account/api/register"):
             e=b.get("email"); p=b.get("password")
@@ -354,7 +371,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=b.get("id"); limits=b.get("limits"); enabled=b.get("enabled")
                 if not isinstance(uid,str) or type(enabled) is not bool or not isinstance(limits,dict) or set(limits)!=set(FEATURES): raise Error(400,"Некорректные параметры")
                 for k,v in limits.items():
-                    if k in ("clients","sessions"):
+                    if k in ("clients","sessions","ai_daily") or k in tuple("ai_"+a for a in AI_AREAS):
                         if v is not None and (type(v) is not int or not 0<=v<=1000000): raise Error(400,"Некорректный лимит")
                     elif type(v) is not bool: raise Error(400,"Некорректный переключатель")
                 target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(uid,)).fetchone()
@@ -368,6 +385,48 @@ class Handler(BaseHTTPRequestHandler):
                 payload={"ok":True}
             else: raise Error(404,"Не найдено")
         return self.reply(200,payload)
+    def ai_proxy(self,area):
+        endpoints={"chat":"diagnostika-client-chat-v1","session":"diagnostika-client-chat-v1","hypothesis":"diagnostika-hypothesis-v1","diagnosis":"diagnostika-ai-request-v2"}
+        if area not in endpoints or self.headers.get("Origin")!=ORIGIN: raise Error(403,"Недопустимый запрос")
+        ct=self.headers.get("Content-Type","")
+        if not (ct.startswith("application/json") or area=="diagnosis" and ct.startswith("multipart/form-data;")): raise Error(415,"Неверный формат")
+        try: n=int(self.headers.get("Content-Length","0"))
+        except ValueError: raise Error(400,"Некорректный запрос")
+        if not 0<n<=2000000: raise Error(413,"Запрос слишком большой")
+        raw=self.rfile.read(n)
+        with db() as c:
+            c.execute("BEGIN IMMEDIATE")
+            u=self.user(c)
+            if u["onboarding_required"]: raise Error(403,"Завершите настройку профиля")
+            limits=json.loads(u["limits"]); stat=usage(c,u)
+            if not limits["ai"]: raise Error(403,"AI-инструменты отключены")
+            cap=limits["ai_daily"]; sub=limits["ai_"+area]
+            if cap is not None and stat["total"]>=cap: raise Error(429,"Суточный лимит AI исчерпан. Обновление в 00:00 UTC.")
+            if sub is not None and stat["areas"][area]>=sub: raise Error(429,"Лимит этого раздела исчерпан.")
+            if ct.startswith("application/json"):
+                try:
+                    data=json.loads(raw)
+                    if not isinstance(data,dict): raise ValueError()
+                except ValueError: raise Error(400,"Некорректный JSON")
+                if not limits["ai_detailed"]:
+                    for k in ("mode","responseMode","answerMode"):
+                        if data.get(k) in ("deep","detailed","long","full"): raise Error(403,"Подробные ответы отключены")
+                    if isinstance(data.get("message"),str): data["message"]="Ответь кратко, не более 6 коротких пунктов. "+data["message"]
+                raw=json.dumps(data,ensure_ascii=False).encode()
+            c.execute("INSERT INTO ai_usage(user_id,day,area,count) VALUES(?,?,?,1) ON CONFLICT(user_id,day,area) DO UPDATE SET count=count+1",(u["id"],stat["day"],area))
+        # Count dispatched attempts, including upstream failures; never hold SQLite lock during network I/O.
+        req=urllib.request.Request("https://lugovoyn8n.ru/webhook/"+endpoints[area],data=raw,headers={"Content-Type":ct},method="POST")
+        try:
+            with urllib.request.urlopen(req,timeout=100) as res:
+                result=res.read(2000001)
+                if len(result)>2000000: raise Error(502,"Ответ AI слишком большой")
+                code=res.status
+        except urllib.error.HTTPError as e:
+            raise Error(502,"AI-сервис вернул ошибку")
+        except (OSError,TimeoutError): raise Error(502,"AI-сервис недоступен")
+        try: parsed=json.loads(result)
+        except ValueError: return self.reply(code,result,ctype="text/plain")
+        return self.reply(code,parsed)
     def do_GET(self): self.run()
     def do_POST(self): self.run()
     def run(self):
