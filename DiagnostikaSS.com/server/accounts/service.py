@@ -358,11 +358,13 @@ class Handler(BaseHTTPRequestHandler):
         b=self.body()
         if path in ("/account/api/login","/account/api/register"):
             e=b.get("email"); p=b.get("password")
-            if not valid_email(e) or not valid_password(p): raise Error(400,"Проверьте email и пароль (12–128 символов)")
+            if not valid_email(e): raise Error(400,"Введите корректный email.")
+            if not valid_password(p): raise Error(400,"Пароль должен содержать от 12 до 128 символов.")
+            if path.endswith("/register") and b.get("password_repeat")!=p: raise Error(400,"Пароли не совпадают")
             e=e.strip().lower()
             # Global cap plus per-account cap; do not trust caller-provided forwarding headers.
             if not allowed("global-login",40,60) or not allowed("account:"+digest(e),8,900): raise Error(429,"Слишком много попыток. Повторите позже.")
-            if not captcha(b.get("captcha")): raise Error(403,"Проверка CAPTCHA не пройдена или не настроена")
+            if not captcha(b.get("captcha")): raise Error(403,"Проверка безопасности не подтверждена сервером. Пройдите её ещё раз и нажмите кнопку продолжения.")
             if not HASH_SLOT.acquire(False): raise Error(429,"Сервис занят. Повторите попытку.")
             try:
                 with db() as c:
@@ -370,9 +372,16 @@ class Handler(BaseHTTPRequestHandler):
                         tok=b.get("invite","")
                         if not isinstance(tok,str) or not 1<=len(tok.strip())<=128: raise Error(400,"Недействительное приглашение")
                         c.execute("BEGIN IMMEDIATE")
-                        inv=c.execute("SELECT * FROM invites WHERE token=? AND (email=? OR email='') AND (expires=0 OR expires>?) AND used_at IS NULL AND revoked_at IS NULL",(digest(tok.strip()),e,int(time.time()))).fetchone()
-                        if not inv or c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(400,"Недействительное приглашение")
-                        if b.get("password_repeat")!=p: raise Error(400,"Пароли не совпадают")
+                        inv=c.execute("SELECT * FROM invites WHERE token=?",(digest(tok.strip()),)).fetchone()
+                        if not inv: raise Error(400,"Код приглашения не найден. Проверьте его целиком.")
+                        if inv["email"] and inv["email"]!=e: raise Error(400,"Код приглашения выдан для другой электронной почты.")
+                        if inv["used_at"] is not None:
+                            owner=c.execute("SELECT email FROM users WHERE id=?",(inv["used_by"],)).fetchone()
+                            if owner and owner["email"]==e: raise Error(409,"Этот код уже активирован. Войдите в аккаунт с указанным email и паролем, чтобы продолжить.")
+                            raise Error(409,"Код приглашения уже использован. Обратитесь к администратору.")
+                        if inv["revoked_at"] is not None: raise Error(409,"Код приглашения отозван. Обратитесь к администратору.")
+                        if inv["expires"] and inv["expires"]<=int(time.time()): raise Error(409,"Срок активации кода истёк. Запросите новый код у администратора.")
+                        if c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует. Войдите в него или обратитесь к администратору.")
                         uid=create_user(c,e,p,"specialist")
                         c.execute("UPDATE users SET onboarding_required=1,last_seen=? WHERE id=?",(int(time.time()),uid))
                         c.execute("UPDATE invites SET used_at=?,used_by=? WHERE token=?",(int(time.time()),uid,inv["token"])); audit(c,uid,"registered",uid,{"invitation":{"from":None,"to":inv["preview"]}})
