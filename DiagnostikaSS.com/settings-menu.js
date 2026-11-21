@@ -138,7 +138,7 @@
     if(!clientBase.closest('#hdClientBaseSlot'))titleGroup.appendChild(clientBase);
   }
 
-  const moveIds=['storageBtn','testFillBtn','exportTxtBtn','vaultBackupBtn'];
+  const moveIds=['storageBtn','testFillBtn','exportTxtBtn'];
   moveIds.forEach(id=>{
     const el=document.getElementById(id);
     if(el){
