@@ -5,7 +5,7 @@
 
   const MAX_DIGITS=12;
   const stripSpaces=value=>String(value??'').replace(/[\s\u00A0\u202F]/g,'');
-  let freshResult=false;
+  let freshResult=false,lastScreen=null;
 
   function groupNumberToken(token){
     const match=String(token).match(/^(\d+)([.,]\d*)?$/);
@@ -30,12 +30,13 @@
     if(len>15)size=30;
     if(len>22)size=24;
     if(len>30)size=18;
-    screen.style.fontSize=size+'px';
+    if(screen.style.fontSize!==size+'px')screen.style.fontSize=size+'px';
   }
 
   function syncScreen(){
     const screen=document.querySelector('.currency-calculator-direct .ccd-screen');
-    if(!screen) return false;
+    if(!screen){lastScreen=null;freshResult=false;return false;}
+    if(lastScreen!==screen){lastScreen=screen;freshResult=false;}
     const formatted=formatExpression(screen.value);
     if(screen.value!==formatted) screen.value=formatted;
     fitScreen(screen);
@@ -101,9 +102,13 @@
     if(e.target?.matches?.('.currency-calculator-direct .ccd-screen')) syncScreen();
   },true);
 
-  const observer=new MutationObserver(()=>syncScreen());
-  observer.observe(document.body,{childList:true,subtree:true});
-
+  // The calculator calls refresh on mount. Key and input handlers cover
+  // value changes; no full-document mutation observer is necessary.
+  document.addEventListener('keydown',e=>{
+    if(e.target?.matches?.('.currency-calculator-direct .ccd-screen')&&['Enter','Escape'].includes(e.key)){
+      queueMicrotask(()=>{freshResult=e.key==='Enter';syncScreen();});
+    }
+  });
   window.addEventListener('resize',()=>syncScreen());
   setTimeout(syncScreen,0);
   window.DiagnostikaCalculatorDigitGrouping={refresh:syncScreen,format:formatExpression,maxDigits:MAX_DIGITS};

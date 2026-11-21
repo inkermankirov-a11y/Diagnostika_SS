@@ -24,8 +24,8 @@
   const about=()=>load('about-program.js?v=20261121-perf4',()=>!!window.DiagnostikaAboutProgram);
   async function calculator(){
     // The digit guard must be registered before any calculator key is usable.
-    await load('calculator-digit-grouping.js?v=20260913-102',()=>!!window.DiagnostikaCalculatorDigitGrouping);
-    await load('currency-calculator-direct.js?v=20261121-perf4',()=>!!window.DiagnostikaDirectCalculator);
+    await load('calculator-digit-grouping.js?v=20261121-perf6',()=>!!window.DiagnostikaCalculatorDigitGrouping);
+    await load('currency-calculator-direct.js?v=20261121-perf6',()=>!!window.DiagnostikaDirectCalculator);
     window.DiagnostikaDirectCalculator.refresh();
     window.DiagnostikaCalculatorDigitGrouping.refresh();
   }
