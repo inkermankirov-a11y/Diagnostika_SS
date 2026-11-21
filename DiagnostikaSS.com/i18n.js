@@ -3,8 +3,8 @@
 (() => {
   const KEY='diagnostika-ui-language';
   const LANGS={
-    en:{flag:'🇬🇧',code:'EN',name:'English'},
     ru:{flag:'🇷🇺',code:'RU',name:'Русский'},
+    en:{flag:'🇬🇧',code:'EN',name:'English'},
     fr:{flag:'🇫🇷',code:'FR',name:'Français'},
     de:{flag:'🇩🇪',code:'DE',name:'Deutsch'},
     it:{flag:'🇮🇹',code:'IT',name:'Italiano'}
@@ -25,8 +25,8 @@
     }
   };
 
-  let current=localStorage.getItem(KEY)||'en';
-  if(!LANGS[current]) current='en';
+  let current=localStorage.getItem(KEY)||'ru';
+  if(!LANGS[current]) current='ru';
 
   const sourceText=new WeakMap();
   const sourcePlaceholder=new WeakMap();
@@ -102,7 +102,7 @@
     option.type='button'; option.className='language-option'; option.dataset.lang=key;
     option.innerHTML=`<span>${meta.flag}</span><strong>${meta.code}</strong><span>${meta.name}</span>`;
     option.onclick=()=>{
-      current=key;localStorage.setItem(KEY,current);menu.classList.remove('open');applyLanguage();
+      setLanguage(key);menu.classList.remove('open');
     };
     menu.appendChild(option);
   });
@@ -129,6 +129,7 @@
   });
   observer.observe(document.body,{childList:true,subtree:true});
 
-  window.DiagnostikaI18n={get language(){return current;},setLanguage(lang){if(LANGS[lang]){current=lang;localStorage.setItem(KEY,lang);applyLanguage();}},translate:tr};
+  function setLanguage(lang,options={}){if(!LANGS[lang])return;const changed=current!==lang;current=lang;localStorage.setItem(KEY,lang);applyLanguage();if(changed&&options.persist!==false)window.dispatchEvent(new CustomEvent('diagnostika:language-changed',{detail:{language:lang}}));}
+  window.DiagnostikaI18n={get language(){return current;},setLanguage,translate:tr};
   applyLanguage();
 })();
