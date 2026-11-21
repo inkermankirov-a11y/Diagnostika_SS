@@ -36,9 +36,11 @@
  }
  function same(a,b){return canonical(a.state)===canonical(b.state)&&canonical(a.files)===canonical(b.files)}
  function empty(pkg){if(pkg.files.length||pkg.state.archivedClients?.length||pkg.state.deletedClients?.length)return false;if(Object.entries(pkg.state).some(([k,v])=>!['version','clients','archivedClients','deletedClients','deletedClientTombstones'].includes(k)&&v!==null&&v!==undefined&&v!==''&&!(Array.isArray(v)&&!v.length)&&!(typeof v==='object'&&!Object.keys(v).length)))return false;return pkg.state.clients.every(c=>['','Новый клиент'].includes(c.name||'')&&!(c.sessions||[]).length&&!(c.requests||[]).length&&Object.keys(c).every(k=>['id','name','sessions','requests','photoCrop','ageAuto'].includes(k)||c[k]===''||c[k]==null));}
- async function write(dir,pkg,secret,expected=null){
+ async function write(dir,pkg,secret,expected=null,recovery=undefined){
   const before=await file(dir,NAME);if(before&&expected===null)throw Error('Зашифрованная база уже существует.');if(expected!==null&&(!before||await (await before.getFile()).text()!==expected))throw Error('Файл базы изменился. Синхронизация остановлена.');
-  const raw=await cryptoApi().seal(pkg,secret,'backup');
+  let raw=await cryptoApi().seal(pkg,secret,'backup');
+  const envelope=recovery===undefined&&expected!==null?JSON.parse(expected).recovery:recovery;
+  if(envelope)raw=JSON.stringify({...JSON.parse(raw),recovery:envelope});
   if(canonical(await cryptoApi().openDatabase(raw,secret))!==canonical(pkg))throw Error('Проверка ZBV не пройдена.');
   const check=await file(dir,NAME);if(expected===null&&check||expected!==null&&(!check||await (await check.getFile()).text()!==expected))throw Error('Файл изменился во время шифрования.');
   const handle=check||await dir.getFileHandle(NAME,{create:true});
@@ -91,5 +93,47 @@
  }
  async function download(secret){const root=await savedHandle(),dir=root&&await app(root),h=await file(dir,NAME);if(!h)throw Error('Сначала зашифруйте базу.');const result=await sync(root,{secret});if(result?.reload)throw Error('Сначала обновите страницу после восстановления.');const raw=await (await h.getFile()).text();await cryptoApi().openDatabase(raw,secret);return raw;}
  async function restoreFile(raw,secret){return run(async()=>{const pkg=await cryptoApi().openDatabase(raw,secret);const current=await snapshot();if(!empty(current))throw Error('Восстановление возможно только в пустое рабочее пространство.');const root=await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку.');const dir=await app(root,true);if((await scan(dir)).rows.length)throw Error('В папке найдена старая база. Выберите пустую папку.');const existing=await file(dir,NAME);if(existing&&await (await existing.getFile()).text()!==raw)throw Error('В папке уже есть другая база.');if(!existing)await cryptoApi().writeDatabase(await dir.getFileHandle(NAME,{create:true}),raw,secret);await restore(pkg);await mark(raw,secret);return {count:pkg.state.clients.length};})}
- window.DiagnostikaFolderVault=Object.freeze({activate,sync,hasEncrypted,mustEncrypt,mode,download,restoreFile,savedHandle,keyUnlocked:()=>Boolean(key),lock:()=>{key=null}});
+ async function connected(){
+  const root=await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку.');
+  const dir=await app(root),h=await file(dir,NAME);if(!h)throw Error('Зашифрованная база не найдена.');return {root,dir,h,raw:await (await h.getFile()).text()};
+ }
+ async function verifyKey(secret){
+  const root=await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')return {state:'unavailable'};
+  const h=await file(await app(root),NAME);if(!h)return {state:'new'};
+  const raw=await (await h.getFile()).text();await cryptoApi().openDatabase(raw,secret);
+  return {state:'valid',enrolled:typeof JSON.parse(raw).recovery==='string'};
+ }
+ async function recoveryInfo(){
+  try{const {raw}=await connected();return {available:true,enrolled:typeof JSON.parse(raw).recovery==='string'}}catch{return {available:false,enrolled:false}}
+ }
+ async function recoveryRequest(license,password,mode){
+  const response=await fetch('/account/api/vault-recovery',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({license,password,mode})});
+  const value=await response.json();if(!response.ok)throw Error(value.error||'Не удалось подтвердить лицензию.');
+  if(!/^ZBV1-[A-Za-z0-9_-]{43}$/.test(value.recovery_secret||''))throw Error('Некорректный ответ сервера восстановления.');
+  return value.recovery_secret;
+ }
+ async function enrollRecovery(secret,license,password){return run(async()=>{
+  const {dir,raw}=await connected(),pkg=await cryptoApi().openDatabase(raw,secret);
+  const recovery=await recoveryRequest(license,password,'enroll');
+  const envelope=await cryptoApi().seal({secret},recovery,'backup');
+  const checked=await cryptoApi().open(envelope,recovery,'backup');if(checked.secret!==secret)throw Error('Проверка ключа восстановления не пройдена.');
+  const trusted=get(BASE)===await digest(raw);
+  const out=await write(dir,pkg,secret,raw,envelope);
+  if(trusted){await mark(out,secret)}else{set(MODE,'1');key=secret}
+  return true;
+ })}
+ async function recoverKey(license,password){return run(async()=>{
+  const {dir,raw}=await connected(),envelope=JSON.parse(raw).recovery;
+  if(typeof envelope!=='string')throw Error('Для этой базы восстановление заранее не подключено. Нужен исходный ключ.');
+  const recovery=await recoveryRequest(license,password,'recover');
+  const old=await cryptoApi().open(envelope,recovery,'backup');
+  const pkg=await cryptoApi().openDatabase(raw,old.secret);
+  const next=cryptoApi().recoveryKey(),wrapped=await cryptoApi().seal({secret:next},recovery,'backup');
+  if((await cryptoApi().open(wrapped,recovery,'backup')).secret!==next)throw Error('Проверка нового ключа не пройдена.');
+  const trusted=get(BASE)===await digest(raw);
+  const out=await write(dir,pkg,next,raw,wrapped);
+  if(trusted){await mark(out,next)}else{set(MODE,'1');key=next}
+  return next;
+ })}
+ window.DiagnostikaFolderVault=Object.freeze({activate,sync,hasEncrypted,mustEncrypt,mode,download,restoreFile,savedHandle,verifyKey,recoveryInfo,enrollRecovery,recoverKey,keyUnlocked:()=>Boolean(key),lock:()=>{key=null}});
 })();
