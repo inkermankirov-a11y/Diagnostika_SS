@@ -14,7 +14,7 @@ const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
 
 function makeBrowser(){
   const listeners={},platformListeners={},store=new Map(),fields=new Map();
-  const make=()=>({textContent:'',innerHTML:'',value:'',dataset:{},setAttribute(){},appendChild(){}});
+  const make=()=>({textContent:'',innerHTML:'',value:'',dataset:{},setAttribute(){},appendChild(){},focus(){},querySelector(){return null;}});
   const $=selector=>{
     if(!fields.has(selector))fields.set(selector,make());
     return fields.get(selector);
@@ -45,10 +45,10 @@ function makeBrowser(){
     DiagnostikaPlatform:{events:{on:(name,fn)=>platformListeners[name]=fn}},
     DiagnostikaQuickNotes:{addQuickThought:content=>(savedNotes.push(content),true),openQuickThoughts:()=>{quickOpened++;}},
     DiagnostikaCalendarUI:{open:()=>{calendarOpened++;}},
-    addEventListener(){}
+    addEventListener(){},dispatchEvent(){}
   };
   const navigator={clipboard:{writeText:async()=>{}}};
-  vm.runInNewContext(source,{window,document,localStorage,navigator,console:{warn(){},error(){}},Date,Intl});
+  vm.runInNewContext(source,{window,document,localStorage,navigator,console:{warn(){},error(){}},Date,Intl,location:{hostname:'localhost'},Event:class{constructor(type){this.type=type;}}});
   const click=(action,extra={})=>listeners.click({target:{closest:()=>({dataset:{action,...extra}})}});
   return {window,home,right,$,store,savedNotes,updateCalls,events,click,
     selected:()=>selected,calendarOpened:()=>calendarOpened,quickOpened:()=>quickOpened,platformListeners};
@@ -63,7 +63,7 @@ test('retains compact top header, two counters, and a compact event section',()=
   assert.ok(x.home.innerHTML.indexOf('Мой рабочий день')<x.home.innerHTML.indexOf('hwsMetrics'));
   assert.ok(x.home.innerHTML.indexOf('hwsMetrics')<x.home.innerHTML.indexOf('Ближайшие события'));
   assert.match(x.$('#hwsMetrics').innerHTML,/Встреч сегодня/);
-  assert.match(x.$('#hwsMetrics').innerHTML,/Ожидают внимания/);
+  assert.match(x.$('#hwsMetrics').innerHTML,/Требуют внимания/);
   assert.doesNotMatch(x.$('#hwsMetrics').innerHTML,/Активных запросов/);
   assert.equal((x.$('#hwsMetrics').innerHTML.match(/hws-metric is-/g)||[]).length,2);
   assert.doesNotMatch(x.home.innerHTML,/hws-privacy|Скрыть имена|hws-schedule-toolbar|hws-priorities|hws-resume|hws-action-row/);
@@ -195,11 +195,24 @@ test('calendar and client links remain functional',()=>{
 });
 
 test('scripts are wired only to com and use fresh cache versions',()=>{
-  assert.match(loader,/home-start-workspace\.js\?v=20261118-numbered-events-1/);
-  assert.match(loader,/home-start-workspace\.css\?v=20261109-seven-days-1/);
+  assert.match(loader,/home-start-workspace\.js\?v=20261121-mobile-1/);
+  assert.match(loader,/home-start-workspace\.css\?v=20261119-relocation-notice-1/);
   assert.match(loader,/loadHomeWorkspace\(\)/);
   assert.match(notes,/openQuickThoughts/);
   assert.match(notes,/addQuickThought/);
-  assert.match(index,/app-loader\.js\?v=20261118-numbered-events-1/);
-  assert.match(index,/quick-notes\.js\?v=20261107-quick-thoughts-tabs-2/);
+  assert.match(index,/app-loader\.js\?v=20261121-mobile-1/);
+  assert.match(index,/quick-notes\.js\?v=20261121-header52/);
+});
+
+test('attention counter opens only due incomplete reminders',()=>{
+ const x=makeBrowser();
+ const base=x.events.find(e=>e.id==='reminder');
+ x.events.push({...base,id:'done',status:'completed',title:'Already done'});
+ x.click('attention');
+ const list=x.$('#hwsAttentionList');
+ assert.equal(list.hidden,false);
+ assert.match(list.innerHTML,/Задача для Ирины Волковой/);
+ assert.doesNotMatch(list.innerHTML,/Already done/);
+ x.click('attention');
+ assert.equal(list.hidden,true);
 });

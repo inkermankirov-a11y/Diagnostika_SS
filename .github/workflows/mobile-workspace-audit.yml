@@ -1,0 +1,31 @@
+name: Mobile workspace audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'DiagnostikaSS.com/mobile-workspace.*'
+      - 'DiagnostikaSS.com/index.html'
+      - 'DiagnostikaSS.com/home-start-workspace.js'
+      - 'DiagnostikaSS.com/tests/mobile-workspace-browser.mjs'
+      - '.github/workflows/mobile-workspace-audit.yml'
+  workflow_dispatch:
+jobs:
+  mobile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --check mobile-workspace.js && node --test tests/home-workspace.test.cjs
+      - run: npm install --no-save playwright@1.55.0 && npx playwright install --with-deps chromium
+      - run: |
+          python3 -m http.server 8137 --bind 127.0.0.1 >/tmp/mobile-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 1
+          node tests/mobile-workspace-browser.mjs
