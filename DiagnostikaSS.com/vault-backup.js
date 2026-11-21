@@ -9,7 +9,7 @@
  function createUI(){
   if($('vaultDialog'))return;
   const anchor=$('storageBtn');if(!anchor)return;
-  const btn=document.createElement('button');btn.type='button';btn.className='header-btn';btn.textContent='Vault';btn.title='Зашифрованные резервные копии';anchor.after(btn);
+  const btn=document.createElement('button');btn.type='button';btn.id='vaultBackupBtn';btn.className='header-btn';btn.textContent='Vault';btn.title='Зашифрованные резервные копии';anchor.after(btn);
   const d=document.createElement('dialog');d.id='vaultDialog';d.className='storage-dialog';
   d.innerHTML='<div class="storage-shell"><div class="storage-title">ZABVENYE Vault</div><p>Зашифрованная резервная копия. Ключ храните отдельно от файла: восстановить потерянный ключ невозможно.</p><label>Ключ восстановления или пароль (от 16 символов)<input id="vaultSecret" type="password" autocomplete="off" style="width:100%"></label><div class="storage-actions-main"><button id="vaultGenerate" type="button">Создать новый случайный ключ</button><button id="vaultCopy" type="button">Скопировать ключ</button><button id="vaultSave" type="button" class="storage-primary">Скачать зашифрованную копию .zbv</button><button id="vaultRead" type="button">Восстановить из .zbv / старого JSON</button></div><input id="vaultFile" type="file" accept=".zbv,.json" hidden><p id="vaultStatus" role="status"></p><div class="storage-footer"><button id="vaultClose" type="button">Закрыть</button></div></div>';
   document.body.append(d);
