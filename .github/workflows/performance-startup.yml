@@ -1,0 +1,41 @@
+name: Performance startup baseline
+on:
+  push:
+    branches: ['performance/**']
+    paths:
+      - 'DiagnostikaSS.com/**'
+      - '.github/workflows/performance-startup.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  startup-benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Measure local application with synthetic records
+        run: |
+          set -e
+          python3 -m http.server 8149 --bind 127.0.0.1 >/tmp/zabvenye-perf.log 2>&1 &
+          SERVER=$!
+          trap 'kill "$SERVER" || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8149/index.html >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/performance-startup.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: startup-benchmark
+          path: DiagnostikaSS.com/performance-results/startup.json
+          if-no-files-found: warn
