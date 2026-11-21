@@ -308,4 +308,5 @@
   window.addEventListener('diagnostika-general-notes-changed',()=>{if(visible())$('#hwsNoteStatus').textContent='Заметки обновлены';});
   window.DiagnostikaHomeWorkspace=Object.freeze({render,thoughtCount:thoughts.length,practiceCount:practice.length});
   render();
+  window.dispatchEvent(new Event('diagnostika:home-workspace-ready'));
 })();
