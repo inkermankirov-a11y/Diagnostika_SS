@@ -40,21 +40,21 @@
     },
     {
       id:'requests',
-      service:['modules/requests/request-service.js?v=20260918-requests3d&cleanup=23c','data-requests-service'],
+      service:['modules/requests/request-service.js?v=20261121-feature-limits-1','data-requests-service'],
       module:['modules/requests/index.js?v=20260918-requests3d','data-requests-module'],
       api:['request-api.js?v=20260918-requests3d&api=13d&cleanup=23b','data-request-api'],
       ready:()=>window.DiagnostikaRequests?.moduleAware===true
     },
     {
       id:'diagnosis',
-      service:['modules/diagnosis/diagnosis-service.js?v=20260919-diagnosis7c&cleanup=23c','data-diagnosis-service'],
+      service:['modules/diagnosis/diagnosis-service.js?v=20261121-feature-limits-1','data-diagnosis-service'],
       module:['modules/diagnosis/index.js?v=20260919-diagnosis7c','data-diagnosis-module'],
       api:['diagnosis-api.js?v=20261101-open-by-status-1&api=13d','data-diagnosis-api'],
       ready:()=>window.DiagnostikaDiagnosis?.moduleAware===true
     },
     {
       id:'sessions',
-      service:['modules/sessions/session-service.js?v=20260918-sessions4c&cleanup=23c','data-sessions-service'],
+      service:['modules/sessions/session-service.js?v=20261121-feature-limits-1','data-sessions-service'],
       module:['modules/sessions/index.js?v=20260918-sessions4c','data-sessions-module'],
       api:['session-api.js?v=20260918-sessions4c&api=13d','data-session-api'],
       ready:()=>window.DiagnostikaSessions?.moduleAware===true
@@ -82,7 +82,7 @@
     },
     {
       id:'payments',
-      service:['modules/payments/payment-service.js?v=20260918-payment5d&cleanup=23c','data-payments-service'],
+      service:['modules/payments/payment-service.js?v=20261121-feature-limits-1','data-payments-service'],
       module:['modules/payments/index.js?v=20260918-payment5d','data-payments-module'],
       api:['payment-api.js?v=20260918-payment5d&api=13d','data-payment-api'],
       ready:()=>window.DiagnostikaPayments?.moduleAware===true
