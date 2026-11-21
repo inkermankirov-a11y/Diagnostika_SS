@@ -415,7 +415,15 @@
   dlg.className='storage-dialog';
   dlg.innerHTML=`
     <div class="storage-shell">
-      <div class="storage-title">ХРАНИЛИЩЕ ДАННЫХ</div>
+      <div class="storage-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">ХРАНИЛИЩЕ ДАННЫХ<button id="storageHelp" type="button" aria-label="Инструкция по хранилищу" title="Инструкция по хранилищу" aria-expanded="false" aria-controls="storageHelpContent" style="min-width:28px;height:28px;border:1px solid #a9bfd5;border-radius:50%;background:#fff;color:#304e69;font-weight:700;cursor:pointer">?</button></div>
+      <section id="storageHelpContent" hidden style="padding:12px;border:1px solid #b9cbdc;border-radius:8px;background:#f6f9fc;color:#24364a;font-size:13px;line-height:1.5">
+        <p><strong>Что это такое?</strong><br>Хранилище сохраняет базу клиентов и файлы на вашем компьютере. Google Drive не используется.</p>
+        <p><strong>Как сохранить данные?</strong><br>Выберите папку на компьютере. Нажмите «Сохранить текущую базу и файлы в папку». Для восстановления выберите папку и нажмите «Восстановить базу из папки».</p>
+        <p><strong>Зачем нужно шифрование?</strong><br>Оно защищает данные от посторонних. Сейчас зашифрованную резервную копию можно создать через Vault. Обычная локальная база пока не шифруется.</p>
+        <p><strong>Как пользоваться Vault?</strong><br>Создайте ключ или введите пароль от 16 символов. Сохраните ключ отдельно и скачайте файл .zbv. Для восстановления выберите этот файл и введите тот же ключ.</p>
+        <p><strong>Если забыли ключ?</strong><br>Сейчас восстановление ключа через администратора ещё недоступно. Без прежнего ключа зашифрованную копию открыть нельзя. Если рабочая база сохранилась, можно создать новую копию с новым ключом.</p>
+        <p><strong>В дальнейшем:</strong> обязательное шифрование и восстановление доступа по лицензионному номеру через администратора.</p>
+      </section>
       <div id="storageStatus" class="storage-status"></div><div class="local-sync-line"><span class="local-sync-dot" role="img"></span><span id="localSyncLabel" role="status"></span></div>
       <details id="localMissingReceipts" class="local-missing-receipts" hidden><summary></summary><p>Эти файлы не найдены ни в браузере, ни в выбранной папке. Записи об оплатах сохранены. При необходимости прикрепите чек заново или удалите его привязку в оплатах.</p><ul></ul></details>
       <div class="storage-info">
@@ -583,6 +591,8 @@
     await updateStatus();
   };
 
+  const helpButton=dlg.querySelector('#storageHelp'),helpContent=dlg.querySelector('#storageHelpContent');
+  helpButton.onclick=()=>{helpContent.hidden=!helpContent.hidden;helpButton.setAttribute('aria-expanded',String(!helpContent.hidden));};
   dlg.querySelector('#storageClose').onclick=()=>dlg.close();
   btn.onclick=()=>{
     if(!dlg.open)dlg.showModal();
