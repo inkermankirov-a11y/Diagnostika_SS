@@ -31,14 +31,17 @@
     panel.querySelector('summary').textContent='Отсутствующие чеки: '+missingReceipts.length+' — подробнее';
   }
   function paintSync(value){
+    const vault=window.DiagnostikaFolderVault,encrypted=location.hostname==='zabvenye.com'&&vault?.mode();
+    const message=value==='ready'&&encrypted?'Данные синхронизированы и зашифрованы':syncLabels[value];
+    const keyIcon=document.querySelector('#storageVaultKey');if(keyIcon){const good=Boolean(vault?.keyUnlocked())&&!['error','locked','offline'].includes(value);keyIcon.style.color=good?'#15803d':'#b42318';keyIcon.setAttribute('aria-label',good?'Ключ подтверждён':'Ключ не подтверждён');keyIcon.setAttribute('title',good?'Ключ подтверждён':'Ключ не подтверждён');const label=keyIcon.querySelector('span');if(label)label.textContent=good?'Ключ подтверждён':'Ключ не подтверждён';}
     if(value==='ready'&&missingReceipts.length)value='partial';
     backupState=value;if(value!=='error')syncError='';
     for(const dot of document.querySelectorAll('.local-sync-dot')){
       dot.dataset.syncState=value;
-      dot.title=syncLabels[value]+(value==='error'&&syncError?': '+syncError:'');
-      dot.setAttribute('aria-label',syncLabels[value]);
+      dot.title=message+(value==='error'&&syncError?': '+syncError:'');
+      dot.setAttribute('aria-label',message);
     }
-    const label=document.querySelector('#localSyncLabel');if(label)label.textContent=syncLabels[value]+(value==='error'&&syncError?': '+syncError:'');
+    const label=document.querySelector('#localSyncLabel');if(label)label.textContent=message+(value==='error'&&syncError?': '+syncError:'');
     showReceiptDetails();
   }
   function attachSyncDot(button){
@@ -392,7 +395,7 @@
       }catch(e){syncError=e.message||'Ошибка записи';paintSync('error');throw e;}
       finally{syncing=false;armed=false;}
     },
-    finishEncrypted(){syncing=false;armed=true;missingReceipts=[];verifiedRevision=revision;paintSync('ready');},
+    finishEncrypted(){syncing=false;armed=true;missingReceipts=[];verifiedRevision=revision;paintSync('ready');void updateStatus().catch(()=>{});},
     fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync('error');},
     folderChanged(){window.DiagnostikaFolderVault?.lock();if(syncing)throw Error('Синхронизация уже выполняется');clearTimeout(syncTimer);armed=false;rootHandle=null;appHandle=null;folderState=null;missingReceipts=[];paintSync('offline');},
     attach:attachSyncDot
@@ -476,7 +479,7 @@
       return;
     }
 
-    if(await protectedFolder()){status.className='storage-status good';status.textContent='Подключено: '+rootHandle.name+' / '+APP_DIR+' · ZBV. '+(window.DiagnostikaFolderVault?.keyUnlocked()?'Ключ введён.':'Введите ключ для синхронизации.');restoreBtn.disabled=true;exportBtn.disabled=true;disconnectBtn.disabled=false;return;}
+    if(await protectedFolder()){status.className='storage-status good';status.textContent='Подключено: '+rootHandle.name+' / '+APP_DIR+' / database.zbv';const badge=document.createElement('span');badge.id='storageVaultKey';badge.style.cssText='display:flex;align-items:center;gap:8px;margin-top:5px;font-weight:700';badge.innerHTML='<svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M11 12L21 2m-5 5 3 3m-6 0 3 3"/></svg><span></span>';status.append(badge);paintSync(backupState);restoreBtn.disabled=true;exportBtn.disabled=true;disconnectBtn.disabled=false;return;}
     folderState=await readFolderState();
     const fc=folderClientCount();
     const bc=browserClientCount();
