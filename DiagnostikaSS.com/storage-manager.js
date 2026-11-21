@@ -1,6 +1,7 @@
 'use strict';
 
 (() => {
+  if(window.DiagnostikaStorageUI)return;
   const HANDLE_DB='diagnostika-storage-handles-v1';
   const HANDLE_STORE='handles';
   const HANDLE_KEY='data-root';
@@ -421,6 +422,7 @@
   }
 
   const dlg=document.createElement('dialog');
+  dlg.id='storageDialog';
   dlg.className='storage-dialog';
   dlg.innerHTML=`
     <div class="storage-shell">
@@ -448,6 +450,27 @@
       <div class="storage-footer"><button id="storageClose" type="button">Закрыть</button></div>
     </div>`;
   document.body.appendChild(dlg);
+  // Delegate the click instead of relying on the original header node.
+  // Header recovery and settings updates may move or replace that node.
+  function openStorage(){
+    if(!dlg.open)dlg.showModal();
+    Promise.resolve().then(updateStatus).catch(error=>{
+      console.warn('Не удалось проверить состояние папки',error);
+      const status=dlg.querySelector('#storageStatus');
+      status.className='storage-status warn';
+      status.textContent='Не удалось проверить папку. Выберите папку заново или повторите попытку.';
+    });
+  }
+  window.DiagnostikaStorageUI=Object.freeze({open:openStorage});
+  document.addEventListener('click',event=>{
+    const control=event.target?.closest?.('#storageBtn');
+    if(!control)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    try{openStorage()}catch(error){
+      console.error('Не удалось открыть хранилище',error);
+      if(window.AppDialog?.alert)window.AppDialog.alert('Не удалось открыть хранилище. Повторите попытку.','Хранилище');
+    }
+  },true);
   attachSyncDot(btn);attachSyncDot(dlg.querySelector("#storageExport"));paintSync("offline");
 
   const status=dlg.querySelector('#storageStatus');
@@ -604,15 +627,7 @@
   const helpButton=dlg.querySelector('#storageHelp'),helpContent=dlg.querySelector('#storageHelpContent');
   helpButton.onclick=()=>{helpContent.hidden=!helpContent.hidden;helpButton.setAttribute('aria-expanded',String(!helpContent.hidden));};
   dlg.querySelector('#storageClose').onclick=()=>dlg.close();
-  btn.onclick=()=>{
-    if(!dlg.open)dlg.showModal();
-    Promise.resolve().then(updateStatus).catch(error=>{
-      console.warn('Не удалось проверить состояние папки',error);
-      status.className='storage-status warn';
-      status.textContent='Не удалось проверить папку. Выберите папку заново или повторите попытку.';
-      restoreBtn.disabled=true;exportBtn.disabled=true;disconnectBtn.disabled=!rootHandle;
-    });
-  };
+  btn.onclick=null;
   dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
 
   const originalSave=save;

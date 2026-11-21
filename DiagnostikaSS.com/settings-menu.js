@@ -299,14 +299,17 @@
 })();
 
 (() => {
-  if(document.querySelector('script[data-storage-simple-sync]')) return;
+  // The storage modules are loaded by index.html. Do not load older
+  // duplicate scripts when opening/recovering settings.
+  const hasScript=name=>Array.from(document.scripts).some(s=>s.src&&new URL(s.src,location.href).pathname.endsWith('/'+name));
+  if(hasScript('storage-simple-sync.js'))return;
   const s=document.createElement('script');
-  s.src='storage-simple-sync.js?v=20261005-client-archive-1';
+  s.src='storage-simple-sync.js?v=20261121-storage-open-1';
   s.dataset.storageSimpleSync='1';
   s.onload=()=>{
-    if(document.querySelector('script[data-storage-folder-controls]')) return;
+    if(hasScript('storage-folder-controls.js'))return;
     const f=document.createElement('script');
-    f.src='storage-folder-controls.js';
+    f.src='storage-folder-controls.js?v=20261121-storage-open-1';
     f.dataset.storageFolderControls='1';
     document.body.appendChild(f);
   };

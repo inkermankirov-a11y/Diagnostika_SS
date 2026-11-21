@@ -1,6 +1,8 @@
 'use strict';
 
 (() => {
+  if(window.__zabvenyeSimpleSyncInstalled)return;
+  window.__zabvenyeSimpleSyncInstalled=true;
   if(window.__localSimpleSyncReady)return;window.__localSimpleSyncReady=true;
   const HANDLE_DB='diagnostika-storage-handles-v1';
   const HANDLE_STORE='handles';
@@ -489,7 +491,7 @@
   }
 
   function simplifyDialog(){
-    const dlg=document.querySelector('.storage-dialog');
+    const dlg=document.getElementById('storageDialog')||document.querySelector('.storage-dialog');
     if(!dlg||dlg.dataset.simpleSync==='1')return;
     dlg.dataset.simpleSync='1';
 

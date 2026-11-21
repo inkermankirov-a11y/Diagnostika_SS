@@ -56,7 +56,7 @@
   }
 
   function install(){
-    const actions=document.querySelector('.storage-dialog .storage-actions-main');
+    const actions=document.querySelector('#storageDialog .storage-actions-main')||document.querySelector('.storage-dialog .storage-actions-main');
     const sync=actions?.querySelector('#storageSync');
     if(!actions || !sync || actions.querySelector('#storageChangeFolder')) return;
 
