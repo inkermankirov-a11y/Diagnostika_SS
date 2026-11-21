@@ -31,9 +31,22 @@ for(const [engine,launcher] of Object.entries(engines)){
   for(const scenario of scenarios.filter(s=>s.engines.includes(engine))){
    for(let i=0;i<rounds;i++){
     const context=await browser.newContext({viewport:scenario.viewport,hasTouch:!!scenario.touch,deviceScaleFactor:scenario.touch?2:1,locale:'ru-RU',timezoneId:'Europe/Moscow'});
-    const page=await context.newPage();let errors=[],failed=[];
+    const page=await context.newPage();let errors=[],failed=[];const pending=new Set();
     page.on('pageerror',e=>errors.push(e.message));
-    page.on('requestfailed',req=>{if(req.url().startsWith(origin+'/'))failed.push(new URL(req.url()).pathname);});
+    const local=req=>req.url().startsWith(origin+'/');
+    page.on('request',req=>{if(local(req))pending.add(req);});
+    page.on('requestfinished',req=>pending.delete(req));
+    page.on('requestfailed',req=>{pending.delete(req);if(local(req))failed.push(new URL(req.url()).pathname+': '+req.failure()?.errorText);});
+    page.on('response',res=>{if(local(res.request())&&res.status()>=400)failed.push(new URL(res.url()).pathname+': HTTP '+res.status());});
+    async function settleLocal(){
+      const deadline=Date.now()+15000;let quietSince=null;
+      while(Date.now()<deadline){
+        if(!pending.size){quietSince??=Date.now();if(Date.now()-quietSince>=300)return;}
+        else quietSince=null;
+        await new Promise(r=>setTimeout(r,50));
+      }
+      throw Error('Local requests did not settle: '+[...pending].map(r=>new URL(r.url()).pathname).join(', '));
+    }
     // Keep this isolated from all real accounts and databases. No API credentials.
     await page.addInitScript(({data,origin})=>{
       if(location.origin!==origin)return;
@@ -59,11 +72,20 @@ for(const [engine,launcher] of Object.entries(engines)){
         const paints=performance.getEntriesByType('paint');
         const bytes=key=>entries.reduce((sum,e)=>sum+(e[key]||0),0);
         const app=document.querySelector('.home-dashboard');
-        return {ready:document.documentElement.classList.contains('diagnostika-dashboard-ready'),readyMs:window.__perfReadyMs,ttfbMs:nav?.responseStart??null,domContentLoadedMs:nav?.domContentLoadedEventEnd??null,firstContentfulPaintMs:paints.find(p=>p.name==='first-contentful-paint')?.startTime??null,localResourceCount:entries.length,localTransferBytes:bytes('transferSize'),localDecodedBytes:bytes('decodedBodySize'),dashboardVisible:!!app&&!!app.getClientRects().length,clientCount:window.DiagnostikaClients?.list?.()?.length??null};
+        return {ready:document.documentElement.classList.contains('diagnostika-dashboard-ready'),readyMs:window.__perfReadyMs,ttfbMs:nav?.responseStart??null,domContentLoadedMs:nav?.domContentLoadedEventEnd??null,firstContentfulPaintMs:paints.find(p=>p.name==='first-contentful-paint')?.startTime??null,localResourceCount:entries.length,localTransferBytes:bytes('transferSize'),localDecodedBytes:bytes('decodedBodySize'),dashboardVisible:!!app&&!!app.getClientRects().length,clientCount:window.DiagnostikaClients?.list?.()?.length??null,clientIds:window.DiagnostikaClients?.list?.()?.map(c=>String(c.id)).sort()??[],emptySeedName:window.DiagnostikaClients?.list?.()?.[0]?.name??null};
        }));
       }catch(e){result.ready=false;result.failure=String(e.message).slice(0,700);}
-      result.fixtureCorrect=result.clientCount===scenario.count;
+      // Existing app explicitly creates a single blank client when the input database is empty.
+      const expected=fixture(scenario.count).clients.map(c=>c.id).sort();
+      result.fixtureCorrect=scenario.count===0?result.clientCount===1&&result.emptySeedName==='Новый клиент':result.clientCount===scenario.count&&JSON.stringify(result.clientIds)===JSON.stringify(expected);
       try{await page.waitForFunction(()=>window.DiagnostikaRuntimeGate?.status==='ready'||['error','unhealthy'].includes(window.DiagnostikaRuntimeGate?.status),null,{timeout:15000});result.runtimeStatus=await page.evaluate(()=>window.DiagnostikaRuntimeGate?.status);}catch{result.runtimeStatus='timeout';}
+      // Measure readiness above; wait for the remaining form scripts before reloading or
+      // closing the page, so the test itself does not abort their network requests.
+      try{
+        await page.waitForFunction(()=>!!(window.DiagnostikaForms&&window.DiagnostikaQuestionnaires&&window.DiagnostikaIntegrationLock&&window.__formIntegrationsInboxFixReady&&window.__formIntegrationsCopyFixReady),null,{timeout:15000});
+        result.formsReady=true;await settleLocal();
+      }catch(e){result.formsReady=false;result.settleError=String(e.message).slice(0,700);}
+      delete result.clientIds;
       result.pageErrors=[...new Set(errors)];result.failedLocalRequests=[...new Set(failed)];results.push(result);
       console.log(JSON.stringify(result));
      }
@@ -79,4 +101,4 @@ const summary=Object.fromEntries(Object.entries(groups).map(([k,v])=>[k,{readyRu
 const report={commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),target,inventory:inventory(),summary,results};
 mkdirSync('performance-results',{recursive:true});writeFileSync('performance-results/startup-'+label+'.json',JSON.stringify(report,null,2)+'\n');
 console.log('PERFORMANCE_BASELINE',JSON.stringify(summary));
-if(results.some(r=>!r.ready||!r.dashboardVisible||!r.fixtureCorrect||r.runtimeStatus!=='ready'||r.pageErrors.length||r.failedLocalRequests.length))process.exitCode=1;
+if(results.some(r=>!r.ready||!r.dashboardVisible||!r.fixtureCorrect||!r.formsReady||r.runtimeStatus!=='ready'||r.pageErrors.length||r.failedLocalRequests.length))process.exitCode=1;

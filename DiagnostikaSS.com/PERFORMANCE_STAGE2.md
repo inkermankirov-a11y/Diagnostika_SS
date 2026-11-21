@@ -1,0 +1,7 @@
+# Stage 2 follow-up
+
+First comparison of original and candidate: all 72 launches showed the dashboard and passed the runtime contract, without uncaught page errors. The comparison job failed because the empty fixture expects zero clients although the existing app creates one blank client automatically; the test also reloads or closes the page while optional form scripts are still downloading. Both behaviors were observed for the original as well as candidate. The benchmark now verifies the existing empty-state behavior, exact client IDs for the 100-client fixture, form module readiness, local HTTP errors, and that local requests settle before navigation. No production assertion is removed. Runtime implementation remains unchanged from the stage 2 candidate.
+
+Preliminary cold median (40ms artificial request latency, 100 clients): Chromium desktop 1574ms → 1394ms; Firefox desktop 1693ms → 1441ms; WebKit desktop 1602ms → 1359ms; Chromium mobile 1619ms → 1411ms; WebKit mobile 1759ms → 1553ms. These are lab figures from the failed comparison, not an approved release. Main remains untouched until validated. Warm runs vary, especially first-run cache behavior.
+
+Stage 3 must restrict caching/compression to public static assets; never cache authenticated account responses or client records. Actual production reverse proxy configuration is not in this repository and must be inspected before applying any server changes.
