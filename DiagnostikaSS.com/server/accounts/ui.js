@@ -53,7 +53,7 @@ $('refreshAudit').onclick=()=>go(loadAudit);
 $('copyInvite').onclick=async()=>{try{await navigator.clipboard.writeText($('inviteCode').dataset.code||'');msg('Код скопирован.')}catch(e){msg('Выделите и скопируйте код вручную.')}};
 $('profile').onsubmit=async e=>{e.preventDefault();try{await api('profile',profileData(e.target));show(await api('me'));msg('Профиль сохранён.')}catch(e){msg(e.message)}};
 function query(){const p=new URLSearchParams();for(const [k,v] of new FormData($('filters'))){if(!v)continue;if(k.endsWith('_from')||k.endsWith('_to')){const d=new Date(v+'T00:00:00');if(k.endsWith('_to'))d.setDate(d.getDate()+1);p.set(k,String(Math.floor(d.getTime()/1000)))}else p.set(k,v.trim())}p.set('offset',String(userOffset));return p.toString()}
-function detail(u){const card=el('div',undefined,'detail');card.append(el('h3',fullName(u)),el('p','ID специалиста: '+u.id+(u.admin_id?' · ID администратора: '+u.admin_id:'')),el('p',u.email+' · '+genderLabel(u.gender)),el('p','Регистрация: '+date(u.created)+' · Последняя активность: '+date(u.last_seen)));card.append(el('p','Дата рождения: '+(u.birth_date?u.birth_date.split('-').reverse().join('.'):'—')+' · Возраст: '+age(u.birth_date,u.timezone||'UTC')),el('p','Страна: '+(u.country||'—')+' · Город: '+(u.city||'—')));if(u.timezone){const clock=el('strong',formatClock(u.timezone));clock.dataset.clockZone=u.timezone;const line=el('p','Местное время ('+u.timezone+'): ');line.append(clock);card.append(line);}if(u.role==='admin'||u.deleted){card.append(el('p',u.deleted?'Аккаунт архивирован':'Администратор — ограничения не применяются'));return card}
+function detail(u){const card=el('div',undefined,'detail');card.append(el('h3',fullName(u)),el('p','ID специалиста: '+u.id+(u.admin_id?' · ID администратора: '+u.admin_id:'')),el('p',u.email+' · '+genderLabel(u.gender)),el('p','Регистрация: '+date(u.created)+' · Последняя активность: '+date(u.last_seen)));card.append(el('p','Дата рождения: '+(u.birth_date?u.birth_date.split('-').reverse().join('.'):'—')+' · Возраст: '+age(u.birth_date,u.timezone||'UTC')),el('p','Страна: '+(u.country||'—')+' · Город: '+(u.city||'—')));const legal=el('div',undefined,'legal-admin');legal.append(el('h3','Юридические документы'),el('p',u.legal_acceptance?'Лицензионное соглашение · редакция '+u.legal_acceptance.version+' · принято '+date(u.legal_acceptance.accepted_at):'Принятие соглашения не зафиксировано'),el('p',u.legal_acceptance?'С информацией об обработке персональных данных ознакомлен':'Ознакомление не зафиксировано'));card.append(legal);if(u.timezone){const clock=el('strong',formatClock(u.timezone));clock.dataset.clockZone=u.timezone;const line=el('p','Местное время ('+u.timezone+'): ');line.append(clock);card.append(line);}if(u.role==='admin'||u.deleted){card.append(el('p',u.deleted?'Аккаунт архивирован':'Администратор — ограничения не применяются'));return card}
 card.append(el('p','Клиентов: '+(u.metrics?.clients??'Нет данных')+' · Входов: '+(u.metrics?.logins??0)+' · Активных дней за 30 дней: '+(u.metrics?.days30??0)+' · Данные базы: '+date(u.metrics?.reported_at)));card.append(el('p','AI сегодня: '+(u.ai_usage?.total??0)+' · чат '+(u.ai_usage?.areas?.chat??0)+' · сессии '+(u.ai_usage?.areas?.session??0)+' · гипотезы '+(u.ai_usage?.areas?.hypothesis??0)+' · диагностика '+(u.ai_usage?.areas?.diagnosis??0)));const grid=el('div',undefined,'limits'),inputs={};for(const [key,value] of Object.entries(u.limits)){const l=el('label',labels[key]),i=el('input');if(key==='clients'||key==='sessions'||key==='ai_daily'||['ai_chat','ai_session','ai_hypothesis','ai_diagnosis'].includes(key)){i.type='number';i.min='0';i.max='1000000';i.placeholder='Без лимита';i.value=value??'';}else{i.type='checkbox';i.checked=value;}l.append(i);grid.append(l);inputs[key]=i;}const l=el('label','Аккаунт активен'),enabled=el('input');enabled.type='checkbox';enabled.checked=u.enabled;l.append(enabled);grid.append(l);
 const save=el('button','Сохранить ограничения'),del=el('button','Удалить специалиста','danger');save.onclick=async()=>{save.disabled=true;try{const limits={};for(const [k,i] of Object.entries(inputs))limits[k]=i.type==='checkbox'?i.checked:i.value===''?null:Number(i.value);await api('admin/update',{id:u.id,limits,enabled:enabled.checked});$('userDialog').close();await loadAdmin();msg('Настройки сохранены.')}catch(e){msg(e.message)}finally{save.disabled=false}};
 del.onclick=async()=>{if(!await confirmAction('Архивировать специалиста '+u.id+' и завершить все его сеансы? ID останется зарезервированным.','Архивация специалиста','Архивировать'))return;try{await api('admin/delete',{id:u.id});$('userDialog').close();await loadAdmin();msg('Специалист архивирован.')}catch(e){msg(e.message)}};const actions=el('div',undefined,'actions');actions.append(save,del);card.append(grid,actions);return card}
@@ -89,6 +89,21 @@ form.onsubmit=async e=>{
  }catch(e){msg(e.message);reset()}
 };
 const onboard=$('onboardingForm');
+const legalDialog=$('legalDialog'),licenseCheck=onboard.elements.license_accepted,privacyCheck=onboard.elements.privacy_read;
+let legalKind='',legalBusy=false;
+function updateFinish(){ $('finishRegistration').disabled=legalBusy||!licenseCheck.checked||!privacyCheck.checked; }
+function openLegal(kind){
+ legalKind=kind;$('licenseDocument').hidden=kind!=='license';$('privacyDocument').hidden=kind!=='privacy';
+ $('legalDialogTitle').textContent=kind==='license'?'Лицензионное соглашение':'Обработка персональных данных';
+ legalDialog.showModal();legalDialog.scrollTop=0;const doc=$(kind==='license'?'licenseDocument':'privacyDocument');doc.scrollTop=0;
+}
+$('readLicense').onclick=()=>openLegal('license');
+$('readPrivacy').onclick=()=>openLegal('privacy');
+$('closeLegal').onclick=()=>legalDialog.close();
+$('legalReadDone').onclick=()=>{const check=legalKind==='license'?licenseCheck:privacyCheck;check.disabled=false;legalDialog.close();check.focus();updateFinish()};
+licenseCheck.onchange=privacyCheck.onchange=updateFinish;
+updateFinish();
+
 onboard.elements.birth_date.addEventListener('input',e=>{
  if(e.inputType?.startsWith('delete'))return;
  const input=e.target,digits=input.value.replace(/\D/g,'').slice(0,8);
@@ -96,12 +111,13 @@ onboard.elements.birth_date.addEventListener('input',e=>{
  if(input.value!==formatted)input.value=formatted;
 });
 onboard.onsubmit=async e=>{
- e.preventDefault();const button=onboard.querySelector('button[type="submit"]')||onboard.querySelector('button');button.disabled=true;
+ e.preventDefault();if(legalBusy||!licenseCheck.checked||!privacyCheck.checked)return;legalBusy=true;updateFinish();
  try{
   const data=Object.fromEntries(new FormData(onboard));data.birth_date=isoBirth(data.birth_date);
   if(!data.birth_date||data.birth_date<'1900-01-01'||data.birth_date>localDate(browserZone))throw Error('Введите корректную дату рождения.');
+  data.legal_version='1.0';data.license_accepted=licenseCheck.checked;data.privacy_read=privacyCheck.checked;
   await api('onboarding',data);location.replace('/');
- }catch(e){msg(e.message);button.disabled=false}
+ }catch(e){msg(e.message);legalBusy=false;updateFinish()}
 };
 $('onboardingLogout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
 $('logout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
