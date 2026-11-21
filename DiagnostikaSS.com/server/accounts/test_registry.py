@@ -25,6 +25,29 @@ with tempfile.TemporaryDirectory() as tmp:
         assert status==expected,(path,status,expected,result)
         return result
     try:
+        with db() as conn:
+            conn.execute("UPDATE users SET onboarding_required=0,first_name='Test',last_name='Specialist' WHERE id IN (?,?)",(admin,uid))
+            conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("second-device-token"),uid,int(time.time())+3600))
+        initial=call("workspace-profile",token="user-test-token")
+        assert initial["profile"] is None and initial["revision"]==0 and initial["identity"]=={"name":"Test","surname":"Specialist"}
+        call("workspace-profile",expected=401,token="")
+        fields={key:"" for key in m["WORKSPACE_FIELDS"]}
+        fields.update(name="Test",surname="Specialist",title="Counselor",city="Example",country="Example",countryCode="NL",currencyCode="EUR",areas=["Consulting"],avatar="")
+        body={"account_id":sid,"revision":0,"profile":fields}
+        call("workspace-profile",{**body,"account_id":admin_id},expected=403,token="user-test-token")
+        call("workspace-profile",{**body,"profile":{**fields,"clients":[]}},expected=400,token="user-test-token")
+        call("workspace-profile",{**body,"profile":{**fields,"avatar":"data:image/svg+xml;base64,AAAA"}},expected=400,token="user-test-token")
+        call("workspace-profile",{**body,"profile":{**fields,"avatar":"data:image/jpeg;base64,"+"A"*90000}},expected=400,token="user-test-token")
+        # A tiny JPEG marker fixture exercises the bounded data-URL transport.
+        fields["avatar"]="data:image/jpeg;base64,/9j//9k="
+        saved=call("workspace-profile",body,token="user-test-token")
+        assert saved["revision"]==1 and saved["profile"]==fields
+        assert call("workspace-profile",token="second-device-token")["profile"]==fields
+        assert call("workspace-profile")["profile"] is None
+        call("workspace-profile",body,expected=409,token="second-device-token")
+        saved=call("workspace-profile",{**body,"revision":1,"profile":{**fields,"avatar":""}},token="second-device-token")
+        assert saved["revision"]==2 and saved["profile"]["avatar"]==""
+        assert call("workspace-profile",token="user-test-token")["profile"]["avatar"]==""
         a=call("admin/invite",{"hours":24,"comment":"first"})
         b=call("admin/invite",{"hours":24,"comment":"second"})
         assert a["license_number"]=="000001" and b["license_number"]=="000002"
@@ -52,6 +75,7 @@ with tempfile.TemporaryDirectory() as tmp:
         call("admin/restore",{"id":sid},expected=404)
         with db() as conn:
             assert not conn.execute("SELECT 1 FROM users WHERE id=?",(uid,)).fetchone()
+            assert not conn.execute("SELECT 1 FROM workspace_profiles WHERE user_id=?",(uid,)).fetchone()
             assert conn.execute("SELECT 1 FROM public_ids WHERE owner=?",(uid,)).fetchone()
             assert conn.execute("SELECT 1 FROM specialist_tombstones WHERE user_id=?",(uid,)).fetchone()
             assert conn.execute("SELECT count(*) FROM license_numbers").fetchone()[0]==3

@@ -156,14 +156,14 @@
     return true;
   }
   const syncTexts={
-    ru:{loading:'Загрузка карточки из аккаунта…',pending:'Сохранено на устройстве. Синхронизация…',saved:'Карточка сохранена в аккаунте',offline:'Нет синхронизации. Изменения сохранены только на устройстве. Повторим при подключении.',conflict:'Карточка изменена на другом устройстве. Проверьте данные. Повторное сохранение заменит серверную карточку.',invalid:'Не удалось синхронизировать карточку. Проверьте длину полей и сохраните снова.',import:'Перенести локальную карточку в этот аккаунт',confirm:'Перенести карточку, ранее сохранённую на этом устройстве, в текущий аккаунт?'},
-    en:{loading:'Loading profile from account…',pending:'Saved on device. Syncing…',saved:'Profile saved to account',offline:'Not synced. Changes are saved on this device only. Retrying when connected.',conflict:'Profile changed on another device. Review the details. Saving again replaces the server profile.',invalid:'Profile could not sync. Check field lengths and save again.',import:'Import local profile into this account',confirm:'Import the profile previously saved on this device into this account?'},
-    fr:{loading:'Chargement du profil…',pending:'Enregistré sur cet appareil. Synchronisation…',saved:'Profil enregistré dans le compte',offline:'Non synchronisé. Modifications enregistrées sur cet appareil uniquement.',conflict:'Profil modifié sur un autre appareil. Vérifiez les données. Un nouvel enregistrement remplacera le profil distant.',invalid:'Synchronisation impossible. Vérifiez les champs et enregistrez à nouveau.',import:'Importer le profil local dans ce compte',confirm:'Importer dans ce compte le profil déjà enregistré sur cet appareil ?'},
-    de:{loading:'Profil wird geladen…',pending:'Auf dem Gerät gespeichert. Synchronisierung…',saved:'Profil im Konto gespeichert',offline:'Nicht synchronisiert. Änderungen nur auf diesem Gerät gespeichert.',conflict:'Profil auf einem anderen Gerät geändert. Daten prüfen. Erneutes Speichern ersetzt das Serverprofil.',invalid:'Synchronisierung fehlgeschlagen. Felder prüfen und erneut speichern.',import:'Lokales Profil in dieses Konto importieren',confirm:'Das auf diesem Gerät gespeicherte Profil in dieses Konto importieren?'},
-    it:{loading:'Caricamento profilo…',pending:'Salvato sul dispositivo. Sincronizzazione…',saved:'Profilo salvato nell’account',offline:'Non sincronizzato. Modifiche salvate solo su questo dispositivo.',conflict:'Profilo modificato su un altro dispositivo. Controlla i dati. Un nuovo salvataggio sostituirà il profilo remoto.',invalid:'Sincronizzazione non riuscita. Controlla i campi e salva di nuovo.',import:'Importa profilo locale in questo account',confirm:'Importare in questo account il profilo salvato su questo dispositivo?'}
+    ru:{identity:"Данные аккаунта загружены. Сохраните карточку для синхронизации.",loading:'Загрузка карточки из аккаунта…',pending:'Сохранено на устройстве. Синхронизация…',saved:'Карточка сохранена в аккаунте',offline:'Нет синхронизации. Изменения сохранены только на устройстве. Повторим при подключении.',conflict:'Карточка изменена на другом устройстве. Проверьте данные. Повторное сохранение заменит серверную карточку.',invalid:'Не удалось синхронизировать карточку. Проверьте длину полей и сохраните снова.',import:'Перенести локальную карточку в этот аккаунт',confirm:'Перенести карточку, ранее сохранённую на этом устройстве, в текущий аккаунт?'},
+    en:{identity:"Account details loaded. Save the profile to sync it.",loading:'Loading profile from account…',pending:'Saved on device. Syncing…',saved:'Profile saved to account',offline:'Not synced. Changes are saved on this device only. Retrying when connected.',conflict:'Profile changed on another device. Review the details. Saving again replaces the server profile.',invalid:'Profile could not sync. Check field lengths and save again.',import:'Import local profile into this account',confirm:'Import the profile previously saved on this device into this account?'},
+    fr:{identity:"Identité chargée. Enregistrez le profil pour le synchroniser.",loading:'Chargement du profil…',pending:'Enregistré sur cet appareil. Synchronisation…',saved:'Profil enregistré dans le compte',offline:'Non synchronisé. Modifications enregistrées sur cet appareil uniquement.',conflict:'Profil modifié sur un autre appareil. Vérifiez les données. Un nouvel enregistrement remplacera le profil distant.',invalid:'Synchronisation impossible. Vérifiez les champs et enregistrez à nouveau.',import:'Importer le profil local dans ce compte',confirm:'Importer dans ce compte le profil déjà enregistré sur cet appareil ?'},
+    de:{identity:"Kontodaten geladen. Profil zur Synchronisierung speichern.",loading:'Profil wird geladen…',pending:'Auf dem Gerät gespeichert. Synchronisierung…',saved:'Profil im Konto gespeichert',offline:'Nicht synchronisiert. Änderungen nur auf diesem Gerät gespeichert.',conflict:'Profil auf einem anderen Gerät geändert. Daten prüfen. Erneutes Speichern ersetzt das Serverprofil.',invalid:'Synchronisierung fehlgeschlagen. Felder prüfen und erneut speichern.',import:'Lokales Profil in dieses Konto importieren',confirm:'Das auf diesem Gerät gespeicherte Profil in dieses Konto importieren?'},
+    it:{identity:"Dati dell’account caricati. Salva il profilo per sincronizzarlo.",loading:'Caricamento profilo…',pending:'Salvato sul dispositivo. Sincronizzazione…',saved:'Profilo salvato nell’account',offline:'Non sincronizzato. Modifiche salvate solo su questo dispositivo.',conflict:'Profilo modificato su un altro dispositivo. Controlla i dati. Un nuovo salvataggio sostituirà il profilo remoto.',invalid:'Sincronizzazione non riuscita. Controlla i campi e salva di nuovo.',import:'Importa profilo locale in questo account',confirm:'Importare in questo account il profilo salvato su questo dispositivo?'}
   };
   const syncCopy=()=>syncTexts[lang()]||syncTexts.ru;
-  function setSyncMessage(key){syncMessage=key;const el=document.getElementById('specialistProfileSync');if(el){el.textContent=syncCopy()[key];el.dataset.state=key;}const button=document.getElementById('specialistProfileImport');if(button){button.hidden=!legacyCandidate;button.textContent=syncCopy().import;}}
+  function setSyncMessage(key){syncMessage=key;if(hostedProfile){for(const selector of ['.account-profile-save','.account-photo-replace','.account-photo-edit','.account-photo-delete','.settings-profile-avatar']){const control=document.querySelector(selector);if(control&&!syncReady)control.disabled=true;else if(control&&syncReady&&(selector==='.account-profile-save'||selector==='.account-photo-replace'||selector==='.settings-profile-avatar'))control.disabled=false;}}const el=document.getElementById('specialistProfileSync');if(el){el.textContent=syncCopy()[key];el.dataset.state=key;}const button=document.getElementById('specialistProfileImport');if(button){button.hidden=!legacyCandidate;button.textContent=syncCopy().import;}}
   function remoteFields(p){
     const keys=['name','surname','title','experience','city','region','country','countryCode','currencyCode','about','areas','avatar'];
     return Object.fromEntries(keys.map(k=>[k,p[k]]));
@@ -189,6 +189,7 @@
     return !!first&&((name===first&&(!surname||surname===last))||(!surname&&name===(first+' '+last).trim()));
   }
   function hasLegacy(p){return !!(p.name||p.surname||p.avatar||p.city||p.title||p.experience||p.about||p.areas.length);}
+  function hasCustomProfile(p){return !!(p.avatar||p.city||p.title||p.experience||p.about||p.areas.length||p.region||p.currencyCode);}
   function applyRemote(data,local){
     const next=normalizeProfile({...data.identity,...(data.profile||{}),accountOwner:data.account_id,syncRevision:data.revision,syncPending:false});
     if(local&&(local.accountOwner===data.account_id||(!local.accountOwner&&matchesLegacy(local,data.identity)))){
@@ -197,7 +198,9 @@
     }
     if(next.avatar&&!next.avatarSource)next.avatarSource=next.avatar;
     // Do not overwrite local client records; replace only the specialist-profile property.
-    if(!persistLocalProfile(next,'specialist-profile-server-hydrate'))syncSnapshot=next;
+    // Do not persist the identity-only fallback: a new phone must not create a remote profile or destroy unclaimed legacy fields.
+    if(!data.profile){syncSnapshot=next;window.dispatchEvent(new CustomEvent('diagnostika-specialist-profile-change',{detail:clone(next)}));}
+    else if(!persistLocalProfile(next,'specialist-profile-server-hydrate'))syncSnapshot=next;
     render({preserveDraft:true});
   }
   async function pullWorkspaceProfile(){
@@ -216,15 +219,16 @@
         syncSnapshot=local;syncPending=local;render({preserveDraft:true});
         if(local.syncRevision!==data.revision){syncConflict=true;setSyncMessage('conflict');}
         else{setSyncMessage('pending');}
-      }else if(!data.profile&&hasLegacy(local)&&(owned||(!local.accountOwner&&matchesLegacy(local,data.identity)))){
-        const merged=normalizeProfile({...local,name:local.name||data.identity.name,surname:local.surname||data.identity.surname,accountOwner:syncOwner,syncRevision:0,syncPending:true});
+      }else if(!data.profile&&hasCustomProfile(local)&&(owned||(!local.accountOwner&&matchesLegacy(local,data.identity)))){
+        const combined=matchesLegacy(local,data.identity)&&!local.surname&&local.name.trim().toLocaleLowerCase()===((data.identity.name+' '+data.identity.surname).trim().toLocaleLowerCase());
+        const merged=normalizeProfile({...local,name:combined?data.identity.name:(local.name||data.identity.name),surname:local.surname||data.identity.surname,accountOwner:syncOwner,syncRevision:0,syncPending:true});
         if(persistLocalProfile(merged,'specialist-profile-first-sync')){syncPending=merged;render({preserveDraft:true});setSyncMessage('pending');}
         else{applyRemote(data,local);setSyncMessage('offline');}
       }else{
         // An unrecognised legacy card may belong to another account; require explicit import.
         if(!data.profile&&!local.accountOwner&&hasLegacy(local)&&!matchesLegacy(local,data.identity))legacyCandidate=clone(local);
-        if(!syncSnapshot||syncSnapshot.syncRevision!==data.revision||syncSnapshot.accountOwner!==syncOwner)applyRemote(data,local);
-        setSyncMessage('saved');
+        if(!syncSnapshot||syncSnapshot.syncRevision!==data.revision||syncSnapshot.accountOwner!==syncOwner||(!data.profile&&(syncSnapshot.name!==data.identity.name||syncSnapshot.surname!==data.identity.surname)))applyRemote(data,local);
+        setSyncMessage(data.profile?'saved':'identity');
       }
     }catch(e){if(e.status===401){location.replace('/account');return;}setSyncMessage('offline');}
     finally{syncPulling=false;if(syncPending&&!syncConflict)void pushWorkspaceProfile();}
@@ -239,7 +243,7 @@
       syncRevision=data.revision;
       if(syncPending===current){
         syncPending=null;
-        const local=normalizeProfile({...current,syncPending:false,syncRevision,accountOwner:owner});
+        const local=normalizeProfile({...current,avatar:data.profile.avatar,syncPending:false,syncRevision,accountOwner:owner});
         if(!persistLocalProfile(local,'specialist-profile-sync-confirmed'))syncSnapshot=local;
         setSyncMessage('saved');
       }else{again=true;}
@@ -546,7 +550,7 @@
       currencyTouched=false;
       committedForm=formSignature();
     }
-    photoEditBtn.disabled=!profile.avatar;photoDeleteBtn.disabled=!profile.avatar;
+    photoEditBtn.disabled=!syncReady||!profile.avatar;photoDeleteBtn.disabled=!syncReady||!profile.avatar;
     renderReviews(profile);
   }
   function profileFromForm(){
