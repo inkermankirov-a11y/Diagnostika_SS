@@ -48,6 +48,39 @@ with tempfile.TemporaryDirectory() as tmp:
         saved=call("workspace-profile",{**body,"revision":1,"profile":{**fields,"avatar":""}},token="second-device-token")
         assert saved["revision"]==2 and saved["profile"]["avatar"]==""
         assert call("workspace-profile",token="user-test-token")["profile"]["avatar"]==""
+        # Verify localized welcome mail and reset token lifetime without external SMTP.
+        sent=[]
+        glob=m["send_reset_request"].__globals__
+        glob["send_mail"]=lambda recipient,subject,body:sent.append((recipient,subject,body))
+        with db() as conn:
+            reset_uid=m["create_user"](conn,"reset@example.invalid","old-password-test-123","specialist")
+            conn.execute("UPDATE users SET onboarding_required=0,ui_language='it' WHERE id=?",(reset_uid,))
+            conn.execute("INSERT INTO welcome_mail(user_id,language) VALUES(?,?)",(reset_uid,"it"))
+            conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("reset-session"),reset_uid,int(time.time())+3600))
+        m["send_next_welcome"]()
+        assert sent[-1][1]=="Benvenuto su ZABVENYE!" and "https://t.me/zabvenye_com" in sent[-1][2]
+        m["send_next_welcome"]()
+        assert len(sent)==1
+        m["send_reset_request"]("reset@example.invalid")
+        assert sent[-1][1]=="Reimposta la password di ZABVENYE"
+        import re
+        reset_token=re.search(r"#reset=([A-Za-z0-9_-]{43})",sent[-1][2]).group(1)
+        with db() as conn:
+            row=conn.execute("SELECT * FROM password_resets WHERE user_id=?",(reset_uid,)).fetchone()
+            assert row["token"]==m["digest"](reset_token) and 1790<=row["expires"]-int(time.time())<=1800
+        data={"token":reset_token,"password":"new-password-test-123","password_repeat":"new-password-test-123"}
+        call("password-reset-confirm",data,token="")
+        call("password-reset-confirm",data,expected=400,token="")
+        call("me",expected=401,token="reset-session")
+        with db() as conn:
+            assert m["password_ok"](data["password"],conn.execute("SELECT password FROM users WHERE id=?",(reset_uid,)).fetchone()[0])
+            conn.execute("INSERT INTO password_resets VALUES(?,?,?)",(m["digest"]("X"*43),reset_uid,int(time.time())-1))
+        call("password-reset-confirm",{**data,"token":"X"*43},expected=400,token="")
+        with db() as conn:
+            for table in ("password_resets","welcome_mail","sessions"):
+                conn.execute("DELETE FROM "+table+" WHERE user_id=?",(reset_uid,))
+            conn.execute("DELETE FROM users WHERE id=?",(reset_uid,))
+        print("Password reset and localized welcome delivery (mock SMTP): PASS")
         a=call("admin/invite",{"hours":24,"comment":"first"})
         b=call("admin/invite",{"hours":24,"comment":"second"})
         assert a["license_number"]=="000001" and b["license_number"]=="000002"
