@@ -337,6 +337,8 @@
   let ratesLoading=null;
   const profileCountry=()=>String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.countryCode||'RU').toUpperCase();
   const profileCurrency=()=>String(window.DiagnostikaSpecialistProfile?.getProfile?.()?.currencyCode||'').toUpperCase();
+  const profileRateKey=()=>profileCountry()+':'+profileCurrency();
+  let requestedRateKey='',renderedRateKey='';
   const baseCode=()=>baseCurrency;
   const unitPer=code=>code===baseCode()?1:rates?.[code]?.rubPerUnit;
   const currencySymbol=currency=>({RUB:'₽',GEL:'₾',KZT:'₸',USD:'$',EUR:'€',GBP:'£',JPY:'¥',CNY:'¥',INR:'₹',TRY:'₺',UAH:'₴',KRW:'₩'}[currency]||currency);
@@ -385,7 +387,7 @@
   function refreshConverterView(){
     if(overlay.hidden||overlay.dataset.theme!=='currency')return;
     const from=overlay.querySelector('#utilCurFrom');
-    if(!from){showConverter();return;}
+    if(!from||!rates||renderedRateKey!==profileRateKey()){showConverter();return;}
     // Recalculate with the newly fetched data without clearing a user's input.
     overlay.querySelector('#utilCurAmount')?.dispatchEvent(new Event('input',{bubbles:false}));
     const source=overlay.querySelector('.utility-source');
@@ -396,7 +398,8 @@
   }
   function loadRates(){
     if(ratesLoading)return ratesLoading;
-    const country=profileCountry();
+    const country=profileCountry(),preferred=profileCurrency();
+    const requestKey=profileRateKey();requestedRateKey=requestKey;
     const service=window.DiagnostikaCountryCurrency;
     // Never show the previous country's quote as the newly selected country's rate.
     if(rateCountry&&rateCountry!==country){rates=null;rateDate='';rateSource='';rateDetails='';rateError='';}
@@ -408,19 +411,20 @@
         ?'Национальный банк недоступен, показан справочный курс.':'';
       paintRate();
       setRateState(rateError?'error':'ready');
+      Promise.resolve().then(refreshConverterView);
       return Promise.resolve(saved);
     }
     rateCountry=country;
     if(!service){
       rateError='Сервис мировых валют не загружен';
       paintRate();setRateState('error');
+      Promise.resolve().then(refreshConverterView);
       return Promise.resolve(null);
     }
     setRateState('sync');
     ratesLoading=(async()=>{
       try{
         const info=await service.currencyForCountry(country);
-        const preferred=profileCurrency();
         const base=info.options.includes(preferred)?preferred:info.currency;
         if(country!==profileCountry()||preferred!==profileCurrency())return;
         // Country and preferred currency determine which cached quote is valid.
@@ -436,13 +440,13 @@
           (data.mode==='reference'&&service.providerFor(country))
             ?'Национальный банк недоступен, показан справочный курс.':'';
       }catch(error){
-        if(country!==profileCountry())return;
-        rateError=error?.message||'Нет доступных курсов';
+        if(requestKey!==profileRateKey())return;
+        rateError=({ru:'Не удалось загрузить курсы валют. Повторите попытку.',en:'Could not load exchange rates. Try again.',fr:'Impossible de charger les taux. Réessayez.',de:'Wechselkurse konnten nicht geladen werden. Erneut versuchen.',it:'Impossibile caricare i tassi. Riprova.'}[lang()]||'Could not load exchange rates. Try again.');
         if(!rates)rateSource='Источник курса недоступен';
       }
     })().finally(()=>{
       ratesLoading=null;
-      if(country!==profileCountry()){
+      if(requestKey!==profileRateKey()){
         rateCountry='';
         loadRates();
         return;
@@ -460,10 +464,11 @@
       openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div id="currencyLoadState"></div><button id="currencyRetry" type="button" class="tk-btn" ${rateError?'':'hidden'}>${t.retry}</button>`,'currency');
       overlay.querySelector('#currencyLoadState').textContent=rateError||t.loading;
       const retry=overlay.querySelector('#currencyRetry');
-      if(retry)retry.onclick=()=>{rateError='';showConverter();loadRates();};
+      if(retry)retry.onclick=()=>{rateError='';showConverter();};
       if(!rateError&&!ratesLoading)loadRates();
       return;
     }
+    renderedRateKey=typeof profileRateKey==='function'?profileRateKey():'';
     const priority=[baseCode(),'USD','EUR','RUB','GEL','KZT','CNY','GBP','CHF','JPY','TRY'];
     const all=Object.keys(rates).sort((a,b)=>{
       const ai=priority.indexOf(a),bi=priority.indexOf(b);
@@ -505,12 +510,13 @@
   }
   currencyBtn.onclick=showConverter;
   window.addEventListener('diagnostika-specialist-profile-change',()=>{
-    // The country can stay the same while its selected tender changes.
-    // Reload after any in-flight request, never leave a stale base rate.
+    // Profile identity, photo and sync acknowledgements must not invalidate rates.
+    if(requestedRateKey===profileRateKey())return;
     rates=null;rateError='';rateCountry='';
-    if(ratesLoading){
-      ratesLoading.finally(()=>{rateCountry='';loadRates();});
-    }else loadRates();
+    paintRate();
+    if(!overlay.hidden&&overlay.dataset.theme==='currency')showConverter();
+    if(!ratesLoading)loadRates(); // In-flight requests recheck the full key on completion.
+
   });
 
   function currencySourceLabel(){const uiText=s=>window.DiagnostikaI18n?.translate(s)||s;return [uiText(rateSource),rateDate?uiText('Дата курса:')+' '+rateDate:'',rateError?uiText('Сохранённые данные'):''].filter(Boolean).join(' · ');}
@@ -536,4 +542,7 @@
   });
 
   initWeather({force:true});loadRates();setTimeout(refreshLanguage,0);setInterval(()=>refreshWeather({rerender:true}),WEATHER_REFRESH_MS);
+  window.addEventListener('online',()=>loadRates());
+  window.addEventListener('focus',()=>{if(!rates||rateError)loadRates();});
+  setInterval(()=>{if(document.visibilityState==='visible')loadRates();},15*60*1000);
 })();

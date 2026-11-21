@@ -20,7 +20,7 @@ function setup(fetcher=async()=>{throw Error('offline');}){
     removeItem:k=>items.delete(k)
   };
   const window={};
-  vm.runInNewContext(serviceCode,{window,localStorage,fetch:fetcher,Date});
+  vm.runInNewContext(serviceCode,{window,localStorage,fetch:fetcher,Date,AbortController,setTimeout,clearTimeout});
   return {api:window.DiagnostikaCountryCurrency,items};
 }
 function seed(items,date){
@@ -80,4 +80,25 @@ test('rate indicator has all three states and the header prefers cache',()=>{
     assert.ok(iconCode.includes('data-rate-state="'+state+'"'),state);
   }
   assert.match(iconCode,/diagnostika-currency-sync/);
+});
+
+test('hung provider falls back within a bounded time and preserves an actual rate',async()=>{
+  let calls=0;
+  const {api}=setup(async(url)=>{
+    calls++;
+    if(url.includes('frankfurter'))return new Promise(()=>{});
+    return {ok:true,json:async()=>({Date:'2026-11-20',Valute:{USD:{CharCode:'USD',Nominal:1,Value:81.93},EUR:{CharCode:'EUR',Nominal:1,Value:94}}})};
+  });
+  const start=Date.now();const result=await api.referenceRates('RUB','RU');
+  assert.equal(result.rates.USD.rubPerUnit,81.93);assert.equal(calls,2);assert.ok(Date.now()-start<8000);
+});
+test('hanging response body falls back and daily quote remains usable',async()=>{
+  const {api,items}=setup(async()=>({ok:true,json:()=>new Promise(()=>{})}));
+  const now=new Date();seed(items,new Date(now.getFullYear(),now.getMonth(),now.getDate()-1,12));
+  const result=await api.referenceRates('RUB','RU');assert.equal(result.rates.USD.rubPerUnit,88);assert.equal(result.stale,true);
+});
+test('profile changes use currency key rather than unrelated identity fields',()=>{
+  assert.match(headerCode,/if\(requestedRateKey===profileRateKey\(\)\)return/);
+  assert.match(headerCode,/if\(requestKey!==profileRateKey\(\)\)/);
+  assert.match(headerCode,/Promise.resolve\(\).then\(refreshConverterView\)/);
 });

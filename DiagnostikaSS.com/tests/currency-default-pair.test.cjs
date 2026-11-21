@@ -82,7 +82,7 @@ test('UI button saves the selected pair while changing or swapping only previews
   const context={window,overlay,openPanel,rates,tr:()=>labels,
     unitPer:code=>rates[code]?.rubPerUnit,baseCode:()=> 'RUB',
     profileCountry:()=> 'RU',rateCountry:'RU',rateError:'',rateSource:'Центральный банк России',rateDetails:'',ratesLoading:null,
-    fmt2:n=>Number(n).toFixed(2),rateDate:'',loadRates:async()=>{}};
+    fmt2:n=>Number(n).toFixed(2),rateDate:'',loadRates:async()=>{},renderedRateKey:'',currencySourceLabel:()=>''};
   vm.runInNewContext(body+'\nthis.showConverter=showConverter;',context);
   context.showConverter();
   assert.equal(controls['#utilCurFrom'].value,'USD');
@@ -112,6 +112,6 @@ test('UI button saves the selected pair while changing or swapping only previews
 });
 test('storage loads before converter and scripts use cache-busting versions',()=>{
   assert.ok(page.indexOf('src="currency-default-pair.js')<page.indexOf('src="header-utilities.js'));
-  assert.match(page,/header-utilities\.js\?v=20261119-daily-cache-2/);
+  assert.match(page,/header-utilities\.js\?v=20261121-currency-recovery-1/);
   assert.match(page,/currency-default-pair\.js\?v=20261101-default-pair-1/);
 });

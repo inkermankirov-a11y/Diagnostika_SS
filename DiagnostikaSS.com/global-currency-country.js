@@ -9,7 +9,7 @@
   const DAY=86400000;
   const COUNTRY_TTL=30*DAY;
   const RATE_TTL=3*DAY;
-  const MAX_SAVED_RATE_AGE=7*DAY;
+  const MAX_SAVED_RATE_AGE=30*DAY;
   const fallbacks=Object.freeze({
     RU:'RUB',GE:'GEL',KZ:'KZT',BY:'BYN',UA:'UAH',AM:'AMD',
     US:'USD',GB:'GBP',CA:'CAD',AU:'AUD',NZ:'NZD',JP:'JPY',CN:'CNY',
@@ -88,6 +88,19 @@
     catch(_){return null;}
   }
   function put(key,data){try{localStorage.setItem(key,JSON.stringify({time:Date.now(),data}));}catch(_){}}
+  // Bound both fetch and body parsing: some networks never settle either promise.
+  async function fetchJson(url,options={},timeout=4500){
+    const controller=new AbortController();
+    let timer;
+    try{
+      return await Promise.race([
+        (async()=>{const response=await fetch(url,{...options,signal:controller.signal});
+          if(!response.ok)throw Error('HTTP '+response.status);
+          return await response.json();})(),
+        new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('Currency source timeout'));},timeout);})
+      ]);
+    }finally{clearTimeout(timer);}
+  }
   let catalogPromise=null;
   async function countryCatalog(){
     const cached=get(COUNTRY_CACHE);
@@ -95,9 +108,7 @@
     if(catalogPromise)return catalogPromise;
     catalogPromise=(async()=>{
       try{
-        const res=await fetch('https://restcountries.com/v3.1/all?fields=cca2,currencies,name',{cache:'force-cache'});
-        if(!res.ok)throw Error('country-list-'+res.status);
-        const rows=await res.json();
+        const rows=await fetchJson('https://restcountries.com/v3.1/all?fields=cca2,currencies,name',{cache:'force-cache'});
         if(!Array.isArray(rows)||rows.length<150)throw Error('country-list-invalid');
         const map={};
         for(const row of rows){
@@ -171,9 +182,7 @@
     // Reopening the converter or reloading the page does not call the providers.
     if(saved&&!saved.stale)return saved;
     async function fetchRates(url,label,mode){
-      const response=await fetch(url,{cache:'no-store'});
-      if(!response.ok)throw Error('Котировки недоступны: '+response.status);
-      const parsed=parseRates(await response.json(),'USD');
+      const parsed=parseRates(await fetchJson(url,{cache:'no-store'}),'USD');
       const localPerUsd=parsed.perBase[base];
       if(!(localPerUsd>0))throw Error('Нет курса '+base+' в выбранном наборе.');
       const rates={};
@@ -185,9 +194,7 @@
     }
     async function nationalFallback(){
       if(country==='RU'&&base==='RUB'){
-        const response=await fetch('https://www.cbr-xml-daily.ru/daily_json.js',{cache:'no-store'});
-        if(!response.ok)throw Error('Недоступны курсы Банка России');
-        const data=await response.json(),rates={RUB:{name:'RUB',rubPerUnit:1}};
+        const data=await fetchJson('https://www.cbr-xml-daily.ru/daily_json.js',{cache:'no-store'}),rates={RUB:{name:'RUB',rubPerUnit:1}};
         for(const entry of Object.values(data.Valute||{})){
           const nominal=Number(entry.Nominal),value=Number(entry.Value);
           if(validCurrency(entry.CharCode)&&nominal>0&&value>0)
@@ -199,9 +206,7 @@
         put(key,result);return result;
       }
       if(country==='GE'&&base==='GEL'){
-        const response=await fetch('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/',{cache:'no-store'});
-        if(!response.ok)throw Error('Национальный банк Грузии недоступен');
-        const data=await response.json(),day=Array.isArray(data)?data[0]:null;
+        const data=await fetchJson('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/',{cache:'no-store'}),day=Array.isArray(data)?data[0]:null;
         if(!day||!Array.isArray(day.currencies))throw Error('Неверные данные Национального банка Грузии');
         const rates={GEL:{name:'GEL',rubPerUnit:1}};
         for(const entry of day.currencies){
