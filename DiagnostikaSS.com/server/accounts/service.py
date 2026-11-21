@@ -76,6 +76,7 @@ with db() as c:
     c.execute("CREATE TABLE IF NOT EXISTS specialist_tombstones(user_id TEXT PRIMARY KEY,public_id TEXT NOT NULL UNIQUE,purged_at INTEGER NOT NULL)")
     c.execute("CREATE TABLE IF NOT EXISTS legal_acceptance(user_id TEXT NOT NULL,version TEXT NOT NULL,accepted_at INTEGER NOT NULL,PRIMARY KEY(user_id,version))")
     if "language" not in {row[1] for row in c.execute("PRAGMA table_info(legal_acceptance)")}: c.execute("ALTER TABLE legal_acceptance ADD COLUMN language TEXT")
+    c.execute("CREATE TABLE IF NOT EXISTS workspace_profiles(user_id TEXT PRIMARY KEY,revision INTEGER NOT NULL,profile TEXT NOT NULL,updated_at INTEGER NOT NULL)")
     c.execute("CREATE TABLE IF NOT EXISTS specialist_metrics(user_id TEXT PRIMARY KEY,client_count INTEGER,reported_at INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS specialist_days(user_id TEXT NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))")
     if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
@@ -99,6 +100,34 @@ def profile(b):
         if born.isoformat()!=birth or born>today or born.year<1900: raise ValueError()
     except ValueError: raise Error(400,"Проверьте дату рождения и часовой пояс")
     return first.strip(),last.strip(),gender,birth,country.strip(),city.strip(),tz
+# A workspace profile is separate from the client database and has a hard size limit.
+WORKSPACE_FIELDS={"name":160,"surname":160,"title":240,"experience":120,"city":140,"region":140,"country":140,"countryCode":2,"currencyCode":3,"about":3000}
+def workspace_payload(c,u):
+    row=c.execute("SELECT revision,profile,updated_at FROM workspace_profiles WHERE user_id=?",(u["id"],)).fetchone()
+    return {"account_id":ids(c,u["id"]).get("specialist"),"revision":row["revision"] if row else 0,"profile":json.loads(row["profile"]) if row else None,"identity":{"name":u["first_name"],"surname":u["last_name"]},"updated_at":row["updated_at"] if row else None}
+def workspace_profile(value):
+    if not isinstance(value,dict) or set(value)!=(set(WORKSPACE_FIELDS)|{"areas","avatar"}): raise Error(400,"Некорректные поля карточки специалиста")
+    out={}
+    for key,limit in WORKSPACE_FIELDS.items():
+        v=value[key]
+        if not isinstance(v,str) or len(v)>limit: raise Error(400,"Слишком длинное или некорректное поле карточки")
+        out[key]=v.strip()
+    if out["countryCode"] and not re.fullmatch(r"[A-Z]{2}",out["countryCode"]): raise Error(400,"Некорректная страна")
+    if out["currencyCode"] and not re.fullmatch(r"[A-Z]{3}",out["currencyCode"]): raise Error(400,"Некорректная валюта")
+    areas=value["areas"]
+    if not isinstance(areas,list) or len(areas)>24 or any(not isinstance(v,str) or len(v)>160 for v in areas): raise Error(400,"Некорректные направления работы")
+    out["areas"]=[v.strip() for v in areas if v.strip()]
+    avatar=value["avatar"]
+    if not isinstance(avatar,str) or len(avatar)>90000: raise Error(400,"Фотография слишком большая")
+    if avatar:
+        prefix="data:image/jpeg;base64,"
+        if not avatar.startswith(prefix): raise Error(400,"Требуется фотография JPEG")
+        try:
+            image=base64.b64decode(avatar[len(prefix):],validate=True)
+            if len(image)>65536 or not image.startswith(b"\xff\xd8\xff") or not image.endswith(b"\xff\xd9"): raise ValueError()
+        except (ValueError,TypeError): raise Error(400,"Некорректная фотография")
+    out["avatar"]=avatar
+    return out
 def ids(c,uid):
     return {r["kind"]:r["number"] for r in c.execute("SELECT kind,number FROM public_ids WHERE owner=?",(uid,))}
 def digest(s): return hashlib.sha256(s.encode()).hexdigest()
@@ -243,12 +272,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Security-Policy","default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
         if cookie: self.send_header("Set-Cookie",cookie)
         self.end_headers(); self.wfile.write(body)
-    def body(self):
+    def body(self,limit=8192):
         if self.headers.get("Origin")!=ORIGIN: raise Error(403,"Недопустимый источник запроса")
         if not self.headers.get("Content-Type","").startswith("application/json"): raise Error(415,"Требуется JSON")
         try:
             n=int(self.headers.get("Content-Length","0"))
-            if not 0<n<=8192: raise ValueError()
+            if not 0<n<=limit: raise ValueError()
             v=json.loads(self.rfile.read(n))
             if not isinstance(v,dict): raise ValueError()
             return v
@@ -303,6 +332,9 @@ class Handler(BaseHTTPRequestHandler):
                 c.execute("BEGIN IMMEDIATE")
                 u=self.user(c,path.startswith("/account/api/admin/"))
                 if path=="/account/api/me": return self.reply(200,public(c,u))
+                if path=="/account/api/workspace-profile":
+                    if u["onboarding_required"]: raise Error(403,"Сначала завершите первичную настройку")
+                    return self.reply(200,workspace_payload(c,u))
                 q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
                 def param(k): return q.get(k,[""])[0][:254]
                 try: offset=max(0,min(1000000,int(param("offset") or "0")))
@@ -355,7 +387,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply(200,{"items":audit_rows(c,offset),"total":c.execute("SELECT count(*) FROM audit").fetchone()[0]})
             raise Error(404,"Не найдено")
         if path.startswith("/account/api/ai/"): return self.ai_proxy(path.rsplit("/",1)[-1])
-        b=self.body()
+        b=self.body(120000 if path=="/account/api/workspace-profile" else 8192)
         if path in ("/account/api/login","/account/api/register"):
             e=b.get("email"); p=b.get("password")
             if not valid_email(e): raise Error(400,"Введите корректный email.")
@@ -433,6 +465,16 @@ class Handler(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO specialist_metrics VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET client_count=excluded.client_count,reported_at=excluded.reported_at",(u["id"],count,now))
                 c.execute("INSERT OR IGNORE INTO specialist_days VALUES(?,?)",(u["id"],datetime.now(timezone.utc).date().isoformat()))
                 payload={"ok":True}
+            elif path=="/account/api/workspace-profile":
+                if u["onboarding_required"]: raise Error(403,"Сначала завершите первичную настройку")
+                if set(b)!={"account_id","revision","profile"} or b.get("account_id")!=ids(c,u["id"]).get("specialist"): raise Error(403,"Карточка другого аккаунта")
+                if not allowed("workspace-profile:"+u["id"],30,60): raise Error(429,"Слишком много обновлений")
+                previous=workspace_payload(c,u)
+                if type(b.get("revision")) is not int or b["revision"]!=previous["revision"]: raise Error(409,"Карточка обновлена на другом устройстве")
+                value=workspace_profile(b["profile"])
+                revision=previous["revision"]+1
+                c.execute("INSERT INTO workspace_profiles VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET revision=excluded.revision,profile=excluded.profile,updated_at=excluded.updated_at",(u["id"],revision,json.dumps(value,ensure_ascii=False,separators=(",",":")),int(time.time())))
+                payload=workspace_payload(c,u)
             elif path=="/account/api/profile":
                 if u["onboarding_required"]: raise Error(403,"Сначала завершите первичную настройку")
                 first,last,gender,birth,country,city,tz=profile(b)
@@ -465,7 +507,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=target["id"]
                 audit(c,u["id"],"purge",uid,{"account":{"from":"Архивирован","to":"Удалён окончательно"}})
                 c.execute("INSERT INTO specialist_tombstones VALUES(?,?,?)",(uid,b["id"],int(time.time())))
-                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","legal_acceptance"):
+                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","legal_acceptance","workspace_profiles"):
                     c.execute("DELETE FROM "+table+" WHERE user_id=?",(uid,))
                 c.execute("DELETE FROM users WHERE id=?",(uid,))
                 payload={"ok":True}

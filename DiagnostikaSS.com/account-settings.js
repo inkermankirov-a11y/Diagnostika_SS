@@ -105,6 +105,8 @@
   function appState(){try{return typeof state!=='undefined'&&state&&typeof state==='object'?state:null;}catch(_){return null;}}
   function normalizeAreas(value){if(Array.isArray(value))return value.map(x=>String(x||'').trim()).filter(Boolean);return String(value||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean);}
   function normalizeReviews(value){return(Array.isArray(value)?value:[]).map(item=>({id:String(item?.id||uid()),author:String(item?.author||'').trim(),text:String(item?.text||'').trim(),createdAt:Number(item?.createdAt)||Date.now()})).filter(item=>item.text);}
+  const hostedProfile=location.hostname==='zabvenye.com';
+  let syncOwner='',syncRevision=0,syncReady=!hostedProfile,syncSnapshot=null,syncPending=null,syncBusy=false,syncPulling=false,syncConflict=false,syncMessage='loading',legacyCandidate=null;
   function normalizeProfile(value={}){
     return{
       name:String(value?.name||'').trim(),surname:String(value?.surname||'').trim(),title:String(value?.title||'').trim(),experience:String(value?.experience||'').trim(),
@@ -112,7 +114,7 @@
       areas:normalizeAreas(value?.areas),about:String(value?.about||'').trim(),reviews:normalizeReviews(value?.reviews),
       avatar:String(value?.avatar||''),avatarSource:String(value?.avatarSource||''),
       avatarCrop:{x:clamp(Number(value?.avatarCrop?.x)||50,0,100),y:clamp(Number(value?.avatarCrop?.y)||50,0,100),zoom:clamp(Number(value?.avatarCrop?.zoom)||1,1,3)},
-      updatedAt:Number(value?.updatedAt)||Date.now()
+      updatedAt:Number(value?.updatedAt)||Date.now(),accountOwner:String(value?.accountOwner||''),syncRevision:Number(value?.syncRevision)||0,syncPending:value?.syncPending===true
     };
   }
   function ensureProfile(){
@@ -122,8 +124,8 @@
       const profile=normalizeProfile(had?st.specialistProfile:{});
       let changed=!had;
       const legacyName=String(localStorage.getItem(NAME_KEY)||'').trim(),legacyAvatar=String(localStorage.getItem(AVATAR_KEY)||'');
-      if(!profile.name&&legacyName){profile.name=legacyName;changed=true;}
-      if(!profile.avatar&&legacyAvatar){profile.avatar=legacyAvatar;changed=true;}
+      if(!profile.accountOwner&&!profile.name&&legacyName){profile.name=legacyName;changed=true;}
+      if(!profile.accountOwner&&!profile.avatar&&legacyAvatar){profile.avatar=legacyAvatar;changed=true;}
       if(!profile.avatarSource&&profile.avatar){profile.avatarSource=profile.avatar;changed=true;}
       st.specialistProfile=profile;
       if(changed&&typeof save==='function'){try{save({source:'specialist-profile-migration'});}catch(_){}}
@@ -131,19 +133,124 @@
     }
     return normalizeProfile({name:localStorage.getItem(NAME_KEY)||'',avatar:localStorage.getItem(AVATAR_KEY)||''});
   }
-  function getProfile(){return normalizeProfile(ensureProfile());}
+  function getProfile(){if(hostedProfile)return normalizeProfile(syncSnapshot||{});return normalizeProfile(ensureProfile());}
   function getName(){return getProfile().name;}
   function getAvatar(){return getProfile().avatar;}
-  function persistProfile(next,source='specialist-profile-save'){
-    const profile=normalizeProfile({...next,updatedAt:Date.now()}),st=appState();
+  function persistLocalProfile(next,source='specialist-profile-save'){
+    const profile=normalizeProfile(next),st=appState();
     if(st){
       const before=clone(st.specialistProfile);st.specialistProfile=profile;
       let ok=true;if(typeof save==='function'){try{ok=save({source})!==false;}catch(_){ok=false;}}
       if(!ok){st.specialistProfile=before;return false;}
     }
     try{localStorage.setItem(NAME_KEY,profile.name);if(profile.avatar)localStorage.setItem(AVATAR_KEY,profile.avatar);else localStorage.removeItem(AVATAR_KEY);}catch(_){}
+    if(hostedProfile)syncSnapshot=profile;
     window.dispatchEvent(new CustomEvent('diagnostika-specialist-profile-change',{detail:clone(profile)}));
     return true;
+  }
+  function persistProfile(next,source='specialist-profile-save'){
+    if(hostedProfile&&!syncReady){setSyncMessage('loading');return false;}
+    const profile=normalizeProfile({...next,updatedAt:Date.now(),...(hostedProfile?{accountOwner:syncOwner,syncRevision,syncPending:true}:{})});
+    if(!persistLocalProfile(profile,source))return false;
+    if(hostedProfile){syncPending=profile;syncConflict=false;setSyncMessage('pending');void pushWorkspaceProfile();}
+    return true;
+  }
+  const syncTexts={
+    ru:{loading:'Загрузка карточки из аккаунта…',pending:'Сохранено на устройстве. Синхронизация…',saved:'Карточка сохранена в аккаунте',offline:'Нет синхронизации. Изменения сохранены только на устройстве. Повторим при подключении.',conflict:'Карточка изменена на другом устройстве. Проверьте данные. Повторное сохранение заменит серверную карточку.',invalid:'Не удалось синхронизировать карточку. Проверьте длину полей и сохраните снова.',import:'Перенести локальную карточку в этот аккаунт',confirm:'Перенести карточку, ранее сохранённую на этом устройстве, в текущий аккаунт?'},
+    en:{loading:'Loading profile from account…',pending:'Saved on device. Syncing…',saved:'Profile saved to account',offline:'Not synced. Changes are saved on this device only. Retrying when connected.',conflict:'Profile changed on another device. Review the details. Saving again replaces the server profile.',invalid:'Profile could not sync. Check field lengths and save again.',import:'Import local profile into this account',confirm:'Import the profile previously saved on this device into this account?'},
+    fr:{loading:'Chargement du profil…',pending:'Enregistré sur cet appareil. Synchronisation…',saved:'Profil enregistré dans le compte',offline:'Non synchronisé. Modifications enregistrées sur cet appareil uniquement.',conflict:'Profil modifié sur un autre appareil. Vérifiez les données. Un nouvel enregistrement remplacera le profil distant.',invalid:'Synchronisation impossible. Vérifiez les champs et enregistrez à nouveau.',import:'Importer le profil local dans ce compte',confirm:'Importer dans ce compte le profil déjà enregistré sur cet appareil ?'},
+    de:{loading:'Profil wird geladen…',pending:'Auf dem Gerät gespeichert. Synchronisierung…',saved:'Profil im Konto gespeichert',offline:'Nicht synchronisiert. Änderungen nur auf diesem Gerät gespeichert.',conflict:'Profil auf einem anderen Gerät geändert. Daten prüfen. Erneutes Speichern ersetzt das Serverprofil.',invalid:'Synchronisierung fehlgeschlagen. Felder prüfen und erneut speichern.',import:'Lokales Profil in dieses Konto importieren',confirm:'Das auf diesem Gerät gespeicherte Profil in dieses Konto importieren?'},
+    it:{loading:'Caricamento profilo…',pending:'Salvato sul dispositivo. Sincronizzazione…',saved:'Profilo salvato nell’account',offline:'Non sincronizzato. Modifiche salvate solo su questo dispositivo.',conflict:'Profilo modificato su un altro dispositivo. Controlla i dati. Un nuovo salvataggio sostituirà il profilo remoto.',invalid:'Sincronizzazione non riuscita. Controlla i campi e salva di nuovo.',import:'Importa profilo locale in questo account',confirm:'Importare in questo account il profilo salvato su questo dispositivo?'}
+  };
+  const syncCopy=()=>syncTexts[lang()]||syncTexts.ru;
+  function setSyncMessage(key){syncMessage=key;const el=document.getElementById('specialistProfileSync');if(el){el.textContent=syncCopy()[key];el.dataset.state=key;}const button=document.getElementById('specialistProfileImport');if(button){button.hidden=!legacyCandidate;button.textContent=syncCopy().import;}}
+  function remoteFields(p){
+    const keys=['name','surname','title','experience','city','region','country','countryCode','currencyCode','about','areas','avatar'];
+    return Object.fromEntries(keys.map(k=>[k,p[k]]));
+  }
+  async function shrinkAvatar(data){
+    if(!data)return '';
+    if(data.startsWith('data:image/jpeg;base64,')&&data.length<=87000)return data;
+    const img=await loadImage(data),canvas=document.createElement('canvas');
+    const scale=Math.min(1,320/Math.max(img.naturalWidth,img.naturalHeight));
+    canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    for(const q of [.8,.65,.5,.35,.2]){const value=canvas.toDataURL('image/jpeg',q);if(value.length<=87000)return value;}
+    throw Error('avatar size');
+  }
+  async function profileRequest(body){
+    const options={credentials:'same-origin',cache:'no-store'};
+    if(body){options.method='POST';options.headers={'Content-Type':'application/json'};options.body=JSON.stringify(body);}
+    const r=await fetch('/account/api/workspace-profile',options);
+    if(!r.ok){const err=Error('profile sync');err.status=r.status;throw err;}return r.json();
+  }
+  function matchesLegacy(p,identity){
+    const key=v=>String(v||'').trim().toLocaleLowerCase().replace(/\s+/g,' ');
+    const name=key(p.name),surname=key(p.surname),first=key(identity?.name),last=key(identity?.surname);
+    return !!first&&((name===first&&(!surname||surname===last))||(!surname&&name===(first+' '+last).trim()));
+  }
+  function hasLegacy(p){return !!(p.name||p.surname||p.avatar||p.city||p.title||p.experience||p.about||p.areas.length);}
+  function applyRemote(data,local){
+    const next=normalizeProfile({...data.identity,...(data.profile||{}),accountOwner:data.account_id,syncRevision:data.revision,syncPending:false});
+    if(local&&(local.accountOwner===data.account_id||(!local.accountOwner&&matchesLegacy(local,data.identity)))){
+      next.reviews=local.reviews;
+      if(next.avatar&&next.avatar===local.avatar){next.avatarSource=local.avatarSource;next.avatarCrop=local.avatarCrop;}
+    }
+    if(next.avatar&&!next.avatarSource)next.avatarSource=next.avatar;
+    // Do not overwrite local client records; replace only the specialist-profile property.
+    if(!persistLocalProfile(next,'specialist-profile-server-hydrate'))syncSnapshot=next;
+    render({preserveDraft:true});
+  }
+  async function pullWorkspaceProfile(){
+    if(!hostedProfile||syncPulling||syncBusy||syncPending||syncConflict)return;
+    if(syncReady&&(hasChanges()||dlg.open))return;
+    syncPulling=true;
+    try{
+      const data=await profileRequest();
+      if(!data.account_id||!Number.isInteger(data.revision))throw Error('invalid account');
+      const local=syncSnapshot||normalizeProfile(ensureProfile());
+      if(syncOwner&&syncOwner!==data.account_id){location.reload();return;}
+      syncOwner=data.account_id;syncRevision=data.revision;syncReady=true;
+      const owned=local.accountOwner===syncOwner;
+      // Recover a local save interrupted by closing the browser, but never overwrite a newer remote version.
+      if(owned&&local.syncPending){
+        syncSnapshot=local;syncPending=local;render({preserveDraft:true});
+        if(local.syncRevision!==data.revision){syncConflict=true;setSyncMessage('conflict');}
+        else{setSyncMessage('pending');}
+      }else if(!data.profile&&hasLegacy(local)&&(owned||(!local.accountOwner&&matchesLegacy(local,data.identity)))){
+        const merged=normalizeProfile({...local,name:local.name||data.identity.name,surname:local.surname||data.identity.surname,accountOwner:syncOwner,syncRevision:0,syncPending:true});
+        if(persistLocalProfile(merged,'specialist-profile-first-sync')){syncPending=merged;render({preserveDraft:true});setSyncMessage('pending');}
+        else{applyRemote(data,local);setSyncMessage('offline');}
+      }else{
+        // An unrecognised legacy card may belong to another account; require explicit import.
+        if(!data.profile&&!local.accountOwner&&hasLegacy(local)&&!matchesLegacy(local,data.identity))legacyCandidate=clone(local);
+        if(!syncSnapshot||syncSnapshot.syncRevision!==data.revision||syncSnapshot.accountOwner!==syncOwner)applyRemote(data,local);
+        setSyncMessage('saved');
+      }
+    }catch(e){if(e.status===401){location.replace('/account');return;}setSyncMessage('offline');}
+    finally{syncPulling=false;if(syncPending&&!syncConflict)void pushWorkspaceProfile();}
+  }
+  async function pushWorkspaceProfile(){
+    if(!hostedProfile||!syncReady||syncBusy||syncPulling||!syncPending||syncConflict)return;
+    syncBusy=true;let again=false;
+    const current=syncPending,owner=syncOwner;
+    try{
+      const value=remoteFields(current);value.avatar=await shrinkAvatar(value.avatar);
+      const data=await profileRequest({account_id:owner,revision:syncRevision,profile:value});
+      syncRevision=data.revision;
+      if(syncPending===current){
+        syncPending=null;
+        const local=normalizeProfile({...current,syncPending:false,syncRevision,accountOwner:owner});
+        if(!persistLocalProfile(local,'specialist-profile-sync-confirmed'))syncSnapshot=local;
+        setSyncMessage('saved');
+      }else{again=true;}
+    }catch(e){
+      if(e.status===409){
+        try{const latest=await profileRequest();if(latest.account_id!==owner){location.reload();return;}syncRevision=latest.revision;}catch{}
+        syncConflict=true;setSyncMessage('conflict');
+      }else if(e.status===400||e.status===413||e.status===403){syncConflict=true;setSyncMessage('invalid');}
+      else if(e.status===401){location.replace('/account');}
+      else setSyncMessage('offline');
+    }finally{syncBusy=false;if(again)void pushWorkspaceProfile();}
   }
   function initials(name){
     const p = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -221,8 +328,9 @@
   if(location.hostname==='zabvenye.com'){
     const box=document.createElement('div');
     box.style.cssText='display:grid;gap:8px;padding:12px;margin:0 0 12px;border:1px solid #8eb8da;border-radius:10px';
-    const title=document.createElement('strong');title.textContent='Учётная запись ZABVENYE';
-    const identity=document.createElement('div');identity.style.cssText='font-size:12px;overflow-wrap:anywhere';identity.textContent='Проверка входа…';
+    box.style.background='#f5f9fc';box.style.color='#244560';
+    const title=document.createElement('strong');title.textContent='Учётная запись ZABVENYE';title.style.color='#244560';
+    const identity=document.createElement('div');identity.style.cssText='font-size:12px;overflow-wrap:anywhere;color:#45627b';identity.textContent='Проверка входа…';
     const cabinet=document.createElement('button');cabinet.type='button';cabinet.textContent='Личный кабинет';cabinet.className='account-save';
     const exit=document.createElement('button');exit.type='button';exit.textContent='Выйти из учётной записи';exit.className='account-save';exit.hidden=true;
     const notice=document.createElement('div');notice.style.fontSize='12px';notice.setAttribute('role','status');
@@ -380,6 +488,12 @@
       del.onclick=e=>{e.stopPropagation();const next=getProfile();next.reviews=next.reviews.filter(x=>x.id!==review.id);if(persistProfile(next,'specialist-profile-review-delete'))render();};
       item.append(author,text,del);reviewList.appendChild(item);
     });
+  }
+  if(hostedProfile){
+    const status=document.createElement('div');status.id='specialistProfileSync';status.setAttribute('role','status');status.setAttribute('data-i18n-user-content','');status.style.cssText='font:600 11px/1.4 system-ui;color:#45627b;overflow-wrap:anywhere';saveBtn.after(status);
+    const importBtn=document.createElement('button');importBtn.type='button';importBtn.id='specialistProfileImport';importBtn.className='account-save';importBtn.setAttribute('data-i18n-user-content','');importBtn.hidden=true;status.after(importBtn);
+    importBtn.onclick=()=>{if(!legacyCandidate||!syncReady||!window.confirm(syncCopy().confirm))return;const candidate=legacyCandidate;legacyCandidate=null;if(persistProfile(candidate,'specialist-profile-legacy-import'))render();else legacyCandidate=candidate;setSyncMessage(syncMessage);};
+    setSyncMessage('loading');
   }
   let committedForm=null;
   function formSignature(){
@@ -715,8 +829,13 @@
   else window.addEventListener('load',()=>setTimeout(retryMoveFormsButton,0),{once:true});
 
   window.addEventListener('diagnostika-language-changed',()=>setTimeout(()=>render({preserveDraft:true}),0));
+  window.addEventListener('diagnostika:language-changed',()=>{if(hostedProfile)setSyncMessage(syncMessage);});
   window.DiagnostikaSpecialistProfile={getName,getAvatar,getProfile:()=>clone(getProfile()),saveProfile:profile=>persistProfile(profile,'specialist-profile-api-save'),nameKey:NAME_KEY,avatarKey:AVATAR_KEY};
   render();
+  if(hostedProfile){
+    const sync=()=>syncPending&&!syncConflict?pushWorkspaceProfile():pullWorkspaceProfile();
+    void sync();window.addEventListener('focus',sync);window.addEventListener('online',sync);accountsBtn.addEventListener('click',sync);setInterval(()=>{if(document.visibilityState==='visible')void sync();},45000);
+  }
   // Deferred scripts run in order; the country/currency provider loads after this module.
   // Retry after all deferred scripts are ready without resetting a draft being edited.
   if(document.readyState==='loading'||document.readyState==='interactive')
