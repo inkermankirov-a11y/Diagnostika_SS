@@ -34,16 +34,13 @@
    const data=db()?.readState();if(!data||!Array.isArray(data.clients))throw Error('База недоступна');
    const snapshot=JSON.parse(JSON.stringify(data));
    const api=files();if(!api?.list)throw Error('Хранилище вложений не готово. Повторите позже.');
-   const records=[];for(const record of await api.list({})){const {blob,...meta}=record;if(!(blob instanceof Blob))throw Error('Вложение недоступно — копия не создана');records.push({meta,bytes:cryptoApi().b64(new Uint8Array(await blob.arrayBuffer()))})}
-   const pkg={format:'zbv-backup-v1',state:snapshot,files:records};
-   status('Шифрую и проверяю копию…');const raw=await cryptoApi().seal(pkg,secret());
-   const check=await cryptoApi().open(raw,secret(),'backup');if(JSON.stringify(check)!==JSON.stringify(pkg))throw Error('Не пройдена проверка копии');
+   status('Шифрую и проверяю копию…');const raw=await cryptoApi().packDatabase(snapshot,await api.list({}),secret());
    download(raw,'ZABVENYE-'+new Date().toISOString().slice(0,10)+'.zbv');status('Зашифрованная копия проверена и передана браузеру для скачивания. Сохраните также ключ.');
   });
   $('vaultRead').onclick=()=>$('vaultFile').click();
   $('vaultFile').onchange=()=>{const file=$('vaultFile').files[0];$('vaultFile').value='';if(!file)return;run(async()=>{
    status('Проверяю файл…');const raw=await file.text();let pkg;
-   if(file.name.toLowerCase().endsWith('.zbv'))pkg=await cryptoApi().open(raw,secret(),'backup');
+   if(file.name.toLowerCase().endsWith('.zbv'))pkg=await cryptoApi().openDatabase(raw,secret());
    else pkg={format:'legacy-json',state:JSON.parse(raw),files:[]};
    if(!pkg||!Array.isArray(pkg.state?.clients)||!Array.isArray(pkg.files))throw Error('Неверный формат базы');
    // Import into an empty database only; never silently replace existing clients.
