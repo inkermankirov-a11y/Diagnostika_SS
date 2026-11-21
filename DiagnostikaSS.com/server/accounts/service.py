@@ -1,4 +1,6 @@
 """ZABVENYE account service. Separate from client records. Pilot only."""
+import smtplib, ssl, queue
+from email.message import EmailMessage
 import base64, os, sqlite3, hashlib, secrets, hmac, time, json, re, getpass, sys, urllib.request, urllib.parse, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from contextlib import contextmanager
@@ -34,6 +36,8 @@ with db() as c:
     CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,actor TEXT,action TEXT,target TEXT,created INTEGER);
     CREATE TABLE IF NOT EXISTS invites(token TEXT PRIMARY KEY,email TEXT NOT NULL,expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS vault_recovery(user_id TEXT PRIMARY KEY,secret TEXT NOT NULL,created INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS password_resets(token TEXT PRIMARY KEY,user_id TEXT NOT NULL UNIQUE,expires INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS welcome_mail(user_id TEXT PRIMARY KEY,language TEXT NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,next_try INTEGER NOT NULL DEFAULT 0,sent_at INTEGER);
     CREATE TABLE IF NOT EXISTS ai_usage(user_id TEXT NOT NULL,day TEXT NOT NULL,area TEXT NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(user_id,day,area));
     """)
 # Public IDs are independent of internal authentication identifiers.
@@ -285,6 +289,88 @@ def captcha(token):
     except Exception: return False
 class Error(Exception):
     def __init__(self,status,msg): self.status=status; self.msg=msg
+
+# The mail configuration is provisioned on the server, outside Git.
+SUPPORT="https://t.me/zabvenye_com"
+MAIL_QUEUE=queue.Queue(maxsize=50)
+MAIL_TEXT={
+ "ru":("Добро пожаловать в ZABVENYE!","Здравствуйте!","Регистрация завершена. Ваш аккаунт создан. Добро пожаловать в рабочее пространство ZABVENYE.","Войти в аккаунт","Поддержка в Telegram","Восстановление пароля ZABVENYE","Чтобы установить новый пароль, откройте ссылку ниже. Она действует 30 минут и только один раз.","Если вы не запрашивали восстановление, проигнорируйте письмо."),
+ "en":("Welcome to ZABVENYE!","Hello!","Registration is complete. Your account has been created. Welcome to the ZABVENYE workspace.","Sign in","Telegram support","Reset your ZABVENYE password","Open the link below to set a new password. It is valid for 30 minutes and can be used only once.","If you did not request a password reset, ignore this email."),
+ "fr":("Bienvenue sur ZABVENYE !","Bonjour !","Votre inscription est terminée. Votre compte a été créé. Bienvenue dans votre espace de travail ZABVENYE.","Se connecter","Assistance sur Telegram","Réinitialisation de votre mot de passe ZABVENYE","Ouvrez le lien ci-dessous pour définir un nouveau mot de passe. Il est valable 30 minutes et utilisable une seule fois.","Si vous n’avez pas demandé cette réinitialisation, ignorez ce message."),
+ "de":("Willkommen bei ZABVENYE!","Hallo!","Ihre Registrierung ist abgeschlossen. Ihr Konto wurde erstellt. Willkommen in Ihrem ZABVENYE-Arbeitsbereich.","Anmelden","Support auf Telegram","ZABVENYE-Passwort zurücksetzen","Öffnen Sie den folgenden Link, um ein neues Passwort festzulegen. Er ist 30 Minuten gültig und nur einmal verwendbar.","Falls Sie keine Zurücksetzung angefordert haben, ignorieren Sie diese E-Mail."),
+ "it":("Benvenuto su ZABVENYE!","Ciao!","La registrazione è completata. Il tuo account è stato creato. Ti diamo il benvenuto nel tuo spazio di lavoro ZABVENYE.","Accedi","Assistenza su Telegram","Reimposta la password di ZABVENYE","Apri il link qui sotto per impostare una nuova password. È valido per 30 minuti e può essere utilizzato una sola volta.","Se non hai richiesto il ripristino della password, ignora questa email.")
+}
+def mail_config():
+    cfg={}
+    try:
+        cfg=json.loads((DATA/"mail.json").read_text())
+        if not isinstance(cfg,dict): return None
+    except FileNotFoundError: pass
+    except (OSError,ValueError): return None
+    values={k:os.getenv("ACCOUNT_SMTP_"+k.upper(),cfg.get(k,"")) for k in ("host","port","user","password","sender","security")}
+    if not all(values[k] for k in ("host","user","password","sender")) or not valid_email(values["sender"]): return None
+    try:
+        values["port"]=int(values["port"] or 465)
+        if not 1<=values["port"]<=65535: return None
+    except (TypeError,ValueError): return None
+    values["security"]=values["security"] or "ssl"
+    return values if values["security"] in ("ssl","starttls") else None
+def send_mail(recipient,subject,body):
+    cfg=mail_config()
+    if not cfg: raise RuntimeError("Mail not configured")
+    message=EmailMessage()
+    message["From"]="ZABVENYE <"+cfg["sender"]+">"
+    message["To"]=recipient
+    message["Subject"]=subject
+    message.set_content(body)
+    context=ssl.create_default_context()
+    if cfg["security"]=="ssl":
+        with smtplib.SMTP_SSL(cfg["host"],cfg["port"],timeout=12,context=context) as smtp:
+            smtp.login(cfg["user"],cfg["password"]);smtp.send_message(message)
+    else:
+        with smtplib.SMTP(cfg["host"],cfg["port"],timeout=12) as smtp:
+            smtp.ehlo();smtp.starttls(context=context);smtp.ehlo()
+            smtp.login(cfg["user"],cfg["password"]);smtp.send_message(message)
+def send_reset_request(email):
+    with db() as c:
+        c.execute("BEGIN IMMEDIATE")
+        u=c.execute("SELECT id,email,ui_language FROM users WHERE email=? AND enabled=1 AND deleted=0",(email,)).fetchone()
+        if not u: return
+        token=secrets.token_urlsafe(32); hashed=digest(token)
+        now=int(time.time())
+        c.execute("DELETE FROM password_resets WHERE expires<=?",(now,))
+        c.execute("INSERT INTO password_resets VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET token=excluded.token,expires=excluded.expires",(hashed,u["id"],now+1800))
+    lang=u["ui_language"] if u["ui_language"] in LANGUAGES else "ru"
+    t=MAIL_TEXT[lang]
+    link=ORIGIN+"/account#reset="+token+"&lang="+lang
+    try: send_mail(u["email"],t[5],"\n\n".join((t[1],t[6],link,t[7],t[4]+": "+SUPPORT)))
+    except Exception:
+        with db() as c: c.execute("DELETE FROM password_resets WHERE token=?",(hashed,))
+        raise
+def send_next_welcome():
+    now=int(time.time())
+    with db() as c:
+        row=c.execute("SELECT w.*,u.email FROM welcome_mail w JOIN users u ON u.id=w.user_id WHERE w.sent_at IS NULL AND w.next_try<=? AND u.enabled=1 AND u.deleted=0 AND u.onboarding_required=0 ORDER BY w.next_try LIMIT 1",(now,)).fetchone()
+    if not row:return
+    t=MAIL_TEXT.get(row["language"],MAIL_TEXT["ru"])
+    try:
+        send_mail(row["email"],t[0],"\n\n".join((t[1],t[2],t[3]+": "+ORIGIN+"/account",t[4]+": "+SUPPORT)))
+    except Exception:
+        with db() as c:c.execute("UPDATE welcome_mail SET attempts=attempts+1,next_try=? WHERE user_id=?",(now+min(86400,60*2**min(10,row["attempts"])),row["user_id"]))
+        return
+    with db() as c:c.execute("UPDATE welcome_mail SET sent_at=? WHERE user_id=?",(int(time.time()),row["user_id"]))
+def mail_worker():
+    while True:
+        try:
+            email=MAIL_QUEUE.get(timeout=5)
+            try:send_reset_request(email)
+            except Exception:pass
+            finally:MAIL_QUEUE.task_done()
+        except queue.Empty:pass
+        try:
+            if mail_config():send_next_welcome()
+        except Exception:pass
+
 class Handler(BaseHTTPRequestHandler):
     def setup(self):
         super().setup(); self.connection.settimeout(12)
@@ -331,7 +417,7 @@ class Handler(BaseHTTPRequestHandler):
                 file={" /account":"index.html"}.get(" "+path, path.rsplit("/",1)[-1])
                 typ={"index.html":"text/html","ui.js":"application/javascript","ui.css":"text/css"}[file]
                 return self.reply(200,(Path(__file__).parent/file).read_bytes(),ctype=typ)
-            if path=="/account/api/config": return self.reply(200,{"sitekey":SITE if SECRET else ""})
+            if path=="/account/api/config": return self.reply(200,{"sitekey":SITE if SECRET else "","password_reset":bool(mail_config())})
             # Traefik/nginx forward an opaque session cookie; no public data is returned.
             if path=="/account/api/workspace-auth":
                 with db() as c:
@@ -412,6 +498,35 @@ class Handler(BaseHTTPRequestHandler):
             raise Error(404,"Не найдено")
         if path.startswith("/account/api/ai/"): return self.ai_proxy(path.rsplit("/",1)[-1])
         b=self.body(120000 if path=="/account/api/workspace-profile" else 8192)
+        if path=="/account/api/password-reset-request":
+            e=b.get("email")
+            if not valid_email(e): raise Error(400,"Введите корректный email.")
+            e=e.strip().lower()
+            if not mail_config(): raise Error(503,"Отправка писем пока недоступна. Обратитесь в поддержку.")
+            if not allowed("reset-global",30,60) or not allowed("reset-email:"+digest(e),3,1800): raise Error(429,"Слишком много попыток. Повторите позже.")
+            if not captcha(b.get("captcha")): raise Error(403,"Пройдите проверку безопасности.")
+            try:MAIL_QUEUE.put_nowait(e)
+            except queue.Full:raise Error(503,"Отправка писем пока недоступна. Обратитесь в поддержку.")
+            return self.reply(200,{"ok":True})
+        if path=="/account/api/password-reset-confirm":
+            token=b.get("token");p=b.get("password")
+            if not isinstance(token,str) or not re.fullmatch(r"[A-Za-z0-9_-]{43}",token): raise Error(400,"Ссылка недействительна или устарела.")
+            if not valid_password(p): raise Error(400,"Пароль должен содержать от 12 до 128 символов.")
+            if p!=b.get("password_repeat"):raise Error(400,"Пароли не совпадают")
+            if not allowed("reset-confirm-global",30,60):raise Error(429,"Слишком много попыток. Повторите позже.")
+            if not HASH_SLOT.acquire(False):raise Error(429,"Сервис занят. Повторите попытку.")
+            try:
+                with db() as c:
+                    c.execute("BEGIN IMMEDIATE")
+                    row=c.execute("SELECT r.user_id FROM password_resets r JOIN users u ON u.id=r.user_id WHERE r.token=? AND r.expires>? AND u.enabled=1 AND u.deleted=0",(digest(token),int(time.time()))).fetchone()
+                    if not row:raise Error(400,"Ссылка недействительна или устарела.")
+                    uid=row["user_id"]
+                    c.execute("UPDATE users SET password=? WHERE id=?",(password_hash(p),uid))
+                    c.execute("DELETE FROM password_resets WHERE user_id=?",(uid,))
+                    c.execute("DELETE FROM sessions WHERE user_id=?",(uid,))
+                    audit(c,uid,"password-reset",uid)
+            finally:HASH_SLOT.release()
+            return self.reply(200,{"ok":True},"__Host-zabvenye_account=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")
         if path in ("/account/api/login","/account/api/register"):
             e=b.get("email"); p=b.get("password")
             if not valid_email(e): raise Error(400,"Введите корректный email.")
@@ -476,6 +591,7 @@ class Handler(BaseHTTPRequestHandler):
                 audit(c,u["id"],"legal-acceptance",u["id"],{"version":{"from":None,"to":LEGAL_VERSION}})
                 c.execute("UPDATE users SET first_name=?,last_name=?,birth_date=?,onboarding_required=0 WHERE id=?",(first.strip(),last.strip(),birth,u["id"]))
                 audit(c,u["id"],"onboarding",u["id"])
+                c.execute("INSERT OR IGNORE INTO welcome_mail(user_id,language) VALUES(?,?)",(u["id"],language))
                 payload={"ok":True}
             elif path=="/account/api/language":
                 language=b.get("language")
@@ -549,7 +665,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=target["id"]
                 audit(c,u["id"],"purge",uid,{"account":{"from":"Архивирован","to":"Удалён окончательно"}})
                 c.execute("INSERT INTO specialist_tombstones VALUES(?,?,?)",(uid,b["id"],int(time.time())))
-                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","legal_acceptance","workspace_profiles","vault_recovery"):
+                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail"):
                     c.execute("DELETE FROM "+table+" WHERE user_id=?",(uid,))
                 c.execute("DELETE FROM users WHERE id=?",(uid,))
                 payload={"ok":True}
@@ -666,4 +782,5 @@ class Server(ThreadingHTTPServer):
         try: super().process_request_thread(*args)
         finally: REQUESTS.release()
 if __name__=="__main__":
+    threading.Thread(target=mail_worker,daemon=True,name="account-mail").start()
     Server(("0.0.0.0",8080),Handler).serve_forever()
