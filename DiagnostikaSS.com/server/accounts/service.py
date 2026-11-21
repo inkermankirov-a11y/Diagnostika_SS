@@ -67,6 +67,13 @@ with db() as c:
         c.execute("UPDATE invites SET public_id=?,preview=? WHERE token=?",(secrets.token_hex(12),"Старый код",inv["token"]))
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS invite_public_id_unique ON invites(public_id)")
     c.execute("CREATE TABLE IF NOT EXISTS license_archive(public_id TEXT PRIMARY KEY,token TEXT NOT NULL,deleted_at INTEGER NOT NULL)")
+    c.execute("CREATE TABLE IF NOT EXISTS license_numbers(number INTEGER PRIMARY KEY AUTOINCREMENT,public_id TEXT NOT NULL UNIQUE)")
+    for row in c.execute("SELECT public_id FROM (SELECT public_id,COALESCE(created,0) AS ts FROM invites UNION ALL SELECT public_id,deleted_at AS ts FROM license_archive) ORDER BY ts,public_id").fetchall():
+        if not c.execute("SELECT 1 FROM license_numbers WHERE public_id=?",(row["public_id"],)).fetchone():
+            c.execute("INSERT INTO license_numbers(public_id) VALUES(?)",(row["public_id"],))
+    if "archived_at" not in cols: c.execute("ALTER TABLE users ADD COLUMN archived_at INTEGER")
+    if "archived_enabled" not in cols: c.execute("ALTER TABLE users ADD COLUMN archived_enabled INTEGER")
+    c.execute("CREATE TABLE IF NOT EXISTS specialist_tombstones(user_id TEXT PRIMARY KEY,public_id TEXT NOT NULL UNIQUE,purged_at INTEGER NOT NULL)")
     c.execute("CREATE TABLE IF NOT EXISTS legal_acceptance(user_id TEXT NOT NULL,version TEXT NOT NULL,accepted_at INTEGER NOT NULL,PRIMARY KEY(user_id,version))")
     if "language" not in {row[1] for row in c.execute("PRAGMA table_info(legal_acceptance)")}: c.execute("ALTER TABLE legal_acceptance ADD COLUMN language TEXT")
     c.execute("CREATE TABLE IF NOT EXISTS specialist_metrics(user_id TEXT PRIMARY KEY,client_count INTEGER,reported_at INTEGER)")
@@ -77,6 +84,7 @@ with db() as c:
         if u["role"]=="admin": allocate_id(c,u["id"],"admin","777777")
         allocate_id(c,u["id"],"specialist","888888" if u["role"]=="admin" else None)
     c.execute("UPDATE users SET last_seen=(SELECT MAX(created) FROM audit WHERE actor=users.id AND action IN ('login','registered')) WHERE last_seen IS NULL")
+    c.execute("UPDATE users SET archived_at=COALESCE((SELECT MAX(created) FROM audit WHERE target=users.id AND action='delete'),?) WHERE deleted=1 AND archived_at IS NULL",(int(time.time()),))
 def profile(b):
     first=b.get("first_name",""); last=b.get("last_name",""); gender=b.get("gender","")
     if not isinstance(first,str) or not isinstance(last,str) or not 1<=len(first.strip())<=80 or not 1<=len(last.strip())<=80 or gender not in ("male","female"):
@@ -118,10 +126,12 @@ def legal_acceptance(c,u):
     return dict(row) if row else None
 def public(c,u):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION,"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"])}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION,"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
-    if not u: return {"email":uid}
+    if not u:
+        tomb=c.execute("SELECT public_id FROM specialist_tombstones WHERE user_id=?",(uid,)).fetchone()
+        return {"id":tomb[0],"first_name":"Удалённый специалист"} if tomb else {"email":uid}
     nums=ids(c,uid)
     return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),**dict(u)}
 def audit_rows(c,offset):
@@ -153,7 +163,8 @@ def recover_invite_code(row):
     candidate=derive_invite_code(row["public_id"])
     return candidate if hmac.compare_digest(digest(candidate),row["token"]) else None
 def cleanup_revoked(c):
-    c.execute("DELETE FROM invites WHERE revoked_at IS NOT NULL AND used_at IS NULL AND revoked_at<=?",(int(time.time())-86400,))
+    # Retain licenses until explicit archival.
+    return
 def invite_cleanup_loop():
     while True:
         try:
@@ -166,7 +177,8 @@ def invite_status(row,now):
     if row["expires"] and row["expires"]<=now: return "expired"
     return "active"
 def invite_public(c,row,now):
-    return {"id":row["public_id"],"preview":row["preview"],"email":row["email"],"created":row["created"],"expires":row["expires"],"comment":row["comment"],"status":invite_status(row,now),"used_at":row["used_at"],"used_by":snapshot(c,row["used_by"]) if row["used_by"] else None,"revoked_at":row["revoked_at"]}
+    number=c.execute("SELECT number FROM license_numbers WHERE public_id=?",(row["public_id"],)).fetchone()
+    return {"id":row["public_id"],"license_number":f"{number[0]:06d}" if number else None,"preview":row["preview"],"email":row["email"],"created":row["created"],"expires":row["expires"],"comment":row["comment"],"status":invite_status(row,now),"used_at":row["used_at"],"used_by":snapshot(c,row["used_by"]) if row["used_by"] else None,"revoked_at":row["revoked_at"]}
 def create_invite(c,actor,email,hours,comment):
     now=int(time.time())
     if hours not in (24,72,168,0) or type(hours) is not int: raise Error(400,"Некорректный срок")
@@ -177,8 +189,9 @@ def create_invite(c,actor,email,hours,comment):
     token=derive_invite_code(ident)
     expiry=now+hours*3600 if hours else 0
     c.execute("INSERT INTO invites(token,email,expires,public_id,preview,created,comment,created_by) VALUES(?,?,?,?,?,?,?,?)",(digest(token),email,expiry,ident,token[:12]+"…",now,comment.strip(),actor))
+    number=c.execute("INSERT INTO license_numbers(public_id) VALUES(?)",(ident,)).lastrowid
     audit(c,actor,"invite",email or "Без привязки",{"invitation":{"from":None,"to":token[:12]+"…"},"expiry":{"from":None,"to":hours or "Бессрочно"}})
-    return {"invite":token,"id":ident}
+    return {"invite":token,"id":ident,"license_number":f"{number:06d}"}
 def audit(c,actor,action,target,changes=None):
     d={"actor":snapshot(c,actor),"target":snapshot(c,target),"changes":changes or {}}
     c.execute("INSERT INTO audit(actor,action,target,created,details) VALUES(?,?,?,?,?)",(actor,action,target,int(time.time()),json.dumps(d,ensure_ascii=False)))
@@ -320,7 +333,7 @@ class Handler(BaseHTTPRequestHandler):
                     if not row: raise Error(404,"Приглашение не найдено")
                     detail=invite_public(c,row,int(time.time()))
                     detail["code"]=recover_invite_code(row)
-                    detail["license_number"]=row["public_id"]
+                    detail["legacy_license_id"]=row["public_id"]
                     detail["specialist"]=None
                     if row["used_by"]:
                         owner=c.execute("SELECT * FROM users WHERE id=?",(row["used_by"],)).fetchone()
@@ -333,10 +346,10 @@ class Handler(BaseHTTPRequestHandler):
                     args=[now] if state in ("active","expired") else []
                     qtext=param("q")
                     if qtext:
-                        where+=" AND (instr(casefold(email),casefold(?))>0 OR instr(casefold(comment),casefold(?))>0 OR instr(casefold(preview),casefold(?))>0)"
-                        args.extend([qtext]*3)
+                        where+=" AND (instr(casefold(email),casefold(?))>0 OR instr(casefold(comment),casefold(?))>0 OR instr(casefold(preview),casefold(?))>0 OR EXISTS(SELECT 1 FROM license_numbers n WHERE n.public_id=invites.public_id AND instr(printf('%06d',n.number),?)>0) OR instr(public_id,?)>0)"
+                        args.extend([qtext]*5)
                     total=c.execute("SELECT count(*) FROM invites WHERE "+where,args).fetchone()[0]
-                    rows=c.execute("SELECT * FROM invites WHERE "+where+" ORDER BY created DESC,public_id LIMIT 50 OFFSET ?",args+[offset]).fetchall()
+                    rows=c.execute("SELECT * FROM invites WHERE "+where+" ORDER BY (SELECT number FROM license_numbers n WHERE n.public_id=invites.public_id) DESC LIMIT 50 OFFSET ?",args+[offset]).fetchall()
                     return self.reply(200,{"items":[invite_public(c,row,now) for row in rows],"total":total})
                 if path=="/account/api/admin/audit":
                     return self.reply(200,{"items":audit_rows(c,offset),"total":c.execute("SELECT count(*) FROM audit").fetchone()[0]})
@@ -421,9 +434,31 @@ class Handler(BaseHTTPRequestHandler):
             elif path=="/account/api/admin/delete":
                 target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(b.get("id"),)).fetchone()
                 if not target: raise Error(404,"Специалист не найден")
-                c.execute("UPDATE users SET deleted=1,enabled=0 WHERE id=?",(target["id"],))
+                c.execute("UPDATE users SET deleted=1,archived_enabled=enabled,archived_at=?,enabled=0 WHERE id=?",(int(time.time()),target["id"]))
                 c.execute("DELETE FROM sessions WHERE user_id=?",(target["id"],))
                 audit(c,u["id"],"delete",target["id"],{"deleted":{"from":False,"to":True}})
+                payload={"ok":True}
+            elif path=="/account/api/admin/restore":
+                target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=1",(b.get("id"),)).fetchone()
+                if not target: raise Error(404,"Архивированный специалист не найден")
+                enabled=int(bool(target["archived_enabled"]))
+                c.execute("UPDATE users SET deleted=0,enabled=?,archived_at=NULL,archived_enabled=NULL WHERE id=?",(enabled,target["id"]))
+                audit(c,u["id"],"restore",target["id"],{"deleted":{"from":True,"to":False},"enabled":{"from":False,"to":bool(enabled)}})
+                payload={"ok":True,"enabled":bool(enabled)}
+            elif path=="/account/api/admin/purge":
+                target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=1",(b.get("id"),)).fetchone()
+                if not target: raise Error(404,"Архивированный специалист не найден")
+                if not target["archived_at"] or int(time.time())<target["archived_at"]+86400: raise Error(409,"Окончательное удаление доступно через 24 часа после архивации")
+                if b.get("confirm_id")!=b.get("id"): raise Error(400,"Введите точный ID специалиста")
+                password=b.get("password")
+                if not allowed("purge:"+u["id"],5,900): raise Error(429,"Слишком много попыток. Повторите позже.")
+                if not valid_password(password) or not password_ok(password,u["password"]): raise Error(403,"Неверный пароль администратора")
+                uid=target["id"]
+                audit(c,u["id"],"purge",uid,{"account":{"from":"Архивирован","to":"Удалён окончательно"}})
+                c.execute("INSERT INTO specialist_tombstones VALUES(?,?,?)",(uid,b["id"],int(time.time())))
+                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","legal_acceptance"):
+                    c.execute("DELETE FROM "+table+" WHERE user_id=?",(uid,))
+                c.execute("DELETE FROM users WHERE id=?",(uid,))
                 payload={"ok":True}
             elif path=="/account/api/admin/invite":
                 e=b.get("email","")
