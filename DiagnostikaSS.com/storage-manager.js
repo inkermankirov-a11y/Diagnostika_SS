@@ -584,7 +584,15 @@
   };
 
   dlg.querySelector('#storageClose').onclick=()=>dlg.close();
-  btn.onclick=async()=>{await updateStatus();dlg.showModal();};
+  btn.onclick=()=>{
+    if(!dlg.open)dlg.showModal();
+    Promise.resolve().then(updateStatus).catch(error=>{
+      console.warn('Не удалось проверить состояние папки',error);
+      status.className='storage-status warn';
+      status.textContent='Не удалось проверить папку. Выберите папку заново или повторите попытку.';
+      restoreBtn.disabled=true;exportBtn.disabled=true;disconnectBtn.disabled=!rootHandle;
+    });
+  };
   dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
 
   const originalSave=save;
