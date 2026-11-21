@@ -40,7 +40,7 @@
     if(recovering||failed||shown)return;
     recovering=true;
     const parts=[
-      ['i18n.js?v=20261121-locale50',()=>!!window.DiagnostikaI18n],
+      ['i18n.js?v=20261121-header52',()=>!!window.DiagnostikaI18n],
       ['settings-menu.js?v=20261121-header52',()=>!!window.DiagnostikaSettingsUI&&!!document.getElementById('settingsMenuBtn')],
       ['header-utilities.js?v=20261121-header52',()=>!!document.getElementById('headerUtilityGroup')],
       ['quick-notes.js?v=20261121-header52',()=>!!document.getElementById('quickNotesBtn')]
