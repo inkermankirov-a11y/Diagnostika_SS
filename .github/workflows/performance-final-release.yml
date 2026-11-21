@@ -1,0 +1,89 @@
+name: Performance final release candidate
+on:
+  push:
+    branches: ['performance/stage-8']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          git worktree add --detach /tmp/zabvenye-original cefc70123ae7bab00455c61d1b04bb4ce18b83ed
+          node tests/performance-regression.mjs /tmp/zabvenye-original/DiagnostikaSS.com
+      - run: node --test tests/lossless-database-quota.test.cjs tests/performance-state-codec.test.cjs
+      - run: python3 server/accounts/test_registry.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-report
+          path: DiagnostikaSS.com/performance-results/regression.json
+  integrated-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.55.0 terser@5.44.1 esbuild@0.25.11
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: node tests/performance-build.mjs
+      - name: Compare original with combined candidate, verify both source and built version
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$PWD"
+          OUT="$ROOT/.performance-build"
+          git worktree add --detach /tmp/zabvenye-original cefc70123ae7bab00455c61d1b04bb4ce18b83ed
+          ORIGINAL=/tmp/zabvenye-original/DiagnostikaSS.com
+          ln -s "$ROOT/node_modules" "$ORIGINAL/node_modules"
+          cp tests/performance-startup.mjs "$ORIGINAL/tests/"
+          cp tests/performance-startup.mjs tests/performance-lazy-utilities.mjs tests/performance-release-smoke.mjs "$OUT/"
+          result=0
+          mkdir -p "$ROOT/performance-results"
+          for label in original candidate built; do
+            DIR="$ROOT"; TESTS=tests
+            if [ "$label" = original ]; then DIR="$ORIGINAL"; fi
+            if [ "$label" = built ]; then DIR="$OUT"; TESTS=.; fi
+            python3 "$ROOT/tests/performance-latency-server.py" "$DIR" >"/tmp/perf-$label.log" 2>&1 &
+            SERVER=$!
+            trap 'kill "$SERVER" 2>/dev/null || true' EXIT
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8149/index.html >/dev/null; then break; fi
+              sleep 1
+            done
+            (cd "$DIR"; PERF_LABEL="$label" node "$TESTS/performance-startup.mjs") || result=1
+            if [ "$label" != original ]; then
+              (cd "$DIR"; node "$TESTS/performance-lazy-utilities.mjs") || result=1
+              (cd "$DIR"; node "$TESTS/performance-release-smoke.mjs") || result=1
+            fi
+            if [ "$DIR" != "$ROOT" ]; then cp "$DIR/performance-results/startup-$label.json" "$ROOT/performance-results/" || result=1; fi
+            kill "$SERVER" || true
+            wait "$SERVER" || true
+            trap - EXIT
+          done
+          cp "$OUT/build-metrics.json" "$ROOT/performance-results/"
+          exit "$result"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-performance-report
+          path: DiagnostikaSS.com/performance-results/*.json
+          if-no-files-found: warn
