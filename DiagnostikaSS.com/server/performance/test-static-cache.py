@@ -30,6 +30,7 @@ for path in ["/", asset, "/account/api/workspace-profile"]:
     assert code == 302, (path, code)
     assert headers.get("location") == "https://zabvenye.com/account", headers
     assert "no-store" in headers.get("cache-control", ""), headers
+    assert headers.get('x-content-type-options') == 'nosniff', headers
 code, headers, gz = request(asset, cookie, {"Accept-Encoding":"gzip"})
 assert code == 200, code
 assert headers.get("content-encoding") == "gzip", headers
@@ -37,14 +38,17 @@ assert "accept-encoding" in headers.get("vary", "").lower(), headers
 assert "private" in headers.get("cache-control", "") and "no-cache" in headers["cache-control"], headers
 assert "public" not in headers["cache-control"] and "immutable" not in headers["cache-control"], headers
 assert headers.get("etag"), headers
+assert headers.get('x-content-type-options') == 'nosniff', headers
 raw = gzip.decompress(gz)
 code2, plainheaders, plain = request(asset, cookie)
 assert code2 == 200 and raw == plain and len(gz) < len(plain), (code2,len(gz),len(plain))
 code, conditional, _ = request(asset, cookie, {"If-None-Match":plainheaders["etag"]})
 assert code == 304 and "private" in conditional["cache-control"], (code,conditional)
+assert conditional.get("x-content-type-options") == "nosniff", conditional
 code, headers, _ = request(asset, None, {"If-None-Match":plainheaders["etag"]})
 assert code == 302 and "no-store" in headers["cache-control"], (code,headers)
 for path in ["/","/account/api/workspace-profile","/secret.json"]:
     code, headers, _ = request(path,cookie,{"Accept-Encoding":"gzip"})
     assert "no-store" in headers.get("cache-control","") and "content-encoding" not in headers, (path,code,headers)
+    assert headers.get("x-content-type-options") == "nosniff", headers
 print("STATIC_CACHE_AUTH_GZIP_OK",{"rawBytes":len(raw),"gzipBytes":len(gz),"revalidated":304,"anonymous":302})
