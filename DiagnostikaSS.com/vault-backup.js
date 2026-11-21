@@ -1,5 +1,6 @@
 'use strict';
 (()=>{
+ const localizedConfirm=message=>window.confirm(window.DiagnostikaI18n?.translate(message)||message);
  if(location.hostname!=='zabvenye.com')return;
  const cryptoApi=()=>window.DiagnostikaVaultCrypto;
  const db=()=>window.DiagnostikaDB||window.DiagnostikaPlatform?.db;
@@ -18,7 +19,7 @@
   let busy=false;
   async function run(fn){if(busy)return;busy=true;for(const id of ['vaultSave','vaultRead','vaultGenerate','vaultClose'])$(id).disabled=true;try{await fn()}catch(e){status(e.message||'Не удалось выполнить операцию')}finally{busy=false;for(const id of ['vaultSave','vaultRead','vaultGenerate','vaultClose'])$(id).disabled=false}}
   btn.onclick=()=>{status('');d.showModal()};
-  $('vaultGenerate').onclick=()=>{if(secret()&&!confirm('Заменить введённый ключ? Старые копии потребуют прежний ключ.'))return;$('vaultSecret').value=cryptoApi().recoveryKey();$('vaultSecret').type='text';status('Сохраните ключ в отдельном безопасном месте. Не отправляйте его вместе с резервной копией.')};
+  $('vaultGenerate').onclick=()=>{if(secret()&&!localizedConfirm('Заменить введённый ключ? Старые копии потребуют прежний ключ.'))return;$('vaultSecret').value=cryptoApi().recoveryKey();$('vaultSecret').type='text';status('Сохраните ключ в отдельном безопасном месте. Не отправляйте его вместе с резервной копией.')};
   const recovery=document.createElement('button');recovery.type='button';recovery.id='vaultRecoveryBtn';recovery.textContent='Восстановить ключ доступа';recovery.style.cssText='color:#304e69;background:#fff';anchor.append(recovery);
   const rd=document.createElement('dialog');rd.className='storage-dialog';rd.id='vaultRecoveryDialog';
   rd.innerHTML='<form class="storage-shell"><div class="storage-title">Восстановление ключа</div><p>Укажите лицензионный номер и контакт для связи с администратором. Не вводите пароль, лицензионный код или данные клиентов.</p><label>Лицензионный номер<input name="license" required maxlength="120" autocomplete="off" style="width:100%"></label><label>Электронная почта для ответа<input name="email" type="email" required maxlength="254" autocomplete="email" style="width:100%"></label><p>Автоматическая отправка и восстановление пока не подключены. Сохраните запрос и передайте его администратору. Старые копии без ключа пока восстановить нельзя.</p><div class="storage-actions-main"><button type="submit" class="storage-primary">Скачать запрос администратору</button></div><div class="storage-footer"><button type="button" id="vaultRecoveryClose">Закрыть</button></div></form>';
@@ -48,7 +49,7 @@
    // Import into an empty database only; never silently replace existing clients.
    const current=db()?.readState();if(!current||!Array.isArray(current.clients))throw Error('База недоступна');
    if(current.clients.length||current.archivedClients?.length||current.deletedClients?.length)throw Error('Восстановление разрешено только в пустую базу. Сначала сохраните текущую базу отдельно.');
-   if(!confirm('Восстановить клиентов: '+pkg.state.clients.length+'? При импорте старого JSON вложения могут отсутствовать.'))return;
+   if(!localizedConfirm('Восстановить клиентов: '+pkg.state.clients.length+'? При импорте старого JSON вложения могут отсутствовать.'))return;
    const api=files();if(!api?.put||!api?.list)throw Error('Хранилище файлов не готово');
    if((await api.list({})).length)throw Error('В браузере уже есть вложения. Восстановление отменено.');
    const prepared=pkg.files.map(f=>{if(!f.meta?.id||!f.meta.clientId||!f.meta.sessionId)throw Error('Некорректное вложение');return {...f.meta,blob:new Blob([cryptoApi().unb64(f.bytes)],{type:f.meta.type||'application/octet-stream'})}});
