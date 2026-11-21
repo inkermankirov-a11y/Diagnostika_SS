@@ -390,7 +390,7 @@
     overlay.querySelector('#utilCurAmount')?.dispatchEvent(new Event('input',{bubbles:false}));
     const source=overlay.querySelector('.utility-source');
     if(source){
-      source.textContent=[rateSource,rateDate?'Дата курса: '+rateDate:'',rateError?'Сохранённые данные':''].filter(Boolean).join(' · ');
+      source.textContent=currencySourceLabel();
       source.title=rateDetails||rateSource;
     }
   }
@@ -477,7 +477,7 @@
     openPanel(`<div class="utility-head"><h2>${t.converter}</h2><button class="utility-close">×</button></div><div class="currency-card"><div class="currency-row"><label class="currency-field">${t.from}<select id="utilCurFrom">${opts(defaultPair.from)}</select></label><button type="button" class="tk-btn currency-swap">⇄</button><label class="currency-field">${t.to}<select id="utilCurTo">${opts(defaultPair.to)}</select></label></div><div class="currency-default-settings"><span id="utilCurDefaultInfo" class="currency-default-info" role="status" aria-live="polite"></span><button id="utilCurSetDefault" type="button" class="tk-btn currency-set-default">${t.setDefaultPair}</button></div><label class="currency-field currency-amount-wrap">${t.amount}<input id="utilCurAmount" inputmode="decimal" value="1"></label><div class="currency-result"><div id="utilCurResult" class="currency-result-main">—</div><div id="utilCurRate" class="currency-rate"></div></div></div><div class="utility-source">${rateSource}</div>`,'currency');
     const from=overlay.querySelector('#utilCurFrom'),to=overlay.querySelector('#utilCurTo'),amount=overlay.querySelector('#utilCurAmount'),result=overlay.querySelector('#utilCurResult'),rate=overlay.querySelector('#utilCurRate'),swap=overlay.querySelector('.currency-swap');
     const sourceNode=overlay.querySelector('.utility-source');
-    if(sourceNode){sourceNode.textContent=[rateSource,rateDate?'Дата курса: '+rateDate:'',rateError?'Сохранённые данные':''].filter(Boolean).join(' · ');sourceNode.title=rateDetails||rateSource;}
+    if(sourceNode){sourceNode.textContent=currencySourceLabel();sourceNode.title=rateDetails||rateSource;}
     const defaultInfo=overlay.querySelector('#utilCurDefaultInfo'),defaultButton=overlay.querySelector('#utilCurSetDefault');
     const showDefault=()=>{
       const saved=preferences?.read?.()||null;
@@ -513,7 +513,9 @@
     }else loadRates();
   });
 
+  function currencySourceLabel(){const uiText=s=>window.DiagnostikaI18n?.translate(s)||s;return [uiText(rateSource),rateDate?uiText('Дата курса:')+' '+rateDate:'',rateError?uiText('Сохранённые данные'):''].filter(Boolean).join(' · ');}
   function refreshLanguage(){
+    const source=overlay.querySelector('.utility-source');if(source&&overlay.dataset.theme==='currency')source.textContent=currencySourceLabel();
     weatherBtn.querySelector('.hu-sub').textContent=weatherLabel||tr().weather;
     calendarBtn.querySelector('.hu-main').textContent=calendarDateLabel();
     calendarBtn.title=tr().calendar;

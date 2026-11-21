@@ -131,9 +131,11 @@ function addTreeRow(root,cls,kind,text,level,meta,{incomplete=false}={}){
    if(selected?.type===meta.type&&String(selected?.obj?.id)===String(meta.obj?.id)){
      return;
    }
+   const wasDirty=diagnosisEditorDraftState().dirty;
    await guardDiagnosisEditorLeave(()=>{
      // Selecting an existing row must not rebuild the diagnosis tree or switch branches.
-     selected=meta;
+     if(!selectDiagnosisElementById(meta.type,meta.obj.id))return;
+     if(wasDirty){renderTree();return;}
      root.querySelectorAll('.tree-row.active-selection').forEach(row=>row.classList.remove('active-selection'));
      d.classList.add('active-selection');
      renderEditor();

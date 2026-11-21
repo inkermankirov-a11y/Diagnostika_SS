@@ -25,7 +25,7 @@
       const c=currentClient();
       const r=currentRequest();
       const api=window.DiagnostikaDiagnosis;
-      if(!s) return alert('Сначала выбери или добавь ситуацию.');
+      if(!s) return alert(window.DiagnostikaI18n?.translate('Сначала выбери или добавь ситуацию.')||'Сначала выбери или добавь ситуацию.');
       if(!c||!r||!api?.moduleAware)return;
       const b=api.addBelief(s.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-belief-add',render:false});
       if(!b)return;
@@ -41,7 +41,7 @@
     addFeeling.onclick=async()=>{
       await afterGuard(()=>{
       const selected=selection();
-      if(selected?.type!=='belief') return alert('Сначала выбери первичное убеждение.');
+      if(selected?.type!=='belief') return alert(window.DiagnostikaI18n?.translate('Сначала выбери первичное убеждение.')||'Сначала выбери первичное убеждение.');
       const c=currentClient();
       const r=currentRequest();
       const api=window.DiagnostikaDiagnosis;
@@ -60,13 +60,14 @@
     addDeep.onclick=async()=>{
       await afterGuard(()=>{
       const selected=selection();
-      if(selected?.type!=='feeling') return alert('Сначала выбери вторичное чувство.');
+      if(selected?.type!=='feeling') return alert(window.DiagnostikaI18n?.translate('Сначала выбери вторичное чувство.')||'Сначала выбери вторичное чувство.');
       const c=currentClient();
       const r=currentRequest();
       const api=window.DiagnostikaDiagnosis;
       if(!c||!r||!api?.moduleAware)return;
       const d=api.addDeep(selected.obj.id,{}, {client:c,requestId:r.id,source:'diagnosis-ui-deep-add',render:false});
       if(!d)return;
+      window.DiagnostikaFeelingCollapse?.openFeeling?.(selected.obj.id);
       shell()?.selectDiagnosisElement?.('deep',d.id);
       shell()?.renderDiagnosisTree?.();
       focusEditor();

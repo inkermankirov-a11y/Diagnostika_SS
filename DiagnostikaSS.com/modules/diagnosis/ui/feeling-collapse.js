@@ -208,7 +208,7 @@
       const symbol=isExpanded?'▼':'▶';if(arrow.textContent!==symbol)arrow.textContent=symbol;
       arrow.setAttribute('aria-expanded',String(isExpanded));
       const title=isExpanded?'Свернуть ВУ и инстинкты':'Развернуть ВУ и инстинкты';
-      arrow.title=window.DiagnostikaI18n?.translate(title)||title;
+      arrow.title=title;
       arrow.setAttribute('aria-label',arrow.title);
       arrow.onclick=e=>{
         e.preventDefault();

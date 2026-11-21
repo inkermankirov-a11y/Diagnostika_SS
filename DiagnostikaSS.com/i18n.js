@@ -49,7 +49,7 @@
   }
   const attributeMemory=new WeakMap();
   function translateElement(el){
-    if(!(el instanceof Element)||el.closest('.language-menu,.language-switcher,script,style,[contenteditable="true"],[data-i18n-user-content],.diagnosis-hypothesis-expanded-content,.diagnosis-hypothesis-raw,.diagnosis-hypothesis-result-short > div,.hd-client-name,.hws-event-person,.tree-row-label,.strong-vu-text,.situation-item,.hd-summary-value'))return;
+    if(!(el instanceof Element)||el.closest('.language-menu,.language-switcher,script,style,[contenteditable="true"],[data-i18n-user-content],.diagnosis-hypothesis-expanded-content,.diagnosis-hypothesis-raw,.diagnosis-hypothesis-result-short > div,.hd-client-name,.hws-event-person,.tree-row-label,.strong-vu-text,.situation-item,.hd-summary-value,.hd-session-snippet-text,.hd-session-request'))return;
     if(el.tagName==='OPTION'&&!el.hasAttribute('value'))el.value=el.value;
     for(const node of el.childNodes){
       if(node.nodeType!==Node.TEXT_NODE||el.tagName==='TEXTAREA')continue;
