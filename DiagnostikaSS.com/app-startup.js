@@ -3,13 +3,14 @@
   const root=document.documentElement;
   const status=document.getElementById('appStartupStatus');
   const failure=document.getElementById('appStartupFailure');
-  let failed=false,shown=false,scheduled=false;
+  let failed=false,shown=false,scheduled=false,recovering=false;
+  const headerReady=()=>!!(window.DiagnostikaSettingsUI&&document.getElementById('settingsMenuBtn')&&document.getElementById('headerUtilityGroup')&&document.getElementById('quickNotesBtn')&&document.querySelector('.settings-panel #storageBtn')&&!document.getElementById('saveHistoryBtn'));
   document.getElementById('appStartupRetry')?.addEventListener('click',()=>location.reload());
   document.getElementById('appReloadBtn')?.addEventListener('click',()=>location.reload());
   function ready(){
     return !!(window.DiagnostikaCoreReady && window.DiagnostikaHomeDashboard &&
       window.DiagnostikaDashboardSessions && window.DiagnostikaHomeWorkspace &&
-      document.querySelector('.home-dashboard'));
+      document.querySelector('.home-dashboard') && headerReady());
   }
   function showFailure(message){
     failed=true;root.classList.remove('diagnostika-dashboard-ready');
@@ -35,6 +36,31 @@
   });
   window.addEventListener('diagnostika:runtime-error',()=>showFailure('Не удалось загрузить системные компоненты. Не очищайте данные сайта; повторите загрузку.'));
   for(const name of ['diagnostika:core-ready','diagnostika:dashboard-loaded','diagnostika:home-workspace-ready'])window.addEventListener(name,update);
+  async function recoverHeader(){
+    if(recovering||failed||shown)return;
+    recovering=true;
+    const parts=[
+      ['i18n.js?v=20261121-locale50',()=>!!window.DiagnostikaI18n],
+      ['settings-menu.js?v=20261121-header52',()=>!!window.DiagnostikaSettingsUI&&!!document.getElementById('settingsMenuBtn')],
+      ['header-utilities.js?v=20261121-header52',()=>!!document.getElementById('headerUtilityGroup')],
+      ['quick-notes.js?v=20261121-header52',()=>!!document.getElementById('quickNotesBtn')]
+    ];
+    try{
+      for(const [src,check] of parts){
+        if(check())continue;
+        await new Promise((resolve,reject)=>{
+          const script=document.createElement('script');script.src=src+'&retry=1';
+          const timer=setTimeout(()=>reject(Error(src)),5000);
+          script.onload=()=>{clearTimeout(timer);check()?resolve():reject(Error(src));};
+          script.onerror=()=>{clearTimeout(timer);reject(Error(src));};
+          document.head.appendChild(script);
+        });
+      }
+    }catch(err){console.error('Header initialization failed:',err);}
+    finally{recovering=false;update();}
+  }
+  document.addEventListener('DOMContentLoaded',()=>{if(!headerReady())recoverHeader();else update();},{once:true});
+  window.addEventListener('diagnostika:header-component-ready',update);
   update();
   setTimeout(()=>{if(!shown&&!failed){if(ready())update();else showFailure('Приложение не загрузилось полностью. Проверьте соединение и повторите загрузку. Не очищайте данные сайта: в браузере могут храниться клиенты и вложения.');}},20000);
 })();
