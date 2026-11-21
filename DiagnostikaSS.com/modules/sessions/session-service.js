@@ -169,6 +169,7 @@
   function create(data={},options={}){
     const c=resolveClient(options.client??options.clientId);
     if(!c)return null;
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.allow('sessions_enabled','sessions',(c.sessions||[]).length))return null;
     if(!Array.isArray(c.sessions))c.sessions=[];
 
     const created=freshSession(data,c,options);
@@ -191,6 +192,7 @@
   }
 
   function update(id,changes={},options={}){
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.allow('sessions_enabled'))return null;
     const c=resolveClient(options.client??options.clientId);
     const target=get(id,c);
     if(!c||!target||!changes||typeof changes!=='object')return null;
