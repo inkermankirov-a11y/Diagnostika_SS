@@ -52,5 +52,43 @@
       document.body.append(d);d.showModal();
     })
   }
-  window.DiagnostikaVaultCrypto=Object.freeze({seal,open,recoveryKey,b64,unb64,requestSecret});
+  
+  // Shared encrypted database container. No plaintext disk writes.
+  function validatePackage(pkg){
+    if(pkg?.format!=='zbv-backup-v1'||!Array.isArray(pkg.state?.clients)||!Array.isArray(pkg.files))throw Error('Неверный формат базы ZBV');
+    const seen=new Set();
+    for(const f of pkg.files){
+      if(!f?.meta?.id||typeof f.bytes!=='string'||seen.has(f.meta.id))throw Error('Некорректное вложение ZBV');
+      seen.add(f.meta.id);unb64(f.bytes);
+    }
+    return pkg;
+  }
+  async function packDatabase(state,records,secret){
+    const snapshot=JSON.parse(JSON.stringify(state));
+    const files=[];
+    for(const record of records){
+      const {blob,...meta}=record;
+      if(!(blob instanceof Blob))throw Error('Вложение недоступно — база не сохранена');
+      files.push({meta,bytes:b64(new Uint8Array(await blob.arrayBuffer()))});
+    }
+    const pkg=validatePackage({format:'zbv-backup-v1',state:snapshot,files});
+    const raw=await seal(pkg,secret,'backup');
+    if(JSON.stringify(await openDatabase(raw,secret))!==JSON.stringify(pkg))throw Error('Проверка базы ZBV не пройдена');
+    return raw;
+  }
+  async function openDatabase(raw,secret){
+    return validatePackage(await open(raw,secret,'backup'));
+  }
+  async function writeDatabase(handle,raw,secret){
+    // Verify before requesting the browser's transactional writable stream.
+    const expected=await openDatabase(raw,secret);
+    const writer=await handle.createWritable({keepExistingData:false});
+    try{await writer.write(new Blob([raw],{type:'application/octet-stream'}));await writer.close()}
+    catch(e){try{await writer.abort()}catch{}throw e}
+    const saved=await (await handle.getFile()).text();
+    if(saved!==raw)throw Error('Записанный файл ZBV не совпадает с исходным');
+    if(JSON.stringify(await openDatabase(saved,secret))!==JSON.stringify(expected))throw Error('Проверка записанной базы не пройдена');
+    return expected;
+  }
+  window.DiagnostikaVaultCrypto=Object.freeze({seal,open,recoveryKey,b64,unb64,requestSecret,packDatabase,openDatabase,writeDatabase});
 })();
