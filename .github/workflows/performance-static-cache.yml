@@ -1,0 +1,65 @@
+name: Performance static cache safety
+on:
+  push:
+    branches: ['performance/stage-3']
+    paths:
+      - 'DiagnostikaSS.com/server/performance/**'
+      - '.github/workflows/performance-static-cache.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nginx-static-cache:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com/server/performance
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate and validate candidate in disposable Nginx
+        shell: bash
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          trap 'docker rm -f zabvenye-perf-nginx >/dev/null 2>&1 || true; rm -rf "$work"' EXIT
+          mkdir "$work/site"
+          cp ../../app.js "$work/site/app.js"
+          printf '<html>synthetic</html>' > "$work/site/index.html"
+          printf '{"synthetic":true}' > "$work/site/secret.json"
+          python3 generate-static-cache.py /srv/site > "$work/locations.conf"
+          cp static-cache-map.conf "$work/map.conf"
+          cat > "$work/default.conf" <<'NGINX'
+          include /etc/nginx/perf/map.conf;
+          server {
+              listen 80;
+              root /srv/site;
+              auth_request /__zabvenye_auth;
+              error_page 401 =302 https://zabvenye.com/account;
+              add_header Cache-Control "no-store" always;
+              gzip off;
+              location = /__zabvenye_auth {
+                  internal;
+                  auth_request off;
+                  if ($http_cookie != "session=synthetic") { return 401; }
+                  return 204;
+              }
+              location = /account/api/workspace-profile {
+                  proxy_pass http://127.0.0.1:8081;
+              }
+              location / { try_files $uri $uri/ =404; }
+              include /etc/nginx/perf/locations.conf;
+          }
+          server {
+              listen 127.0.0.1:8081;
+              location / { default_type application/json; return 200 '{"synthetic":true}'; }
+          }
+          NGINX
+          chmod -R a+rX "$work"
+          docker run -d --name zabvenye-perf-nginx -p 127.0.0.1:8150:80 \
+            -v "$work/default.conf:/etc/nginx/conf.d/default.conf:ro" \
+            -v "$work/map.conf:/etc/nginx/perf/map.conf:ro" \
+            -v "$work/locations.conf:/etc/nginx/perf/locations.conf:ro" \
+            -v "$work/site:/srv/site:ro" nginx:1.28-alpine
+          docker exec zabvenye-perf-nginx nginx -t
+          python3 test-static-cache.py
