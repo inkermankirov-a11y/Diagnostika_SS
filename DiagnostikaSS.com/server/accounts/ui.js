@@ -110,14 +110,53 @@ onboard.elements.birth_date.addEventListener('input',e=>{
  const formatted=[digits.slice(0,2),digits.slice(2,4),digits.slice(4)].filter(Boolean).join('.');
  if(input.value!==formatted)input.value=formatted;
 });
+function onboardingError(field,message){
+ const label=field.closest('label');let error=label.querySelector('.field-error');
+ if(!error){error=el('span',undefined,'field-error');error.id='onboard-error-'+field.name;error.setAttribute('aria-live','polite');label.append(error);}
+ error.textContent=message;error.hidden=!message;
+ field.classList.toggle('field-invalid',Boolean(message));
+ if(message){field.setAttribute('aria-invalid','true');field.setAttribute('aria-describedby',error.id);}
+ else{field.removeAttribute('aria-invalid');field.removeAttribute('aria-describedby');}
+ return !message;
+}
+function validateOnboardField(field){
+ const value=field.value.trim();let error='';
+ if(field.name==='first_name'||field.name==='last_name'){
+  if(!value)error=field.name==='first_name'?'Введите имя.':'Введите фамилию.';
+ }else if(field.name==='birth_date'){
+  const iso=isoBirth(value);
+  if(!value)error='Укажите дату рождения.';
+  else if(!iso)error='Введите существующую дату в формате ДД.ММ.ГГГГ, например 15.08.1990.';
+  else if(iso<'1900-01-01'||iso>localDate(browserZone))error='Проверьте год рождения: дата не может быть в будущем или раньше 1900 года.';
+  else if(Number(age(iso,browserZone))<18)error='Регистрация доступна с 18 лет.';
+ }
+ return onboardingError(field,error);
+}
+const onboardFields=['first_name','last_name','birth_date'].map(k=>onboard.elements[k]);
+for(const field of onboardFields){
+ field.addEventListener('blur',()=>{if(field.value.trim()||field.classList.contains('field-invalid'))validateOnboardField(field)});
+ field.addEventListener('input',()=>{if(field.classList.contains('field-invalid')||field.name==='birth_date'&&field.value.length===10)validateOnboardField(field)});
+}
+onboard.noValidate=true;
+function focusOnboardError(field){field.focus({preventScroll:true});field.scrollIntoView({block:'center',behavior:'auto'});}
 onboard.onsubmit=async e=>{
- e.preventDefault();if(legalBusy||!licenseCheck.checked||!privacyCheck.checked)return;legalBusy=true;updateFinish();
+ e.preventDefault();if(legalBusy)return;
+ $('onboardingError').hidden=true;
+ const invalid=onboardFields.filter(field=>!validateOnboardField(field));
+ if(invalid.length){focusOnboardError(invalid[0]);return;}
+ if(!licenseCheck.checked||!privacyCheck.checked){$('onboardingError').textContent='Ознакомьтесь с документами и установите обе отметки.';$('onboardingError').hidden=false;return;}
+ legalBusy=true;updateFinish();
  try{
   const data=Object.fromEntries(new FormData(onboard));data.birth_date=isoBirth(data.birth_date);
-  if(!data.birth_date||data.birth_date<'1900-01-01'||data.birth_date>localDate(browserZone))throw Error('Введите корректную дату рождения.');
   data.legal_version='1.0';data.license_accepted=licenseCheck.checked;data.privacy_read=privacyCheck.checked;
   await api('onboarding',data);location.replace('/');
- }catch(e){msg(e.message);legalBusy=false;updateFinish()}
+ }catch(e){
+  const message=e.message||'Не удалось завершить регистрацию.';
+  if(/дат[ауые]|рождени|18 лет/i.test(message)){onboardingError(onboard.elements.birth_date,message);focusOnboardError(onboard.elements.birth_date);}
+  else if(/имя и фамилию/i.test(message)){onboardingError(onboard.elements.first_name,message);focusOnboardError(onboard.elements.first_name);}
+  else{$('onboardingError').textContent=message;$('onboardingError').hidden=false;$('onboardingError').scrollIntoView({block:'center'});}
+  legalBusy=false;updateFinish();
+ }
 };
 $('onboardingLogout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
 $('logout').onclick=async()=>{try{await api('logout',{});location.reload()}catch(e){msg(e.message)}};
