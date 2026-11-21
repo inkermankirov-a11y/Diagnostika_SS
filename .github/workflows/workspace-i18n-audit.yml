@@ -1,0 +1,15 @@
+name: Workspace localization audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'DiagnostikaSS.com/**'
+      - '.github/workflows/workspace-i18n-audit.yml'
+  workflow_dispatch:
+jobs:
+  localization:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: node DiagnostikaSS.com/tests/workspace-i18n-audit.mjs
