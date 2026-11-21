@@ -17,25 +17,44 @@ jobs:
         working-directory: DiagnostikaSS.com
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm install --no-save playwright@1.55.0
       - run: npx playwright install --with-deps chromium firefox webkit
-      - name: Measure local application with synthetic records
+      - name: Check original and candidate under identical synthetic latency
+        shell: bash
         run: |
-          set -e
-          python3 -m http.server 8149 --bind 127.0.0.1 >/tmp/zabvenye-perf.log 2>&1 &
-          SERVER=$!
-          trap 'kill "$SERVER" || true' EXIT
-          for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:8149/index.html >/dev/null; then break; fi
-            sleep 1
+          set -euo pipefail
+          ROOT="$PWD"
+          git worktree add --detach /tmp/zabvenye-original cefc70123ae7bab00455c61d1b04bb4ce18b83ed
+          ORIGINAL=/tmp/zabvenye-original/DiagnostikaSS.com
+          cp tests/performance-startup.mjs "$ORIGINAL/tests/"
+          ln -s "$ROOT/node_modules" "$ORIGINAL/node_modules"
+          result=0
+          for label in baseline candidate; do
+            DIR="$ROOT"
+            if [ "$label" = baseline ]; then DIR="$ORIGINAL"; fi
+            python3 "$ROOT/tests/performance-latency-server.py" "$DIR" >/tmp/zabvenye-perf-$label.log 2>&1 &
+            SERVER=$!
+            trap 'kill "$SERVER" 2>/dev/null || true' EXIT
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8149/index.html >/dev/null; then break; fi
+              sleep 1
+            done
+            (cd "$DIR"; PERF_LABEL="$label" node tests/performance-startup.mjs) || result=1
+            mkdir -p "$ROOT/performance-results"
+            if [ "$DIR" != "$ROOT" ]; then cp "$DIR/performance-results/startup-$label.json" "$ROOT/performance-results/"; fi
+            kill "$SERVER" || true
+            wait "$SERVER" || true
+            trap - EXIT
           done
-          node tests/performance-startup.mjs
+          exit "$result"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: startup-benchmark
-          path: DiagnostikaSS.com/performance-results/startup.json
+          path: DiagnostikaSS.com/performance-results/*.json
           if-no-files-found: warn

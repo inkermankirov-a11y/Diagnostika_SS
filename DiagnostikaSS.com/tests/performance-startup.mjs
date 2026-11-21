@@ -7,6 +7,7 @@ const target=process.env.PERF_URL||'http://127.0.0.1:8149/index.html';
 const origin=new URL(target).origin;
 if(!['127.0.0.1','localhost'].includes(new URL(target).hostname))throw Error('Only use a local test server. Do not benchmark real client accounts.');
 const rounds=Number(process.env.PERF_ROUNDS||3);
+const label=process.env.PERF_LABEL||'candidate';
 const engines={chromium,firefox,webkit};
 const scenarios=[
  {id:'desktop-empty',viewport:{width:1440,height:900},count:0,engines:['chromium']},
@@ -58,9 +59,11 @@ for(const [engine,launcher] of Object.entries(engines)){
         const paints=performance.getEntriesByType('paint');
         const bytes=key=>entries.reduce((sum,e)=>sum+(e[key]||0),0);
         const app=document.querySelector('.home-dashboard');
-        return {ready:document.documentElement.classList.contains('diagnostika-dashboard-ready'),readyMs:window.__perfReadyMs,ttfbMs:nav?.responseStart??null,domContentLoadedMs:nav?.domContentLoadedEventEnd??null,firstContentfulPaintMs:paints.find(p=>p.name==='first-contentful-paint')?.startTime??null,localResourceCount:entries.length,localTransferBytes:bytes('transferSize'),localDecodedBytes:bytes('decodedBodySize'),dashboardVisible:!!app&&!!app.getClientRects().length};
+        return {ready:document.documentElement.classList.contains('diagnostika-dashboard-ready'),readyMs:window.__perfReadyMs,ttfbMs:nav?.responseStart??null,domContentLoadedMs:nav?.domContentLoadedEventEnd??null,firstContentfulPaintMs:paints.find(p=>p.name==='first-contentful-paint')?.startTime??null,localResourceCount:entries.length,localTransferBytes:bytes('transferSize'),localDecodedBytes:bytes('decodedBodySize'),dashboardVisible:!!app&&!!app.getClientRects().length,clientCount:window.DiagnostikaClients?.list?.()?.length??null};
        }));
       }catch(e){result.ready=false;result.failure=String(e.message).slice(0,700);}
+      result.fixtureCorrect=result.clientCount===scenario.count;
+      try{await page.waitForFunction(()=>window.DiagnostikaRuntimeGate?.status==='ready'||['error','unhealthy'].includes(window.DiagnostikaRuntimeGate?.status),null,{timeout:15000});result.runtimeStatus=await page.evaluate(()=>window.DiagnostikaRuntimeGate?.status);}catch{result.runtimeStatus='timeout';}
       result.pageErrors=[...new Set(errors)];result.failedLocalRequests=[...new Set(failed)];results.push(result);
       console.log(JSON.stringify(result));
      }
@@ -74,6 +77,6 @@ const groups={};
 for(const r of results)(groups[[r.engine,r.scenario,r.phase].join('/') ]??=[]).push(r);
 const summary=Object.fromEntries(Object.entries(groups).map(([k,v])=>[k,{readyRuns:v.filter(r=>r.ready&&r.dashboardVisible).length,totalRuns:v.length,medianReadyMs:median(v.filter(r=>r.ready&&r.dashboardVisible).map(r=>r.readyMs)),medianLocalTransferBytes:median(v.map(r=>r.localTransferBytes)),pageErrorRuns:v.filter(r=>r.pageErrors.length).length}]));
 const report={commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),target,inventory:inventory(),summary,results};
-mkdirSync('performance-results',{recursive:true});writeFileSync('performance-results/startup.json',JSON.stringify(report,null,2)+'\n');
+mkdirSync('performance-results',{recursive:true});writeFileSync('performance-results/startup-'+label+'.json',JSON.stringify(report,null,2)+'\n');
 console.log('PERFORMANCE_BASELINE',JSON.stringify(summary));
-if(results.some(r=>!r.ready||!r.dashboardVisible||r.pageErrors.length||r.failedLocalRequests.length))process.exitCode=1;
+if(results.some(r=>!r.ready||!r.dashboardVisible||!r.fixtureCorrect||r.runtimeStatus!=='ready'||r.pageErrors.length||r.failedLocalRequests.length))process.exitCode=1;

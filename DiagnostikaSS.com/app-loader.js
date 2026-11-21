@@ -96,6 +96,20 @@
     }
   ]);
 
+  // Network prefetch only: services, modules and APIs still execute in their
+  // original dependency order. No permissions or safety checks are bypassed.
+  function warmModuleGraph(){
+    const assets=[['roles-api.js?v=20260919-roles11d','data-roles-api'],...DOMAINS.flatMap(d=>[d.service,d.module,d.api])];
+    const existing=new Set(Array.from(document.querySelectorAll('script[src],link[rel="preload"][as="script"]'),el=>el.src||el.href));
+    for(const [src,marker] of assets){
+      if(document.querySelector('script['+marker+']'))continue;
+      const href=new URL(src,document.baseURI).href;
+      if(existing.has(href))continue;
+      const link=document.createElement('link');link.rel='preload';link.as='script';link.href=href;
+      link.dataset.diagnostikaDomainPreload=marker;document.head.appendChild(link);existing.add(href);
+    }
+  }
+
   function loadScript(src,marker,ready){
     try{if(ready?.())return Promise.resolve();}catch(_){}
     const existing=document.querySelector(`script[${marker}]`);
@@ -277,6 +291,7 @@
     setTimeout(loadRuntimeContract,0);
   }
 
+  warmModuleGraph();
   Promise.resolve(window.DiagnostikaPlatform?.ready)
     .then(startModuleGraph)
     .catch(error=>{
