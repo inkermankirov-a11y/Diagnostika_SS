@@ -1,0 +1,22 @@
+name: Performance database codec
+on:
+  push:
+    branches: ['performance/stage-7']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  database-codec:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/lossless-database-quota.test.cjs tests/performance-state-codec.test.cjs

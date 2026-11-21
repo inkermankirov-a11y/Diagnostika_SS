@@ -108,7 +108,7 @@ test('older runtime without compact codec still saves ordinary JSON',()=>{
 });
 
 test('codec script loads before core database, both versioned',()=>{
-  const a=index.indexOf('core/state-codec.js?v=20261109-lossless-state-1');
+  const a=index.indexOf('core/state-codec.js?v=20261121-perf7');
   const b=index.indexOf('core/database.js?v=20261109-lossless-state-1');
   assert.ok(a!==-1&&b!==-1&&a<b);
 });
