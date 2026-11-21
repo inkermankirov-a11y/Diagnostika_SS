@@ -34,7 +34,7 @@
 
   function decorateOptions(){
     document.querySelectorAll('.language-option').forEach(option=>{
-      const lang=option.dataset.lang||'en';
+      const lang=option.dataset.lang||'ru';
       const first=option.firstElementChild;
       if(first && !first.classList.contains('country-flag')) first.replaceWith(makeFlag(lang));
     });
@@ -45,6 +45,7 @@
     if(!btn) return;
     const lang=window.DiagnostikaI18n?.language||'en';
     const code=lang.toUpperCase();
+    if(btn.firstElementChild?.classList.contains(flagClass[lang])&&btn.lastElementChild?.textContent===code)return;
     btn.innerHTML='';
     btn.append(makeFlag(lang));
     const codeSpan=document.createElement('span');
