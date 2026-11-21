@@ -14,7 +14,7 @@
   let folderState=null;
   let backupState='offline', armed=false, revision=0, verifiedRevision=-1, syncError='';
   let missingReceipts=[];
-  const syncLabels={partial:'База сохранена и проверена; отсутствуют отдельные чеки',offline:'Папка не подключена или нет доступа',pending:'Есть несохранённые изменения',working:'Синхронизация выполняется',ready:'Данные синхронизированы',error:'Синхронизация не завершена',restore:'Найдена база — сначала восстановите её'};
+  const syncLabels={partial:'База сохранена и проверена; отсутствуют отдельные чеки',offline:'Папка не подключена или нет доступа',pending:'Есть несохранённые изменения',working:'Синхронизация выполняется',ready:'Данные синхронизированы',error:'Синхронизация не завершена',restore:'Найдена база — сначала восстановите её',locked:'База ZBV закрыта — введите ключ'};
   function receiptDetails(data,ids){
     const entries=window.DiagnostikaPaymentReceipts?.receiptEntries?.(data)||[];
     const missing=new Set(ids.map(String));
@@ -158,7 +158,9 @@
     }
   }
 
+  async function protectedFolder(){if(location.hostname!=='zabvenye.com')return false;if(localStorage.getItem('zabvenye-folder-encrypted-v1')==='1')return true;const a=await getExistingAppHandle();if(!a)return false;try{await a.getFileHandle('database.zbv');return true}catch(e){if(e.name==='NotFoundError')return false;throw e}}
   async function readFolderState(){
+    if(await protectedFolder())return null;
     const app=await getExistingAppHandle();
     if(!app) return null;
     const data=await readJson(app,'database.json');
@@ -167,6 +169,7 @@
   }
 
   async function writeBlob(dir,name,blob){
+    if(await protectedFolder())throw Error('Запись незашифрованной базы запрещена.');
     const file=await dir.getFileHandle(name,{create:true});
     const w=await file.createWritable();
     await w.write(blob);
@@ -251,7 +254,7 @@
   }
 
   async function removeMirroredRecord(rec){
-    if(!rec || !rootHandle) return;
+    if(!rec || !rootHandle || await protectedFolder()) return;
     try{
       const sd=await findSessionDirById(rec.clientId,rec.sessionId);
       if(!sd)return;
@@ -269,6 +272,7 @@
     if(!rootHandle||await permission(rootHandle,false)!=='granted')throw Error('Подключи папку на компьютере в разделе «Хранилище».');
     const receipts=window.DiagnostikaPaymentReceipts;
     if(!receipts)return {count:0,missing:[]};
+    if(await protectedFolder()){const missing=[];let count=0;for(const entry of receipts.receiptEntries(data)){if((await filesApi()?.get(entry.id))?.blob)count++;else missing.push(entry.id)}return {count,missing};}
     async function dir(entry,create){
       const client=(data.clients||[]).find(c=>String(c.id)===entry.clientId);
       if(!client)return null;
@@ -304,6 +308,7 @@
   });
 
   async function fullExport(data=state){
+    if(await protectedFolder())throw Error('Используйте синхронизацию ZBV.');
     const result=await syncReceiptDisk(data);
     missingReceipts=receiptDetails(data,result.missing);
     await writeCoreState(data);
@@ -356,9 +361,7 @@
     syncing=true;
     const started=revision;paintSync("working");
     try{
-      const snapshot=JSON.parse(JSON.stringify(state));
-      await fullExport(snapshot);
-      await verifyCore(snapshot);
+      if(await protectedFolder()){if(!window.DiagnostikaFolderVault?.keyUnlocked()){armed=false;paintSync('locked');return;}const result=await window.DiagnostikaFolderVault.sync(rootHandle,{ask:false});if(!result||result.reload)throw Error('Необходимо открыть базу вручную.');missingReceipts=[];}else{const snapshot=JSON.parse(JSON.stringify(state));await fullExport(snapshot);await verifyCore(snapshot);}
       verifiedRevision=started;
       paintSync(revision===started?'ready':'pending');
       await updateStatus();
@@ -389,8 +392,9 @@
       }catch(e){syncError=e.message||'Ошибка записи';paintSync('error');throw e;}
       finally{syncing=false;armed=false;}
     },
+    finishEncrypted(){syncing=false;armed=true;missingReceipts=[];verifiedRevision=revision;paintSync('ready');},
     fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync('error');},
-    folderChanged(){if(syncing)throw Error('Синхронизация уже выполняется');clearTimeout(syncTimer);armed=false;rootHandle=null;appHandle=null;folderState=null;missingReceipts=[];paintSync('offline');},
+    folderChanged(){window.DiagnostikaFolderVault?.lock();if(syncing)throw Error('Синхронизация уже выполняется');clearTimeout(syncTimer);armed=false;rootHandle=null;appHandle=null;folderState=null;missingReceipts=[];paintSync('offline');},
     attach:attachSyncDot
   });
   function scheduleSync(){
@@ -419,10 +423,10 @@
       <section id="storageHelpContent" hidden style="padding:12px;border:1px solid #b9cbdc;border-radius:8px;background:#f6f9fc;color:#24364a;font-size:13px;line-height:1.5">
         <p><strong>Что это такое?</strong><br>Хранилище сохраняет базу клиентов и файлы на вашем компьютере. Google Drive не используется.</p>
         <p><strong>Как сохранить данные?</strong><br>Выберите папку на компьютере. Нажмите «Сохранить текущую базу и файлы в папку». Для восстановления выберите папку и нажмите «Восстановить базу из папки».</p>
-        <p><strong>Зачем нужно шифрование?</strong><br>Оно защищает данные от посторонних. Сейчас зашифрованную резервную копию можно создать через Vault. Обычная локальная база пока не шифруется.</p>
-        <p><strong>Как пользоваться Vault?</strong><br>Создайте ключ или введите пароль от 16 символов. Сохраните ключ отдельно и скачайте файл .zbv. Для восстановления выберите этот файл и введите тот же ключ.</p>
+        <p><strong>Зачем нужно шифрование?</strong><br>Оно защищает данные от посторонних. Шифрование сохраняет папку в едином файле database.zbv. Рабочий кеш браузера пока не шифруется.</p>
+        <p><strong>Как пользоваться шифрованием?</strong><br>Создайте ключ или введите пароль от 16 символов. Сохраните ключ отдельно, зашифруйте папку и скачайте файл .zbv. Для восстановления выберите этот файл и введите тот же ключ.</p>
         <p><strong>Если забыли ключ?</strong><br>Сейчас восстановление ключа через администратора ещё недоступно. Без прежнего ключа зашифрованную копию открыть нельзя. Если рабочая база сохранилась, можно создать новую копию с новым ключом.</p>
-        <p><strong>В дальнейшем:</strong> обязательное шифрование и восстановление доступа по лицензионному номеру через администратора.</p>
+        <p><strong>В дальнейшем:</strong> шифрование рабочего кеша браузера.</p>
       </section>
       <div id="storageStatus" class="storage-status"></div><div class="local-sync-line"><span class="local-sync-dot" role="img"></span><span id="localSyncLabel" role="status"></span></div>
       <details id="localMissingReceipts" class="local-missing-receipts" hidden><summary></summary><p>Эти файлы не найдены ни в браузере, ни в выбранной папке. Записи об оплатах сохранены. При необходимости прикрепите чек заново или удалите его привязку в оплатах.</p><ul></ul></details>
@@ -435,7 +439,7 @@
         <button id="storageExport" type="button">Сохранить текущую базу и файлы в папку</button>
         <button id="storageDisconnect" type="button">Отключить папку</button>
       </div>
-      <div class="storage-example">В выбранной папке хранится:<br><code>Diagnostika / database.json / clients / sessions / files</code></div>
+      <div class="storage-example">В выбранной папке хранится:<br><code>Diagnostika / database.zbv</code></div>
       <div class="storage-footer"><button id="storageClose" type="button">Закрыть</button></div>
     </div>`;
   document.body.appendChild(dlg);
@@ -472,6 +476,7 @@
       return;
     }
 
+    if(await protectedFolder()){status.className='storage-status good';status.textContent='Подключено: '+rootHandle.name+' / '+APP_DIR+' · ZBV. '+(window.DiagnostikaFolderVault?.keyUnlocked()?'Ключ введён.':'Введите ключ для синхронизации.');restoreBtn.disabled=true;exportBtn.disabled=true;disconnectBtn.disabled=false;return;}
     folderState=await readFolderState();
     const fc=folderClientCount();
     const bc=browserClientCount();
@@ -607,8 +612,8 @@
 
   const originalSave=save;
   save=function(){
-    originalSave();
-    markDirty();
+    const ok=originalSave.apply(this,arguments);
+    if(ok!==false)markDirty();return ok;
   };
 
   let fileEventsBound=false;
@@ -644,6 +649,7 @@
       rootHandle=await loadHandle();
       if(rootHandle && await permission(rootHandle,false)==='granted'){
         appHandle=null;
+        if(await protectedFolder()){paintSync('locked');return;}
         folderState=await readFolderState();
         if(folderState&&canonical(folderState)===canonical(state)){armed=true;paintSync('pending');scheduleSync();}else paintSync(folderState?'restore':'pending');
       }

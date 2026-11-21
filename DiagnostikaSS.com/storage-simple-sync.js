@@ -365,6 +365,7 @@
     try{app=await root.getDirectoryHandle(APP_DIR,{create:false});}
     catch(e){if(e?.name==='NotFoundError')return false;throw e;}
 
+    if(location.hostname==='zabvenye.com'&&await window.DiagnostikaFolderVault?.mustEncrypt(root))return false;
     const key=String(id);
     await removeClientFoldersByIds(app,new Set([key]));
 
@@ -414,10 +415,12 @@
 
   async function synchronize(){
     if(!('showDirectoryPicker' in window)) throw new Error('Этот браузер не поддерживает синхронизацию с папкой. Используй Chrome или Edge.');
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits&&!window.DiagnostikaLimits.allow('sync'))throw Error('Синхронизация отключена для аккаунта.');
     const handle=await getWriteHandle();
     const manager=window.DiagnostikaLocalFolderSync;if(!manager)throw Error('Обновите страницу для проверки синхронизации.');
     await manager.begin(handle);
     try{
+    if(location.hostname==='zabvenye.com'){if(!window.DiagnostikaFolderVault)throw Error('Модуль шифрования не загрузился. Обновите страницу.');const encrypted=await window.DiagnostikaFolderVault.sync(handle);if(encrypted){manager.finishEncrypted();return {...encrypted,encrypted:true,folder:handle.name,missingReceipts:[]};}}
     let app;
     try{app=await handle.getDirectoryHandle(APP_DIR,{create:false});}
     catch(e){if(e?.name==='NotFoundError')app=await handle.getDirectoryHandle(APP_DIR,{create:true});else throw e;}
@@ -509,7 +512,7 @@
         sync.disabled=true;sync.textContent='Синхронизация…';
         const result=await synchronize();
         await AppDialog.alert(`Клиентов в базе: ${result.count}. База и доступные файлы сохранены.`+(result.missingReceipts?.length?'\n\nОтсутствующие чеки (не блокируют сохранение):\n'+result.missingReceipts.join('\n')+'\n\nЗаписи об оплатах сохранены. При необходимости прикрепите чек заново или удалите его привязку.':''),'Синхронизация завершена');
-        location.reload();
+        if(!result.encrypted||result.reload)location.reload();
       }catch(e){
         if(e?.name!=='AbortError')await AppDialog.alert(e?.message||'Не удалось выполнить синхронизацию.','Ошибка');
       }finally{sync.disabled=false;sync.textContent='Синхронизировать';window.DiagnostikaLocalFolderSync?.attach(sync);}
