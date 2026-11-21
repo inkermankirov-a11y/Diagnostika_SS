@@ -61,7 +61,13 @@ with tempfile.TemporaryDirectory() as tmp:
         assert sent[-1][1]=="Benvenuto su ZABVENYE!" and "https://t.me/zabvenye_com" in sent[-1][2]
         m["send_next_welcome"]()
         assert len(sent)==1
-        m["send_reset_request"]("reset@example.invalid")
+        glob["mail_config"]=lambda:{"test":True}
+        glob["captcha"]=lambda token:token=="test-captcha"
+        call("password-reset-request",{"email":"reset@example.invalid","captcha":"invalid"},expected=403,token="")
+        call("password-reset-request",{"email":"unknown@example.invalid","captcha":"test-captcha"},expected=404,token="")
+        assert len(sent)==1
+        result=call("password-reset-request",{"email":"reset@example.invalid","captcha":"test-captcha"},token="")
+        assert result["sent"] is True
         assert sent[-1][1]=="Reimposta la password di ZABVENYE"
         import re
         reset_token=re.search(r"#reset=([A-Za-z0-9_-]{43})",sent[-1][2]).group(1)
@@ -80,6 +86,10 @@ with tempfile.TemporaryDirectory() as tmp:
             for table in ("password_resets","welcome_mail","sessions"):
                 conn.execute("DELETE FROM "+table+" WHERE user_id=?",(reset_uid,))
             conn.execute("DELETE FROM users WHERE id=?",(reset_uid,))
+        def broken_smtp(*args): raise OSError("SMTP test failure")
+        glob["send_mail"]=broken_smtp
+        call("password-reset-request",{"email":"admin@example.invalid","captcha":"test-captcha"},expected=503,token="")
+        glob["send_mail"]=lambda recipient,subject,body:sent.append((recipient,subject,body))
         print("Password reset and localized welcome delivery (mock SMTP): PASS")
         a=call("admin/invite",{"hours":24,"comment":"first"})
         b=call("admin/invite",{"hours":24,"comment":"second"})

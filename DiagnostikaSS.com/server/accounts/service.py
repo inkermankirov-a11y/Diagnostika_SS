@@ -1,5 +1,5 @@
 """ZABVENYE account service. Separate from client records. Pilot only."""
-import smtplib, ssl, queue
+import smtplib, ssl
 from email.message import EmailMessage
 import base64, os, sqlite3, hashlib, secrets, hmac, time, json, re, getpass, sys, urllib.request, urllib.parse, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -292,7 +292,7 @@ class Error(Exception):
 
 # The mail configuration is provisioned on the server, outside Git.
 SUPPORT="https://t.me/zabvenye_com"
-MAIL_QUEUE=queue.Queue(maxsize=50)
+RESET_MAIL_SLOT=threading.BoundedSemaphore(2)
 MAIL_TEXT={
  "ru":("Добро пожаловать в ZABVENYE!","Здравствуйте!","Регистрация завершена. Ваш аккаунт создан. Добро пожаловать в рабочее пространство ZABVENYE.","Войти в аккаунт","Поддержка в Telegram","Восстановление пароля ZABVENYE","Чтобы установить новый пароль, откройте ссылку ниже. Она действует 30 минут и только один раз.","Если вы не запрашивали восстановление, проигнорируйте письмо."),
  "en":("Welcome to ZABVENYE!","Hello!","Registration is complete. Your account has been created. Welcome to the ZABVENYE workspace.","Sign in","Telegram support","Reset your ZABVENYE password","Open the link below to set a new password. It is valid for 30 minutes and can be used only once.","If you did not request a password reset, ignore this email."),
@@ -335,7 +335,7 @@ def send_reset_request(email):
     with db() as c:
         c.execute("BEGIN IMMEDIATE")
         u=c.execute("SELECT id,email,ui_language FROM users WHERE email=? AND enabled=1 AND deleted=0",(email,)).fetchone()
-        if not u: return
+        if not u: return False
         token=secrets.token_urlsafe(32); hashed=digest(token)
         now=int(time.time())
         c.execute("DELETE FROM password_resets WHERE expires<=?",(now,))
@@ -347,6 +347,7 @@ def send_reset_request(email):
     except Exception:
         with db() as c: c.execute("DELETE FROM password_resets WHERE token=?",(hashed,))
         raise
+    return True
 def send_next_welcome():
     now=int(time.time())
     with db() as c:
@@ -362,14 +363,9 @@ def send_next_welcome():
 def mail_worker():
     while True:
         try:
-            email=MAIL_QUEUE.get(timeout=5)
-            try:send_reset_request(email)
-            except Exception:pass
-            finally:MAIL_QUEUE.task_done()
-        except queue.Empty:pass
-        try:
             if mail_config():send_next_welcome()
         except Exception:pass
+        time.sleep(5)
 
 class Handler(BaseHTTPRequestHandler):
     def setup(self):
@@ -505,9 +501,13 @@ class Handler(BaseHTTPRequestHandler):
             if not mail_config(): raise Error(503,"Отправка писем пока недоступна. Обратитесь в поддержку.")
             if not allowed("reset-global",30,60) or not allowed("reset-email:"+digest(e),3,1800): raise Error(429,"Слишком много попыток. Повторите позже.")
             if not captcha(b.get("captcha")): raise Error(403,"Пройдите проверку безопасности.")
-            try:MAIL_QUEUE.put_nowait(e)
-            except queue.Full:raise Error(503,"Отправка писем пока недоступна. Обратитесь в поддержку.")
-            return self.reply(200,{"ok":True})
+            if not RESET_MAIL_SLOT.acquire(False):raise Error(429,"Сервис занят. Повторите попытку.")
+            try:
+                try: sent=send_reset_request(e)
+                except Exception:raise Error(503,"Не удалось отправить письмо. Повторите попытку позже.")
+            finally:RESET_MAIL_SLOT.release()
+            if not sent:raise Error(404,"Активный аккаунт с такой почтой не найден.")
+            return self.reply(200,{"ok":True,"sent":True})
         if path=="/account/api/password-reset-confirm":
             token=b.get("token");p=b.get("password")
             if not isinstance(token,str) or not re.fullmatch(r"[A-Za-z0-9_-]{43}",token): raise Error(400,"Ссылка недействительна или устарела.")
