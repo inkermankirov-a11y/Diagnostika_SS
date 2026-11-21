@@ -370,17 +370,17 @@ class Handler(BaseHTTPRequestHandler):
                 with db() as c:
                     if path.endswith("/register"):
                         tok=b.get("invite","")
-                        if not isinstance(tok,str) or not 1<=len(tok.strip())<=128: raise Error(400,"Недействительное приглашение")
+                        if not isinstance(tok,str) or not 1<=len(tok.strip())<=128: raise Error(400,"Недействительный код лицензии")
                         c.execute("BEGIN IMMEDIATE")
                         inv=c.execute("SELECT * FROM invites WHERE token=?",(digest(tok.strip()),)).fetchone()
-                        if not inv: raise Error(400,"Код приглашения не найден. Проверьте его целиком.")
-                        if inv["email"] and inv["email"]!=e: raise Error(400,"Код приглашения выдан для другой электронной почты.")
+                        if not inv: raise Error(400,"Код лицензии не найден. Проверьте его целиком.")
+                        if inv["email"] and inv["email"]!=e: raise Error(400,"Код лицензии выдан для другой электронной почты.")
                         if inv["used_at"] is not None:
                             owner=c.execute("SELECT email FROM users WHERE id=?",(inv["used_by"],)).fetchone()
                             if owner and owner["email"]==e: raise Error(409,"Этот код уже активирован. Войдите в аккаунт с указанным email и паролем, чтобы продолжить.")
-                            raise Error(409,"Код приглашения уже использован. Обратитесь к администратору.")
-                        if inv["revoked_at"] is not None: raise Error(409,"Код приглашения отозван. Обратитесь к администратору.")
-                        if inv["expires"] and inv["expires"]<=int(time.time()): raise Error(409,"Срок активации кода истёк. Запросите новый код у администратора.")
+                            raise Error(409,"Код лицензии уже использован. Обратитесь к администратору.")
+                        if inv["revoked_at"] is not None: raise Error(409,"Код лицензии отозван. Обратитесь к администратору.")
+                        if inv["expires"] and inv["expires"]<=int(time.time()): raise Error(409,"Срок активации лицензии истёк. Запросите новый код у администратора.")
                         if c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует. Войдите в него или обратитесь к администратору.")
                         uid=create_user(c,e,p,"specialist")
                         c.execute("UPDATE users SET onboarding_required=1,last_seen=? WHERE id=?",(int(time.time()),uid))
