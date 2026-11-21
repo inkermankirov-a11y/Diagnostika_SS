@@ -48,7 +48,49 @@
   const handle=check||await dir.getFileHandle(NAME,{create:true});
   await cryptoApi().writeDatabase(handle,raw,secret);return raw;
  }
- async function mark(raw,secret){set(MODE,'1');set(BASE,await digest(raw));key=secret}
+ // Trusted-device key storage. The non-extractable wrapping key is kept in
+ // this browser's IndexedDB, never in the portable file or localStorage.
+ const DEVICE_DB='zabvenye-trusted-device-v1',DEVICE_STORE='keys';
+ async function account(){
+  const r=await fetch('/account/api/me',{credentials:'same-origin',cache:'no-store'});
+  if(!r.ok)throw Error('Войдите в свою учётную запись для синхронизации.');
+  const p=await r.json();if(!p.id||p.enabled===false||p.onboarding_required)throw Error('Учётная запись недоступна.');
+  if(p.limits?.sync===false&&p.role!=='admin')throw Error('Синхронизация отключена для аккаунта.');
+  return String(p.id);
+ }
+ function deviceStore(owner,entry){
+  return new Promise((resolve,reject)=>{
+   const req=indexedDB.open(DEVICE_DB,1);
+   req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(DEVICE_STORE))req.result.createObjectStore(DEVICE_STORE)};
+   req.onerror=()=>reject(req.error);req.onblocked=()=>reject(Error('Хранилище ключа недоступно'));
+   req.onsuccess=()=>{const d=req.result;let tx,result;
+    try{tx=d.transaction(DEVICE_STORE,entry===undefined?'readonly':'readwrite');const st=tx.objectStore(DEVICE_STORE);
+     const q=entry===undefined?st.get(owner):st.put(entry,owner);q.onsuccess=()=>{result=q.result};}
+    catch(e){d.close();reject(e);return}
+    tx.oncomplete=()=>{d.close();resolve(result)};tx.onabort=tx.onerror=()=>{d.close();reject(tx.error||Error('Не удалось сохранить ключ устройства'))};
+   };
+  });
+ }
+ async function sameRoot(a,b){try{return !!(a&&b&&await a.isSameEntry(b))}catch{return false}}
+ async function remember(root,secret,baseline,owner){
+  const previous=await deviceStore(owner);
+  const wrap=previous?.wrap||await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode('zabvenye-device-v1:'+owner)},wrap,new TextEncoder().encode(secret));
+  await deviceStore(owner,{root,wrap,iv,cipher,baseline});
+ }
+ async function remembered(root,owner){
+  const saved=await deviceStore(owner);
+  if(!saved||!await sameRoot(saved.root,root))return null;
+  const bytes=await crypto.subtle.decrypt({name:'AES-GCM',iv:saved.iv,additionalData:new TextEncoder().encode('zabvenye-device-v1:'+owner)},saved.wrap,saved.cipher);
+  return {secret:new TextDecoder().decode(bytes),baseline:saved.baseline};
+ }
+ function needsKey(){const e=Error('Один раз введите действующий ключ: этот компьютер ещё не настроен.');e.code='ZBV_KEY_REQUIRED';return e}
+ async function mark(raw,secret,root,owner,trust=true){
+  const baseline=trust?await digest(raw):null;
+  await remember(root,secret,baseline,owner||await account());
+  set(MODE,'1');if(trust)set(BASE,baseline);key=secret;
+ }
  async function clean(dir,legacy){
   const scanned=await scan(dir),saved=new Map((legacy||[]).map(x=>[x.path,x.bytes]));
   for(const row of scanned.rows)if(saved.get(row.path)!==row.bytes)throw Error('Старая база изменена. Удаление отменено.');
@@ -57,9 +99,10 @@
  }
  async function run(fn){if(busy)throw Error('Операция с базой уже выполняется.');busy=true;try{return navigator.locks?await navigator.locks.request('zabvenye-folder-vault',fn):await fn()}finally{busy=false}}
  async function activate(secret,root=null){return run(async()=>{
+  const owner=await account();
   root=root||await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку в хранилище.');
   const dir=await app(root,true),existing=await file(dir,NAME),current=await snapshot();
-  if(existing){const raw=await (await existing.getFile()).text(),pkg=await cryptoApi().openDatabase(raw,secret);if(!same(pkg,current))throw Error('В папке уже есть другая зашифрованная база. Восстановите её отдельно.');await clean(dir,pkg.legacyDisk);await mark(raw,secret);return {count:pkg.state.clients.length}}
+  if(existing){const raw=await (await existing.getFile()).text(),pkg=await cryptoApi().openDatabase(raw,secret);if(!same(pkg,current))throw Error('В папке уже есть другая зашифрованная база. Восстановите её отдельно.');await clean(dir,pkg.legacyDisk);await mark(raw,secret,root,owner);return {count:pkg.state.clients.length}}
   const scanned=await scan(dir),legacy=tree(scanned.rows),old=legacy.find(x=>x.path==='database.json');
   if(legacy.length&&!old)throw Error('Сначала синхронизируйте старую папку. Старые файлы не изменены.');
   if(old){const previous=JSON.parse(new TextDecoder().decode(cryptoApi().unb64(old.bytes)));if(canonical(previous)!==canonical(current.state))throw Error('Сначала синхронизируйте текущую и старую базы. Старые файлы не изменены.')}
@@ -67,7 +110,7 @@
   const raw=await write(dir,pkg,secret);
   // The authenticated archive contains every managed legacy file byte-for-byte.
   if(canonical(tree((await scan(dir)).rows))!==canonical(legacy))throw Error('Старая папка изменилась. Удаление отменено.');
-  await mark(raw,secret);await clean(dir,legacy);
+  await mark(raw,secret,root,owner);await clean(dir,legacy);
   return {count:pkg.state.clients.length};
  })}
  async function restore(pkg){
@@ -77,25 +120,43 @@
   window.DiagnostikaStorageRefresh.apply();
  }
  async function sync(root,{ask=true,secret:provided=null}={}){
+  const owner=await account();
   const dir=await app(root),handle=await file(dir,NAME);
-  if(!handle){if(!mode()&&dir&&(await scan(dir)).rows.length)return null;const secret=provided||key||(ask&&await cryptoApi().requestSecret({generate:true,title:'Ключ шифрования базы'}));if(!secret)throw Error('Шифрование не выполнено: ключ не введён.');return activate(secret,root)}
+  if(!handle){
+   key=null;
+   if(!mode()&&dir&&(await scan(dir)).rows.length)return null;
+   if(!ask)throw Error('Файл database.zbv не найден. Проверьте подключённую папку.');
+   const secret=provided||await cryptoApi().requestSecret({generate:true,title:'Ключ шифрования базы'});
+   if(!secret)throw Error('Шифрование не выполнено: ключ не введён.');
+   return activate(secret,root);
+  }
   return run(async()=>{
    const raw=await (await handle.getFile()).text();
-   let secret=provided||key,pkg;
-   if(secret)try{pkg=await cryptoApi().openDatabase(raw,secret)}catch(e){if(provided)throw e;secret=null;key=null}
-   if(!pkg){if(!ask)throw Error('Введите ключ шифрования в хранилище.');secret=await cryptoApi().requestSecret({title:'Открыть зашифрованную базу'});if(!secret)throw Error('Ввод ключа отменён.');pkg=await cryptoApi().openDatabase(raw,secret)}
+   let saved=null;try{saved=await remembered(root,owner)}catch(e){if(!ask&&!provided)throw needsKey()}
+   let secret=provided||saved?.secret,pkg,manual=Boolean(provided);
+   key=null;
+   if(secret)try{pkg=await cryptoApi().openDatabase(raw,secret)}catch(e){if(provided)throw e;secret=null;if(!ask)throw needsKey()}
+   if(!pkg){
+    if(!ask)throw needsKey();
+    secret=await cryptoApi().requestSecret({title:'Открыть зашифрованную базу'});
+    if(!secret)throw Error('Ввод ключа отменён.');
+    pkg=await cryptoApi().openDatabase(raw,secret);manual=true;
+   }
    const current=await snapshot();pkg.files.sort((a,b)=>String(a.meta.id).localeCompare(String(b.meta.id)));
-   if(same(pkg,current)){await clean(dir,pkg.legacyDisk);await mark(raw,secret);return {count:pkg.state.clients.length}}
-   if(get(BASE)!==await digest(raw)){
-    if(ask&&empty(current)){await restore(pkg);await mark(raw,secret);return {count:pkg.state.clients.length,restored:true}}
+   if(same(pkg,current)){await clean(dir,pkg.legacyDisk);await mark(raw,secret,root,owner);return {count:pkg.state.clients.length}}
+   const hash=await digest(raw);
+   // Existing legacy browser gets one migration only after explicit key entry.
+   const baseline=saved?saved.baseline:manual?get(BASE):null;
+   if(baseline!==hash){
+    if(ask&&empty(current)){await restore(pkg);await mark(raw,secret,root,owner);return {count:pkg.state.clients.length,restored:true}}
     throw Error('База в папке и браузере различается. Автоматическая перезапись запрещена.');
    }
-   // A matching encrypted baseline authorizes updates from this browser only.
-   const next={...current,legacyDisk:pkg.legacyDisk||[]},out=await write(dir,next,secret,raw);await mark(out,secret);await clean(dir,next.legacyDisk);return {count:current.state.clients.length}
+   const next={...current,legacyDisk:pkg.legacyDisk||[]},out=await write(dir,next,secret,raw);
+   await mark(out,secret,root,owner);await clean(dir,next.legacyDisk);return {count:current.state.clients.length}
   })
  }
  async function download(secret){const root=await savedHandle(),dir=root&&await app(root),h=await file(dir,NAME);if(!h)throw Error('Сначала зашифруйте базу.');await sync(root,{secret});const raw=await (await h.getFile()).text();await cryptoApi().openDatabase(raw,secret);return raw;}
- async function restoreFile(raw,secret,root=null){return run(async()=>{const pkg=await cryptoApi().openDatabase(raw,secret);const current=await snapshot();if(!empty(current))throw Error('Восстановление возможно только в пустое рабочее пространство.');root=root||await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку.');const dir=await app(root,true);if((await scan(dir)).rows.length)throw Error('В папке найдена старая база. Выберите пустую папку.');const existing=await file(dir,NAME);if(existing&&await (await existing.getFile()).text()!==raw)throw Error('В папке уже есть другая база.');if(!existing)await cryptoApi().writeDatabase(await dir.getFileHandle(NAME,{create:true}),raw,secret);await restore(pkg);await mark(raw,secret);return {count:pkg.state.clients.length};})}
+ async function restoreFile(raw,secret,root=null){return run(async()=>{const owner=await account();const pkg=await cryptoApi().openDatabase(raw,secret);const current=await snapshot();if(!empty(current))throw Error('Восстановление возможно только в пустое рабочее пространство.');root=root||await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку.');const dir=await app(root,true);if((await scan(dir)).rows.length)throw Error('В папке найдена старая база. Выберите пустую папку.');const existing=await file(dir,NAME);if(existing&&await (await existing.getFile()).text()!==raw)throw Error('В папке уже есть другая база.');if(!existing)await cryptoApi().writeDatabase(await dir.getFileHandle(NAME,{create:true}),raw,secret);await restore(pkg);await mark(raw,secret,root,owner);return {count:pkg.state.clients.length};})}
  async function connected(){
   const root=await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку.');
   const dir=await app(root),h=await file(dir,NAME);if(!h)throw Error('Зашифрованная база не найдена.');return {root,dir,h,raw:await (await h.getFile()).text()};
@@ -116,17 +177,17 @@
   return value.recovery_secret;
  }
  async function enrollRecovery(secret,license,password){return run(async()=>{
-  const {dir,raw}=await connected(),pkg=await cryptoApi().openDatabase(raw,secret);
+  const owner=await account(),{root,dir,raw}=await connected(),pkg=await cryptoApi().openDatabase(raw,secret);
   const recovery=await recoveryRequest(license,password,'enroll');
   const envelope=await cryptoApi().seal({secret},recovery,'backup');
   const checked=await cryptoApi().open(envelope,recovery,'backup');if(checked.secret!==secret)throw Error('Проверка ключа восстановления не пройдена.');
   const trusted=get(BASE)===await digest(raw);
   const out=await write(dir,pkg,secret,raw,envelope);
-  if(trusted){await mark(out,secret)}else{set(MODE,'1');key=secret}
+  await mark(out,secret,root,owner,trusted);
   return true;
  })}
  async function recoverKey(license,password){return run(async()=>{
-  const {dir,raw}=await connected(),envelope=JSON.parse(raw).recovery;
+  const owner=await account(),{root,dir,raw}=await connected(),envelope=JSON.parse(raw).recovery;
   if(typeof envelope!=='string')throw Error('Для этой базы восстановление заранее не подключено. Нужен исходный ключ.');
   const recovery=await recoveryRequest(license,password,'recover');
   const old=await cryptoApi().open(envelope,recovery,'backup');
@@ -135,7 +196,7 @@
   if((await cryptoApi().open(wrapped,recovery,'backup')).secret!==next)throw Error('Проверка нового ключа не пройдена.');
   const trusted=get(BASE)===await digest(raw);
   const out=await write(dir,pkg,next,raw,wrapped);
-  if(trusted){await mark(out,next)}else{set(MODE,'1');key=next}
+  await mark(out,next,root,owner,trusted);
   return next;
  })}
  window.DiagnostikaFolderVault=Object.freeze({activate,sync,hasEncrypted,mustEncrypt,mode,download,restoreFile,savedHandle,ensureRoot,verifyKey,recoveryInfo,enrollRecovery,recoverKey,keyUnlocked:()=>Boolean(key),lock:()=>{key=null}});

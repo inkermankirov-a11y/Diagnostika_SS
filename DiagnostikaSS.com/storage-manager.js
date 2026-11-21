@@ -14,7 +14,7 @@
   let folderState=null;
   let backupState='offline', armed=false, revision=0, verifiedRevision=-1, syncError='';
   let missingReceipts=[];
-  const syncLabels={partial:'База сохранена и проверена; отсутствуют отдельные чеки',offline:'Папка не подключена или нет доступа',pending:'Есть несохранённые изменения',working:'Синхронизация выполняется',ready:'Данные синхронизированы',error:'Синхронизация не завершена',restore:'Найдена база — сначала восстановите её',locked:'База ZBV закрыта — введите ключ'};
+  const syncLabels={partial:'База сохранена и проверена; отсутствуют отдельные чеки',offline:'Папка не подключена или нет доступа',pending:'Есть несохранённые изменения',working:'Синхронизация выполняется',ready:'Данные синхронизированы',error:'Синхронизация не завершена',restore:'Найдена база — сначала восстановите её',locked:'Для этого компьютера требуется однократное подтверждение ключа'};
   function receiptDetails(data,ids){
     const entries=window.DiagnostikaPaymentReceipts?.receiptEntries?.(data)||[];
     const missing=new Set(ids.map(String));
@@ -33,7 +33,7 @@
   function paintSync(value){
     const vault=window.DiagnostikaFolderVault,encrypted=location.hostname==='zabvenye.com'&&vault?.mode();
     const message=value==='ready'&&encrypted?'Данные синхронизированы и зашифрованы':syncLabels[value];
-    const keyIcon=document.querySelector('#storageVaultKey');if(keyIcon){const good=Boolean(vault?.keyUnlocked())&&!['error','locked','offline'].includes(value);keyIcon.style.color=good?'#15803d':'#b42318';keyIcon.setAttribute('aria-label',good?'Ключ подтверждён':'Ключ не подтверждён');keyIcon.setAttribute('title',good?'Ключ подтверждён':'Ключ не подтверждён');const label=keyIcon.querySelector('span');if(label)label.textContent=good?'Ключ подтверждён':'Ключ не подтверждён';}
+    const keyIcon=document.querySelector('#storageVaultKey');if(keyIcon){const good=Boolean(vault?.keyUnlocked())&&!['error','locked','offline'].includes(value);keyIcon.style.color=good?'#15803d':'#b42318';keyIcon.setAttribute('aria-label',good?'Ключ подтверждён':'Ключ не подтверждён');keyIcon.setAttribute('title',good?'Ключ подтверждён':'Ключ не подтверждён');const label=keyIcon.querySelector('span');if(label)label.textContent=good?'Ключ подтверждён автоматически':'Ключ не подтверждён';}
     if(value==='ready'&&missingReceipts.length)value='partial';
     backupState=value;if(value!=='error')syncError='';
     for(const dot of document.querySelectorAll('.local-sync-dot')){
@@ -365,17 +365,18 @@
     syncing=true;
     const started=revision;paintSync("working");
     try{
-      if(await protectedFolder()){if(!window.DiagnostikaFolderVault?.keyUnlocked()){armed=false;paintSync('locked');return;}const result=await window.DiagnostikaFolderVault.sync(rootHandle,{ask:false});if(!result||result.restored)throw Error('Необходимо открыть базу вручную.');missingReceipts=[];}else{const snapshot=JSON.parse(JSON.stringify(state));await fullExport(snapshot);await verifyCore(snapshot);}
+      if(await protectedFolder()){if(!window.DiagnostikaFolderVault)throw Error('Модуль шифрования недоступен.');const result=await window.DiagnostikaFolderVault.sync(rootHandle,{ask:false});if(!result||result.restored)throw Error('Необходимо открыть базу вручную.');missingReceipts=[];}else{const snapshot=JSON.parse(JSON.stringify(state));await fullExport(snapshot);await verifyCore(snapshot);}
       verifiedRevision=started;
       paintSync(revision===started?'ready':'pending');
       await updateStatus();
     }catch(e){
-      syncError=e.message||'Ошибка записи';paintSync('error');
+      if(e.code==='ZBV_KEY_REQUIRED'){armed=false;paintSync('locked');await updateStatus();return;}
+      armed=false;syncError=e.message||'Ошибка записи';paintSync('error');
       console.warn('Синхронизация папки не выполнена',e);
       const status=document.querySelector('#storageStatus');if(status)status.textContent='Синхронизация не завершена: '+(e.message||'ошибка записи');
     }finally{
       syncing=false;
-      if(pendingSync){pendingSync=false;scheduleSync();}
+      if(pendingSync||revision!==verifiedRevision&&backupState==='pending'){pendingSync=false;scheduleSync();}
     }
   }
 
@@ -591,7 +592,7 @@
       'Отмена'
     );
     if(!ok) return;
-    armed=false;verifiedRevision=-1;paintSync('offline');
+    window.DiagnostikaFolderVault?.lock();armed=false;verifiedRevision=-1;paintSync('offline');
     rootHandle=null;
     appHandle=null;
     folderState=null;
@@ -626,6 +627,7 @@
     const bus=window.DiagnostikaPlatform?.events;
     if(!bus?.on)return false;
 
+    bus.on('db:written',detail=>{if(detail?.key==='diagnostika-web-v1')markDirty();});
     bus.on('file:created',detail=>{
       Promise.resolve().then(async()=>{
         if(!rootHandle||!armed)return;
@@ -653,7 +655,7 @@
       rootHandle=await loadHandle();
       if(rootHandle && await permission(rootHandle,false)==='granted'){
         appHandle=null;
-        if(await protectedFolder()){paintSync('locked');return;}
+        if(await protectedFolder()){await new Promise(resolve=>{if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',resolve,{once:true});else resolve();});await window.DiagnostikaPlatform?.ready;if(!rootHandle||syncing)return;armed=true;await doSync();return;}
         folderState=await readFolderState();
         if(folderState&&canonical(folderState)===canonical(state)){armed=true;paintSync('pending');scheduleSync();}else paintSync(folderState?'restore':'pending');
       }
