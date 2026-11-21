@@ -1,6 +1,7 @@
 'use strict';
 
 (() => {
+  if(window.DiagnostikaDirectCalculator)return;
   const HISTORY_KEY='diagnostika-currency-calculator-history-v2';
   const LANG={
     ru:{title:'Калькулятор',error:'Ошибка',use:'В сумму конвертера'},
@@ -199,11 +200,17 @@
     });
 
     updateMemory();
+    window.DiagnostikaCalculatorDigitGrouping?.refresh?.();
     return true;
   }
 
-  const observer=new MutationObserver(()=>inject());
-  observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  document.addEventListener('click',e=>{if(e.target?.closest?.('#headerCurrencyBtn'))setTimeout(inject,0);},true);
+  // The converter explicitly calls refresh each time it builds a currency card.
+  // Observe only its own container as a fallback for other UI integrations.
+  const overlay=document.querySelector('.utility-overlay');
+  if(overlay){
+    const observer=new MutationObserver(()=>inject());
+    observer.observe(overlay,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  }
+  window.DiagnostikaDirectCalculator=Object.freeze({refresh:inject});
   setTimeout(inject,0);
 })();

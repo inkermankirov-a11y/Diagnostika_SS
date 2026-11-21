@@ -49,7 +49,20 @@
     });
   }
 
+  // Fetch independent files in parallel, but keep the original execution order.
+  // Skip already declared deferred scripts to avoid duplicate URL/version requests.
+  function warmCoreParts() {
+    for (const [name, src] of parts) {
+      if (platform[name] || document.querySelector('script[data-diagnostika-core-part="'+name+'"]')) continue;
+      const link = document.createElement('link');
+      link.rel = 'preload'; link.as = 'script'; link.href = src;
+      link.dataset.diagnostikaCorePreload = name;
+      document.head.appendChild(link);
+    }
+  }
+
   async function boot() {
+    warmCoreParts();
     for (const [name, src] of parts) await loadPart(name, src);
     platform.status = 'ready';
     platform.bootstrappedAt = Date.now();

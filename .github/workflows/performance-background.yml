@@ -1,0 +1,31 @@
+name: Performance background processes
+on:
+  push:
+    branches: ['performance/stage-6']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  background-processes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: node tests/performance-background-clock.mjs
+      - run: |
+          python3 -m http.server 8149 --bind 127.0.0.1 >/tmp/perf-bg-http.log 2>&1 &
+          SERVER=$!
+          trap 'kill "$SERVER" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8149/index.html >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/performance-lazy-utilities.mjs

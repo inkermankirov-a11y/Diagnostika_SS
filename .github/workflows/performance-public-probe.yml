@@ -1,0 +1,31 @@
+name: Performance public server probe
+on:
+  push:
+    branches: ['performance/stage-3']
+    paths:
+      - '.github/workflows/performance-public-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  anonymous-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Observe public server without credentials or modifications
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, json
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args): return None
+          opener=urllib.request.build_opener(NoRedirect())
+          for path in ['/', '/app.js', '/account', '/account/api/workspace-auth']:
+              req=urllib.request.Request('https://zabvenye.com'+path,headers={'Accept-Encoding':'gzip','User-Agent':'Zabvenye-public-performance-probe/1.0'})
+              try:
+                  try: response=opener.open(req,timeout=12)
+                  except urllib.error.HTTPError as exc: response=exc
+                  with response as res:
+                      print('PUBLIC_PROBE',json.dumps({'path':path,'status':res.code,'location':res.headers.get('Location','').split('?')[0],**{k:res.headers.get(k) for k in ['Cache-Control','Content-Encoding','Vary','Content-Type']}}))
+              except Exception as exc:
+                  print('PUBLIC_PROBE',json.dumps({'path':path,'error':type(exc).__name__}))
+          PY

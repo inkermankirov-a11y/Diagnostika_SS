@@ -1,0 +1,15 @@
+# Stage 3 — static resource compression and cache safety (candidate)
+
+This branch does not change production. Nginx currently authenticates workspace requests via /__zabvenye_auth; preserve that check for each static asset. Account paths are routed separately in Traefik, and must retain their own no-store policy.
+
+The generator emits exact static JS/CSS locations, only for a reviewed source manifest; no JSON, HTML, backups, local records, or account routes. The list is derived from the .com frontend only; review and regenerate on future module additions. Gzip is enabled only in these locations, no compression for dynamic authenticated responses. Conditional ETag and Last-Modified revalidation can prevent repeat transfers of unchanged assets, while private/no-cache requires the browser to authenticate/revalidate instead of serving indefinitely stale content. Version query strings are not content hashes: no immutable cache policy until build-time hashes are introduced. No Service Worker, no public/shared CDN cache. Browser cache cannot contain customer records through this configuration.
+
+Before real deployment: inspect live nginx -T, verify root/alias, existing location precedence, header inheritance (including security headers), auth redirects, and current compression. Preserve existing security headers in exact locations, account service routes, and volume mounts. Check ETag behavior with actual deployment method; if file metadata is unreliable, avoid stale 304 responses. Backup nginx config, nginx -t, reload only nginx, verify anonymous and authenticated behavior and rollback on error. Do not run this generator as an automatic install script. Actual server access is required to inspect and deploy. Existing production code is unchanged.
+
+Tests run disposable Nginx using synthetic authorization, verify 302 anonymous access even with a conditional request, correct cache headers, gzip equivalence and 304 revalidation, and no-store for non-static data. This is not the real account/auth system or production performance measurement.
+
+## Follow-up to first Nginx test
+
+The mock originally returned 401 inside the same server as the workspace redirect; inherited error_page converted the authentication subrequest into 302, causing 500. The new mock uses a separate upstream matching the real architecture. Cache-Control now uses a server-level URI/method/status map so static locations retain inherited security headers. Local Nginx 1.26.3 proof passed with synthetic JS; the full manifest and actual application JS will be tested by the Docker CI with Nginx 1.28. No production access was used.
+
+Generate the map using `python3 generate-static-cache.py --map`; set `add_header Cache-Control $zabvenye_static_cache_control always;` at the reviewed workspace server scope, alongside all existing security headers. Replace any competing cache header rather than adding duplicates. Never apply the configuration blindly. The separate public probe uses anonymous GET requests only and reports selected non-sensitive headers; it does not establish live authenticated cache behavior.

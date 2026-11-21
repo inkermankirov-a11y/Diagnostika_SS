@@ -37,7 +37,7 @@ test('national bank provider is authoritative only when that provider supplies r
 test('cache-busted national rate and styling modules are deployed',()=>{
   for(const f of [
     'global-currency-country.js?v=20261121-currency-recovery-1',
-    'header-utilities.js?v=20261121-currency-recovery-1',
+    'header-utilities.js?v=20261121-perf4',
     'header-currency-display.js?v=20261119-status-beacon-1',
     'currency-ui-readability.js?v=20261116-visible-1'
   ])assert.ok(html.includes(f),f);

@@ -40,16 +40,19 @@
     if(recovering||failed||shown)return;
     recovering=true;
     const parts=[
-      ['i18n.js?v=20261121-header52',()=>!!window.DiagnostikaI18n],
-      ['settings-menu.js?v=20261121-header52',()=>!!window.DiagnostikaSettingsUI&&!!document.getElementById('settingsMenuBtn')],
-      ['header-utilities.js?v=20261121-header52',()=>!!document.getElementById('headerUtilityGroup')],
-      ['quick-notes.js?v=20261121-header52',()=>!!document.getElementById('quickNotesBtn')]
+      ['i18n.js',()=>!!window.DiagnostikaI18n],
+      ['settings-menu.js',()=>!!window.DiagnostikaSettingsUI&&!!document.getElementById('settingsMenuBtn')],
+      ['header-utilities.js',()=>!!document.getElementById('headerUtilityGroup')],
+      ['quick-notes.js',()=>!!document.getElementById('quickNotesBtn')]
     ];
     try{
       for(const [src,check] of parts){
         if(check())continue;
         await new Promise((resolve,reject)=>{
-          const script=document.createElement('script');script.src=src+'&retry=1';
+          const original=Array.from(document.scripts).find(el=>el.src&&new URL(el.src).pathname.endsWith('/'+src));
+          if(!original){reject(Error('Missing script: '+src));return;}
+          const retryUrl=new URL(original.src);retryUrl.searchParams.set('retry','1');
+          const script=document.createElement('script');script.src=retryUrl.href;
           const timer=setTimeout(()=>reject(Error(src)),5000);
           script.onload=()=>{clearTimeout(timer);check()?resolve():reject(Error(src));};
           script.onerror=()=>{clearTimeout(timer);reject(Error(src));};

@@ -1,0 +1,5 @@
+# Stage 4 — defer optional utilities
+
+Candidate only, .com. About dialog and calculator (including digit grouping) load on first actual use. About button styling is retained in the initial helper; no change to dialog content or calculator logic. The calculator is loaded after the currency card is rendered, including mobile navigation and refresh. Loading errors are retryable; dependencies load in original functional order (digit guard before interaction). Do not delay storage, backup, local sync, auth, profiles, calendar or diagnostic editing until their complete dependency graphs are verified.
+
+Original scripts removed from initial HTML: about-program.js (9021 bytes), currency-calculator-direct.js (11558 bytes), calculator-digit-grouping.js (3328 bytes). The new small helper offsets part of the saving. Cross-browser startup benchmark and first-use interaction test must pass before any release. Stage 3 server configuration passed the Nginx CI: sample 20530 bytes compressed to 7026. Actual VPS configuration is not changed; anonymous public probe confirmed workspace and app.js redirect, account and auth endpoint no-store. No access to VPS configuration.

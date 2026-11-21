@@ -35,7 +35,14 @@
   wrap.appendChild(clock);
   appHeader.insertBefore(wrap,headerButtons);
 
+  const animations=new WeakMap();
+  function cancelFlip(panel){
+    const timers=animations.get(panel);
+    if(timers)for(const id of timers)clearTimeout(id);
+    animations.delete(panel);panel.classList.remove('is-flipping');
+  }
   function setStatic(panel,value){
+    cancelFlip(panel);
     panel.querySelector('.header-flip-top').textContent=value;
     panel.querySelector('.header-flip-bottom').textContent=value;
     panel.querySelector('.header-flip-fold-top').textContent=value;
@@ -45,7 +52,8 @@
 
   function flip(panel,next){
     const current=panel.dataset.value??next;
-    if(current===next)return;
+    if(current===next&&!animations.has(panel))return;
+    cancelFlip(panel);
 
     const top=panel.querySelector('.header-flip-top');
     const bottom=panel.querySelector('.header-flip-bottom');
@@ -61,15 +69,13 @@
     void panel.offsetWidth;
     panel.classList.add('is-flipping');
 
-    setTimeout(()=>{
+    const first=setTimeout(()=>{
       bottom.textContent=next;
       panel.dataset.value=next;
     },240);
 
-    setTimeout(()=>{
-      panel.classList.remove('is-flipping');
-      setStatic(panel,next);
-    },520);
+    const second=setTimeout(()=>setStatic(panel,next),520);
+    animations.set(panel,[first,second]);
   }
 
   function parts(){
@@ -92,19 +98,36 @@
     wrap.setAttribute('aria-label','Текущее время '+value.hours+':'+value.minutes);
   }
 
-  update(true);
-  let lastMinute=new Date().getMinutes();
-  const timer=setInterval(()=>{
-    const minute=new Date().getMinutes();
-    if(minute===lastMinute)return;
-    lastMinute=minute;
-    update(false);
-  },1000);
-
+  // The display has minute precision: there is no need for 60 one-second polls.
+  // Re-align from wall time each tick; never accumulate interval drift.
+  let timer=null,destroyed=false;
+  function schedule(){
+    clearTimeout(timer);timer=null;
+    if(destroyed||document.hidden)return;
+    const now=new Date();
+    const delay=60000-now.getSeconds()*1000-now.getMilliseconds();
+    timer=setTimeout(()=>{timer=null;if(!destroyed&&!document.hidden){update(false);schedule();}},Math.max(10,delay+10));
+  }
+  function resync(){
+    if(destroyed)return;
+    update(true);schedule();
+  }
+  function onVisibility(){
+    if(document.hidden){clearTimeout(timer);timer=null;cancelFlip(hours);cancelFlip(minutes);}
+    else resync();
+  }
+  update(true);schedule();
+  document.addEventListener('visibilitychange',onVisibility);
+  window.addEventListener('focus',resync);
+  window.addEventListener('pageshow',resync);
   window.DiagnostikaHeaderFlipClock=Object.freeze({
     ready:true,
-    refresh:()=>update(false),
+    refresh:()=>{if(!destroyed){update(true);schedule();}},
     element:()=>wrap,
-    destroy:()=>clearInterval(timer)
+    destroy:()=>{
+      destroyed=true;clearTimeout(timer);timer=null;cancelFlip(hours);cancelFlip(minutes);
+      document.removeEventListener('visibilitychange',onVisibility);
+      window.removeEventListener('focus',resync);window.removeEventListener('pageshow',resync);
+    }
   });
 })();

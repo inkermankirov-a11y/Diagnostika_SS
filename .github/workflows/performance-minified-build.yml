@@ -1,0 +1,60 @@
+name: Performance minified build
+on:
+  push:
+    branches: ['performance/stage-5']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  minified-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.55.0 terser@5.44.1 esbuild@0.25.11
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Build a separate optimized copy
+        run: node tests/performance-build.mjs
+      - name: Compare unminified and minified startup and verify lazy utilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$PWD"
+          OUT="$ROOT/.performance-build"
+          cp tests/performance-startup.mjs tests/performance-lazy-utilities.mjs "$OUT/"
+          result=0
+          for label in unminified minified; do
+            DIR="$ROOT"
+            TESTDIR=tests
+            if [ "$label" = minified ]; then DIR="$OUT"; TESTDIR=.; fi
+            python3 "$ROOT/tests/performance-latency-server.py" "$DIR" >/tmp/zabvenye-$label.log 2>&1 &
+            SERVER=$!
+            trap 'kill "$SERVER" 2>/dev/null || true' EXIT
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8149/index.html >/dev/null; then break; fi
+              sleep 1
+            done
+            (cd "$DIR"; PERF_LABEL="$label" node "$TESTDIR/performance-startup.mjs") || result=1
+            (cd "$DIR"; node "$TESTDIR/performance-lazy-utilities.mjs") || result=1
+            kill "$SERVER" || true
+            wait "$SERVER" || true
+            trap - EXIT
+          done
+          mkdir -p performance-results
+          cp "$OUT/performance-results/startup-minified.json" performance-results/
+          cp "$OUT/build-metrics.json" performance-results/
+          exit "$result"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: minified-build-metrics
+          path: |
+            DiagnostikaSS.com/.performance-build/build-metrics.json
+            DiagnostikaSS.com/performance-results/*.json
+          if-no-files-found: warn
