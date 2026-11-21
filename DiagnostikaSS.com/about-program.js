@@ -1,6 +1,7 @@
 'use strict';
 
 (() => {
+  if(window.DiagnostikaAboutProgram)return;
   const style=document.createElement('style');
   style.textContent=`
     .about-program-btn{width:100%!important;min-width:0!important;height:42px!important;margin:5px 0 0!important;border:1px solid #d4dde7!important;border-radius:8px!important;background:#f8fafc!important;color:#334155!important;font-weight:800!important;box-shadow:none!important}
@@ -83,20 +84,5 @@
   dlg.querySelector('.about-program-close-bottom').addEventListener('click',close);
   dlg.addEventListener('click',e=>{if(e.target===dlg)close();});
 
-  function install(){
-    const panel=document.querySelector('#settingsPanel');
-    if(!panel||panel.querySelector('#aboutProgramBtn'))return false;
-    const divider=document.createElement('div');divider.className='about-program-divider';
-    const btn=document.createElement('button');
-    btn.type='button';btn.id='aboutProgramBtn';btn.className='tk-btn about-program-btn';btn.textContent='ℹ О программе';
-    panel.append(divider,btn);
-    btn.addEventListener('click',()=>dlg.showModal());
-    return true;
-  }
-
-  if(!install()){
-    const mo=new MutationObserver(()=>{if(install())mo.disconnect();});
-    mo.observe(document.body,{childList:true,subtree:true});
-    setTimeout(()=>{install();},0);
-  }
+  window.DiagnostikaAboutProgram=Object.freeze({open(){if(!dlg.open)dlg.showModal();}});
 })();

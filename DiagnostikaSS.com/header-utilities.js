@@ -507,6 +507,20 @@
       else defaultInfo.textContent=t.saveDefaultError;
     };
     choose();
+    if(window.DiagnostikaLazyUtilities){
+      const card=overlay.querySelector('.currency-card');
+      const ensure=()=>{
+        card.querySelector('[data-calculator-retry]')?.remove();
+        window.DiagnostikaLazyUtilities.calculator().catch(()=>{
+          if(!card.isConnected||card.querySelector('[data-calculator-retry]'))return;
+          const retry=document.createElement('button');retry.type='button';retry.className='tk-btn';
+          retry.dataset.calculatorRetry='1';
+          retry.textContent=window.DiagnostikaLazyUtilities.text('failure');
+          retry.onclick=ensure;card.appendChild(retry);
+        });
+      };
+      ensure();
+    }
   }
   currencyBtn.onclick=showConverter;
   window.addEventListener('diagnostika-specialist-profile-change',()=>{
