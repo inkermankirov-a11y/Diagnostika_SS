@@ -206,6 +206,7 @@
     if(!c)return null;
 
     const requests=list(c);
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.allow('clients_enabled','requests_per_client',requests.length))return null;
     const created=freshRequest(data);
     if(get(created.id,c))return null;
 

@@ -163,6 +163,7 @@
   }
 
   function commit(nextSituations,options={},eventType=EVENTS.updated,eventDetail={}){
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.allow('diagnosis'))return null;
     const {c,r}=context(options);
     const api=requestsService();
     if(!c||!r||!api?.update||!Array.isArray(nextSituations))return null;
