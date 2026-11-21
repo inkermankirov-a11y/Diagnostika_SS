@@ -1,0 +1,61 @@
+"""Account registry integration test; temporary SQLite and local HTTP only."""
+import os, tempfile, runpy, pathlib, time, threading, json, urllib.request, urllib.error
+with tempfile.TemporaryDirectory() as tmp:
+    os.environ["ACCOUNT_DATA"]=tmp
+    m=runpy.run_path(str(pathlib.Path(__file__).with_name("service.py")))
+    db=m["db"]
+    password="local-test-admin-123"
+    with db() as c:
+        c.execute("BEGIN IMMEDIATE")
+        admin=m["create_user"](c,"admin@example.invalid",password,"admin")
+        uid=m["create_user"](c,"person@example.invalid","local-test-user-123","specialist")
+        sid=m["ids"](c,uid)["specialist"]
+        admin_id=m["ids"](c,admin)["specialist"]
+        c.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("admin-test-token"),admin,int(time.time())+3600))
+        c.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("user-test-token"),uid,int(time.time())+3600))
+    server=m["Server"](("127.0.0.1",0),m["Handler"])
+    t=threading.Thread(target=server.serve_forever,daemon=True);t.start()
+    def call(path,data=None,expected=200,token="admin-test-token"):
+        req=urllib.request.Request("http://127.0.0.1:"+str(server.server_port)+"/account/api/"+path,
+            data=None if data is None else json.dumps(data).encode(),
+            headers={"Cookie":"__Host-zabvenye_account="+token,"Origin":m["ORIGIN"],"Content-Type":"application/json"})
+        try:
+            with urllib.request.urlopen(req,timeout=10) as r: status=r.status; result=json.load(r)
+        except urllib.error.HTTPError as r: status=r.code; result=json.load(r)
+        assert status==expected,(path,status,expected,result)
+        return result
+    try:
+        a=call("admin/invite",{"hours":24,"comment":"first"})
+        b=call("admin/invite",{"hours":24,"comment":"second"})
+        assert a["license_number"]=="000001" and b["license_number"]=="000002"
+        assert [x["license_number"] for x in call("admin/invites")["items"]]==["000002","000001"]
+        assert call("admin/invites?q=000001")["items"][0]["id"]==a["id"]
+        assert call("admin/invite-detail?id="+a["id"])["license_number"]=="000001"
+        call("admin/invite-revoke",{"id":a["id"]})
+        call("admin/invite-delete",{"id":a["id"]})
+        c=call("admin/invite",{"hours":24})
+        assert c["license_number"]=="000003"
+        call("admin/delete",{"id":sid},expected=403,token="user-test-token")
+        call("admin/delete",{"id":admin_id},expected=404)
+        call("admin/delete",{"id":sid})
+        call("me",expected=401,token="user-test-token")
+        assert call("admin/users?status=deleted")["items"][0]["id"]==sid
+        call("admin/purge",{"id":sid,"confirm_id":sid,"password":password},expected=409)
+        assert call("admin/restore",{"id":sid})["enabled"] is True
+        assert call("admin/users?status=deleted")["total"]==0
+        call("admin/delete",{"id":sid})
+        with db() as conn:
+            conn.execute("UPDATE users SET archived_at=? WHERE id=?",(int(time.time())-86500,uid))
+        call("admin/purge",{"id":sid,"confirm_id":"invalid","password":password},expected=400)
+        call("admin/purge",{"id":sid,"confirm_id":sid,"password":"wrong-password-123"},expected=403)
+        call("admin/purge",{"id":sid,"confirm_id":sid,"password":password})
+        call("admin/restore",{"id":sid},expected=404)
+        with db() as conn:
+            assert not conn.execute("SELECT 1 FROM users WHERE id=?",(uid,)).fetchone()
+            assert conn.execute("SELECT 1 FROM public_ids WHERE owner=?",(uid,)).fetchone()
+            assert conn.execute("SELECT 1 FROM specialist_tombstones WHERE user_id=?",(uid,)).fetchone()
+            assert conn.execute("SELECT count(*) FROM license_numbers").fetchone()[0]==3
+            assert conn.execute("PRAGMA integrity_check").fetchone()[0]=="ok"
+        print("Account lifecycle and license numbering integration: PASS")
+    finally:
+        server.shutdown();server.server_close();t.join()

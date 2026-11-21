@@ -1,0 +1,17 @@
+name: Account registry audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'DiagnostikaSS.com/server/accounts/**'
+      - '.github/workflows/account-registry-audit.yml'
+  workflow_dispatch:
+jobs:
+  account-registry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m py_compile DiagnostikaSS.com/server/accounts/service.py
+      - run: node --check DiagnostikaSS.com/server/accounts/ui.js
+      - run: python3 DiagnostikaSS.com/server/accounts/test_registry.py
