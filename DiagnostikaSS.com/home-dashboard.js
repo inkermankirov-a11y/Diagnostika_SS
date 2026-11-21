@@ -115,11 +115,11 @@
     const iso=raw.slice(0,10);
     if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
       const [year,month,day]=iso.split('-').map(Number);
-      return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
+      return new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(year,month-1,day,12,0,0));
     }
     const date=new Date(raw);
     if(Number.isNaN(date.getTime()))return raw;
-    return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(date);
+    return new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{day:'2-digit',month:'2-digit',year:'numeric'}).format(date);
   }
   const clientsApi=()=>window.DiagnostikaClients||null;
   const requestsApi=()=>window.DiagnostikaRequests||null;
@@ -314,7 +314,7 @@
     if(date.getFullYear()!==year||date.getMonth()!==month-1||date.getDate()!==day)return null;
     const days=Math.round((Date.UTC(year,month-1,day)-
       Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
-    const weekday=new Intl.DateTimeFormat('ru-RU',{weekday:'long'}).format(date);
+    const weekday=new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{weekday:'long'}).format(date);
     const dateText=String(day).padStart(2,'0')+'.'+String(month).padStart(2,'0')+'.'+year;
     const relative=days===0?'Сегодня':days===1?'Завтра':weekday.charAt(0).toUpperCase()+weekday.slice(1);
     return {relative,weekday,dateText,days};

@@ -31,11 +31,11 @@
   const sourceText=new WeakMap();
 
   function known(text){
-    return typeof text==='string'&&(Object.prototype.hasOwnProperty.call(T.en,text)||window.ZabvenyeStorageI18n?.has(text));
+    return typeof text==='string'&&(Object.prototype.hasOwnProperty.call(T.en,text)||window.ZabvenyeStorageI18n?.has(text)||window.ZabvenyeWorkspaceI18n?.has(text));
   }
   function tr(text){
     if(current==='ru') return text;
-    return window.ZabvenyeStorageI18n?.has(text)?window.ZabvenyeStorageI18n.translate(text,current):(T[current]?.[text]||text);
+    return window.ZabvenyeStorageI18n?.has(text)?window.ZabvenyeStorageI18n.translate(text,current):(T[current]?.[text]||(window.ZabvenyeWorkspaceI18n?.translate(text,current)||text));
   }
   function translateValue(value,memory,key){
     const previous=memory.get(key);
@@ -49,9 +49,10 @@
   }
   const attributeMemory=new WeakMap();
   function translateElement(el){
-    if(!(el instanceof Element)||el.closest('.language-menu,.language-switcher,script,style,textarea,[contenteditable="true"]'))return;
+    if(!(el instanceof Element)||el.closest('.language-menu,.language-switcher,script,style,[contenteditable="true"],[data-i18n-user-content],.diagnosis-hypothesis-expanded-content,.diagnosis-hypothesis-raw,.diagnosis-hypothesis-result-short > div,.hd-client-name,.hws-event-person'))return;
+    if(el.tagName==='OPTION'&&!el.hasAttribute('value'))el.value=el.value;
     for(const node of el.childNodes){
-      if(node.nodeType!==Node.TEXT_NODE)continue;
+      if(node.nodeType!==Node.TEXT_NODE||el.tagName==='TEXTAREA')continue;
       const after=translateValue(node.nodeValue,sourceText,node);
       if(node.nodeValue!==after)node.nodeValue=after;
     }
@@ -136,6 +137,6 @@ function roundLanguageFlag(lang){
   observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder']});
 
   function setLanguage(lang,options={}){if(!LANGS[lang])return;const changed=current!==lang;current=lang;localStorage.setItem(KEY,lang);applyLanguage();if(changed&&options.persist!==false)window.dispatchEvent(new CustomEvent('diagnostika:language-changed',{detail:{language:lang}}));}
-  window.DiagnostikaI18n={get language(){return current;},setLanguage,translate:tr};
+  window.DiagnostikaI18n={get language(){return current;},get locale(){return ({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[current];},setLanguage,translate:tr};
   applyLanguage();
 })();

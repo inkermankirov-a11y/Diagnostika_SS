@@ -582,7 +582,7 @@
 
     try{
       const now=new Date();
-      const formatter=new Intl.DateTimeFormat('ru-RU',{
+      const formatter=new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{
         timeZone:location.timezone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'
       });
       const time=formatter.format(now);

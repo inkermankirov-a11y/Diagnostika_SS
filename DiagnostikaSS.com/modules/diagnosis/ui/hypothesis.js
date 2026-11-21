@@ -162,9 +162,10 @@
         useClientGender:'Use diagnosticData.клиент.пол: Женский/Мужской. Correct gender in self-beliefs and every form of address. Do not infer gender from the name.',
         maxEmotions:4,
         paragraphs:1,
-        language:'ru',
+        language:window.DiagnostikaI18n?.language||'ru',
         instruction:'Объясни клиенту простыми словами: 2–3 самых сильных негативных убеждения о себе с учётом частоты и уровня (если подтверждено только одно — одно), конкретная ситуация, восприятие себя, до четырёх чувств и связь с исходным запросом. Все формулировки согласуй с полом клиента из карточки, не определяй пол по имени. Без списков убеждений, повторов, общего психоанализа и причин, не подтверждённых диагностикой. Это рабочая гипотеза, а не установленный факт.'
       },
+      language:window.DiagnostikaI18n?.language||'ru',
       diagnosticData:data
     };
 
@@ -236,7 +237,7 @@
     if(!value)return '';
     const d=new Date(value);
     if(Number.isNaN(d.getTime()))return '';
-    return d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    return d.toLocaleString((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }
 
   function setSaveState(saved){

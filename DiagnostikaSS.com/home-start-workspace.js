@@ -124,7 +124,7 @@
   right.appendChild(rail);
 
   const $=selector=>dashboard.querySelector(selector);
-  const formatScheduledDate=date=>new Intl.DateTimeFormat('ru-RU',
+  const formatScheduledDate=date=>new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),
     {day:'numeric',month:'long',year:'numeric'}).format(new Date(date+'T12:00:00'));
   const formatScheduledTime=time=>{
     const m=String(time||'').trim().match(/^(\d{1,2}):(\d{2})/);
@@ -258,7 +258,7 @@
       const items=entries();
       renderMetrics(items);
       renderSchedule(items);
-      const today=new Intl.DateTimeFormat('ru-RU',
+      const today=new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),
         {weekday:'long',day:'numeric',month:'long'}).format(new Date());
       $('#hwsHeroDate').textContent=today;
       renderQuote();
@@ -303,6 +303,7 @@
     if(!button||!dashboard.contains(button))return;
     onAction(button);
   });
+  window.addEventListener('diagnostika:language-changed',render);
   document.addEventListener('diagnostika:dashboard-home-opened',render);
   document.addEventListener('diagnostika:dashboard-clients-rendered',render);
   window.addEventListener('diagnostika-general-notes-changed',()=>{if(visible())$('#hwsNoteStatus').textContent='Заметки обновлены';});

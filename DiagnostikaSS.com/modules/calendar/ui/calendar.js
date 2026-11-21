@@ -517,7 +517,7 @@
     else if(previous&&rows.some(c=>String(c.id)===String(previous)))clientSelect.value=String(previous);
     else clientSelect.value='';
   }
-  function humanDate(date){const d=new Date(date+'T12:00:00');return new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);}
+  function humanDate(date){const d=new Date(date+'T12:00:00');return new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);}
 
   function renderDayDetails(){
     selectedDateLabel.textContent=humanDate(selected);
@@ -551,13 +551,13 @@
 
   function weekTitle(start){
     const end=new Date(start);end.setDate(start.getDate()+6);
-    const left=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long'}).format(start);
-    const right=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric'}).format(end);
+    const left=new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{day:'numeric',month:'long'}).format(start);
+    const right=new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{day:'numeric',month:'long',year:'numeric'}).format(end);
     return `${left} — ${right}`;
   }
 
   function dayTitle(date){
-    return new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(date);
+    return new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(date);
   }
 
   function openClientFromCalendar(clientId){
@@ -580,7 +580,8 @@
   function renderMonth(){
     const y=cursor.getFullYear(),m=cursor.getMonth();
     const today=todayIso();
-    monthTitle.textContent=`${MONTHS[m]} ${y}`;
+    monthTitle.textContent=new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{month:'long',year:'numeric'}).format(new Date(y,m,1));
+    overlay.querySelectorAll('.cal-week > div').forEach((el,i)=>{el.textContent=new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{weekday:'short'}).format(new Date(2024,0,1+i));});
     overlay.classList.remove('week-view','day-view');
     overlay.querySelectorAll('.cal-view-btn').forEach(button=>button.classList.toggle('active',button.dataset.view==='month'));
     overlay.querySelector('.cal-today')?.classList.remove('active');
@@ -637,7 +638,7 @@
   }
 
   function timeGridHeaderLabel(date){
-    const weekday=new Intl.DateTimeFormat('ru-RU',{weekday:'short'}).format(date).replace('.','');
+    const weekday=new Intl.DateTimeFormat((window.DiagnostikaI18n?.locale||({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[localStorage.getItem('diagnostika-ui-language')]||'ru-RU'),{weekday:'short'}).format(date).replace('.','');
     return {weekday,day:String(date.getDate())};
   }
 
@@ -792,6 +793,7 @@
     });
   }
 
+  window.addEventListener('diagnostika:language-changed',()=>{if(overlay.open||overlay.classList.contains('open')||overlay.classList.contains('show')){renderCalendarSurface();renderDayDetails();}});
   function renderCalendarSurface(){
     if(viewMode==='month')renderMonth();
     else renderTimeGrid();
