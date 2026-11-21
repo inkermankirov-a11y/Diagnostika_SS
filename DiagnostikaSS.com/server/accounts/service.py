@@ -33,6 +33,7 @@ with db() as c:
     CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT NOT NULL,expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,actor TEXT,action TEXT,target TEXT,created INTEGER);
     CREATE TABLE IF NOT EXISTS invites(token TEXT PRIMARY KEY,email TEXT NOT NULL,expires INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS vault_recovery(user_id TEXT PRIMARY KEY,secret TEXT NOT NULL,created INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS ai_usage(user_id TEXT NOT NULL,day TEXT NOT NULL,area TEXT NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(user_id,day,area));
     """)
 # Public IDs are independent of internal authentication identifiers.
@@ -461,6 +462,24 @@ class Handler(BaseHTTPRequestHandler):
                 if language not in LANGUAGES: raise Error(400,"Недопустимый язык")
                 c.execute("UPDATE users SET ui_language=? WHERE id=?",(language,u["id"]))
                 payload={"ok":True,"language":language}
+            elif path=="/account/api/vault-recovery":
+                if u["onboarding_required"]: raise Error(403,"Сначала завершите настройку профиля")
+                number=b.get("license"); password=b.get("password"); mode=b.get("mode")
+                if mode not in ("enroll","recover") or not isinstance(number,str) or not re.fullmatch(r"[0-9]{6,12}",number) or not valid_password(password): raise Error(400,"Введите номер лицензии и пароль аккаунта")
+                if not allowed("vault-recovery-global",20,60) or not allowed("vault-recovery:"+u["id"],5,900): raise Error(429,"Слишком много попыток. Повторите позже.")
+                if not HASH_SLOT.acquire(False): raise Error(429,"Сервис занят. Повторите попытку.")
+                try: ok=password_ok(password,u["password"])
+                finally: HASH_SLOT.release()
+                license_row=c.execute("SELECT 1 FROM invites i JOIN license_numbers n ON n.public_id=i.public_id WHERE n.number=? AND i.used_by=? AND i.used_at IS NOT NULL AND i.revoked_at IS NULL",(int(number),u["id"])).fetchone()
+                if not ok or not license_row: raise Error(403,"Номер лицензии или пароль не подтверждён")
+                row=c.execute("SELECT secret FROM vault_recovery WHERE user_id=?",(u["id"],)).fetchone()
+                if not row:
+                    if mode!="enroll": raise Error(409,"Восстановление для этой лицензии ещё не подключено")
+                    recovery="ZBV1-"+secrets.token_urlsafe(32)
+                    c.execute("INSERT INTO vault_recovery VALUES(?,?,?)",(u["id"],recovery,int(time.time())))
+                else: recovery=row["secret"]
+                audit(c,u["id"],"vault-recovery-"+mode,u["id"])
+                payload={"recovery_secret":recovery}
             elif path=="/account/api/metrics":
                 count=b.get("clients")
                 if type(count) is not int or not 0<=count<=1000000: raise Error(400,"Некорректное количество клиентов")
@@ -510,7 +529,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=target["id"]
                 audit(c,u["id"],"purge",uid,{"account":{"from":"Архивирован","to":"Удалён окончательно"}})
                 c.execute("INSERT INTO specialist_tombstones VALUES(?,?,?)",(uid,b["id"],int(time.time())))
-                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","legal_acceptance","workspace_profiles"):
+                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","legal_acceptance","workspace_profiles","vault_recovery"):
                     c.execute("DELETE FROM "+table+" WHERE user_id=?",(uid,))
                 c.execute("DELETE FROM users WHERE id=?",(uid,))
                 payload={"ok":True}
