@@ -162,6 +162,7 @@
   }
 
   function updateRequest(requestRef,changes={},options={}){
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits&&!window.DiagnostikaLimits.allow('payments'))return null;
     const c=resolveClient(options.client??options.clientId);
     const r=resolveRequest(requestRef,c);
     if(!c||!r||!changes||typeof changes!=='object')return null;
@@ -193,6 +194,7 @@
 
 
   function replaceRequest(requestRef,nextPayment,options={}){
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits&&!window.DiagnostikaLimits.allow('payments'))return null;
     const c=resolveClient(options.client??options.clientId);
     const r=resolveRequest(requestRef,c);
     if(!c||!r)return null;
@@ -223,6 +225,7 @@
   }
 
   function addPayment(requestRef,data={},options={}){
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits&&!window.DiagnostikaLimits.allow('payments'))return null;
     const c=resolveClient(options.client??options.clientId);
     const r=resolveRequest(requestRef,c);
     if(!c||!r||!data||typeof data!=='object')return null;
@@ -252,6 +255,7 @@
   }
 
   function updatePayment(requestRef,paymentId,changes={},options={}){
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits&&!window.DiagnostikaLimits.allow('payments'))return null;
     const c=resolveClient(options.client??options.clientId);
     const r=resolveRequest(requestRef,c);
     const payment=r?ensureRequestPayment(r,c):null;
@@ -278,6 +282,7 @@
   }
 
   function removePayment(requestRef,paymentId,options={}){
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits&&!window.DiagnostikaLimits.allow('payments'))return null;
     const c=resolveClient(options.client??options.clientId);
     const r=resolveRequest(requestRef,c);
     const payment=r?ensureRequestPayment(r,c):null;
@@ -300,6 +305,7 @@
 
 
   function replaceSession(sessionRef,nextPayment,options={}){
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits&&!window.DiagnostikaLimits.allow('payments'))return null;
     const c=resolveClient(options.client??options.clientId);
     const s=resolveSession(sessionRef,c);
     if(!c||!s)return null;
@@ -331,6 +337,7 @@
   }
 
   function updateSession(sessionRef,changes={},options={}){
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits&&!window.DiagnostikaLimits.allow('payments'))return null;
     const c=resolveClient(options.client??options.clientId);
     const s=resolveSession(sessionRef,c);
     if(!c||!s||!changes||typeof changes!=='object')return null;
