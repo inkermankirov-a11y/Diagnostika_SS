@@ -53,8 +53,9 @@
    const storage=folder(),manager=window.DiagnostikaLocalFolderSync;if(!storage||!manager)throw Error('Модуль шифрования недоступен.');
    const key=secret(),file=pendingFile;
    if(!localizedConfirm('Восстановить зашифрованную базу в пустое рабочее пространство?'))return;
+   if(!await window.DiagnostikaStorageRefresh.prepare())return;
    const root=await storage.ensureRoot();await manager.begin(root);
-   try{const raw=await file.text();await storage.restoreFile(raw,key,root);manager.finishEncrypted();status('База восстановлена.');location.reload();}catch(e){manager.fail(e);throw e;}
+   try{const raw=await file.text();await storage.restoreFile(raw,key,root);manager.finishEncrypted();pendingFile=null;$('vaultImportFile').hidden=true;$('vaultImportConfirm').hidden=true;status('База восстановлена.');check();}catch(e){manager.fail(e);throw e;}
   });
 
  }

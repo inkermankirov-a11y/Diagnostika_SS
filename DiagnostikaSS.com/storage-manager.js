@@ -348,13 +348,14 @@
     );
     if(!ok) return false;
 
+    if(!await window.DiagnostikaStorageRefresh.prepare())return false;
     const receiptResult=await syncReceiptDisk(folderState);
     missingReceipts=receiptDetails(folderState,receiptResult.missing);
     writeCanonicalDatabase(folderState,'storage-manager-restore');
+    window.DiagnostikaStorageRefresh.apply();
     try{localStorage.setItem('diagnostika-folder-restore-confirmed','1');}catch(_){}
 
-    await AppDialog.alert(`База восстановлена. Клиентов: ${count}.`+(missingReceipts.length?'\nОтсутствуют чеки (записи об оплатах сохранены):\n'+missingReceipts.map(receiptDescription).join('\n'):'')+'\nСтраница сейчас перезагрузится.','Готово');
-    location.reload();
+    await AppDialog.alert(`База восстановлена. Клиентов: ${count}.`+(missingReceipts.length?'\nОтсутствуют чеки (записи об оплатах сохранены):\n'+missingReceipts.map(receiptDescription).join('\n'):''),'Готово');
     return true;
   }
 
@@ -364,7 +365,7 @@
     syncing=true;
     const started=revision;paintSync("working");
     try{
-      if(await protectedFolder()){if(!window.DiagnostikaFolderVault?.keyUnlocked()){armed=false;paintSync('locked');return;}const result=await window.DiagnostikaFolderVault.sync(rootHandle,{ask:false});if(!result||result.reload)throw Error('Необходимо открыть базу вручную.');missingReceipts=[];}else{const snapshot=JSON.parse(JSON.stringify(state));await fullExport(snapshot);await verifyCore(snapshot);}
+      if(await protectedFolder()){if(!window.DiagnostikaFolderVault?.keyUnlocked()){armed=false;paintSync('locked');return;}const result=await window.DiagnostikaFolderVault.sync(rootHandle,{ask:false});if(!result||result.restored)throw Error('Необходимо открыть базу вручную.');missingReceipts=[];}else{const snapshot=JSON.parse(JSON.stringify(state));await fullExport(snapshot);await verifyCore(snapshot);}
       verifiedRevision=started;
       paintSync(revision===started?'ready':'pending');
       await updateStatus();
@@ -390,10 +391,10 @@
       if(!syncing)throw Error('Синхронизация не запущена');
       try{
         await fullExport(data);await verifyCore(data);
-        verifiedRevision=revision;paintSync('ready');
+        verifiedRevision=revision;armed=true;paintSync('ready');void updateStatus().catch(()=>{});
         return missingReceipts.map(receiptDescription);
-      }catch(e){syncError=e.message||'Ошибка записи';paintSync('error');throw e;}
-      finally{syncing=false;armed=false;}
+      }catch(e){armed=false;syncError=e.message||'Ошибка записи';paintSync('error');throw e;}
+      finally{syncing=false;}
     },
     finishEncrypted(){syncing=false;armed=true;missingReceipts=[];verifiedRevision=revision;paintSync('ready');void updateStatus().catch(()=>{});},
     fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync('error');},

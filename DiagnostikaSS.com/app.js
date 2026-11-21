@@ -189,3 +189,40 @@ $('#exportTxtBtn').onclick=()=>{const c=client(),r=request(),api=window.Diagnost
 $('#hintBtn').onclick=()=>alert('Подсказки первичных убеждений: «Я недостаточно хорош(а)», «Я не справляюсь», «Со мной что-то не так», «Я недостоин(а)», «Меня отвергнут», «Я беспомощен/беспомощна».');
 if(!state.clients.length){const c=newClient();state.clients.push(c);clientId=c.id;save()}
 renderClient();renderMode();
+
+window.DiagnostikaStorageRefresh=Object.freeze({
+ async prepare(){
+  if(!window.DiagnostikaEditorGuard.hasUnsaved())return true;
+  if(!await window.DiagnostikaEditorGuard.beforeLeave())return false;
+  if(window.DiagnostikaEditorGuard.hasUnsaved())renderEditor();
+  return true;
+ },
+ apply(){
+  const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;
+  const next=db?.readState({source:'storage-live-refresh'});
+  if(!Array.isArray(next?.clients))throw Error('Не удалось прочитать сохранённую базу');
+  if(JSON.stringify(state)===JSON.stringify(next))return false;
+  next.clients=next.clients.map(migrate);
+  const oldSelection=selected?{type:selected.type,id:selected.obj?.id}:null;
+  const previousClientId=clientId,previousRequestId=requestId,previousSituationId=situationId;
+  for(const k of Object.keys(state))if(!Object.prototype.hasOwnProperty.call(next,k))delete state[k];
+  Object.assign(state,next);
+  const c=state.clients.find(x=>String(x.id)===String(previousClientId))||state.clients[0]||null;
+  const sameClient=c&&String(c.id)===String(previousClientId);
+  clientId=c?.id??null;
+  const r=(sameClient&&c.requests?.find(x=>String(x.id)===String(previousRequestId)))||c?.requests?.find(x=>String(x.id)===String(c.currentRequestId??c.lastDiagnosisRequestId))||c?.requests?.[0]||null;
+  requestId=r?.id??null;
+  const sameRequest=sameClient&&r&&String(r.id)===String(previousRequestId);
+  const s=(sameRequest&&r.situations?.find(x=>String(x.id)===String(previousSituationId)))||r?.situations?.[0]||null;
+  situationId=s?.id??null;
+  selected=null;
+  if(sameRequest&&s&&String(s.id)===String(previousSituationId)&&oldSelection?.id!=null)selectDiagnosisElementById(oldSelection.type,oldSelection.id);
+  if(!c||!r||!sameClient)mode='card';
+  renderClient();
+  window.DiagnostikaHomeDashboard?.refresh?.();
+  if(document.querySelector('#clientDialog')?.open)window.renderClientDatabaseTable?.();
+  if(String(previousClientId??'')!==String(clientId??''))window.DiagnostikaPlatform?.events?.emit?.('client:selected',{clientId,previousClientId,source:'storage-live-refresh'});
+  document.dispatchEvent(new CustomEvent('diagnostika:storage-refreshed'));
+  return true;
+ }
+});

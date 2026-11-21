@@ -469,6 +469,7 @@
 
     merged=filterDeletedFromClientSet(merged,deletedIds);
     writeCanonicalDatabase(merged,'storage-simple-sync');
+    window.DiagnostikaStorageRefresh.apply();
     await writeStateTree(app,merged);
     const missingReceipts=await manager.complete(merged);
     markBrowserUpdated();
@@ -510,9 +511,10 @@
     sync.onclick=async()=>{
       try{
         sync.disabled=true;sync.textContent='Синхронизация…';
+        if(!await window.DiagnostikaStorageRefresh.prepare())return;
         const result=await synchronize();
         await AppDialog.alert(`Клиентов в базе: ${result.count}. База и доступные файлы сохранены.`+(result.missingReceipts?.length?'\n\nОтсутствующие чеки (не блокируют сохранение):\n'+result.missingReceipts.join('\n')+'\n\nЗаписи об оплатах сохранены. При необходимости прикрепите чек заново или удалите его привязку.':''),'Синхронизация завершена');
-        if(!result.encrypted||result.reload)location.reload();
+        // The persisted state is already applied to the open workspace.
       }catch(e){
         if(e?.name!=='AbortError')await AppDialog.alert(e?.message||'Не удалось выполнить синхронизацию.','Ошибка');
       }finally{sync.disabled=false;sync.textContent='Синхронизировать';window.DiagnostikaLocalFolderSync?.attach(sync);}

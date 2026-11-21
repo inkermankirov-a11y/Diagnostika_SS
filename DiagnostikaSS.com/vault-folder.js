@@ -74,6 +74,7 @@
   const curr=await snapshot();if(!empty(curr))throw Error('В браузере уже есть другая база. Защитите её перед восстановлением.');
   const api=files(),added=[];try{for(const f of pkg.files){const m=f.meta;if(!m?.id||!m.clientId||!m.sessionId)throw Error('Некорректное вложение ZBV.');const blob=new Blob([cryptoApi().unb64(f.bytes)],{type:m.type||'application/octet-stream'});if(!await api.put({...m,blob},{source:'vault-restore'}))throw Error('Не удалось восстановить вложение.');added.push(m.id)}
   if(db().writeState(pkg.state,{source:'vault-restore'})!==true)throw Error('Не удалось восстановить базу.');}catch(e){for(const id of added)try{await api.remove(id,{source:'vault-restore-rollback'})}catch{}throw e}
+  window.DiagnostikaStorageRefresh.apply();
  }
  async function sync(root,{ask=true,secret:provided=null}={}){
   const dir=await app(root),handle=await file(dir,NAME);
@@ -86,14 +87,14 @@
    const current=await snapshot();pkg.files.sort((a,b)=>String(a.meta.id).localeCompare(String(b.meta.id)));
    if(same(pkg,current)){await clean(dir,pkg.legacyDisk);await mark(raw,secret);return {count:pkg.state.clients.length}}
    if(get(BASE)!==await digest(raw)){
-    if(empty(current)){await restore(pkg);await mark(raw,secret);return {count:pkg.state.clients.length,reload:true}}
+    if(ask&&empty(current)){await restore(pkg);await mark(raw,secret);return {count:pkg.state.clients.length,restored:true}}
     throw Error('База в папке и браузере различается. Автоматическая перезапись запрещена.');
    }
    // A matching encrypted baseline authorizes updates from this browser only.
    const next={...current,legacyDisk:pkg.legacyDisk||[]},out=await write(dir,next,secret,raw);await mark(out,secret);await clean(dir,next.legacyDisk);return {count:current.state.clients.length}
   })
  }
- async function download(secret){const root=await savedHandle(),dir=root&&await app(root),h=await file(dir,NAME);if(!h)throw Error('Сначала зашифруйте базу.');const result=await sync(root,{secret});if(result?.reload)throw Error('Сначала обновите страницу после восстановления.');const raw=await (await h.getFile()).text();await cryptoApi().openDatabase(raw,secret);return raw;}
+ async function download(secret){const root=await savedHandle(),dir=root&&await app(root),h=await file(dir,NAME);if(!h)throw Error('Сначала зашифруйте базу.');await sync(root,{secret});const raw=await (await h.getFile()).text();await cryptoApi().openDatabase(raw,secret);return raw;}
  async function restoreFile(raw,secret,root=null){return run(async()=>{const pkg=await cryptoApi().openDatabase(raw,secret);const current=await snapshot();if(!empty(current))throw Error('Восстановление возможно только в пустое рабочее пространство.');root=root||await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку.');const dir=await app(root,true);if((await scan(dir)).rows.length)throw Error('В папке найдена старая база. Выберите пустую папку.');const existing=await file(dir,NAME);if(existing&&await (await existing.getFile()).text()!==raw)throw Error('В папке уже есть другая база.');if(!existing)await cryptoApi().writeDatabase(await dir.getFileHandle(NAME,{create:true}),raw,secret);await restore(pkg);await mark(raw,secret);return {count:pkg.state.clients.length};})}
  async function connected(){
   const root=await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку.');
