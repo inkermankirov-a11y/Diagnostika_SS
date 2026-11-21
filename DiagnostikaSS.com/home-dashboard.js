@@ -822,6 +822,7 @@
       refresh();
       setTimeout(()=>window.DiagnostikaClientAIChat?.refresh?.(),0);
       setTimeout(()=>window.DiagnostikaClientAIChat?.refresh?.(),90);
+      document.dispatchEvent(new Event('diagnostika:mobile-client-opened'));
       return;
     }
     dashboardView=previousView;

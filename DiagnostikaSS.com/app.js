@@ -135,10 +135,11 @@ function addTreeRow(root,cls,kind,text,level,meta,{incomplete=false}={}){
    await guardDiagnosisEditorLeave(()=>{
      // Selecting an existing row must not rebuild the diagnosis tree or switch branches.
      if(!selectDiagnosisElementById(meta.type,meta.obj.id))return;
-     if(wasDirty){renderTree();return;}
+     if(wasDirty){renderTree();document.dispatchEvent(new Event('diagnostika:diagnosis-row-selected'));return;}
      root.querySelectorAll('.tree-row.active-selection').forEach(row=>row.classList.remove('active-selection'));
      d.classList.add('active-selection');
      renderEditor();
+     document.dispatchEvent(new Event('diagnostika:diagnosis-row-selected'));
    });
  };
  root.appendChild(d);

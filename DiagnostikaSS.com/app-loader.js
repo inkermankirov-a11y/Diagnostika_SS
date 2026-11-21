@@ -140,7 +140,7 @@
       document.head.appendChild(css);
     }
     for(const [href,marker] of [
-      ['home-dashboard.js?v=20261121-workspace-2','data-home-dashboard-preload'],
+      ['home-dashboard.js?v=20261121-mobile-1','data-home-dashboard-preload'],
       ['home-dashboard-sessions.js?v=20261120-advance-payment-1','data-home-dashboard-sessions-preload']
     ]){
       if(document.querySelector(`link[${marker}]`))continue;
@@ -163,7 +163,7 @@
     }
     if(!document.querySelector('script[data-home-workspace]')){
       const script=document.createElement('script');
-      script.src='home-start-workspace.js?v=20261121-workspace-1';
+      script.src='home-start-workspace.js?v=20261121-mobile-1';
       script.setAttribute('data-home-workspace','1');
       document.body.appendChild(script);
     }
@@ -186,7 +186,7 @@
     }
     if(!document.querySelector('script[data-home-dashboard]')){
       const s=document.createElement('script');
-      s.src='home-dashboard.js?v=20261121-workspace-2';
+      s.src='home-dashboard.js?v=20261121-mobile-1';
       s.setAttribute('data-home-dashboard','1');
       s.onload=()=>{
         loadHomeWorkspace();

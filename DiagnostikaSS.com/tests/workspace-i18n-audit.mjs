@@ -37,7 +37,7 @@ const addRow=app.slice(app.indexOf('function addTreeRow'),app.indexOf('let lastR
 const selectionTest=new Function(`return (async()=>{
 let selected=null,editor=0,tree=0,dirty=false;
 const lvl=x=>x;
-const document={createElement:()=>({dataset:{},className:'',classList:{add(){this.active=true},remove(){this.active=false}},append(){},style:{}})};
+const document={dispatchEvent(){},createElement:()=>({dataset:{},className:'',classList:{add(){this.active=true},remove(){this.active=false}},append(){},style:{}})};
 const rows=[],root={appendChild:x=>rows.push(x),querySelectorAll:()=>rows.filter(x=>x.classList.active)};
 const a={type:'feeling',obj:{id:'1'},parent:{id:'a'}},b={type:'deep',obj:{id:'2'},parent:{id:'b'}};
 const selectDiagnosisElementById=(t,id)=>selected=id==='1'?a:b;

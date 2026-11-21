@@ -73,6 +73,7 @@
   let quoteDate='';
   let quoteIndex=0;
   let promptIndex=0;
+  let attentionOpen=false;
 
   home.innerHTML=[
     '<div class="hws-workspace hws-workspace-simple">',
@@ -81,6 +82,7 @@
         '<div class="hws-today-date" id="hwsHeroDate"></div></div>',
       '</div>',
       '<div class="hws-metrics" id="hwsMetrics" aria-live="polite"></div>',
+      '<section id="hwsAttentionList" class="hws-attention-list" hidden></section>',
       '<section class="hws-card hws-schedule hws-schedule-only">',
         '<div class="hws-schedule-header hws-schedule-header-compact">',
           '<h2>Ближайшие события</h2>',
@@ -231,12 +233,18 @@
     const start=new Date(date.getFullYear(),date.getMonth(),date.getDate()).getTime();
     const end=new Date(date.getFullYear(),date.getMonth(),date.getDate()+1).getTime();
     const meetings=items.filter(e=>e.kind!=='reminder'&&e.at>=start&&e.at<end).length;
-    const attention=items.filter(e=>e.kind==='reminder'&&e.at<=now).length;
+    const due=items.filter(e=>e.kind==='reminder'&&e.at<=now);
+    const attention=due.length;
     $('#hwsMetrics').innerHTML=[
       ['Встреч сегодня',meetings,'is-ocean','▦'],
-      ['Ожидают внимания',attention,'is-amber','◉']
-    ].map(([label,value,tone,icon])=>'<div class="hws-metric '+tone+'"><span class="hws-metric-icon">'+icon+
-      '</span><span class="hws-metric-value">'+value+'</span><span class="hws-metric-label">'+label+'</span></div>').join('');
+      ['Требуют внимания',attention,'is-amber','◉']
+    ].map(([label,value,tone,icon],i)=>{const tag=i?'button':'div';return '<'+tag+' class="hws-metric '+tone+'"'+(i?' type="button" data-action="attention" aria-controls="hwsAttentionList" aria-expanded="'+attentionOpen+'" title="Невыполненные напоминания, срок которых наступил"':'')+'><span class="hws-metric-icon">'+icon+
+      '</span><span class="hws-metric-value">'+value+'</span><span class="hws-metric-label">'+label+'</span></'+tag+'>';}).join('');
+    const box=$('#hwsAttentionList');box.hidden=!attentionOpen;
+    if(attentionOpen)box.innerHTML='<h3>Невыполненные напоминания</h3>'+(due.length?due.map(e=>{
+      const c=clientFor(e.clientId);
+      return '<div class="hws-event-row"><div class="hws-event-type is-reminder">◎</div><div class="hws-event-body"><strong data-i18n-user-content>'+esc(e.label)+'</strong><span class="hws-event-person">'+esc(c?.name||'Общая запись')+'</span><span>'+esc(formatScheduledDate(e.scheduledDate))+' · '+esc(formatScheduledTime(e.scheduledTime))+'</span></div>'+ (c?'<button type="button" data-action="open-client" data-client-id="'+esc(c.id)+'" aria-label="Открыть клиента">↗</button>':'<button type="button" data-action="calendar" aria-label="Открыть календарь">↗</button>')+'</div>';
+    }).join(''):'<p>Нет напоминаний, требующих внимания.</p>');
   }
 
   function renderQuote(){
@@ -281,6 +289,7 @@
   async function onAction(button){
     const action=button.dataset.action||'';
     if(action==='open-client'){window.DiagnostikaHomeDashboard?.openClient?.(button.dataset.clientId);return;}
+    if(action==='attention'){attentionOpen=!attentionOpen;renderMetrics(entries());$('#hwsMetrics [data-action="attention"]')?.focus({preventScroll:true});return;}
     if(action==='calendar'){openCalendar();return;}
     if(action==='quick-thoughts'){openQuickThoughts();return;}
     if(action==='next-prompt'){promptIndex=(promptIndex+1)%practice.length;renderPrompt();return;}
