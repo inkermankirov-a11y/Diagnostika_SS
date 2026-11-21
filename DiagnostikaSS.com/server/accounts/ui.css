@@ -32,3 +32,5 @@ dialog[open]{position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 32px);o
 .locale-option:hover,.locale-option:focus-visible{background:#edf4ff;filter:none}
 .locale-option[aria-checked="true"]{background:#e5effa;color:#214f80;font-weight:700}
 @media(max-width:480px){.locale-picker{width:125px}}
+
+.feature-policy{display:grid;gap:8px;margin:12px 0}.feature-policy>h3,.feature-policy>p{margin:0}.feature-policy-group{border:1px solid var(--line);border-radius:8px;background:#fff}.feature-policy-group>summary{cursor:pointer;font-weight:650;padding:10px 12px}.feature-policy-group>.limits{padding:0 12px 12px;margin:0}.feature-policy-group>.limits label{min-width:0}.feature-policy>label{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
