@@ -50,7 +50,7 @@
       const before=node.nodeValue;
       const leading=before.match(/^\s*/)?.[0]||'';
       const trailing=before.match(/\s*$/)?.[0]||'';
-      node.nodeValue=leading+tr(raw)+trailing;
+      const after=leading+tr(raw)+trailing;if(before!==after)node.nodeValue=after;
     }
 
     if(el.matches('input,textarea')){
@@ -66,7 +66,7 @@
       el.setAttribute('title',tr(title));
     }
 
-    el.querySelectorAll?.('*').forEach(child=>translateElement(child));
+    for(const child of el.children)translateElement(child);
   }
 
   function applyLanguage(){
