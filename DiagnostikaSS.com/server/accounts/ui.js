@@ -98,7 +98,16 @@ const val=v=>v===null?'Без лимита':typeof v==='boolean'?(v?'Да':'Не
 function el(tag,value,cls){const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(cls)e.className=cls;return e}
 const titles={registry:'Специалисты',invitations:'Лицензии',events:'Журнал действий',profileView:'Мой профиль'};
 function navigate(view){if(!currentUser)return;if(currentUser.role!=='admin')view='profileView';activeView=view;$('pageTitle').textContent=titles[view];$('admin').hidden=view==='profileView';$('cabinet').hidden=view!=='profileView';for(const id of ['registry','invitations','events'])$(id).hidden=id!==view;for(const b of document.querySelectorAll('[data-view]')){b.classList.toggle('selected',b.dataset.view===view);if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}if(view==='registry')go(loadUsers);if(view==='events')go(loadAudit);if(view==='invitations')go(loadInvites);}
-function show(u){currentUser=u;if(!u.onboarding_required)setAccountLocale(u.ui_language||accountLocale,false);else setAccountLocale(accountLocale,false);if(u.onboarding_required){$('shell').hidden=true;$('authMain').hidden=false;$('auth').hidden=true;$('onboarding').hidden=false;return;}$('onboarding').hidden=true;$('profileReminder').hidden=!['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);$('authMain').hidden=true;document.querySelector('.public-header').hidden=true;$('authStatus').hidden=true;$('shell').hidden=false;document.body.classList.add('signed-in');$('identity').textContent=u.email+' · ID специалиста: '+u.id+(u.admin_id?' · ID администратора: '+u.admin_id:'');$('sideName').textContent=fullName(u)==='Не заполнено'?u.email:fullName(u);$('sideRole').textContent=u.admin_id?'Администратор · '+u.admin_id:'Специалист · '+u.id;$('rolePill').textContent=u.role==='admin'?'Администратор':'Специалист';for(const b of document.querySelectorAll('[data-admin]'))b.hidden=u.role!=='admin';for(const k of ['first_name','last_name','gender','birth_date','country','city','timezone'])if(k==='timezone')addZone($('profile').elements[k],u[k]||browserZone);else $('profile').elements[k].value=k==='birth_date'?displayBirth(u[k]):u[k]||'';refreshClocks();$('policies').replaceChildren();for(const [key,value] of Object.entries(u.limits)){const row=el('div',undefined,'policy-row');row.append(el('span',labels[key]||key),el('strong',val(value)));$('policies').append(row)}navigate(location.hash==='#profile'?'profileView':activeView||(u.role==='admin'?'registry':'profileView'));}
+function accountDestination(u,{allowProfile=false}={}){
+ if(u.onboarding_required)return 'onboarding';
+ if(u.role==='admin'||allowProfile)return 'cabinet';
+ return 'workspace';
+}
+function enterAccount(u,allowProfile=false){
+ if(accountDestination(u,{allowProfile})==='workspace'){location.replace('/');return;}
+ show(u);
+}
+function show(u){currentUser=u;const isAdmin=u.role==='admin';$('cabinetBrandLabel').textContent=isAdmin?'CONTROL PANEL':'Личный кабинет';$('managementNavLabel').hidden=!isAdmin;document.querySelector('.topbar small').textContent=isAdmin?'ZABVENYE / Управление':'ZABVENYE / Аккаунт';if(!u.onboarding_required)setAccountLocale(u.ui_language||accountLocale,false);else setAccountLocale(accountLocale,false);if(u.onboarding_required){$('shell').hidden=true;$('authMain').hidden=false;$('auth').hidden=true;$('onboarding').hidden=false;return;}$('onboarding').hidden=true;$('profileReminder').hidden=!['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);$('authMain').hidden=true;document.querySelector('.public-header').hidden=true;$('authStatus').hidden=true;$('shell').hidden=false;document.body.classList.add('signed-in');$('identity').textContent=u.email+' · ID специалиста: '+u.id+(u.admin_id?' · ID администратора: '+u.admin_id:'');$('sideName').textContent=fullName(u)==='Не заполнено'?u.email:fullName(u);$('sideRole').textContent=u.admin_id?'Администратор · '+u.admin_id:'Специалист · '+u.id;$('rolePill').textContent=u.role==='admin'?'Администратор':'Специалист';for(const b of document.querySelectorAll('[data-admin]'))b.hidden=u.role!=='admin';for(const k of ['first_name','last_name','gender','birth_date','country','city','timezone'])if(k==='timezone')addZone($('profile').elements[k],u[k]||browserZone);else $('profile').elements[k].value=k==='birth_date'?displayBirth(u[k]):u[k]||'';refreshClocks();$('policies').replaceChildren();for(const [key,value] of Object.entries(u.limits)){const row=el('div',undefined,'policy-row');row.append(el('span',labels[key]||key),el('strong',val(value)));$('policies').append(row)}navigate(location.hash==='#profile'?'profileView':activeView||(u.role==='admin'?'registry':'profileView'));}
 for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>navigate(b.dataset.view);
 $('newInvite').onclick=()=>navigate('invitations');
 $('toggleFilters').onclick=()=>{const f=$('advancedFilters');f.hidden=!f.hidden;$('toggleFilters').setAttribute('aria-expanded',String(!f.hidden));};
@@ -164,7 +173,7 @@ form.onsubmit=async e=>{
    // If the account was created but the response was interrupted, resume using its authenticated session.
    try{u=await api('me');if(!u||u.email!==data.email)throw error;}catch{throw error;}
   }
-  form.reset();msg('');show(u);
+  form.reset();msg('');enterAccount(u);
  }catch(e){msg(e instanceof TypeError?'Не удалось связаться с сервером. Если аккаунт уже создан, попробуйте войти.':e.message);$('authStatus').scrollIntoView({block:'nearest'});reset();}
  finally{authBusy=false;$('mode').disabled=false;updateAuthButton();}
 };
@@ -350,7 +359,7 @@ inviteForm.onsubmit=async e=>{e.preventDefault();const submit=inviteForm.querySe
   };
   return;
  }
- try{show(await api('me'));return}catch(_){}try{sitekey=(await api('config')).sitekey;renderCaptcha()}catch(e){msg('Сервис аккаунтов недоступен.')}
+ try{enterAccount(await api('me'),location.hash==='#profile');return}catch(_){}try{sitekey=(await api('config')).sitekey;renderCaptcha()}catch(e){msg('Сервис аккаунтов недоступен.')}
 })();
 // Update activity only while the authenticated cabinet is visible.
 setInterval(()=>{if(currentUser&&document.visibilityState==='visible')api('me').catch(()=>{});},60000);

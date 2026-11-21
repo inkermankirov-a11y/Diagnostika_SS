@@ -345,7 +345,7 @@
     const complete=document.createElement('button');complete.type='button';complete.textContent='Заполнить';complete.style.cssText='border:0;background:#285481;color:white;padding:7px 12px;border-radius:6px;cursor:pointer';
     complete.onclick=()=>window.open('/account#profile','_blank','noopener,noreferrer');
     reminder.append(reminderText,complete);document.body.append(reminder);
-    let request=0;
+    let request=0,accountRole=null;
     async function refreshAccount(){
       const current=++request;
       try{
@@ -357,14 +357,14 @@
         if(u.onboarding_required){location.replace('/account');return;}
         const incomplete=['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);reminder.hidden=!incomplete;reminder.style.display=incomplete?'flex':'none';
         identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист');
-        cabinet.textContent=u.role==='admin'?'Личный кабинет / Админка':'Личный кабинет';exit.hidden=false;
+        accountRole=u.role;cabinet.textContent=u.role==='admin'?'Личный кабинет / Админка':'Личный кабинет';exit.hidden=false;
       }catch{if(current===request){identity.textContent='Сервис аккаунтов недоступен';exit.hidden=false;}}
     }
     async function canNavigate(){
       if(typeof prepareLeave==='function' && await prepareLeave()===false)return false;
       return window.confirm('Перейти из рабочего пространства? Убедитесь, что изменения в клиентских карточках сохранены. Локальная база и настройки синхронизации не удаляются.');
     }
-    cabinet.addEventListener('click',()=>{window.open('/account','_blank','noopener,noreferrer');});
+    cabinet.addEventListener('click',()=>{window.open(accountRole==='admin'?'/account':'/account#profile','_blank','noopener,noreferrer');});
     exit.addEventListener('click',async()=>{
       if(!await canNavigate())return;
       exit.disabled=true;cabinet.disabled=true;notice.textContent='Завершение сеанса…';
