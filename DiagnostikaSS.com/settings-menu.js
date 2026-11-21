@@ -22,7 +22,8 @@
   applyDashboardTheme(initialTheme,{persist:false});
 
   const headerButtons=document.querySelector('.header-buttons');
-  if(!headerButtons || document.querySelector('#settingsMenuBtn')) return;
+  if(!headerButtons || window.DiagnostikaSettingsUI) return;
+  document.querySelector('.settings-wrap')?.remove();
 
   const LABELS={
     ru:{settings:'Настройки',close:'Закрыть настройки',clients:'Клиенты',accounts:'Учетные записи',interface:'Настройки интерфейса',themes:'Темы',theme1:'Светлая ледяная',theme2:'Контрастная',theme3:'Голубое стекло',theme4:'Стальная',coming:'Раздел учетных записей уже заложен и будет подключён позже.'},
@@ -158,7 +159,7 @@
   const appHeader=document.querySelector('.app-header');
   const title=appHeader?.querySelector('h1');
   const clientBase=document.getElementById('clientBaseBtn');
-  if(appHeader&&title&&clientBase){
+  if(appHeader&&title&&clientBase&&!title.closest('.header-title-group')&&headerButtons.parentElement===appHeader){
     const titleGroup=document.createElement('div');
     titleGroup.className='header-title-group';
     appHeader.insertBefore(titleGroup,headerButtons);
@@ -166,10 +167,10 @@
     clientBase.classList.remove('header-btn','client-base-inline');
     clientBase.classList.add('header-client-btn');
     clientBase.removeAttribute('style');
-    titleGroup.appendChild(clientBase);
+    if(!clientBase.closest('#hdClientBaseSlot'))titleGroup.appendChild(clientBase);
   }
 
-  const moveIds=['storageBtn','testFillBtn','exportTxtBtn'];
+  const moveIds=['storageBtn','testFillBtn','exportTxtBtn','vaultBackupBtn'];
   moveIds.forEach(id=>{
     const el=document.getElementById(id);
     if(el){
@@ -212,7 +213,8 @@
   const language=document.querySelector('.language-switcher');
   if(language) interfaceContent.appendChild(language);
 
-  headerButtons.innerHTML='';
+  // Keep unrelated controls and their registered handlers when recovering the header.
+  for(const child of [...headerButtons.children]){if(child.matches('.settings-wrap'))child.remove();else if(child.id==='clientBaseBtn'){const slot=document.getElementById('hdClientBaseSlot');if(slot)slot.appendChild(child);}}
   headerButtons.classList.add('settings-only');
   headerButtons.appendChild(wrap);
 
@@ -303,8 +305,8 @@
 
   const oldSetLanguage=window.DiagnostikaI18n?.setLanguage;
   if(oldSetLanguage){
-    window.DiagnostikaI18n.setLanguage=function(lang){
-      const result=oldSetLanguage.call(window.DiagnostikaI18n,lang);
+    window.DiagnostikaI18n.setLanguage=function(lang,...options){
+      const result=oldSetLanguage.call(window.DiagnostikaI18n,lang,...options);
       setTimeout(updateLabel,0);
       return result;
     };
@@ -332,6 +334,7 @@
   // Also pick up the last verified status if the lazy Drive module loaded first.
   displayDriveStatus(window.DiagnostikaGoogleDriveSyncStatus?.getStatus?.()
     ||{state:'unknown'});
+  window.dispatchEvent(new Event('diagnostika:header-component-ready'));
 })();
 
 (() => {
