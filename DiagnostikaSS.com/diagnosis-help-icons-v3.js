@@ -39,7 +39,7 @@
     if(!text) return;
 
     const tip=tooltip();
-    tip.textContent=text;
+    tip.textContent=window.DiagnostikaI18n?.translate(text)||text;
     tip.dataset.kind=icon.dataset.diagnosisKind||'';
     tip.hidden=false;
 
@@ -122,6 +122,7 @@
 
   window.addEventListener('diagnostika-help-hints-change',()=>setTimeout(sync,0));
   window.addEventListener('resize',hide);
+  window.addEventListener('diagnostika:language-changed',hide);
 
   const observer=new MutationObserver(()=>sync());
   observer.observe(document.body,{childList:true,subtree:true});

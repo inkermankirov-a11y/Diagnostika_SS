@@ -58,7 +58,7 @@
     }
     let memories=attributeMemory.get(el);
     if(!memories){memories=new Map();attributeMemory.set(el,memories);}
-    for(const attr of ['placeholder','title','aria-label']){
+    for(const attr of ['placeholder','title','aria-label','aria-description','alt']){
       const value=el.getAttribute(attr);
       if(value===null){memories.delete(attr);continue;}
       const after=translateValue(value,memories,attr);
@@ -134,7 +134,7 @@ function roundLanguageFlag(lang){
     }
     for(const el of targets)if(el.isConnected)translateElement(el);
   });
-  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder']});
+  observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','aria-description','placeholder','alt']});
 
   function setLanguage(lang,options={}){if(!LANGS[lang])return;const changed=current!==lang;current=lang;localStorage.setItem(KEY,lang);applyLanguage();if(changed&&options.persist!==false)window.dispatchEvent(new CustomEvent('diagnostika:language-changed',{detail:{language:lang}}));}
   window.DiagnostikaI18n={get language(){return current;},get locale(){return ({ru:'ru-RU',en:'en-GB',fr:'fr-FR',de:'de-DE',it:'it-IT'})[current];},setLanguage,translate:tr};

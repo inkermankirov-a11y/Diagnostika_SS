@@ -69,7 +69,7 @@
   function showDiagnosisTip(el){
     if(!hintsEnabled()||!el?.dataset?.diagnosisHelp)return;
     const tip=ensureDiagnosisTip();
-    tip.textContent=el.dataset.diagnosisHelp;
+    tip.textContent=window.DiagnostikaI18n?.translate(el.dataset.diagnosisHelp)||el.dataset.diagnosisHelp;
     tip.dataset.kind=el.id;
     tip.hidden=false;
 

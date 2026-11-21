@@ -199,6 +199,9 @@
         :`Будет создана запланированная карточка: ${typeSelect.value} • у клиента не выбран текущий запрос`;
     }
     ensureCommentForRequest(r);
+    const original=noteInput.dataset.autoRequestText||'';
+    const translated=window.DiagnostikaI18n?.translate(original)||original;
+    if(original&&noteInput.value===original){noteInput.value=translated;noteInput.dataset.autoRequestText=translated;}
   }
 
   function repairAutoMigratedAppointments(){
@@ -346,6 +349,7 @@
 
   clientSelect.addEventListener('change',updateForm);
   typeSelect.addEventListener('change',updateForm);
+  window.addEventListener('diagnostika:language-changed',()=>{if(overlay.open)updateForm();});
   overlay.addEventListener('close',()=>{noteInput.dataset.autoRequestText='';});
 
   let syncing=false;

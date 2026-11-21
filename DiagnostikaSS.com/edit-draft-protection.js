@@ -96,7 +96,7 @@
     const dlg=button?.closest?.('dialog');
     if(!button||!dlg||dlg.classList.contains('session-edit-dialog')||dlg.classList.contains('session-rich-dialog')||dlg.classList.contains('client-card-dialog'))return;
     const label=(button.getAttribute('aria-label')||button.title||button.textContent||'').trim().toLowerCase();
-    if(!/^(?:закрыть|отмена|отменить|×|✕|close|cancel)$/.test(label)||!dirty(dlg))return;
+    if(!/^(?:закрыть|отмена|отменить|×|✕|close|cancel|fermer|annuler|schließen|abbrechen|chiudi|annulla)$/.test(label)||!dirty(dlg))return;
     event.preventDefault();event.stopImmediatePropagation();
     Promise.resolve(window.AppDialog?.confirm?.('В этом окне есть несохранённый текст. Закрыть? Черновик сохранится.','Несохранённые изменения','Закрыть','Остаться')).then(ok=>{if(ok)dlg.close();});
   },true);

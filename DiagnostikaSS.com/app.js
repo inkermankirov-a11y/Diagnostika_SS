@@ -118,7 +118,7 @@ function renderSituationList(){const root=$('#situationList');root.innerHTML='';
 function diagnosisTreeText(value){return String(value??'').trim()}
 function addTreeRow(root,cls,kind,text,level,meta,{incomplete=false}={}){
  const d=document.createElement('div');
- d.className='tree-row '+cls+(selected?.obj===meta.obj?' active-selection':'')+(incomplete?' is-incomplete':'');
+ d.className='tree-row '+cls+(selected?.type===meta.type&&String(selected?.obj?.id)===String(meta.obj.id)?' active-selection':'')+(incomplete?' is-incomplete':'');
  d.dataset.elementId=String(meta?.obj?.id??'');
  d.dataset.parentId=String(meta?.parent?.id??'');
  d.dataset.elementType=String(meta?.type||'');
@@ -129,18 +129,20 @@ function addTreeRow(root,cls,kind,text,level,meta,{incomplete=false}={}){
  if(incomplete){const status=document.createElement('span');status.className='tree-row-status';status.textContent='•';status.title='Ветка ещё не заполнена';d.appendChild(status)}
  d.onclick=async()=>{
    if(selected?.type===meta.type&&String(selected?.obj?.id)===String(meta.obj?.id)){
-     if(meta.type==='feeling')window.DiagnostikaFeelingCollapse?.openFeeling?.(meta.obj.id);
      return;
    }
    await guardDiagnosisEditorLeave(()=>{
+     // Selecting an existing row must not rebuild the diagnosis tree or switch branches.
      selected=meta;
-     renderTree();
-     if(meta.type==='feeling')setTimeout(()=>window.DiagnostikaFeelingCollapse?.openFeeling?.(meta.obj.id),0);
+     root.querySelectorAll('.tree-row.active-selection').forEach(row=>row.classList.remove('active-selection'));
+     d.classList.add('active-selection');
+     renderEditor();
    });
  };
  root.appendChild(d);
 }
-function renderTree(){const s=situation(),root=$('#tree');root.innerHTML='';const r=request();if(s&&r){const i=r.situations.indexOf(s);$('#situationTitle').toggleAttribute('data-i18n-user-content',!!s.name);$('#situationTitle').textContent=s.name||'Без названия';$('#situationTitle').style.background=situationBg(i);$('#situationTitle').style.color=situationColor(i);$('#situationInfo').textContent=`Дискомфорт: ${lvl(s.level)}/10`;$('#situationResult').value=s.result||'';$('#resultBlock').classList.remove('hidden')}else{$('#situationTitle').removeAttribute('data-i18n-user-content');$('#situationTitle').textContent='Выберите ситуацию';$('#situationTitle').style.background='transparent';$('#situationTitle').style.color='#202124';$('#situationInfo').textContent='';$('#resultBlock').classList.add('hidden');root.innerHTML='<div style="padding:16px;color:#888">Добавьте или выберите ситуацию.</div>';renderEditor();document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-tree-rendered'));return}
+let lastRenderedSituationKey='';
+function renderTree(){const s=situation(),root=$('#tree');const key=String(clientId)+'/'+String(requestId)+'/'+String(situationId);const keepScroll=lastRenderedSituationKey===key?root.scrollTop:0;lastRenderedSituationKey=key;root.innerHTML='';const r=request();if(s&&r){const i=r.situations.indexOf(s);$('#situationTitle').toggleAttribute('data-i18n-user-content',!!s.name);$('#situationTitle').textContent=s.name||'Без названия';$('#situationTitle').style.background=situationBg(i);$('#situationTitle').style.color=situationColor(i);$('#situationInfo').textContent=`Дискомфорт: ${lvl(s.level)}/10`;$('#situationResult').value=s.result||'';$('#resultBlock').classList.remove('hidden')}else{$('#situationTitle').removeAttribute('data-i18n-user-content');$('#situationTitle').textContent='Выберите ситуацию';$('#situationTitle').style.background='transparent';$('#situationTitle').style.color='#202124';$('#situationInfo').textContent='';$('#resultBlock').classList.add('hidden');root.innerHTML='<div style="padding:16px;color:#888">Добавьте или выберите ситуацию.</div>';renderEditor();document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-tree-rendered'));return}
 (s.beliefs||[]).forEach((b,bi)=>{
  const beliefText=diagnosisTreeText(b.text);
  if(!beliefText)return;
@@ -160,8 +162,8 @@ function renderTree(){const s=situation(),root=$('#tree');root.innerHTML='';cons
      });
    });
  });
-});renderEditor();document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-tree-rendered'))}
-function renderEditor(){const map={belief:'Первичное убеждение',feeling:'Вторичное чувство',deep:'Вторичное убеждение',instinct:'Инстинкт'};$('#editorType').textContent=selected?map[selected.type]:'Элемент не выбран';$('#editorText').value=selected?(selected.obj.text??selected.obj.name??''):'';$('#editorLevel').value=selected?lvl(selected.obj.level):5;$('#editorComment').value=selected?(selected.obj.comment||''):'';$('#instinctFrame').classList.toggle('hidden',selected?.type!=='deep');if(selected?.type==='deep'){const arr=Array.isArray(selected.obj.instincts)?selected.obj.instincts:[];const x=arr[0]||{name:'',level:5,comment:''};$('#instinctSelectedLabel').textContent='Инстинкт 1';$('#instinctCombo').innerHTML='';INSTINCTS.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;$('#instinctCombo').appendChild(o)});$('#instinctCombo').value=x.name||'';$('#instinctLevel').value=lvl(x.level);$('#instinctComment').value=x.comment||''}document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-editor-rendered'))}
+});renderEditor();document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-tree-rendered'));root.scrollTop=keepScroll;}
+function renderEditor(){const map={belief:'Первичное убеждение',feeling:'Вторичное чувство',deep:'Вторичное убеждение',instinct:'Инстинкт'};$('#editorType').textContent=selected?map[selected.type]:'Элемент не выбран';$('#editorText').value=selected?(selected.obj.text??selected.obj.name??''):'';$('#editorLevel').value=selected?lvl(selected.obj.level):5;$('#editorComment').value=selected?(selected.obj.comment||''):'';$('#instinctFrame').classList.toggle('hidden',selected?.type!=='deep');if(selected?.type==='deep'){const arr=Array.isArray(selected.obj.instincts)?selected.obj.instincts:[];const x=arr[0]||{name:'',level:5,comment:''};$('#instinctSelectedLabel').textContent='Инстинкт 1';$('#instinctCombo').innerHTML='';['',...INSTINCTS].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;$('#instinctCombo').appendChild(o)});$('#instinctCombo').value=x.name||'';$('#instinctLevel').value=lvl(x.level);$('#instinctComment').value=x.comment||''}document.dispatchEvent(new CustomEvent('diagnostika:diagnosis-editor-rendered'))}
 function renderSessions(){document.dispatchEvent(new Event('diagnostika:sessions-changed'))}
 function renderMode(){const diag=mode==='diagnosis';$('#diagnosisWorkspace').hidden=!diag;document.querySelector('.home-dashboard')?.toggleAttribute('hidden',diag);$('#centerPanel').classList.toggle('hidden',!diag);$('#rightPanel').classList.toggle('hidden',!diag);$('#diagnosticsLeft').classList.toggle('hidden',!diag);if(diag)renderTree();document.dispatchEvent(new CustomEvent('diagnostika:mode-rendered',{detail:{mode}}))}
 function openDatabase(){const dlg=$('#clientDialog'),root=$('#clientDatabaseList');root.innerHTML='';state.clients.forEach(c=>{const r=document.createElement('div');r.className='db-row';const n=document.createElement('div');n.textContent=c.name||'Без имени';const city=document.createElement('div');city.textContent=c.city||'';const b=document.createElement('button');b.type='button';b.className='tk-btn';b.textContent='Открыть';b.onclick=()=>{clientId=c.id;requestId=null;situationId=null;selected=null;dlg.close();renderClient()};r.append(n,city,b);root.appendChild(r)});dlg.showModal()}

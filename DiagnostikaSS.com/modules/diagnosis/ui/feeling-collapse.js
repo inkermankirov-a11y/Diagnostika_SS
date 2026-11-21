@@ -153,9 +153,7 @@
 
   function expandOnly(ctx){
     if(!ctx)return false;
-    const beliefId=ctx.belief?.id||String(ctx.beliefIndex);
-    const prefix=`${beliefId}::`;
-    [...expandedFeelings].forEach(key=>{if(key.startsWith(prefix))expandedFeelings.delete(key);});
+    // Branches are independent: opening one must never close another.
     expandedFeelings.add(feelingKey(ctx.belief,ctx.beliefIndex,ctx.feeling,ctx.feelingIndex));
     return true;
   }
@@ -182,27 +180,11 @@
     const s=currentSituation();
     if(!root||!s)return;
 
+    const previousScroll=root.scrollTop;
     root.querySelectorAll('.feeling-group-toggle').forEach(el=>el.remove());
-    root.querySelectorAll('.feeling-child-toggle').forEach(el=>el.remove());
 
     const rows=[...root.querySelectorAll('.tree-row')];
-    rows.forEach(row=>{
-      row.style.removeProperty('display');
-      if(row.classList.contains('deep')||row.classList.contains('instinct'))row.style.setProperty('display','none','important');
-    });
-
-    const selected=selection();
-    if(selected?.type==='deep'){
-      const ctx=findDeepContext(selected.obj?.id);
-      if(ctx)expandOnly(ctx);
-    }else if(selected?.type==='instinct'){
-      for(const belief of (s.beliefs||[])){
-        for(const feeling of (belief.feelings||[])){
-          const deep=(feeling.deep||[]).find(d=>(d.instincts||[]).some(x=>String(x?.id)===String(selected.obj?.id)));
-          if(deep){const ctx=findDeepContext(deep.id);if(ctx)expandOnly(ctx);}
-        }
-      }
-    }
+    // Apply only the final state to each child; do not hide the entire tree first.
 
     const feelingRows=rows.filter(row=>row.classList.contains('feeling'));
     feelingRows.forEach(feelingRow=>{
@@ -219,11 +201,14 @@
       }
       const hasVisibleDeep=children.some(row=>row.classList.contains('deep'));
 
-      const arrow=document.createElement('button');
+      let arrow=feelingRow.querySelector(':scope > .feeling-child-toggle');
+      if(!arrow){arrow=document.createElement('button');feelingRow.prepend(arrow);}
       arrow.type='button';
       arrow.className='feeling-child-toggle'+(hasVisibleDeep?'':' no-children');
-      arrow.textContent=isExpanded?'▼':'▶';
-      arrow.title=isExpanded?'Свернуть ВУ и инстинкты':'Развернуть ВУ и инстинкты';
+      const symbol=isExpanded?'▼':'▶';if(arrow.textContent!==symbol)arrow.textContent=symbol;
+      arrow.setAttribute('aria-expanded',String(isExpanded));
+      const title=isExpanded?'Свернуть ВУ и инстинкты':'Развернуть ВУ и инстинкты';
+      arrow.title=window.DiagnostikaI18n?.translate(title)||title;
       arrow.setAttribute('aria-label',arrow.title);
       arrow.onclick=e=>{
         e.preventDefault();
@@ -233,15 +218,14 @@
         else expandOnly(ctx);
         applyFeelingCollapse();
       };
-      feelingRow.prepend(arrow);
-
       children.forEach(child=>{
-        if(isExpanded)child.style.removeProperty('display');
-        else child.style.setProperty('display','none','important');
+        if(isExpanded){if(child.style.display==='none')child.style.removeProperty('display');}
+        else if(child.style.display!=='none')child.style.setProperty('display','none','important');
       });
     });
 
     syncTreeRowHeights(root);
+    root.scrollTop=previousScroll;
   }
 
   function updateContextDeepButton(){

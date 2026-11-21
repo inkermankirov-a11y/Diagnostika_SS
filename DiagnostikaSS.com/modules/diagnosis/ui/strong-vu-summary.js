@@ -6,6 +6,7 @@
   const list=()=>document.querySelector('#strongVuList');
   const more=()=>document.querySelector('#strongVuMore');
   let expanded=false;
+  let lastSignature='';
 
   function cleanText(value){
     return String(value??'').trim().replace(/\s+/g,' ');
@@ -102,6 +103,9 @@
     if(!root||!target||!moreBtn)return;
 
     const groups=collect();
+    const signature=JSON.stringify([expanded,groups.map(g=>[g.key,g.displayText,g.count,g.maxLevel,g.target?.deepId,g.target?.situationId])]);
+    if(signature===lastSignature&&target.childElementCount)return;
+    lastSignature=signature;
     target.innerHTML='';
     const visible=expanded?groups:groups.slice(0,7);
 
@@ -173,7 +177,6 @@
   window.DiagnostikaStrongVuSummary=Object.freeze({collectForRequest});
 
   document.addEventListener('diagnostika:diagnosis-tree-rendered',render);
-  document.addEventListener('diagnostika:diagnosis-editor-rendered',render);
   document.addEventListener('diagnostika:mode-rendered',render);
   render();
 })();
