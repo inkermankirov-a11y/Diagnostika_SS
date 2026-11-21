@@ -1,5 +1,6 @@
 'use strict';
 (()=>{
+ const localizedConfirm=message=>window.confirm(window.DiagnostikaI18n?.translate(message)||message);
   if(window.DiagnostikaVaultCrypto)return;
   const subtle=crypto.subtle,encoder=new TextEncoder(),decoder=new TextDecoder('utf-8',{fatal:true});
   const magic='ZABVENYE-VAULT',version=1,iterations=600000;
@@ -46,7 +47,7 @@
       input.oninput=()=>{copied=false};
       d.querySelector('[data-copy]').onclick=async()=>{try{await navigator.clipboard.writeText(input.value);copied=true;status.textContent='Ключ скопирован. Сохраните его отдельно.'}catch{input.type='text';input.select();status.textContent='Скопируйте ключ вручную.'}};
       d.querySelector('[data-cancel]').onclick=()=>d.close();
-      d.querySelector('form').onsubmit=e=>{e.preventDefault();if(generate&&!copied&&!confirm('Вы сохранили ключ отдельно? Без него файл не откроется.'))return;const secret=input.value;input.value='';d.close('ok');resolve(secret)};
+      d.querySelector('form').onsubmit=e=>{e.preventDefault();if(generate&&!copied&&!localizedConfirm('Вы сохранили ключ отдельно? Без него файл не откроется.'))return;const secret=input.value;input.value='';d.close('ok');resolve(secret)};
       d.onclose=()=>{input.value='';d.remove();if(d.returnValue!=='ok')resolve(null)};
       document.body.append(d);d.showModal();
     })
