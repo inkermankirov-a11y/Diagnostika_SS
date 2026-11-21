@@ -200,7 +200,7 @@ test('scripts are wired only to com and use fresh cache versions',()=>{
   assert.match(loader,/loadHomeWorkspace\(\)/);
   assert.match(notes,/openQuickThoughts/);
   assert.match(notes,/addQuickThought/);
-  assert.match(index,/app-loader\.js\?v=20261121-mobile-1/);
+  assert.match(index,/app-loader\.js\?v=20261121-perf2/);
   assert.match(index,/quick-notes\.js\?v=20261121-header52/);
 });
 
