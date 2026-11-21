@@ -71,6 +71,13 @@
     updateButton();
   }
 
+function roundLanguageFlag(lang){
+ const stripes={ru:['#fff','#0039a6','#d52b1e'],de:['#000','#dd0000','#ffce00'],fr:['#0055a4','#fff','#ef4135'],it:['#009246','#fff','#ce2b37']};
+ let body='';
+ if(lang==='en'){body='<rect width="60" height="30" fill="#012169"/><path d="M0 0L60 30M60 0L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0L30 15M60 0L30 15M30 15L60 30M30 15L0 30" stroke="#c8102e" stroke-width="2.8"/><path d="M30 0V30M0 15H60" stroke="#fff" stroke-width="10"/><path d="M30 0V30M0 15H60" stroke="#c8102e" stroke-width="6"/>';}
+ else{const horizontal=lang==='ru'||lang==='de';body=(stripes[lang]||stripes.ru).map((color,i)=>horizontal?'<rect x="0" y="'+(i*10)+'" width="60" height="10" fill="'+color+'"/>':'<rect x="'+(i*20)+'" y="0" width="20" height="30" fill="'+color+'"/>').join('');}
+ return '<svg class="round-language-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">'+body+'</svg>';
+}
   const style=document.createElement('style');
   style.textContent=`
     .language-switcher{position:relative;display:flex;align-items:center}
@@ -79,8 +86,9 @@
     .language-btn:active{transform:translateY(1px)!important}
     .language-menu{position:absolute;right:0;top:calc(100% + 7px);z-index:5000;width:175px;padding:6px;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 14px 35px rgba(15,23,42,.22);display:none}
     .language-menu.open{display:grid;gap:3px}
-    .language-option{width:100%;border:0!important;border-radius:7px!important;background:#fff!important;color:#243447!important;padding:8px 9px!important;display:grid!important;grid-template-columns:26px 34px 1fr;align-items:center;text-align:left;cursor:pointer;box-shadow:none!important}
+    .language-option{width:100%;border:0!important;border-radius:7px!important;background:#fff!important;color:#243447!important;padding:8px 9px!important;display:grid!important;grid-template-columns:26px 1fr;align-items:center;text-align:left;cursor:pointer;box-shadow:none!important}
     .language-option:hover{background:#edf4ff!important;transform:none!important}
+    .round-language-flag{display:block;flex:0 0 20px;width:20px;height:20px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px #0002}
     .language-option.active{background:#e5efff!important;color:#2459a9!important;font-weight:700}
   `;
   document.head.appendChild(style);
@@ -94,7 +102,7 @@
   Object.entries(LANGS).forEach(([key,meta])=>{
     const option=document.createElement('button');
     option.type='button'; option.className='language-option'; option.dataset.lang=key;
-    option.innerHTML=`<span>${meta.flag}</span><strong>${meta.code}</strong><span>${meta.name}</span>`;
+    option.innerHTML=`${roundLanguageFlag(key)}<span>${meta.name}</span>`;
     option.onclick=()=>{
       setLanguage(key);menu.classList.remove('open');
     };
@@ -102,7 +110,7 @@
   });
 
   function updateButton(){
-    const l=LANGS[current];btn.innerHTML=`<span>${l.flag}</span><span>${l.code}</span>`;
+    const l=LANGS[current];btn.innerHTML=`${roundLanguageFlag(current)}<span>${l.code}</span>`;
     menu.querySelectorAll('.language-option').forEach(x=>x.classList.toggle('active',x.dataset.lang===current));
   }
 
