@@ -135,6 +135,26 @@ def workspace_profile(value):
 def ids(c,uid):
     return {r["kind"]:r["number"] for r in c.execute("SELECT kind,number FROM public_ids WHERE owner=?",(uid,))}
 def digest(s): return hashlib.sha256(s.encode()).hexdigest()
+def vault_recovery_secret(c,uid):
+    # Server master is separated from SQLite and kept in the persistent data
+    # directory (mode 0600). Losing it makes derived recovery secrets unavailable.
+    path=DATA/"vault-recovery-master.key"
+    try:
+        master=path.read_bytes()
+    except FileNotFoundError:
+        if c.execute("SELECT 1 FROM vault_recovery WHERE secret='derived-v1' LIMIT 1").fetchone():
+            raise Error(503,"Сервис восстановления временно недоступен")
+        master=secrets.token_bytes(32)
+        try:
+            fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+            with os.fdopen(fd,"wb") as out:
+                out.write(master);out.flush();os.fsync(out.fileno())
+        except FileExistsError:
+            master=path.read_bytes()
+    if len(master)!=32: raise Error(503,"Сервис восстановления временно недоступен")
+    raw=hmac.new(master,("ZABVENYE recovery v1:"+uid).encode(),hashlib.sha256).digest()
+    return "ZBV1-"+base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
 def password_hash(p):
     salt=secrets.token_hex(16)
     v=hashlib.scrypt(p.encode(),salt=bytes.fromhex(salt),n=32768,r=8,p=1,maxmem=64*1024*1024)
@@ -475,9 +495,9 @@ class Handler(BaseHTTPRequestHandler):
                 row=c.execute("SELECT secret FROM vault_recovery WHERE user_id=?",(u["id"],)).fetchone()
                 if not row:
                     if mode!="enroll": raise Error(409,"Восстановление для этой лицензии ещё не подключено")
-                    recovery="ZBV1-"+secrets.token_urlsafe(32)
-                    c.execute("INSERT INTO vault_recovery VALUES(?,?,?)",(u["id"],recovery,int(time.time())))
-                else: recovery=row["secret"]
+                    recovery=vault_recovery_secret(c,u["id"])
+                    c.execute("INSERT INTO vault_recovery VALUES(?,?,?)",(u["id"],"derived-v1",int(time.time())))
+                else: recovery=vault_recovery_secret(c,u["id"]) if row["secret"]=="derived-v1" else row["secret"]
                 audit(c,u["id"],"vault-recovery-"+mode,u["id"])
                 payload={"recovery_secret":recovery}
             elif path=="/account/api/metrics":
