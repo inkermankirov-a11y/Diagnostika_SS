@@ -1125,9 +1125,10 @@
     const desiredResultFull=String(c.desiredOutcome||'').trim()||desiredResults[desiredResults.length-1]||'';
     const desiredResult=String(c.desiredOutcomeShort||'').trim()
       ||window.DiagnostikaDesiredOutcomeSummary?.fromText?.(desiredResultFull)
-      ||(desiredResultFull?'Уточните краткий результат в карточке':'Не указан');
+      ||(window.DiagnostikaI18n?.translate(desiredResultFull?'Уточните краткий результат в карточке':'Не указан')||(desiredResultFull?'Уточните краткий результат в карточке':'Не указан'));
+    const uiLabel=s=>window.DiagnostikaI18n?.translate(s)||s;
     const items=[
-      ['Текущий запрос',currentReq?.title||'Не указан','hd-summary-current'],
+      ['Текущий запрос',currentReq?.title||uiLabel('Не указан'),'hd-summary-current'],
       ['Сессии',String((c.sessions||[]).length),'hd-summary-sessions'],
       ['Последняя сессия',formatRuDate(lastSession?.date),'hd-summary-last'],
       ['Желаемый результат',desiredResult,'hd-summary-result']
@@ -1236,5 +1237,6 @@
 
   window.DiagnostikaHomeDashboard={refresh,renderClients,openCard,addClient,openClientDatabase,showHome,openClient:selectClient,currentView:()=>dashboardView};
 
+  window.addEventListener('diagnostika:language-changed',()=>{const scroll=list.scrollTop;refresh();list.scrollTop=scroll;});
   showHome();
 })();
