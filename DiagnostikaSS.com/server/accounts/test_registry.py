@@ -190,7 +190,7 @@ with tempfile.TemporaryDirectory() as tmp:
             assert not conn.execute("SELECT 1 FROM workspace_profiles WHERE user_id=?",(uid,)).fetchone()
             assert conn.execute("SELECT 1 FROM public_ids WHERE owner=?",(uid,)).fetchone()
             assert conn.execute("SELECT 1 FROM specialist_tombstones WHERE user_id=?",(uid,)).fetchone()
-            assert conn.execute("SELECT count(*) FROM license_numbers").fetchone()[0]==3
+            assert conn.execute("SELECT count(*) FROM license_numbers").fetchone()[0]==4
             assert conn.execute("PRAGMA integrity_check").fetchone()[0]=="ok"
         print("Account lifecycle and license numbering integration: PASS")
     finally:
