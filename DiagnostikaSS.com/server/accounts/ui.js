@@ -160,8 +160,8 @@ async function loadStatistics(){
 }
 $('statisticsPeriod').onchange=()=>go(loadStatistics);
 $('refreshStatistics').onclick=()=>go(loadStatistics);
-function localDate(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
-function paidTimestamp(value){if(!value||value>localDate())throw Error('Укажите дату поступления оплаты');return value===localDate()?Math.floor(Date.now()/1000):Math.floor(new Date(value+'T12:00:00').getTime()/1000)}
+function billingLocalDate(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function paidTimestamp(value){if(!value||value>billingLocalDate())throw Error('Укажите дату поступления оплаты');return value===billingLocalDate()?Math.floor(Date.now()/1000):Math.floor(new Date(value+'T12:00:00').getTime()/1000)}
 function planLabel(plan){return plan==='trial'?'FREE':plan==='vip'?'VIP':'STANDARD'}
 function rub(n){return new Intl.NumberFormat('ru-RU').format(n)+' ₽'}
 function billingStatus(b){return ({active:'Активна',expired:'Истекла',blocked:'Заблокирована',legacy:'Ранее выданный доступ',pending:'Ожидает оплаты',archived:'Архив'})[b?.status]||'—'}
@@ -176,7 +176,7 @@ function billingCard(u){
  else {
   const pay=document.createElement('form');pay.className='billing-form';const periodLabel=el('label','Оплаченный период'),period=el('select');
   for(const [key,label] of [['month','1 месяц — 499 ₽'],['year','1 год — 3 588 ₽']]){const option=el('option',label);option.value=key;period.append(option)}
-  periodLabel.append(period);const dayLabel=el('label','Дата поступления оплаты'),day=el('input');day.type='date';day.required=true;day.max=localDate();day.value=localDate();dayLabel.append(day);
+  periodLabel.append(period);const dayLabel=el('label','Дата поступления оплаты'),day=el('input');day.type='date';day.required=true;day.max=billingLocalDate();day.value=billingLocalDate();dayLabel.append(day);
   const submit=el('button','Зарегистрировать оплату');submit.type='submit';pay.append(periodLabel,dayLabel,submit);card.append(pay);
   let requestId=null,requestPayload=null,busy=false;
   pay.onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;submit.disabled=true;try{const terms=period.value,dayValue=day.value;
@@ -391,7 +391,7 @@ $('closeInviteDetail').onclick=()=>$('inviteDetailDialog').close();
 $('inviteDetailDialog').addEventListener('close',()=>{detailRequest++;$('inviteDetailBody').replaceChildren()});
 const inviteForm=$('invite'),inviteFilters=$('inviteFilters');
 const inviteStates={active:'Действует',used:'Активирован',expired:'Истёк',revoked:'Отозван'};
-function setInviteMode(){const plan=inviteForm.elements.access_plan.value,standard=plan==='standard',bound=plan!=='vip';if(bound)inviteForm.elements.mode.value='email';inviteForm.elements.mode.disabled=bound;const required=inviteForm.elements.mode.value==='email';$('inviteEmailRow').hidden=!required;inviteForm.elements.email.required=required;inviteForm.elements.email.disabled=!required;for(const id of ['invitePeriodRow','invitePaidRow'])$(id).hidden=!standard;inviteForm.elements.period.disabled=!standard;inviteForm.elements.paid_date.disabled=!standard;inviteForm.elements.paid_date.required=standard;inviteForm.elements.paid_date.max=localDate();if(!inviteForm.elements.paid_date.value)inviteForm.elements.paid_date.value=localDate();}
+function setInviteMode(){const plan=inviteForm.elements.access_plan.value,standard=plan==='standard',bound=plan!=='vip';if(bound)inviteForm.elements.mode.value='email';inviteForm.elements.mode.disabled=bound;const required=inviteForm.elements.mode.value==='email';$('inviteEmailRow').hidden=!required;inviteForm.elements.email.required=required;inviteForm.elements.email.disabled=!required;for(const id of ['invitePeriodRow','invitePaidRow'])$(id).hidden=!standard;inviteForm.elements.period.disabled=!standard;inviteForm.elements.paid_date.disabled=!standard;inviteForm.elements.paid_date.required=standard;inviteForm.elements.paid_date.max=billingLocalDate();if(!inviteForm.elements.paid_date.value)inviteForm.elements.paid_date.value=billingLocalDate();}
 inviteForm.elements.mode.onchange=setInviteMode;inviteForm.elements.access_plan.onchange=setInviteMode;setInviteMode();
 function showInviteCode(r){$('newInviteResult').hidden=false;$('inviteCode').textContent=r.invite;$('inviteCode').dataset.code=r.invite;$('copyInvite').hidden=false}
 function inviteQuery(){const q=new URLSearchParams(new FormData(inviteFilters));q.set('offset',String(inviteOffset));return q.toString()}
