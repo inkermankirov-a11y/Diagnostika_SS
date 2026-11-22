@@ -25,6 +25,13 @@ with tempfile.TemporaryDirectory() as tmp:
         assert status==expected,(path,status,expected,result)
         return result
     try:
+        for lang in ("ru","en","fr","de","it","invalid"):
+            with urllib.request.urlopen("http://127.0.0.1:"+str(server.server_port)+"/account/license?lang="+lang,timeout=10) as response:
+                page=response.read().decode()
+                assert response.status==200 and response.headers["Content-Type"].startswith("text/html")
+                assert 'https://t.me/zabvenye_com/8?comment=3' in page and '#register' in page
+                assert ('lang="'+(lang if lang!="invalid" else "ru")+'"') in page
+                assert '499' in page and '299' in page and ('3 588' in page or '3,588' in page)
         with db() as conn:
             conn.execute("UPDATE users SET onboarding_required=0,first_name='Test',last_name='Specialist' WHERE id IN (?,?)",(admin,uid))
             conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("second-device-token"),uid,int(time.time())+3600))
