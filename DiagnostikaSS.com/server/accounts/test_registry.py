@@ -156,14 +156,25 @@ with tempfile.TemporaryDirectory() as tmp:
             m["activate_plan"](conn,trial_id,"trial",now)
             conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("trial-token"),trial_id,now+86400))
             trial_sid=m["ids"](conn,trial_id)["specialist"]
-        assert call("me",token="trial-token")["trial"]["expires"]==now+72*3600
-        for kind in ("clients","sessions"):
-            for i in range(3):call("trial-reserve",{"feature":kind},token="trial-token")
-            call("trial-reserve",{"feature":kind},expected=429,token="trial-token")
+        assert call("me",token="trial-token")["trial"]["expires"]==m["trial_end"](now)
+        keys=[f"00000000-0000-4000-8000-{i:012d}" for i in range(6)]
+        for key in keys[:5]:
+            call("trial-reserve",{"feature":"clients","client":key},token="trial-token")
+            for _ in range(5):call("trial-reserve",{"feature":"sessions","client":key},token="trial-token")
+            call("trial-reserve",{"feature":"sessions","client":key},expected=429,token="trial-token")
+            for kind in ("requests","situations"):
+                call("trial-reserve",{"feature":kind,"client":key},token="trial-token")
+                call("trial-reserve",{"feature":kind,"client":key},expected=429,token="trial-token")
+        call("trial-reserve",{"feature":"clients","client":keys[5]},expected=429,token="trial-token")
         with db() as conn:
             u=conn.execute("SELECT * FROM users WHERE id=?",(trial_id,)).fetchone()
-            for i in range(3):m["reserve_trial"](conn,u,"ai")
-        assert call("me",token="trial-token")["trial"]["used"]=={"clients":3,"sessions":3,"ai":3}
+            for i in range(20):m["reserve_trial"](conn,u,"ai")
+            try:
+                m["reserve_trial"](conn,u,"ai")
+                assert False,"21st AI request accepted"
+            except m["Error"] as exc: assert exc.status==429
+        assert call("me",token="trial-token")["trial"]["used"]=={"clients":5,"sessions":25,"requests":5,"situations":5,"ai":20}
+        assert call("me",token="trial-token")["trial"]["remaining_ai"]==0
         with db() as conn:conn.execute("UPDATE users SET trial_expires=? WHERE id=?",(int(time.time())-1,trial_id))
         call("me",expected=403,token="trial-token")
         call("workspace-auth",expected=401,token="trial-token")
