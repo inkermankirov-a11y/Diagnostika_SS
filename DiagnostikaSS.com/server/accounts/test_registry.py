@@ -31,6 +31,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 assert response.status==200 and response.headers["Content-Type"].startswith("text/html")
                 assert 'https://t.me/Evgeniy_Prudnikov' in page and '#register' in page
                 assert ('lang="'+(lang if lang!="invalid" else "ru")+'"') in page
+                assert 'FREE' in page and 'STANDARD' in page and 'VIP' not in page
                 assert '499' in page and '299' in page and ('3 588' in page or '3,588' in page)
         with db() as conn:
             conn.execute("UPDATE users SET onboarding_required=0,first_name='Test',last_name='Specialist' WHERE id IN (?,?)",(admin,uid))
