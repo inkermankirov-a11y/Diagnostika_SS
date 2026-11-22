@@ -37,7 +37,21 @@ async function reportMetrics(){if(reporting||!profile||Date.now()-lastMetrics<60
  }else{events={};pendingReport=null}
  const r=await fetch('/account/api/metrics',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
  if(r.ok){lastMetrics=Date.now();pendingReport=null;}else if(r.status===403){pendingReport=null;events={};}
- }catch{}finally{reporting=false}}async function refresh(){try{const r=await fetch('/account/api/me',{credentials:'same-origin',cache:'no-store'});if(!r.ok){profile=null;return}profile=await r.json();if(!languageWrites&&profile.ui_language&&window.DiagnostikaI18n?.language!==profile.ui_language)window.DiagnostikaI18n?.setLanguage(profile.ui_language,{persist:false});void reportMetrics();}catch{profile=null}renderQuota();for(const button of document.querySelectorAll('[data-mode="deep"]')){button.hidden=!profile?.limits?.ai_detailed;button.disabled=!profile?.limits?.ai_detailed;}}function allow(flag,limit=null,count=0){if(profile?.limits&&profile.enabled!==false&&profile.limits[flag]!==false&&(limit===null||profile.limits[limit]==null||count<profile.limits[limit]))return true;window.AppDialog?.alert(profile?'Действие ограничено настройками аккаунта.':'Не удалось проверить ограничения аккаунта.','Ограничение аккаунта');return false}window.DiagnostikaLimits=Object.freeze({allow,detailed:()=>profile?.limits?.ai_detailed===true,allowClient:n=>{if(profile?.limits?.clients_enabled===false)return allow('clients_enabled');if(profile&&(profile.limits.clients===null||n<profile.limits.clients))return true;window.AppDialog?.alert(profile?'Достигнут лимит клиентов: '+profile.limits.clients:'Не удалось проверить ограничения аккаунта.','Ограничение аккаунта');return false},refresh});const labels={
+ }catch{}finally{reporting=false}}let expiryTimer=null;
+function expireTrial(){profile=null;location.replace('/account?trial=expired');}
+function armTrial(){clearTimeout(expiryTimer);if(profile?.trial?.expires){const remaining=profile.trial.expires*1000-Date.now();if(remaining<=0){expireTrial();return;}expiryTimer=setTimeout(expireTrial,remaining);}}
+function reserveTrial(feature){
+ if(!profile)return false;
+ if(!profile.trial)return true;
+ if(profile.trial.expires*1000<=Date.now()){expireTrial();return false;}
+ if((profile.trial.used?.[feature]||0)>=3){window.AppDialog?.alert('Лимит пробного доступа исчерпан: 3 за весь период.','Пробный доступ');return false;}
+ try{
+  const req=new XMLHttpRequest();req.open('POST','/account/api/trial-reserve',false);req.setRequestHeader('Content-Type','application/json');req.send(JSON.stringify({feature}));
+  if(req.status!==200)throw Error(JSON.parse(req.responseText).error||'Лимит не подтверждён');
+  const result=JSON.parse(req.responseText);profile.trial=result.trial;return true;
+ }catch(e){window.AppDialog?.alert(e.message||'Не удалось проверить лимит.','Пробный доступ');return false;}
+}
+async function refresh(){try{const r=await fetch('/account/api/me',{credentials:'same-origin',cache:'no-store'});if(!r.ok){if(r.status===403&&profile?.trial){expireTrial();return;}profile=null;return}profile=await r.json();armTrial();if(!languageWrites&&profile.ui_language&&window.DiagnostikaI18n?.language!==profile.ui_language)window.DiagnostikaI18n?.setLanguage(profile.ui_language,{persist:false});void reportMetrics();}catch{profile=null}renderQuota();for(const button of document.querySelectorAll('[data-mode="deep"]')){button.hidden=!profile?.limits?.ai_detailed;button.disabled=!profile?.limits?.ai_detailed;}}function allow(flag,limit=null,count=0){if(profile?.trial?.expires*1000<=Date.now()){expireTrial();return false;}if(profile?.limits&&profile.enabled!==false&&profile.limits[flag]!==false&&(limit===null||profile.limits[limit]==null||count<profile.limits[limit]))return true;window.AppDialog?.alert(profile?'Действие ограничено настройками аккаунта.':'Не удалось проверить ограничения аккаунта.','Ограничение аккаунта');return false}window.DiagnostikaLimits=Object.freeze({allow,reserveTrial,detailed:()=>profile?.limits?.ai_detailed===true,allowClient:n=>{if(profile?.limits?.clients_enabled===false)return allow('clients_enabled');if(profile&&(profile.limits.clients===null||n<profile.limits.clients))return true;window.AppDialog?.alert(profile?'Достигнут лимит клиентов: '+profile.limits.clients:'Не удалось проверить ограничения аккаунта.','Ограничение аккаунта');return false},refresh});const labels={
  ru:['AI','Использовано AI-запросов сегодня','Дневной лимит','Без ограничений','Проверка доступа…'],
  en:['AI','AI requests used today','Daily limit','Unlimited','Checking access…'],
  fr:['IA','Requêtes IA utilisées aujourd’hui','Limite quotidienne','Illimité','Vérification…'],
@@ -48,14 +62,15 @@ function updateText(el,value){if(el&&el.textContent!==String(value))el.textConte
 function renderQuota(){
  const el=document.getElementById('aiQuotaStatus');if(!el)return;
  const l=labels[window.DiagnostikaI18n?.language||document.documentElement.lang]||labels.ru;
- const cap=profile?.limits?.ai_daily,used=profile?.ai_usage?.total??0;
+ const cap=profile?.trial?3:profile?.limits?.ai_daily,used=profile?.trial?profile.trial.used.ai:(profile?.ai_usage?.total??0);
  const value=profile?String(used)+' / '+(cap??'∞'):'—';
  updateText(el.querySelector('.ai-quota-label'),l[0]);updateText(el.querySelector('.ai-quota-value'),value);
- const label=profile?l[1]+': '+used+' · '+l[2]+': '+(cap??l[3]):l[4];
+ const trialLabel=profile?.trial?({"ru":"AI-запросов за пробный период","en":"AI requests used during trial","fr":"Requêtes IA pendant l’essai","de":"KI-Anfragen im Testzeitraum","it":"Richieste IA durante la prova"})[window.DiagnostikaI18n?.language||document.documentElement.lang]||'AI trial':l[1];
+ const label=profile?trialLabel+': '+used+' · '+l[2]+': '+(cap??l[3]):l[4];
  el.setAttribute('aria-label',label);el.title=label;
  el.dataset.exhausted=String(!!profile&&cap!=null&&used>=cap);
  const detail=document.getElementById('aiQuotaDetails');
- if(detail){updateText(detail.querySelector('.ai-quota-detail-title'),profile?l[1]:l[4]);updateText(detail.querySelector('.ai-quota-detail-used'),profile?used:'—');updateText(detail.querySelector('.ai-quota-detail-limit'),profile?l[2]+': '+(cap??l[3]):'');}
+ if(detail){updateText(detail.querySelector('.ai-quota-detail-title'),profile?trialLabel:l[4]);updateText(detail.querySelector('.ai-quota-detail-used'),profile?used:'—');updateText(detail.querySelector('.ai-quota-detail-limit'),profile?l[2]+': '+(cap??l[3]):'');}
 }
 function closeQuota(){
  const detail=document.getElementById('aiQuotaDetails'),el=document.getElementById('aiQuotaStatus');
