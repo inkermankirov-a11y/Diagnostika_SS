@@ -29,5 +29,7 @@ assert(settings.includes("window.DiagnostikaSettingsUI.openAccount()"));
 assert(settings.includes("if(!content.classList.contains('open'))accountsBtn.click()"));
 assert(!settings.includes("window.open('/account#profile'")&&!settings.includes("window.open('/account#notifications'"));
 assert(!limits.includes('href="/account#notifications"'));
+assert(!settings.includes('workspaceNotificationList'));
+assert(limits.includes('workspaceNoticePanel')&&limits.includes("noticeAPI('?view='+view+'&offset='+offset)")&&limits.includes("mutateNotice('/archive'"));
 assert(menu.includes('openAccount(){setOpen(true);return true;}'));
 console.log('PASS: cabinet role routing, legacy links, workspace account and notification navigation');

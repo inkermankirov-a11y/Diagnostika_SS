@@ -124,6 +124,83 @@ async function maybeShowVIP(){
  vipPopupBusy=true;try{const r=await fetch('/account/api/notifications/claim-vip',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});if(!r.ok)return;const {item}=await r.json();if(item){await window.AppDialog.alert(item.body,item.title);}}catch{}finally{vipPopupBusy=false;}
 }
 function renderNoticeLink(){const link=document.getElementById('workspaceNotifications');if(!link)return;const label=noticeLabels[window.DiagnostikaI18n?.language||document.documentElement.lang]||noticeLabels.ru;const n=profile?.notifications_unread||0;link.hidden=profile?.role!=='specialist';link.title=label;link.setAttribute('aria-label',label+(n?' ('+n+')':''));const count=link.querySelector('span');count.hidden=!n;updateText(count,n>99?'99+':String(n));}
+
+const inboxCopy={
+ ru:['Уведомления','Входящие','Архив','Прочитать все','Нет уведомлений','Прочитать','Архивировать','Вернуть','Назад','Далее','Не удалось загрузить. Повторить','Закрыть','Непрочитанное','Прочитано','Свернуть','Загрузка…'],
+ en:['Notifications','Inbox','Archive','Mark all read','No notifications','Read','Archive','Restore','Previous','Next','Could not load. Retry','Close','Unread','Read','Collapse','Loading…'],
+ fr:['Notifications','Réception','Archives','Tout marquer comme lu','Aucune notification','Lire','Archiver','Restaurer','Précédent','Suivant','Échec. Réessayer','Fermer','Non lu','Lu','Réduire','Chargement…'],
+ de:['Mitteilungen','Eingang','Archiv','Alle als gelesen markieren','Keine Mitteilungen','Lesen','Archivieren','Wiederherstellen','Zurück','Weiter','Fehler. Erneut versuchen','Schließen','Ungelesen','Gelesen','Einklappen','Laden…'],
+ it:['Notifiche','In arrivo','Archivio','Segna tutte come lette','Nessuna notifica','Leggi','Archivia','Ripristina','Indietro','Avanti','Errore. Riprova','Chiudi','Non letta','Letta','Comprimi','Caricamento…']
+};
+const noticeLang=()=>window.DiagnostikaI18n?.language||document.documentElement.lang||'ru';
+const nt=i=>(inboxCopy[noticeLang()]||inboxCopy.ru)[i];
+let noticePanel=null,noticeList,noticeTitle,noticeClose,noticeAll,noticeInbox,noticeArchive,noticePager,noticePrev,noticeNext,noticeError;
+let noticeView='inbox',noticeOffset=0,noticeSeq=0,noticeOwner=null,noticeBusy=false,noticeTotal=0,noticeItems=[],noticeExpanded=new Set(),noticeLoadedUnread=null,noticeRequested=false;
+function node(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=value;return e;}
+function nbutton(cls,label,fn){const b=node('button',cls,label);b.type='button';b.addEventListener('click',fn);return b;}
+function positionNotices(){
+ if(!noticePanel||noticePanel.hidden)return;const anchor=document.getElementById('workspaceNotifications');if(!anchor)return;
+ const r=anchor.getBoundingClientRect(),w=Math.min(390,window.innerWidth-16),top=Math.min(Math.max(8,r.bottom+8),Math.max(8,window.innerHeight-180));
+ noticePanel.style.width=w+'px';noticePanel.style.left=Math.max(8,Math.min(r.right-w,window.innerWidth-w-8))+'px';noticePanel.style.top=top+'px';noticePanel.style.maxHeight=Math.max(140,window.innerHeight-top-8)+'px';
+}
+function closeNotices(restore=false){
+ if(!noticePanel)return;noticePanel.hidden=true;noticeSeq++;noticeRequested=false;const bell=document.getElementById('workspaceNotifications');bell?.setAttribute('aria-expanded','false');if(restore)bell?.focus();
+}
+function noticeLabelsUpdate(){
+ if(!noticePanel)return;noticeTitle.textContent=nt(0);noticeInbox.textContent=nt(1);noticeArchive.textContent=nt(2);noticeAll.textContent=nt(3);noticeClose.title=nt(11);noticeClose.setAttribute('aria-label',nt(11));noticePrev.textContent=nt(8);noticeNext.textContent=nt(9);
+ noticeInbox.setAttribute('aria-pressed',String(noticeView==='inbox'));noticeArchive.setAttribute('aria-pressed',String(noticeView==='archive'));noticeAll.hidden=noticeView!=='inbox';noticeAll.disabled=noticeBusy||!profile?.notifications_unread;
+}
+function ensureNoticePanel(){
+ if(noticePanel)return;
+ noticePanel=node('section','workspace-notice-panel');noticePanel.id='workspaceNoticePanel';noticePanel.hidden=true;noticePanel.dataset.i18nUserContent='';noticePanel.setAttribute('role','region');noticePanel.setAttribute('aria-labelledby','workspaceNoticeTitle');
+ const head=node('div','wn-head');noticeTitle=node('strong','',nt(0));noticeTitle.id='workspaceNoticeTitle';noticeClose=nbutton('wn-close','×',()=>closeNotices(true));head.append(noticeTitle,noticeClose);
+ const tools=node('div','wn-tools'),tabs=node('div','wn-tabs');noticeInbox=nbutton('',nt(1),()=>switchNoticeView('inbox'));noticeArchive=nbutton('',nt(2),()=>switchNoticeView('archive'));tabs.append(noticeInbox,noticeArchive);noticeAll=nbutton('wn-read-all',nt(3),()=>void mutateNotice('/read',{id:'all'}));tools.append(tabs,noticeAll);
+ noticeList=node('div','wn-list');noticeList.setAttribute('aria-live','polite');noticeError=nbutton('wn-error',nt(10),()=>void loadNotices());noticeError.hidden=true;noticePager=node('div','wn-pager');noticePrev=nbutton('',nt(8),()=>{noticeOffset=Math.max(0,noticeOffset-50);void loadNotices()});noticeNext=nbutton('',nt(9),()=>{noticeOffset+=50;void loadNotices()});noticePager.append(noticePrev,noticeNext);noticePager.hidden=true;noticePanel.append(head,tools,noticeError,noticeList,noticePager);document.body.append(noticePanel);
+ document.addEventListener('pointerdown',e=>{const b=document.getElementById('workspaceNotifications');if(!noticePanel.hidden&&!noticePanel.contains(e.target)&&!b?.contains(e.target))closeNotices();},true);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!noticePanel.hidden){e.preventDefault();e.stopImmediatePropagation();closeNotices(true);}},true);
+ window.addEventListener('resize',positionNotices);window.addEventListener('scroll',positionNotices,true);
+}
+async function noticeAPI(path,body){const r=await fetch('/account/api/notifications'+path,{credentials:'same-origin',cache:'no-store',...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});if(!r.ok)throw Error(nt(10));return r.json();}
+function setNoticeUnread(n){if(profile){profile.notifications_unread=n;noticeLoadedUnread=n;renderNoticeLink();}window.dispatchEvent(new CustomEvent('diagnostika:notifications-unread',{detail:n}));}
+function drawNotices(){
+ if(!noticePanel||noticePanel.hidden)return;noticeLabelsUpdate();noticeList.replaceChildren();
+ if(!noticeItems.length)noticeList.append(node('p','wn-empty',nt(4)));
+ for(const n of noticeItems){
+  const card=node('article','wn-card');card.dataset.unread=String(!n.read);const expanded=noticeExpanded.has(n.id);
+  const open=nbutton('wn-open','',()=>{if(noticeBusy)return;if(noticeExpanded.has(n.id)){noticeExpanded.delete(n.id);drawNotices();return;}noticeExpanded.add(n.id);drawNotices();if(!n.read)void mutateNotice('/read',{id:n.id});});
+  open.setAttribute('aria-expanded',String(expanded));open.setAttribute('aria-label',(n.read?nt(13):nt(12))+': '+n.title);
+  const dot=node('span','wn-dot'),main=node('span','wn-main'),title=node('strong','',n.title),date=node('small','',new Date(n.created*1000).toLocaleString(noticeLang(),{dateStyle:'short',timeStyle:'short'}));main.append(title,date);open.append(dot,main,node('span','wn-chevron',expanded?'⌃':'⌄'));card.append(open);
+  const text=node('p','wn-body',n.body);if(!expanded)text.classList.add('wn-preview');card.append(text);
+  const actions=node('div','wn-actions');
+  if(!n.read){const read=nbutton('',nt(5),()=>{noticeExpanded.add(n.id);void mutateNotice('/read',{id:n.id});});read.disabled=noticeBusy;actions.append(read);}
+  const archive=nbutton('',n.archived?nt(7):nt(6),()=>void mutateNotice('/archive',{id:n.id,archived:!n.archived}));archive.disabled=noticeBusy;actions.append(archive);card.append(actions);noticeList.append(card);
+ }
+ noticePager.hidden=noticeOffset===0&&noticeTotal<=50;noticePrev.disabled=noticeBusy||noticeOffset===0;noticeNext.disabled=noticeBusy||noticeOffset+50>=noticeTotal;noticeInbox.disabled=noticeArchive.disabled=noticeBusy;
+}
+async function loadNotices(){
+ if(!noticePanel||noticePanel.hidden||profile?.role!=='specialist')return;const seq=++noticeSeq,owner=profile.id,view=noticeView,offset=noticeOffset;noticeError.hidden=true;
+ try{const result=await noticeAPI('?view='+view+'&offset='+offset);if(seq!==noticeSeq||noticePanel.hidden||profile?.id!==owner)return;
+  if(!result.items.length&&offset>0){noticeOffset=Math.max(0,offset-50);return loadNotices();}
+  noticeItems=result.items;noticeTotal=result.total;setNoticeUnread(result.unread);drawNotices();
+ }catch{if(seq===noticeSeq&&!noticePanel.hidden){noticeError.textContent=nt(10);noticeError.hidden=false;}}
+}
+async function mutateNotice(path,body){
+ if(noticeBusy||profile?.role!=='specialist')return;noticeBusy=true;const owner=profile.id;noticeSeq++;drawNotices();
+ try{const result=await noticeAPI(path,body);if(profile?.id!==owner)return;setNoticeUnread(result.unread);await loadNotices();}
+ catch{if(!noticePanel.hidden){noticeError.textContent=nt(10);noticeError.hidden=false;}}
+ finally{noticeBusy=false;if(!noticePanel.hidden)drawNotices();}
+}
+function switchNoticeView(view){if(noticeBusy||view===noticeView)return;noticeOffset=0;noticeView=view;noticeItems=[];noticeExpanded.clear();drawNotices();void loadNotices();}
+async function openNotices(){
+ noticeRequested=true;if(!profile){await refresh();}if(!noticeRequested||profile?.role!=='specialist')return;
+ ensureNoticePanel();if(noticeOwner!==profile.id){noticeOwner=profile.id;noticeItems=[];noticeExpanded.clear();}
+ closeQuota();noticeView='inbox';noticeOffset=0;noticePanel.hidden=false;noticeList.replaceChildren(node('p','wn-empty',nt(15)));noticePager.hidden=true;noticeLabelsUpdate();document.getElementById('workspaceNotifications')?.setAttribute('aria-expanded','true');positionNotices();await loadNotices();
+}
+function noticeHash(){if(!['#account-notifications','#notifications'].includes(location.hash))return;history.replaceState(history.state,'',location.pathname+location.search);void openNotices();}
+window.addEventListener('diagnostika:open-account-notifications',()=>void openNotices());window.addEventListener('hashchange',noticeHash);
+window.addEventListener('diagnostika:language-changed',()=>{if(noticePanel&&!noticePanel.hidden){noticeLabelsUpdate();void loadNotices();}});
+window.addEventListener('diagnostika:workspace-account-status',e=>{if(!noticePanel||noticePanel.hidden)return;const u=e.detail?.profile;if(u?.role!=='specialist'||u.id!==noticeOwner){closeNotices();noticeItems=[];return;}if(!noticeBusy&&u.notifications_unread!==noticeLoadedUnread)void loadNotices();});
+
 function closeQuota(){
  const detail=document.getElementById('aiQuotaDetails'),el=document.getElementById('aiQuotaStatus');
  if(detail)detail.hidden=true;if(el)el.setAttribute('aria-expanded','false');
@@ -134,10 +211,10 @@ function placeQuota(){
  let wrap=document.getElementById('aiQuotaWrap');
  if(!wrap){
   wrap=document.createElement('div');wrap.id='aiQuotaWrap';wrap.setAttribute('data-i18n-user-content','');
-  wrap.innerHTML='<button id="aiQuotaStatus" type="button" aria-expanded="false" aria-controls="aiQuotaDetails"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5L14.8 9.2 21.5 12l-6.7 2.8L12 21.5l-2.8-6.7L2.5 12l6.7-2.8z"/><path d="M19 2v4m-2-2h4"/></svg><span class="ai-quota-label">AI</span><strong class="ai-quota-value">—</strong></button><div id="aiQuotaDetails" hidden><span class="ai-quota-detail-title"></span><strong class="ai-quota-detail-used"></strong><span class="ai-quota-detail-limit"></span></div><a id="workspaceNotifications" href="/#account-notifications" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span hidden></span></a>';
-  wrap.querySelector('#workspaceNotifications').addEventListener('click',e=>{if(document.getElementById('workspaceNotificationList')){e.preventDefault();window.dispatchEvent(new Event('diagnostika:open-account-notifications'));}});
+  wrap.innerHTML='<button id="aiQuotaStatus" type="button" aria-expanded="false" aria-controls="aiQuotaDetails"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5L14.8 9.2 21.5 12l-6.7 2.8L12 21.5l-2.8-6.7L2.5 12l6.7-2.8z"/><path d="M19 2v4m-2-2h4"/></svg><span class="ai-quota-label">AI</span><strong class="ai-quota-value">—</strong></button><div id="aiQuotaDetails" hidden><span class="ai-quota-detail-title"></span><strong class="ai-quota-detail-used"></strong><span class="ai-quota-detail-limit"></span></div><button type="button" id="workspaceNotifications" aria-expanded="false" aria-controls="workspaceNoticePanel" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span hidden></span></button>';
+  wrap.querySelector('#workspaceNotifications').addEventListener('click',()=>{if(noticePanel&&!noticePanel.hidden)closeNotices();else void openNotices();});
   const button=wrap.querySelector('button'),detail=wrap.querySelector('#aiQuotaDetails');
-  button.addEventListener('click',()=>{const open=detail.hidden;detail.hidden=!open;button.setAttribute('aria-expanded',String(open));});
+  button.addEventListener('click',()=>{closeNotices();const open=detail.hidden;detail.hidden=!open;button.setAttribute('aria-expanded',String(open));});
   document.addEventListener('pointerdown',e=>{if(!wrap.contains(e.target))closeQuota();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!detail.hidden){closeQuota();button.focus();}});
  }
@@ -146,7 +223,15 @@ function placeQuota(){
 }
 const start=()=>{
  const style=document.createElement('style');style.textContent=`
- #workspaceNotifications{display:inline-flex;align-items:center;justify-content:center;gap:3px;color:#d8e7fb;text-decoration:none;padding:0 5px;height:28px;flex:none}#workspaceNotifications[hidden],#workspaceNotifications span[hidden]{display:none!important}#workspaceNotifications svg{width:15px;height:15px}#workspaceNotifications span{font:700 10px system-ui;background:#bfa3ef;color:#30204d;padding:1px 4px;border-radius:8px}#workspaceNotifications:focus-visible{outline:2px solid #b9aeff;outline-offset:2px}
+ #workspaceNotifications{border:0;background:transparent;cursor:pointer;box-shadow:none;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:3px;color:#d8e7fb;text-decoration:none;padding:0 5px;height:28px;flex:none}#workspaceNotifications[hidden],#workspaceNotifications span[hidden]{display:none!important}#workspaceNotifications svg{width:15px;height:15px}#workspaceNotifications span{font:700 10px system-ui;background:#bfa3ef;color:#30204d;padding:1px 4px;border-radius:8px}#workspaceNotifications:focus-visible{outline:2px solid #b9aeff;outline-offset:2px}
+ .workspace-notice-panel{position:fixed;z-index:100080;box-sizing:border-box;display:flex;flex-direction:column;gap:0;background:#fff;color:#263b52;border:1px solid #bdcddd;border-radius:12px;box-shadow:0 15px 42px #10253d40;font:12px/1.4 system-ui,sans-serif;overflow:hidden;text-align:left}
+ .workspace-notice-panel[hidden],.workspace-notice-panel [hidden]{display:none!important}
+ .workspace-notice-panel button{font:inherit;cursor:pointer;color:#315471;background:transparent;border:0;box-shadow:none;min-width:0;white-space:normal}
+ .workspace-notice-panel button:disabled{opacity:.45;cursor:default}.workspace-notice-panel button:focus-visible{outline:2px solid #517ca7;outline-offset:-1px}
+ .wn-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 6px}.wn-head strong{font-size:15px;color:#173b63}.workspace-notice-panel .wn-close{font-size:22px;line-height:1;padding:2px 6px;border-radius:6px;color:#66788b}
+ .wn-tools{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px 8px;border-bottom:1px solid #e2e9f0;flex-wrap:wrap}.wn-tabs{display:flex;gap:2px;background:#edf2f7;padding:2px;border-radius:7px}.wn-tabs button{padding:5px 9px;border-radius:5px;font-weight:600}.wn-tabs button[aria-pressed=true]{background:#fff;box-shadow:0 1px 3px #253b5220;color:#173b63}.workspace-notice-panel .wn-read-all{font-size:11px;font-weight:600;padding:5px;color:#275b90}
+ .wn-list{overflow-y:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto}.wn-card{padding:8px 11px;border-bottom:1px solid #e4eaf0;background:#fff}.wn-card[data-unread=true]{background:#f0f6fd}.wn-card:last-child{border-bottom:0}.workspace-notice-panel .wn-open{width:100%;display:flex;align-items:flex-start;text-align:left;gap:7px;padding:0}.wn-main{display:grid;min-width:0;flex:1;gap:2px}.wn-main strong{font-size:12px;overflow-wrap:anywhere;font-weight:650;color:#203e59}.wn-main small{font-size:10px;color:#75879b}.wn-dot{width:7px;height:7px;flex:0 0 7px;margin-top:5px;border-radius:50%;background:transparent}.wn-card[data-unread=true] .wn-dot{background:#4382c8}.wn-chevron{font-size:14px;color:#637d95}
+ .wn-body{margin:5px 0 4px 14px;white-space:pre-wrap;overflow-wrap:anywhere;color:#435a70;font-size:12px;line-height:1.4}.wn-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.wn-actions{display:flex;justify-content:flex-end;gap:10px;padding-top:2px}.wn-actions button{font-size:11px;padding:3px 2px;color:#416a90}.wn-actions button:hover,.wn-read-all:hover{text-decoration:underline}.wn-empty{margin:0;padding:22px 12px;text-align:center;color:#778a9c}.wn-pager{display:flex;justify-content:space-between;border-top:1px solid #e2e9f0;padding:5px 10px}.wn-pager button{padding:4px 7px}.workspace-notice-panel .wn-error{padding:7px 10px;color:#b14444;text-align:left;background:#fff4f4}
  .app-header .header-title-group #aiQuotaWrap{position:relative;display:flex;flex:0 0 auto;align-items:center;align-self:center;margin:0 0 0 1px}
  .app-header .header-title-group #aiQuotaStatus{display:inline-flex!important;align-items:center;justify-content:center;gap:5px;min-width:0!important;width:auto!important;min-height:28px!important;height:28px!important;box-sizing:border-box;padding:0 9px!important;margin:0!important;border:1px solid #7892ad!important;border-radius:999px!important;background:linear-gradient(135deg,#263d56,#1e3047)!important;color:#d8e7fb!important;box-shadow:inset 0 1px 0 #ffffff14!important;font:600 11px/1 system-ui,sans-serif!important;white-space:nowrap!important;cursor:pointer}
  .app-header .header-title-group #aiQuotaStatus:hover,.app-header .header-title-group #aiQuotaStatus[aria-expanded="true"]{background:#3e5876!important;border-color:#a4bce0!important}
@@ -161,5 +246,5 @@ const start=()=>{
  .app-header .ai-quota-detail-limit{font-size:11px;color:#526b81}
  @media(max-width:1180px){.app-header .header-title-group #aiQuotaStatus{padding:0 6px!important;gap:3px!important;font-size:10px!important}.app-header #aiQuotaStatus .ai-quota-value{font-size:11px}.app-header #aiQuotaStatus svg{display:none}}
  @media(max-width:767px),(max-width:1000px) and (max-height:500px) and (pointer:coarse){.app-header .header-title-group #aiQuotaWrap{margin:0!important}.app-header .header-title-group #aiQuotaStatus{height:32px!important;min-height:32px!important;padding:0 6px!important}.app-header #aiQuotaDetails{left:auto;right:0}.app-header #aiQuotaStatus svg{display:none}}
- `;document.head.append(style);placeQuota();refresh();window.addEventListener('focus',refreshOnFocus);document.addEventListener('visibilitychange',refreshOnFocus);window.addEventListener('diagnostika:language-changed',renderQuota);window.addEventListener('diagnostika:header-component-ready',placeQuota);
+ `;document.head.append(style);placeQuota();refresh();noticeHash();window.addEventListener('focus',refreshOnFocus);document.addEventListener('visibilitychange',refreshOnFocus);window.addEventListener('diagnostika:language-changed',renderQuota);window.addEventListener('diagnostika:header-component-ready',placeQuota);
 };if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();})();

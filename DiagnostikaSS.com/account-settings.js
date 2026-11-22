@@ -276,6 +276,7 @@
     .settings-profile-tag{max-width:100%;padding:3px 6px;border-radius:999px;background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:9.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .settings-account-content{display:none;border:1px solid rgba(255,255,255,.70);border-radius:13px;background:rgba(255,255,255,.90);padding:10px;gap:10px;max-height:58vh;overflow-y:auto;overflow-x:hidden}
     .settings-account-content.open{display:grid}
+    #workspacePersonalDetails .account-input{min-width:0;height:34px;padding:0 6px;font-size:12px}#workspacePersonalDetails .account-field{min-width:0;gap:3px}#workspacePersonalDetails .account-label{font-size:11px}#workspacePersonalDetails .account-save{height:34px} .settings-panel:has(.settings-account-content.open){max-height:calc(100dvh - 100px);overflow-y:auto}.settings-panel .settings-account-content.open{max-height:none;overflow:visible}
     .specialist-card-title{font-size:14px;font-weight:900;color:#173b63;padding-bottom:8px;border-bottom:1px solid #dbe5ef}
     .account-field{display:grid;gap:6px}
     .account-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -336,7 +337,7 @@
     const title=document.createElement('strong');title.textContent='Учётная запись ZABVENYE';title.style.color='#244560';
     const identity=document.createElement('div');identity.style.cssText='font-size:12px;overflow-wrap:anywhere;color:#45627b';identity.textContent='Проверка входа…';
     const cabinet=document.createElement('button');cabinet.type='button';cabinet.textContent='Личный кабинет / Админка';cabinet.className='account-save';cabinet.hidden=true;
-    const notifications=document.createElement('button');notifications.type='button';notifications.className='account-save';notifications.hidden=true;const notificationNames={ru:'Уведомления',en:'Notifications',fr:'Notifications',de:'Benachrichtigungen',it:'Notifiche'};function updateNotificationsName(count=0){notifications.textContent=(notificationNames[window.DiagnostikaI18n?.language||document.documentElement.lang]||notificationNames.ru)+(count?' ('+count+')':'');}let noticeCount=0;updateNotificationsName();window.addEventListener('diagnostika:language-changed',()=>updateNotificationsName(noticeCount));notifications.onclick=()=>openAccountSection('notifications');const exit=document.createElement('button');exit.type='button';exit.textContent='Выйти из учётной записи';exit.className='account-save';exit.hidden=true;
+    const notifications=document.createElement('button');notifications.type='button';notifications.className='account-save';notifications.hidden=true;const notificationNames={ru:'Уведомления',en:'Notifications',fr:'Notifications',de:'Benachrichtigungen',it:'Notifiche'};function updateNotificationsName(count=0){notifications.textContent=(notificationNames[window.DiagnostikaI18n?.language||document.documentElement.lang]||notificationNames.ru)+(count?' ('+count+')':'');}let noticeCount=0;updateNotificationsName();window.addEventListener('diagnostika:notifications-unread',e=>{noticeCount=Number(e.detail)||0;updateNotificationsName(noticeCount);});window.addEventListener('diagnostika:language-changed',()=>updateNotificationsName(noticeCount));notifications.onclick=()=>openAccountSection('notifications');const exit=document.createElement('button');exit.type='button';exit.textContent='Выйти из учётной записи';exit.className='account-save';exit.hidden=true;
     const notice=document.createElement('div');notice.style.fontSize='12px';notice.setAttribute('role','status');
     box.append(title,identity,cabinet,notifications,exit,notice);content.prepend(box);
     const reminder=document.createElement('aside');reminder.hidden=true;reminder.setAttribute('aria-label','Заполнение профиля');
@@ -357,9 +358,9 @@
       it:['Dati personali','Nome','Cognome','Sesso','Data di nascita','Paese','Città','Fuso orario','Seleziona','Uomo','Donna','Salva dati personali','Dati salvati','Completa i campi mancanti','Notifiche','Segna tutto come letto','Segna come letto','Nessuna notifica','Indietro','Avanti','Impossibile caricare le notifiche','Il profilo è incompleto','Completa']
     };
     const tr=i=>(accountText[lang()]||accountText.ru)[i];
-    const personal=document.createElement('form');personal.id='workspacePersonalDetails';personal.dataset.i18nUserContent='';personal.style.cssText='display:grid;gap:8px;padding-top:10px;border-top:1px solid #cbdbe8';
+    const personal=document.createElement('form');personal.id='workspacePersonalDetails';personal.dataset.i18nUserContent='';personal.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding-top:9px;border-top:1px solid #cbdbe8';
     const personalTitle=document.createElement('strong'),personalHint=document.createElement('small'),personalStatus=document.createElement('div');personalStatus.setAttribute('role','status');
-    personal.append(personalTitle,personalHint);const fields={},fieldLabels=[];
+    personalTitle.style.gridColumn=personalHint.style.gridColumn='1 / -1';personal.append(personalTitle,personalHint);const fields={},fieldLabels=[];
     const browserZone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
     const zones=[...new Set(['UTC',browserZone,...(Intl.supportedValuesOf?Intl.supportedValuesOf('timeZone'):['Europe/Moscow','Europe/Amsterdam','Europe/London','America/Toronto','America/New_York','Asia/Dubai'])])].sort();
     for(const [i,key] of accountKeys.entries()){
@@ -370,10 +371,10 @@
       else if(key==='timezone'){field.add(new Option('',''));for(const z of zones)field.add(new Option(z,z));}
       else if(key==='birth_date'){field.type='date';field.min='1900-01-01';field.max=new Date().toISOString().slice(0,10);}
       else{field.type='text';field.maxLength=i<2?80:100;field.autocomplete=({first_name:'given-name',last_name:'family-name',country:'country-name',city:'address-level2'})[key]||'off';}
-      label.append(caption,field);personal.append(label);
+      if(['country','city','timezone'].includes(key))label.style.gridColumn='1 / -1';label.append(caption,field);personal.append(label);
     }
     personal.setAttribute('aria-label',tr(0));
-    const savePersonal=document.createElement('button');savePersonal.type='submit';savePersonal.className='account-save';personal.append(savePersonal,personalStatus);box.append(personal);
+    const savePersonal=document.createElement('button');savePersonal.type='submit';savePersonal.className='account-save';savePersonal.style.gridColumn=personalStatus.style.gridColumn='1 / -1';personal.append(savePersonal,personalStatus);box.append(personal);
     let personalDirty=false,personalOwner=null,personalBusy=false,personalReady=false;
     function localizePersonal(){personalTitle.textContent=tr(0);accountKeys.forEach((_,i)=>fieldLabels[i].textContent=tr(i+1));[...fields.gender.options].forEach((o,i)=>o.textContent=tr(8+i));fields.timezone.options[0].textContent=tr(8);savePersonal.textContent=tr(11);personalHint.textContent=tr(13);reminderText.textContent=tr(21);complete.textContent=tr(22);}
     localizePersonal();window.addEventListener('diagnostika:language-changed',localizePersonal);
@@ -395,45 +396,19 @@
         await refreshAccount();personalDirty=false;personalBusy=false;personalStatus.textContent=tr(12);await refreshAccount();
       }catch(e){personalStatus.textContent=e.message||'Не удалось сохранить данные';}finally{personalBusy=false;savePersonal.disabled=!personalReady;}
     };
-    const inbox=document.createElement('section');inbox.id='workspaceNotificationList';inbox.dataset.i18nUserContent='';inbox.hidden=true;inbox.style.cssText='padding:10px 0;border-top:1px solid #cbdbe8';
-    const inboxTitle=document.createElement('strong'),readAll=document.createElement('button'),inboxList=document.createElement('div'),prev=document.createElement('button'),next=document.createElement('button');readAll.type=prev.type=next.type='button';for(const b of [readAll,prev,next])b.className='account-save';inboxList.style.cssText='display:grid;gap:8px;margin:8px 0';const nav=document.createElement('div');nav.style.cssText='display:flex;gap:8px';nav.append(prev,next);inbox.append(inboxTitle,readAll,inboxList,nav);box.append(inbox);
-    let offset=0,noticeRequest=0;
-    async function notificationApi(path,body){const r=await fetch('/account/api/notifications'+path,{credentials:'same-origin',cache:'no-store',...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});if(!r.ok)throw Error(tr(20));return r.json();}
-    function inboxLabels(){inboxTitle.textContent=tr(14);readAll.textContent=tr(15);prev.textContent=tr(18);next.textContent=tr(19);}
-    async function loadInbox(){
-      inboxLabels();const seq=++noticeRequest;try{
-        const result=await notificationApi('?offset='+offset);if(seq!==noticeRequest)return;
-        inboxList.replaceChildren();noticeCount=result.unread||0;updateNotificationsName(noticeCount);readAll.disabled=!noticeCount;
-        prev.disabled=offset===0;next.disabled=offset+50>=result.total;
-        if(!result.items.length)inboxList.textContent=tr(17);
-        for(const n of result.items){
-          const card=document.createElement('article');card.style.cssText='padding:10px;border:1px solid #cbdbe8;border-radius:8px;background:'+(n.read?'#fff':'#eaf3ff');
-          const subject=document.createElement('strong'),date=document.createElement('small'),body=document.createElement('p');subject.textContent=n.title;date.textContent=new Date(n.created*1000).toLocaleString(lang());date.style.display='block';body.textContent=n.body;body.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere';card.append(subject,date,body);
-          if(!n.read){const read=document.createElement('button');read.type='button';read.className='account-save';read.textContent=tr(16);read.onclick=()=>markRead(n.id,read);card.append(read);}inboxList.append(card);
-        }
-      }catch(e){if(seq===noticeRequest)inboxList.textContent=tr(20);}
-    }
-    async function markRead(id,button){button.disabled=true;try{await notificationApi('/read',{id});await loadInbox();void refreshAccount();}catch{button.disabled=false;}}
-    readAll.onclick=()=>markRead('all',readAll);prev.onclick=()=>{offset=Math.max(0,offset-50);void loadInbox()};next.onclick=()=>{offset+=50;void loadInbox()};
-    window.addEventListener('diagnostika:language-changed',()=>{inboxLabels();if(!inbox.hidden)void loadInbox();});
     function openAccountSection(section){
+      if(section==='notifications'){window.dispatchEvent(new Event('diagnostika:open-account-notifications'));return;}
       const menu=document.getElementById('settingsMenuBtn');
       if(window.DiagnostikaSettingsUI?.openAccount)window.DiagnostikaSettingsUI.openAccount();else if(menu?.getAttribute('aria-expanded')!=='true')menu?.click();
       if(!content.classList.contains('open'))accountsBtn.click();
-      if(section==='notifications'){inbox.hidden=false;offset=0;void loadInbox();}
-      const target=section==='notifications'?inbox:personal;
-      requestAnimationFrame(()=>{target.scrollIntoView({block:'nearest'});if(section==='personal'){const field=accountKeys.map(k=>fields[k]).find(f=>!f.value)||fields.first_name;field.focus({preventScroll:true});if(!field.value)field.scrollIntoView({block:'nearest'});}});
+      requestAnimationFrame(()=>{personal.scrollIntoView({block:'nearest'});const field=accountKeys.map(k=>fields[k]).find(f=>!f.value)||fields.first_name;field.focus({preventScroll:true});if(!field.value)field.scrollIntoView({block:'nearest'});});
     }
-    window.addEventListener('diagnostika:open-account-notifications',()=>openAccountSection('notifications'));
     function readAccountHash(){
-      const accountHash=location.hash;
-      if(['#account-settings','#profile','#account-notifications','#notifications'].includes(accountHash)){
-        history.replaceState(history.state,'',location.pathname+location.search);
-        requestAnimationFrame(()=>openAccountSection(accountHash.includes('notifications')?'notifications':'personal'));
-      }
+      if(!['#account-settings','#profile'].includes(location.hash))return;
+      history.replaceState(history.state,'',location.pathname+location.search);
+      requestAnimationFrame(()=>openAccountSection('personal'));
     }
     readAccountHash();window.addEventListener('hashchange',readAccountHash);
-
     function applyAccountStatus(u,status){
       if(status===401){location.replace('/account');return;}
       if(!u){personalReady=false;savePersonal.disabled=true;identity.textContent='Сервис аккаунтов недоступен';accountRole=null;cabinet.hidden=true;notifications.hidden=true;exit.hidden=false;return;}

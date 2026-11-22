@@ -71,6 +71,9 @@ def allocate_id(c,owner,kind,preferred=None):
     return free[0]
 with db() as c:
     c.execute("BEGIN IMMEDIATE")
+    if "archived_at" not in {r[1] for r in c.execute("PRAGMA table_info(account_notifications)")}:
+        c.execute("ALTER TABLE account_notifications ADD COLUMN archived_at INTEGER")
+    c.execute("CREATE INDEX IF NOT EXISTS notification_archive_owner ON account_notifications(user_id,archived_at,created,id)")
     c.execute("CREATE TABLE IF NOT EXISTS public_ids(number TEXT PRIMARY KEY,owner TEXT NOT NULL,kind TEXT NOT NULL,UNIQUE(owner,kind))")
     for row in c.execute("SELECT id,role,limits FROM users").fetchall():
         old=json.loads(row["limits"])
@@ -264,9 +267,9 @@ def queue_notification(c,uid,kind,now,ident=None,title="",body="",expires=None,e
     return ident
 def notification_public(row,language):
     title,body=notification_text(row,language)
-    return {"id":row["id"],"kind":row["kind"],"title":title,"body":body,"created":row["created"],"read":row["read_at"] is not None}
+    return {"id":row["id"],"kind":row["kind"],"title":title,"body":body,"created":row["created"],"read":row["read_at"] is not None,"archived":row["archived_at"] is not None}
 def notification_count(c,uid):
-    return c.execute("SELECT count(*) FROM account_notifications WHERE user_id=? AND read_at IS NULL",(uid,)).fetchone()[0]
+    return c.execute("SELECT count(*) FROM account_notifications WHERE user_id=? AND read_at IS NULL AND archived_at IS NULL",(uid,)).fetchone()[0]
 def payment_record(c,actor,target,period,paid_at,request_id,now):
     if period not in SUBSCRIPTION_PRICES:raise Error(400,"Укажите месяц или год")
     if not isinstance(request_id,str) or not re.fullmatch(r"[a-f0-9-]{36}",request_id):raise Error(400,"Некорректный идентификатор оплаты")
@@ -428,7 +431,7 @@ def legal_acceptance(c,u):
     return dict(row) if row else None
 def public(c,u,workspace=False):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":({"analytics_enabled":analytics_enabled(c,u["id"])} if workspace else specialist_metrics(c,u)),"access_plan":u["access_plan"],"billing":billing_summary(c,u),"notifications_unread":notification_count(c,u["id"]),"vip_popup_pending":u["access_plan"]=="vip" and bool(c.execute("SELECT 1 FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL LIMIT 1",(u["id"],)).fetchone()),"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION+("-hcs" if u["access_plan"]=="hcs" else ""),"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":({"analytics_enabled":analytics_enabled(c,u["id"])} if workspace else specialist_metrics(c,u)),"access_plan":u["access_plan"],"billing":billing_summary(c,u),"notifications_unread":notification_count(c,u["id"]),"vip_popup_pending":u["access_plan"]=="vip" and bool(c.execute("SELECT 1 FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL AND archived_at IS NULL LIMIT 1",(u["id"],)).fetchone()),"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION+("-hcs" if u["access_plan"]=="hcs" else ""),"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u:
@@ -709,7 +712,7 @@ def send_next_notification():
             ORDER BY n.created,n.id LIMIT 1""",(now,)).fetchone()
     if not row:return
     title,body=notification_text(row,row["ui_language"])
-    try:send_mail(row["email"],"ZABVENYE — "+title,body+"\n\n"+ORIGIN+"/account#notifications\n"+ORIGIN+"/")
+    try:send_mail(row["email"],"ZABVENYE — "+title,body+"\n\n"+ORIGIN+"/#account-notifications\n"+ORIGIN+"/")
     except Exception:
         with db() as c:c.execute("UPDATE account_notifications SET attempts=attempts+1,next_try=? WHERE id=?",(now+min(86400,60*2**min(10,row["attempts"])),row["id"]))
         return
@@ -811,8 +814,11 @@ class Handler(BaseHTTPRequestHandler):
                 try: offset=max(0,min(1000000,int(param("offset") or "0")))
                 except ValueError: raise Error(400,"Некорректная страница")
                 if path=="/account/api/notifications":
-                    rows=c.execute("SELECT * FROM account_notifications WHERE user_id=? ORDER BY created DESC,id DESC LIMIT 50 OFFSET ?",(u["id"],offset)).fetchall()
-                    total=c.execute("SELECT count(*) FROM account_notifications WHERE user_id=?",(u["id"],)).fetchone()[0]
+                    view=param("view") or "inbox"
+                    if view not in ("inbox","archive"):raise Error(400,"Некорректный раздел уведомлений")
+                    scope="archived_at IS NULL" if view=="inbox" else "archived_at IS NOT NULL"
+                    rows=c.execute("SELECT * FROM account_notifications WHERE user_id=? AND "+scope+" ORDER BY created DESC,id DESC LIMIT 50 OFFSET ?",(u["id"],offset)).fetchall()
+                    total=c.execute("SELECT count(*) FROM account_notifications WHERE user_id=? AND "+scope,(u["id"],)).fetchone()[0]
                     return self.reply(200,{"items":[notification_public(row,u["ui_language"]) for row in rows],"total":total,"unread":notification_count(c,u["id"])})
                 if path=="/account/api/admin/statistics":
                     raw=param("days") or "1"
@@ -985,14 +991,21 @@ class Handler(BaseHTTPRequestHandler):
             if path=="/account/api/notifications/read":
                 ident=b.get("id")
                 if ident=="all":
-                    c.execute("UPDATE account_notifications SET read_at=COALESCE(read_at,?) WHERE user_id=?",(int(time.time()),u["id"]))
+                    c.execute("UPDATE account_notifications SET read_at=COALESCE(read_at,?) WHERE user_id=? AND archived_at IS NULL",(int(time.time()),u["id"]))
                 elif isinstance(ident,str) and 1<=len(ident)<=64:
                     if not c.execute("SELECT 1 FROM account_notifications WHERE id=? AND user_id=?",(ident,u["id"])).fetchone():raise Error(404,"Уведомление не найдено")
                     c.execute("UPDATE account_notifications SET read_at=COALESCE(read_at,?) WHERE id=? AND user_id=?",(int(time.time()),ident,u["id"]))
                 else:raise Error(400,"Некорректное уведомление")
                 payload={"ok":True,"unread":notification_count(c,u["id"])}
+            elif path=="/account/api/notifications/archive":
+                ident=b.get("id"); archived=b.get("archived")
+                if set(b)!={"id","archived"} or not isinstance(ident,str) or not 1<=len(ident)<=64 or type(archived) is not bool:raise Error(400,"Некорректное уведомление")
+                if not c.execute("SELECT 1 FROM account_notifications WHERE id=? AND user_id=?",(ident,u["id"])).fetchone():raise Error(404,"Уведомление не найдено")
+                if archived:c.execute("UPDATE account_notifications SET archived_at=COALESCE(archived_at,?) WHERE id=? AND user_id=?",(int(time.time()),ident,u["id"]))
+                else:c.execute("UPDATE account_notifications SET archived_at=NULL WHERE id=? AND user_id=?",(ident,u["id"]))
+                payload={"ok":True,"unread":notification_count(c,u["id"])}
             elif path=="/account/api/notifications/claim-vip":
-                row=c.execute("SELECT * FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL ORDER BY created DESC,id DESC LIMIT 1",(u["id"],)).fetchone() if u["access_plan"]=="vip" and not u["onboarding_required"] else None
+                row=c.execute("SELECT * FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL AND archived_at IS NULL ORDER BY created DESC,id DESC LIMIT 1",(u["id"],)).fetchone() if u["access_plan"]=="vip" and not u["onboarding_required"] else None
                 if row:
                     c.execute("UPDATE account_notifications SET popup_at=? WHERE id=?",(int(time.time()),row["id"]))
                 payload={"item":notification_public(row,u["ui_language"]) if row else None}

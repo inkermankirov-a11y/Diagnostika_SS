@@ -247,7 +247,28 @@ with tempfile.TemporaryDirectory() as tmp:
         call("admin/notify",notice)
         call("admin/notify",notice)
         assert call("notifications",token="trial-token")["total"]==4
+        notice_id=notice["request_id"]
+        assert call("notifications?view=archive",token="trial-token")["total"]==0
+        call("notifications/archive",{"id":notice_id,"archived":True},expected=404,token="user-test-token")
+        call("notifications/archive",{"id":notice_id,"archived":"true"},expected=400,token="trial-token")
+        assert call("notifications/archive",{"id":notice_id,"archived":True},token="trial-token")["unread"]==2
+        active=call("notifications",token="trial-token")
+        archived=call("notifications?view=archive",token="trial-token")
+        assert active["total"]==3 and active["unread"]==2
+        assert archived["total"]==1 and archived["items"][0]["id"]==notice_id
+        assert archived["items"][0]["archived"] and not archived["items"][0]["read"]
         assert call("notifications/read",{"id":"all"},token="trial-token")["unread"]==0
+        assert not call("notifications?view=archive",token="trial-token")["items"][0]["read"]
+        assert call("notifications/archive",{"id":notice_id,"archived":False},token="trial-token")["unread"]==1
+        assert call("notifications",token="trial-token")["total"]==4
+        assert call("notifications/read",{"id":notice_id},token="trial-token")["unread"]==0
+        assert call("notifications/archive",{"id":notice_id,"archived":True},token="trial-token")["unread"]==0
+        assert call("notifications/archive",{"id":notice_id,"archived":True},token="trial-token")["unread"]==0
+        assert call("notifications?view=archive",token="trial-token")["items"][0]["read"]
+        assert call("notifications/archive",{"id":notice_id,"archived":False},token="trial-token")["unread"]==0
+        call("notifications?view=invalid",expected=400,token="trial-token")
+        call("notifications/delete",{"id":notice_id},expected=404,token="trial-token")
+        assert call("notifications",token="trial-token")["total"]==4
         with db() as conn:
             conn.execute("UPDATE users SET ui_language='fr' WHERE id=?",(trial_id,))
         assert "Félicitations" in [n for n in call("notifications",token="trial-token")["items"] if n["kind"]=="vip"][0]["title"]
