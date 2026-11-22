@@ -37,11 +37,12 @@ with tempfile.TemporaryDirectory() as tmp:
                 assert ('2,50 USD' in page or '2.50 USD' in page) and '50' in page
                 assert 'crypto' not in page.lower() and 'крипт' not in page.lower()
                 assert 'img-src \'self\'' in response.headers['Content-Security-Policy']
-                assert page.count('<img ') == 2 and '/account/mascot-guide.webp' in page and '/account/mascot-pricing.webp' in page
+                assert page.count('<img ') == 3 and '/account/mascot-guide.webp' in page and '/account/mascot-pricing.webp' in page
+                assert '<div class="lp-brand"><img src="/account/zabvenye-orb.webp"' in page
                 assert page.count('https://t.me/Evgeniy_Prudnikov') == 3
                 if lang in ('ru','invalid'):
                     assert 'Подготовьте документы' in page and 'в личные сообщения Telegram' in page
-        for asset in ('mascot-guide.webp','mascot-pricing.webp'):
+        for asset in ('mascot-guide.webp','mascot-pricing.webp','zabvenye-orb.webp'):
             with urllib.request.urlopen('http://127.0.0.1:'+str(server.server_port)+'/account/'+asset,timeout=10) as response:
                 body=response.read()
                 assert response.headers['Content-Type']=='image/webp' and body[:4]==b'RIFF' and body[8:12]==b'WEBP'
