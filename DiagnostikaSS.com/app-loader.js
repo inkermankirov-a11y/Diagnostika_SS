@@ -40,7 +40,7 @@
     },
     {
       id:'requests',
-      service:['modules/requests/request-service.js?v=20260918-requests3d&cleanup=23c&policy=20261121-feature-limits-1','data-requests-service'],
+      service:['modules/requests/request-service.js?v=20260918-requests3d&cleanup=23c&policy=20261121-feature-limits-1-free-month-2','data-requests-service'],
       module:['modules/requests/index.js?v=20260918-requests3d','data-requests-module'],
       api:['request-api.js?v=20260918-requests3d&api=13d&cleanup=23b','data-request-api'],
       ready:()=>window.DiagnostikaRequests?.moduleAware===true

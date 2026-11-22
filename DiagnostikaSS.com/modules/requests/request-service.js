@@ -217,6 +217,8 @@
     const shouldActivate=options.activate!==false;
     const shouldView=shouldActivate||options.view===true;
 
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.reserveTrial('requests',c))return null;
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits?.isTrial?.()&&created.situations.length){if(created.situations.length>1||!window.DiagnostikaLimits.reserveTrial('situations',c))return null;}
     requests.push(created);
     if(shouldActivate){
       c.currentRequestId=created.id;
@@ -271,6 +273,12 @@
     const before=clone(target)||{};
     const patch=clone(changes)||{};
     delete patch.id;
+    if(location.hostname==='zabvenye.com'&&window.DiagnostikaLimits?.isTrial?.()&&Object.prototype.hasOwnProperty.call(patch,'situations')){
+      const old=Array.isArray(target.situations)?target.situations:[],next=patch.situations;
+      if(!Array.isArray(next))return null;
+      if(next.length>1){window.AppDialog?.alert('FREE: одна ситуация на клиента.','FREE');return null;}
+      if(next.some(item=>!old.some(prev=>String(prev?.id)===String(item?.id)))&&!window.DiagnostikaLimits.reserveTrial('situations',c))return null;
+    }
     Object.assign(target,patch);
     if(options.touch!==false&&!Object.prototype.hasOwnProperty.call(patch,'updatedAt'))target.updatedAt=now();
 
