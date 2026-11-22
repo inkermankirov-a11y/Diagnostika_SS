@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const root=new URL('../',import.meta.url);
+const ui=fs.readFileSync(new URL('server/accounts/ui.js',root),'utf8');
+const settings=fs.readFileSync(new URL('account-settings.js',root),'utf8');
+const limits=fs.readFileSync(new URL('account-limits.js',root),'utf8');
+const menu=fs.readFileSync(new URL('settings-menu.js',root),'utf8');
+const start=ui.indexOf('function accountDestination('),end=ui.indexOf('function show(u)',start);
+assert(start>0&&end>start);
+let shown=[],redirects=[];
+const ctx={location:{hash:'',replace:p=>redirects.push(p)},show:u=>shown.push(u)};
+vm.createContext(ctx);
+vm.runInContext(ui.slice(start,end)+';globalThis.dest=accountDestination;globalThis.enter=enterAccount;',ctx);
+const admin={role:'admin',onboarding_required:false},student={role:'specialist',onboarding_required:false},newStudent={...student,onboarding_required:true};
+assert.equal(ctx.dest(admin),'cabinet');
+assert.equal(ctx.dest(student,{allowProfile:true}),'workspace');
+assert.equal(ctx.dest(newStudent),'onboarding');
+for(const [hash,target] of [['','/'],['#profile','/#account-settings'],['#notifications','/#account-notifications'],['#registry','/']]){
+ ctx.location.hash=hash;ctx.enter(student,true);assert.equal(redirects.at(-1),target);
+}
+assert.equal(shown.length,0);ctx.enter(admin);ctx.enter(newStudent);assert.equal(shown.length,2);
+assert(ui.includes("function show(u){if(accountDestination(u)==='workspace')"));
+assert(ui.includes("function navigate(view){if(currentUser?.role!=='admin')return;"));
+assert(settings.includes("complete.onclick=()=>openAccountSection('personal')"));
+assert(settings.includes("notifications.onclick=()=>openAccountSection('notifications')"));
+assert(settings.includes("fetch('/account/api/profile'"));
+assert(settings.includes("window.DiagnostikaSettingsUI.openAccount()"));
+assert(settings.includes("if(!content.classList.contains('open'))accountsBtn.click()"));
+assert(!settings.includes("window.open('/account#profile'")&&!settings.includes("window.open('/account#notifications'"));
+assert(!limits.includes('href="/account#notifications"'));
+assert(menu.includes('openAccount(){setOpen(true);return true;}'));
+console.log('PASS: cabinet role routing, legacy links, workspace account and notification navigation');

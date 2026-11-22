@@ -1,7 +1,7 @@
 name: Account registry audit
 on:
   push:
-    branches: [main, 'feature-license-mascot', 'feature-hcs-license', 'feature-vps-load']
+    branches: [main, 'feature-license-mascot', 'feature-hcs-license', 'feature-vps-load', 'feature-admin-only-workspace']
     paths:
       - 'DiagnostikaSS.com/server/accounts/**'
       - 'DiagnostikaSS.com/account-limits.js'
@@ -22,3 +22,5 @@ jobs:
       - run: node --check DiagnostikaSS.com/account-limits.js
       - run: node DiagnostikaSS.com/tests/account-refresh-policy.test.mjs
       - run: node --check DiagnostikaSS.com/account-settings.js
+      - run: node DiagnostikaSS.com/tests/account-admin-only.test.mjs
+      - run: node --check DiagnostikaSS.com/settings-menu.js

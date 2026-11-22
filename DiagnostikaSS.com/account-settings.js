@@ -336,20 +336,109 @@
     const title=document.createElement('strong');title.textContent='Учётная запись ZABVENYE';title.style.color='#244560';
     const identity=document.createElement('div');identity.style.cssText='font-size:12px;overflow-wrap:anywhere;color:#45627b';identity.textContent='Проверка входа…';
     const cabinet=document.createElement('button');cabinet.type='button';cabinet.textContent='Личный кабинет / Админка';cabinet.className='account-save';cabinet.hidden=true;
-    const notifications=document.createElement('button');notifications.type='button';notifications.className='account-save';notifications.hidden=true;const notificationNames={ru:'Уведомления',en:'Notifications',fr:'Notifications',de:'Benachrichtigungen',it:'Notifiche'};function updateNotificationsName(count=0){notifications.textContent=(notificationNames[window.DiagnostikaI18n?.language||document.documentElement.lang]||notificationNames.ru)+(count?' ('+count+')':'');}let noticeCount=0;updateNotificationsName();window.addEventListener('diagnostika:language-changed',()=>updateNotificationsName(noticeCount));notifications.onclick=()=>window.open('/account#notifications','_blank','noopener,noreferrer');const exit=document.createElement('button');exit.type='button';exit.textContent='Выйти из учётной записи';exit.className='account-save';exit.hidden=true;
+    const notifications=document.createElement('button');notifications.type='button';notifications.className='account-save';notifications.hidden=true;const notificationNames={ru:'Уведомления',en:'Notifications',fr:'Notifications',de:'Benachrichtigungen',it:'Notifiche'};function updateNotificationsName(count=0){notifications.textContent=(notificationNames[window.DiagnostikaI18n?.language||document.documentElement.lang]||notificationNames.ru)+(count?' ('+count+')':'');}let noticeCount=0;updateNotificationsName();window.addEventListener('diagnostika:language-changed',()=>updateNotificationsName(noticeCount));notifications.onclick=()=>openAccountSection('notifications');const exit=document.createElement('button');exit.type='button';exit.textContent='Выйти из учётной записи';exit.className='account-save';exit.hidden=true;
     const notice=document.createElement('div');notice.style.fontSize='12px';notice.setAttribute('role','status');
     box.append(title,identity,cabinet,notifications,exit,notice);content.prepend(box);
     const reminder=document.createElement('aside');reminder.hidden=true;reminder.setAttribute('aria-label','Заполнение профиля');
     reminder.style.cssText='position:fixed;right:20px;bottom:20px;z-index:9990;max-width:calc(100vw - 40px);padding:12px 15px;background:#fff8e8;color:#604519;border:1px solid #d9b66f;border-radius:10px;box-shadow:0 4px 15px #18304730;display:none;font:13px system-ui;gap:8px;align-items:center;flex-wrap:wrap';
     const reminderText=document.createElement('span');reminderText.textContent='Вы ввели не все данные профиля';
     const complete=document.createElement('button');complete.type='button';complete.textContent='Заполнить';complete.style.cssText='border:0;background:#285481;color:white;padding:7px 12px;border-radius:6px;cursor:pointer';
-    complete.onclick=()=>window.open('/account#profile','_blank','noopener,noreferrer');
+    complete.onclick=()=>openAccountSection('personal');
     reminder.append(reminderText,complete);document.body.append(reminder);
     let accountRole=null,accountRequest=null;
+
+    // Account identity belongs to the authenticated server account, not the editable professional card.
+    const accountKeys=['first_name','last_name','gender','birth_date','country','city','timezone'];
+    const accountText={
+      ru:['Личные данные','Имя','Фамилия','Пол','Дата рождения','Страна','Город','Часовой пояс','Выберите','Мужчина','Женщина','Сохранить личные данные','Личные данные сохранены','Заполните недостающие поля','Уведомления','Прочитать всё','Отметить прочитанным','Уведомлений пока нет','Назад','Далее','Не удалось загрузить уведомления','Вы ввели не все данные профиля','Заполнить'],
+      en:['Personal details','First name','Last name','Gender','Date of birth','Country','City','Time zone','Select','Male','Female','Save personal details','Personal details saved','Complete the missing fields','Notifications','Mark all as read','Mark as read','No notifications yet','Previous','Next','Could not load notifications','Your profile is incomplete','Complete'],
+      fr:['Données personnelles','Prénom','Nom','Genre','Date de naissance','Pays','Ville','Fuseau horaire','Choisir','Homme','Femme','Enregistrer les données','Données enregistrées','Complétez les champs manquants','Notifications','Tout marquer comme lu','Marquer comme lu','Aucune notification','Précédent','Suivant','Impossible de charger les notifications','Votre profil est incomplet','Compléter'],
+      de:['Persönliche Daten','Vorname','Nachname','Geschlecht','Geburtsdatum','Land','Stadt','Zeitzone','Auswählen','Männlich','Weiblich','Persönliche Daten speichern','Daten gespeichert','Fehlende Felder ausfüllen','Mitteilungen','Alle als gelesen markieren','Als gelesen markieren','Keine Mitteilungen','Zurück','Weiter','Mitteilungen konnten nicht geladen werden','Ihr Profil ist unvollständig','Ausfüllen'],
+      it:['Dati personali','Nome','Cognome','Sesso','Data di nascita','Paese','Città','Fuso orario','Seleziona','Uomo','Donna','Salva dati personali','Dati salvati','Completa i campi mancanti','Notifiche','Segna tutto come letto','Segna come letto','Nessuna notifica','Indietro','Avanti','Impossibile caricare le notifiche','Il profilo è incompleto','Completa']
+    };
+    const tr=i=>(accountText[lang()]||accountText.ru)[i];
+    const personal=document.createElement('form');personal.id='workspacePersonalDetails';personal.dataset.i18nUserContent='';personal.style.cssText='display:grid;gap:8px;padding-top:10px;border-top:1px solid #cbdbe8';
+    const personalTitle=document.createElement('strong'),personalHint=document.createElement('small'),personalStatus=document.createElement('div');personalStatus.setAttribute('role','status');
+    personal.append(personalTitle,personalHint);const fields={},fieldLabels=[];
+    const browserZone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
+    const zones=[...new Set(['UTC',browserZone,...(Intl.supportedValuesOf?Intl.supportedValuesOf('timeZone'):['Europe/Moscow','Europe/Amsterdam','Europe/London','America/Toronto','America/New_York','Asia/Dubai'])])].sort();
+    for(const [i,key] of accountKeys.entries()){
+      const label=document.createElement('label');label.className='account-field';
+      const caption=document.createElement('span');caption.className='account-label';fieldLabels.push(caption);
+      const field=document.createElement(key==='gender'||key==='timezone'?'select':'input');field.className='account-input';field.name=key;field.required=true;fields[key]=field;
+      if(key==='gender'){for(const v of ['','male','female'])field.add(new Option('',v));}
+      else if(key==='timezone'){field.add(new Option('',''));for(const z of zones)field.add(new Option(z,z));}
+      else if(key==='birth_date'){field.type='date';field.min='1900-01-01';field.max=new Date().toISOString().slice(0,10);}
+      else{field.type='text';field.maxLength=i<2?80:100;field.autocomplete=({first_name:'given-name',last_name:'family-name',country:'country-name',city:'address-level2'})[key]||'off';}
+      label.append(caption,field);personal.append(label);
+    }
+    personal.setAttribute('aria-label',tr(0));
+    const savePersonal=document.createElement('button');savePersonal.type='submit';savePersonal.className='account-save';personal.append(savePersonal,personalStatus);box.append(personal);
+    let personalDirty=false,personalOwner=null,personalBusy=false,personalReady=false;
+    function localizePersonal(){personalTitle.textContent=tr(0);accountKeys.forEach((_,i)=>fieldLabels[i].textContent=tr(i+1));[...fields.gender.options].forEach((o,i)=>o.textContent=tr(8+i));fields.timezone.options[0].textContent=tr(8);savePersonal.textContent=tr(11);personalHint.textContent=tr(13);reminderText.textContent=tr(21);complete.textContent=tr(22);}
+    localizePersonal();window.addEventListener('diagnostika:language-changed',localizePersonal);
+    personal.addEventListener('input',()=>{personalDirty=true;personalStatus.textContent='';});
+    function populatePersonal(u){
+      if(personalOwner!==u.id){personalOwner=u.id;personalDirty=false;}
+      personalReady=true;savePersonal.disabled=personalBusy;
+      const incomplete=accountKeys.some(k=>!u[k]);personalHint.hidden=!incomplete;
+      if(personalDirty||personalBusy)return;
+      for(const k of accountKeys){const field=fields[k],value=u[k]||'';if(k==='timezone'&&value&&![...field.options].some(o=>o.value===value))field.add(new Option(value,value));field.value=value;}
+    }
+    savePersonal.disabled=true;
+    personal.onsubmit=async e=>{
+      e.preventDefault();if(!personalReady||personalBusy)return;personalBusy=true;savePersonal.disabled=true;personalStatus.textContent='';
+      try{
+        const data=Object.fromEntries(new FormData(personal));
+        const r=await fetch('/account/api/profile',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+        const result=await r.json();if(!r.ok)throw Error(result.error||'Не удалось сохранить данные');
+        await refreshAccount();personalDirty=false;personalBusy=false;personalStatus.textContent=tr(12);await refreshAccount();
+      }catch(e){personalStatus.textContent=e.message||'Не удалось сохранить данные';}finally{personalBusy=false;savePersonal.disabled=!personalReady;}
+    };
+    const inbox=document.createElement('section');inbox.id='workspaceNotificationList';inbox.dataset.i18nUserContent='';inbox.hidden=true;inbox.style.cssText='padding:10px 0;border-top:1px solid #cbdbe8';
+    const inboxTitle=document.createElement('strong'),readAll=document.createElement('button'),inboxList=document.createElement('div'),prev=document.createElement('button'),next=document.createElement('button');readAll.type=prev.type=next.type='button';for(const b of [readAll,prev,next])b.className='account-save';inboxList.style.cssText='display:grid;gap:8px;margin:8px 0';const nav=document.createElement('div');nav.style.cssText='display:flex;gap:8px';nav.append(prev,next);inbox.append(inboxTitle,readAll,inboxList,nav);box.append(inbox);
+    let offset=0,noticeRequest=0;
+    async function notificationApi(path,body){const r=await fetch('/account/api/notifications'+path,{credentials:'same-origin',cache:'no-store',...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});if(!r.ok)throw Error(tr(20));return r.json();}
+    function inboxLabels(){inboxTitle.textContent=tr(14);readAll.textContent=tr(15);prev.textContent=tr(18);next.textContent=tr(19);}
+    async function loadInbox(){
+      inboxLabels();const seq=++noticeRequest;try{
+        const result=await notificationApi('?offset='+offset);if(seq!==noticeRequest)return;
+        inboxList.replaceChildren();noticeCount=result.unread||0;updateNotificationsName(noticeCount);readAll.disabled=!noticeCount;
+        prev.disabled=offset===0;next.disabled=offset+50>=result.total;
+        if(!result.items.length)inboxList.textContent=tr(17);
+        for(const n of result.items){
+          const card=document.createElement('article');card.style.cssText='padding:10px;border:1px solid #cbdbe8;border-radius:8px;background:'+(n.read?'#fff':'#eaf3ff');
+          const subject=document.createElement('strong'),date=document.createElement('small'),body=document.createElement('p');subject.textContent=n.title;date.textContent=new Date(n.created*1000).toLocaleString(lang());date.style.display='block';body.textContent=n.body;body.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere';card.append(subject,date,body);
+          if(!n.read){const read=document.createElement('button');read.type='button';read.className='account-save';read.textContent=tr(16);read.onclick=()=>markRead(n.id,read);card.append(read);}inboxList.append(card);
+        }
+      }catch(e){if(seq===noticeRequest)inboxList.textContent=tr(20);}
+    }
+    async function markRead(id,button){button.disabled=true;try{await notificationApi('/read',{id});await loadInbox();void refreshAccount();}catch{button.disabled=false;}}
+    readAll.onclick=()=>markRead('all',readAll);prev.onclick=()=>{offset=Math.max(0,offset-50);void loadInbox()};next.onclick=()=>{offset+=50;void loadInbox()};
+    window.addEventListener('diagnostika:language-changed',()=>{inboxLabels();if(!inbox.hidden)void loadInbox();});
+    function openAccountSection(section){
+      const menu=document.getElementById('settingsMenuBtn');
+      if(window.DiagnostikaSettingsUI?.openAccount)window.DiagnostikaSettingsUI.openAccount();else if(menu?.getAttribute('aria-expanded')!=='true')menu?.click();
+      if(!content.classList.contains('open'))accountsBtn.click();
+      if(section==='notifications'){inbox.hidden=false;offset=0;void loadInbox();}
+      const target=section==='notifications'?inbox:personal;
+      requestAnimationFrame(()=>{target.scrollIntoView({block:'nearest'});if(section==='personal'){const field=accountKeys.map(k=>fields[k]).find(f=>!f.value)||fields.first_name;field.focus({preventScroll:true});if(!field.value)field.scrollIntoView({block:'nearest'});}});
+    }
+    window.addEventListener('diagnostika:open-account-notifications',()=>openAccountSection('notifications'));
+    function readAccountHash(){
+      const accountHash=location.hash;
+      if(['#account-settings','#profile','#account-notifications','#notifications'].includes(accountHash)){
+        history.replaceState(history.state,'',location.pathname+location.search);
+        requestAnimationFrame(()=>openAccountSection(accountHash.includes('notifications')?'notifications':'personal'));
+      }
+    }
+    readAccountHash();window.addEventListener('hashchange',readAccountHash);
+
     function applyAccountStatus(u,status){
       if(status===401){location.replace('/account');return;}
-      if(!u){identity.textContent='Сервис аккаунтов недоступен';accountRole=null;cabinet.hidden=true;notifications.hidden=true;exit.hidden=false;return;}
+      if(!u){personalReady=false;savePersonal.disabled=true;identity.textContent='Сервис аккаунтов недоступен';accountRole=null;cabinet.hidden=true;notifications.hidden=true;exit.hidden=false;return;}
       if(u.onboarding_required){location.replace('/account');return;}
+      populatePersonal(u);
       const incomplete=['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);reminder.hidden=!incomplete;reminder.style.display=incomplete?'flex':'none';
       identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист')+(u.trial?' · FREE · '+new Date(u.trial.expires*1000).toLocaleDateString()+' · AI '+u.trial.remaining_ai+'/'+(u.trial.caps?.ai??u.trial.cap):u.role==='specialist'?' · '+(u.billing?.plan||'STANDARD')+(u.billing?.expires?' · '+new Date(u.billing.expires*1000).toLocaleDateString():''):'');
       accountRole=u.role;cabinet.hidden=accountRole!=='admin';notifications.hidden=accountRole!=='specialist';noticeCount=u.notifications_unread||0;updateNotificationsName(noticeCount);exit.hidden=false;

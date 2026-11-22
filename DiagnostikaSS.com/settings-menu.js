@@ -283,6 +283,7 @@
     interfaceContent,
     applyTheme:theme=>applyDashboardTheme(theme),
     currentTheme:()=>document.documentElement.getAttribute('data-dashboard-theme')||'theme-1',
+    openAccount(){setOpen(true);return true;},
     async openInterface(){
       if(window.DiagnostikaAccountSettings?.isOpen?.()){
         const guard=window.DiagnostikaAccountSettings;

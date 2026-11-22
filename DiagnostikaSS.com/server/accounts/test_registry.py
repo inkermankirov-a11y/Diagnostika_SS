@@ -352,5 +352,17 @@ with tempfile.TemporaryDirectory() as tmp:
         eom=int(datetime(2026,8,31,12,tzinfo=timezone.utc).timestamp())
         assert datetime.fromtimestamp(m["add_months"](eom,6),timezone.utc).isoformat()=="2027-02-28T12:00:00+00:00"
         print("HCS: free activation, calendar expiry, admin renewal, access guard, registry and revenue isolation: PASS")
+        # Specialists can update their own identity from workspace settings but cannot manage accounts.
+        restored=call("workspace-status",token="hcs-test-token")
+        assert restored["role"]=="specialist"
+        personal={"first_name":"Student","last_name":"Test","gender":"female","birth_date":"1990-03-10","country":"Canada","city":"Montreal","timezone":"America/Toronto"}
+        assert call("profile",personal,token="hcs-test-token")["ok"]
+        updated=call("workspace-status",token="hcs-test-token")
+        assert all(updated[k]==v for k,v in personal.items())
+        assert call("workspace-status")["role"]=="admin"
+        call("admin/users",expected=403,token="hcs-test-token")
+        call("admin/invite",{"hours":24,"access_plan":"vip"},expected=403,token="hcs-test-token")
+        call("profile",{**personal,"timezone":"invalid"},expected=400,token="hcs-test-token")
+        print("PASS: workspace personal data saved, admin APIs inaccessible to specialists")
     finally:
         server.shutdown();server.server_close();t.join()
