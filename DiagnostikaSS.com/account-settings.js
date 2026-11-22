@@ -335,7 +335,7 @@
     box.style.background='#f5f9fc';box.style.color='#244560';
     const title=document.createElement('strong');title.textContent='Учётная запись ZABVENYE';title.style.color='#244560';
     const identity=document.createElement('div');identity.style.cssText='font-size:12px;overflow-wrap:anywhere;color:#45627b';identity.textContent='Проверка входа…';
-    const cabinet=document.createElement('button');cabinet.type='button';cabinet.textContent='Личный кабинет';cabinet.className='account-save';
+    const cabinet=document.createElement('button');cabinet.type='button';cabinet.textContent='Личный кабинет / Админка';cabinet.className='account-save';cabinet.hidden=true;
     const exit=document.createElement('button');exit.type='button';exit.textContent='Выйти из учётной записи';exit.className='account-save';exit.hidden=true;
     const notice=document.createElement('div');notice.style.fontSize='12px';notice.setAttribute('role','status');
     box.append(title,identity,cabinet,exit,notice);content.prepend(box);
@@ -357,14 +357,14 @@
         if(u.onboarding_required){location.replace('/account');return;}
         const incomplete=['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);reminder.hidden=!incomplete;reminder.style.display=incomplete?'flex':'none';
         identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист');
-        accountRole=u.role;cabinet.textContent=u.role==='admin'?'Личный кабинет / Админка':'Личный кабинет';exit.hidden=false;
-      }catch{if(current===request){identity.textContent='Сервис аккаунтов недоступен';exit.hidden=false;}}
+        accountRole=u.role;cabinet.hidden=accountRole!=='admin';exit.hidden=false;
+      }catch{if(current===request){identity.textContent='Сервис аккаунтов недоступен';accountRole=null;cabinet.hidden=true;exit.hidden=false;}}
     }
     async function canNavigate(){
       if(typeof prepareLeave==='function' && await prepareLeave()===false)return false;
       return window.confirm('Перейти из рабочего пространства? Убедитесь, что изменения в клиентских карточках сохранены. Локальная база и настройки синхронизации не удаляются.');
     }
-    cabinet.addEventListener('click',()=>{window.open(accountRole==='admin'?'/account':'/account#profile','_blank','noopener,noreferrer');});
+    cabinet.addEventListener('click',()=>{if(accountRole==='admin')window.open('/account','_blank','noopener,noreferrer');});
     exit.addEventListener('click',async()=>{
       if(!await canNavigate())return;
       exit.disabled=true;cabinet.disabled=true;notice.textContent='Завершение сеанса…';
