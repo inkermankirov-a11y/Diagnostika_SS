@@ -32,7 +32,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 assert 'https://t.me/Evgeniy_Prudnikov' in page and '#register' in page
                 assert ('lang="'+(lang if lang!="invalid" else "ru")+'"') in page
                 assert 'FREE' in page and 'STANDARD' in page and 'VIP' not in page
-                assert '499' in page and '299' in page and ('3 588' in page or '3,588' in page)
+                assert '399' in page and '199' in page and ('2 388' in page or '2,388' in page)
         with db() as conn:
             conn.execute("UPDATE users SET onboarding_required=0,first_name='Test',last_name='Specialist' WHERE id IN (?,?)",(admin,uid))
             conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("second-device-token"),uid,int(time.time())+3600))
@@ -161,7 +161,7 @@ with tempfile.TemporaryDirectory() as tmp:
         keys=[f"00000000-0000-4000-8000-{i:012d}" for i in range(6)]
         for key in keys[:5]:
             call("trial-reserve",{"feature":"clients","client":key},token="trial-token")
-            for _ in range(5):call("trial-reserve",{"feature":"sessions","client":key},token="trial-token")
+            for _ in range(4):call("trial-reserve",{"feature":"sessions","client":key},token="trial-token")
             call("trial-reserve",{"feature":"sessions","client":key},expected=429,token="trial-token")
             for kind in ("requests","situations"):
                 call("trial-reserve",{"feature":kind,"client":key},token="trial-token")
@@ -169,12 +169,12 @@ with tempfile.TemporaryDirectory() as tmp:
         call("trial-reserve",{"feature":"clients","client":keys[5]},expected=429,token="trial-token")
         with db() as conn:
             u=conn.execute("SELECT * FROM users WHERE id=?",(trial_id,)).fetchone()
-            for i in range(20):m["reserve_trial"](conn,u,"ai")
+            for i in range(10):m["reserve_trial"](conn,u,"ai")
             try:
                 m["reserve_trial"](conn,u,"ai")
-                assert False,"21st AI request accepted"
+                assert False,"11th AI request accepted"
             except m["Error"] as exc: assert exc.status==429
-        assert call("me",token="trial-token")["trial"]["used"]=={"clients":5,"sessions":25,"requests":5,"situations":5,"ai":20}
+        assert call("me",token="trial-token")["trial"]["used"]=={"clients":5,"sessions":20,"requests":5,"situations":5,"ai":10}
         assert call("me",token="trial-token")["trial"]["remaining_ai"]==0
         with db() as conn:conn.execute("UPDATE users SET trial_expires=? WHERE id=?",(int(time.time())-1,trial_id))
         call("me",expected=403,token="trial-token")
@@ -183,14 +183,14 @@ with tempfile.TemporaryDirectory() as tmp:
         payment={"id":trial_sid,"period":"month","paid_at":paid_at,"request_id":"10000000-0000-4000-8000-000000000001"}
         call("admin/subscription-payment",payment,expected=403,token="user-test-token")
         first=call("admin/subscription-payment",payment)
-        assert first["billing"]["plan"]=="STANDARD" and first["billing"]["last_payment"]["amount"]==499
+        assert first["billing"]["plan"]=="STANDARD" and first["billing"]["last_payment"]["amount"]==399
         until=first["billing"]["expires"]
         assert call("admin/subscription-payment",payment)["billing"]["expires"]==until
         second=call("admin/subscription-payment",{**payment,"period":"year","request_id":"10000000-0000-4000-8000-000000000002"})
         assert second["billing"]["expires"]==m["add_months"](until,12)
         assert call("me",token="trial-token")["billing"]["plan"]=="STANDARD"
         assert len(call("admin/subscription-history?id="+trial_sid)["items"])==2
-        assert call("admin/subscriptions")["income"]==4087
+        assert call("admin/subscriptions")["income"]==2787
         with db() as conn:conn.execute("UPDATE users SET subscription_expires=? WHERE id=?",(int(time.time())-1,trial_id))
         call("me",expected=403,token="trial-token")
         call("workspace-auth",expected=401,token="trial-token")
@@ -200,15 +200,21 @@ with tempfile.TemporaryDirectory() as tmp:
         call("admin/subscription-payment",{**payment,"request_id":"10000000-0000-4000-8000-000000000003"},expected=409)
         call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid"},expected=400)
         paid_inv=call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid","period":"year","paid_at":paid_at})
-        assert call("admin/invite-detail?id="+paid_inv["id"])["paid_amount"]==3588
+        assert call("admin/invite-detail?id="+paid_inv["id"])["paid_amount"]==2388
         call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid","period":"year","paid_at":paid_at},expected=409)
         assert any(row["public_id"]==paid_inv["id"] for row in call("admin/subscriptions")["pending"])
+        with db() as conn:conn.execute("UPDATE subscription_payments SET amount=3588 WHERE invite_id=?",(paid_inv["id"],))
+        assert call("admin/invite-detail?id="+paid_inv["id"])["paid_amount"]==3588
         with db() as conn:
             paid_uid=m["create_user"](conn,"paid@example.invalid","fixture-password-paid","specialist")
             inv=conn.execute("SELECT * FROM invites WHERE public_id=?",(paid_inv["id"],)).fetchone()
             m["activate_plan"](conn,paid_uid,"standard",paid_at,inv)
             user=conn.execute("SELECT * FROM users WHERE id=?",(paid_uid,)).fetchone()
             assert m["billing_summary"](conn,user)["expires"]==m["add_months"](paid_at,12)
+        with db() as conn:
+            conn.execute("UPDATE users SET access_plan='trial',trial_policy=1,trial_expires=? WHERE id=?",(now+86400,trial_id))
+            legacy=conn.execute("SELECT * FROM users WHERE id=?",(trial_id,)).fetchone()
+            assert m["trial_usage"](conn,legacy)["caps"]["ai"]==20 and m["trial_usage"](conn,legacy)["caps"]["sessions_per_client"]==5
         print("Subscriptions, early renewal, idempotency and VIP: PASS")
         call("admin/delete",{"id":sid},expected=403,token="user-test-token")
         call("admin/delete",{"id":admin_id},expected=404)
