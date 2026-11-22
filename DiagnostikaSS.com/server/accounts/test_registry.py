@@ -216,6 +216,35 @@ with tempfile.TemporaryDirectory() as tmp:
         assert call("admin/grant-vip",{"id":trial_sid})["billing"]["plan"]=="VIP"
         assert call("me",token="trial-token")["billing"]["expires"] is None
         assert check_license_status("used")["access_expires"] is None
+        assert call("admin/grant-vip",{"id":trial_sid})["notifications_unread"]==3
+        inbox=call("notifications",token="trial-token")
+        assert inbox["total"]==3 and inbox["unread"]==3
+        vip=[n for n in inbox["items"] if n["kind"]=="vip"]
+        assert len(vip)==1 and "VIP" in vip[0]["title"]
+        assert call("me",token="trial-token")["vip_popup_pending"] is True
+        assert call("notifications/claim-vip",{},token="trial-token")["item"]["id"]==vip[0]["id"]
+        assert call("notifications/claim-vip",{},token="trial-token")["item"] is None
+        assert call("me",token="trial-token")["vip_popup_pending"] is False
+        assert call("notifications",token="user-test-token")["items"]==[]
+        call("notifications/read",{"id":vip[0]["id"]},expected=404,token="user-test-token")
+        assert call("notifications/read",{"id":vip[0]["id"]},token="trial-token")["unread"]==2
+        notice={"id":trial_sid,"title":"Test notice","body":"Test body","email":False,"request_id":"20000000-0000-4000-8000-000000000001"}
+        call("admin/notify",notice,expected=403,token="user-test-token")
+        call("admin/notify",notice)
+        call("admin/notify",notice)
+        assert call("notifications",token="trial-token")["total"]==4
+        assert call("notifications/read",{"id":"all"},token="trial-token")["unread"]==0
+        with db() as conn:
+            conn.execute("UPDATE users SET ui_language='fr' WHERE id=?",(trial_id,))
+        assert "Félicitations" in [n for n in call("notifications",token="trial-token")["items"] if n["kind"]=="vip"][0]["title"]
+        old_sent=len(sent)
+        for _ in range(5):m["send_next_notification"]()
+        new_mail=sent[old_sent:]
+        assert len(new_mail)==3 and sum("VIP" in msg[1] for msg in new_mail)==1
+        assert all(msg[0]=="trial@example.invalid" for msg in new_mail)
+        m["send_next_notification"]()
+        assert len(sent)==old_sent+3
+        print("Notifications: VIP, payment, inbox, authorization, idempotency and localized email: PASS")
         call("admin/subscription-payment",{**payment,"request_id":"10000000-0000-4000-8000-000000000003"},expected=409)
         call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid"},expected=400)
         paid_inv=call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid","period":"year","paid_at":paid_at})

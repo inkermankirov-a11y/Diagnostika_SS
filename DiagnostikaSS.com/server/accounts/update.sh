@@ -47,6 +47,12 @@ with m["db"]() as c:
     m["audit"](c,uid,"registered",uid)
     assert m["audit_rows"](c,0)[0]["target"]["id"]==m["ids"](c,uid)["specialist"]
     assert c.execute("SELECT count(*) FROM public_ids").fetchone()[0]==c.execute("SELECT count(DISTINCT number) FROM public_ids").fetchone()[0]
+    ident=m["queue_notification"](c,uid,"vip",123)
+    assert m["notification_count"](c,uid)==1
+    row=c.execute("SELECT * FROM account_notifications WHERE id=?",(ident,)).fetchone()
+    assert "VIP" in m["notification_public"](row,"ru")["title"]
+    c.execute("UPDATE account_notifications SET read_at=124 WHERE id=?",(ident,))
+    assert m["notification_count"](c,uid)==0
 print("Migration and registry smoke test passed")
 PY
   for f in service.py index.html ui.js ui.css; do

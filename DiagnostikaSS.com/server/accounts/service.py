@@ -48,6 +48,8 @@ with db() as c:
     CREATE TABLE IF NOT EXISTS invites(token TEXT PRIMARY KEY,email TEXT NOT NULL,expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS vault_recovery(user_id TEXT PRIMARY KEY,secret TEXT NOT NULL,created INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS password_resets(token TEXT PRIMARY KEY,user_id TEXT NOT NULL UNIQUE,expires INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS account_notifications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,kind TEXT NOT NULL,title TEXT NOT NULL DEFAULT '',body TEXT NOT NULL DEFAULT '',expires INTEGER,created INTEGER NOT NULL,read_at INTEGER,popup_at INTEGER,email_requested INTEGER NOT NULL DEFAULT 0,attempts INTEGER NOT NULL DEFAULT 0,next_try INTEGER NOT NULL DEFAULT 0,sent_at INTEGER);
+    CREATE INDEX IF NOT EXISTS account_notifications_owner ON account_notifications(user_id,created,id);
     CREATE TABLE IF NOT EXISTS welcome_mail(user_id TEXT PRIMARY KEY,language TEXT NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,next_try INTEGER NOT NULL DEFAULT 0,sent_at INTEGER);
     CREATE TABLE IF NOT EXISTS ai_usage(user_id TEXT NOT NULL,day TEXT NOT NULL,area TEXT NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(user_id,day,area));
     """)
@@ -241,6 +243,26 @@ def billing_summary(c,u):
 def payment_date(value):
     if type(value) is not int or not 0<value<=int(time.time()):raise Error(400,"Укажите действительную дату поступления оплаты")
     return value
+NOTIFICATION_COPY={
+"ru":("Поздравляем! Ваш тариф — VIP","Администрация ZABVENYE предоставила вам бессрочный доступ по тарифу VIP. Оплата больше не требуется. Благодарим за доверие и желаем продуктивной работы!","Оплата подтверждена","Ваш тариф STANDARD активен. Доступ оплачен до"),
+"en":("Congratulations! You now have VIP","The ZABVENYE administration has granted you lifetime VIP access. No further payment is required. Thank you for your trust, and we wish you productive work!","Payment confirmed","Your STANDARD plan is active. Access is paid until"),
+"fr":("Félicitations ! Votre offre est VIP","L’administration de ZABVENYE vous a accordé un accès VIP sans limite de durée. Aucun autre paiement n’est nécessaire. Merci de votre confiance et excellent travail !","Paiement confirmé","Votre offre STANDARD est active. Accès payé jusqu’au"),
+"de":("Herzlichen Glückwunsch! Sie haben VIP","Die ZABVENYE-Administration hat Ihnen unbefristeten VIP-Zugang gewährt. Weitere Zahlungen sind nicht erforderlich. Vielen Dank für Ihr Vertrauen und viel Erfolg bei Ihrer Arbeit!","Zahlung bestätigt","Ihr STANDARD-Tarif ist aktiv. Zugang bezahlt bis"),
+"it":("Congratulazioni! Ora hai il piano VIP","L’amministrazione di ZABVENYE ti ha concesso l’accesso VIP a tempo indeterminato. Non sono necessari ulteriori pagamenti. Grazie per la fiducia e buon lavoro!","Pagamento confermato","Il tuo piano STANDARD è attivo. Accesso pagato fino al")}
+def notification_text(row,language):
+    vip_title,vip_body,pay_title,pay_body=NOTIFICATION_COPY.get(language,NOTIFICATION_COPY["ru"])
+    if row["kind"]=="vip":return vip_title,vip_body
+    if row["kind"]=="payment":return pay_title,pay_body+" "+datetime.fromtimestamp(row["expires"],timezone.utc).strftime("%d.%m.%Y %H:%M UTC")+"."
+    return row["title"],row["body"]
+def queue_notification(c,uid,kind,now,ident=None,title="",body="",expires=None,email=True):
+    ident=ident or secrets.token_hex(16)
+    c.execute("INSERT OR IGNORE INTO account_notifications(id,user_id,kind,title,body,expires,created,email_requested) VALUES(?,?,?,?,?,?,?,?)",(ident,uid,kind,title,body,expires,now,int(email)))
+    return ident
+def notification_public(row,language):
+    title,body=notification_text(row,language)
+    return {"id":row["id"],"kind":row["kind"],"title":title,"body":body,"created":row["created"],"read":row["read_at"] is not None}
+def notification_count(c,uid):
+    return c.execute("SELECT count(*) FROM account_notifications WHERE user_id=? AND read_at IS NULL",(uid,)).fetchone()[0]
 def payment_record(c,actor,target,period,paid_at,request_id,now):
     if period not in SUBSCRIPTION_PRICES:raise Error(400,"Укажите месяц или год")
     if not isinstance(request_id,str) or not re.fullmatch(r"[a-f0-9-]{36}",request_id):raise Error(400,"Некорректный идентификатор оплаты")
@@ -256,6 +278,7 @@ def payment_record(c,actor,target,period,paid_at,request_id,now):
     limits=json.loads(target["limits"])
     if target["access_plan"]=="trial":limits=json.loads(json.dumps(DEFAULT))
     c.execute("UPDATE users SET access_plan='standard',subscription_expires=?,subscription_period=?,trial_expires=NULL,limits=? WHERE id=?",(end,period,json.dumps(limits),target["id"]))
+    queue_notification(c,target["id"],"payment",now,ident="payment-"+request_id,expires=end)
     audit(c,actor,"subscription-payment",target["id"],{"amount":{"from":None,"to":SUBSCRIPTION_PRICES[period]},"access_until":{"from":target["subscription_expires"],"to":end}})
 def trial_end(now):
     start=datetime.fromtimestamp(now,timezone.utc)
@@ -303,6 +326,7 @@ def reserve_trial(c,u,feature,client=None):
 def activate_plan(c,uid,plan,now,invite=None):
     if plan=="vip":
         c.execute("UPDATE users SET access_plan='vip' WHERE id=?",(uid,))
+        queue_notification(c,uid,"vip",now)
     elif plan=="standard":
         if not invite or invite["billing_period"] not in SUBSCRIPTION_PRICES:raise Error(409,"Оплата STANDARD не зарегистрирована")
         period=invite["billing_period"];end=add_months(now,1 if period=="month" else 12)
@@ -389,7 +413,7 @@ def legal_acceptance(c,u):
     return dict(row) if row else None
 def public(c,u):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"access_plan":u["access_plan"],"billing":billing_summary(c,u),"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION,"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"access_plan":u["access_plan"],"billing":billing_summary(c,u),"notifications_unread":notification_count(c,u["id"]),"vip_popup_pending":u["access_plan"]=="vip" and bool(c.execute("SELECT 1 FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL LIMIT 1",(u["id"],)).fetchone()),"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION,"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u:
@@ -629,11 +653,24 @@ def send_next_subscription_reminder():
     try:send_mail(row["email"],subject,body+" "+datetime.fromtimestamp(end,timezone.utc).strftime("%d.%m.%Y %H:%M UTC")+".\n\n"+renew+" "+ORIGIN+"/account/license\nhttps://t.me/Evgeniy_Prudnikov")
     except Exception:return
     with db() as c:c.execute("UPDATE subscription_reminders SET sent_at=? WHERE user_id=? AND end_at=? AND days=?",(int(time.time()),row["id"],end,days))
+def send_next_notification():
+    now=int(time.time())
+    with db() as c:
+        row=c.execute("""SELECT n.*,u.email,u.ui_language FROM account_notifications n JOIN users u ON u.id=n.user_id
+            WHERE n.email_requested=1 AND n.sent_at IS NULL AND n.next_try<=? AND u.deleted=0 AND u.onboarding_required=0
+            ORDER BY n.created,n.id LIMIT 1""",(now,)).fetchone()
+    if not row:return
+    title,body=notification_text(row,row["ui_language"])
+    try:send_mail(row["email"],"ZABVENYE — "+title,body+"\n\n"+ORIGIN+"/account#notifications\n"+ORIGIN+"/")
+    except Exception:
+        with db() as c:c.execute("UPDATE account_notifications SET attempts=attempts+1,next_try=? WHERE id=?",(now+min(86400,60*2**min(10,row["attempts"])),row["id"]))
+        return
+    with db() as c:c.execute("UPDATE account_notifications SET sent_at=? WHERE id=?",(int(time.time()),row["id"]))
 def mail_worker():
     while True:
         try:
             if mail_config():
-                send_next_welcome();send_next_invite();send_next_subscription_reminder()
+                send_next_welcome();send_next_invite();send_next_subscription_reminder();send_next_notification()
         except Exception:pass
         time.sleep(5)
 
@@ -719,6 +756,10 @@ class Handler(BaseHTTPRequestHandler):
                 def param(k): return q.get(k,[""])[0][:254]
                 try: offset=max(0,min(1000000,int(param("offset") or "0")))
                 except ValueError: raise Error(400,"Некорректная страница")
+                if path=="/account/api/notifications":
+                    rows=c.execute("SELECT * FROM account_notifications WHERE user_id=? ORDER BY created DESC,id DESC LIMIT 50 OFFSET ?",(u["id"],offset)).fetchall()
+                    total=c.execute("SELECT count(*) FROM account_notifications WHERE user_id=?",(u["id"],)).fetchone()[0]
+                    return self.reply(200,{"items":[notification_public(row,u["ui_language"]) for row in rows],"total":total,"unread":notification_count(c,u["id"])})
                 if path=="/account/api/admin/statistics":
                     raw=param("days") or "1"
                     if raw not in ("1","7","30"): raise Error(400,"Некорректный период")
@@ -885,7 +926,35 @@ class Handler(BaseHTTPRequestHandler):
                 c.execute("DELETE FROM sessions WHERE token=?",(digest(self.token()),))
                 audit(c,u["id"],"logout",u["id"])
                 return self.reply(200,{"ok":True},"__Host-zabvenye_account=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")
-            if path=="/account/api/onboarding":
+            if path=="/account/api/notifications/read":
+                ident=b.get("id")
+                if ident=="all":
+                    c.execute("UPDATE account_notifications SET read_at=COALESCE(read_at,?) WHERE user_id=?",(int(time.time()),u["id"]))
+                elif isinstance(ident,str) and 1<=len(ident)<=64:
+                    if not c.execute("SELECT 1 FROM account_notifications WHERE id=? AND user_id=?",(ident,u["id"])).fetchone():raise Error(404,"Уведомление не найдено")
+                    c.execute("UPDATE account_notifications SET read_at=COALESCE(read_at,?) WHERE id=? AND user_id=?",(int(time.time()),ident,u["id"]))
+                else:raise Error(400,"Некорректное уведомление")
+                payload={"ok":True,"unread":notification_count(c,u["id"])}
+            elif path=="/account/api/notifications/claim-vip":
+                row=c.execute("SELECT * FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL ORDER BY created DESC,id DESC LIMIT 1",(u["id"],)).fetchone() if u["access_plan"]=="vip" and not u["onboarding_required"] else None
+                if row:
+                    c.execute("UPDATE account_notifications SET popup_at=? WHERE id=?",(int(time.time()),row["id"]))
+                payload={"item":notification_public(row,u["ui_language"]) if row else None}
+            elif path=="/account/api/admin/notify":
+                target=c.execute("SELECT u.id FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(b.get("id"),)).fetchone()
+                if not target:raise Error(404,"Специалист не найден")
+                title,body,email=b.get("title"),b.get("body"),b.get("email",True)
+                if not isinstance(title,str) or not 1<=len(title.strip())<=120 or any(ord(ch)<32 or ord(ch)==127 for ch in title) or not isinstance(body,str) or not 1<=len(body.strip())<=1500 or type(email) is not bool:raise Error(400,"Укажите тему и текст уведомления")
+                request_id=b.get("request_id")
+                if not isinstance(request_id,str) or not re.fullmatch(r"[a-f0-9-]{36}",request_id):raise Error(400,"Некорректный идентификатор уведомления")
+                prior=c.execute("SELECT * FROM account_notifications WHERE id=?",(request_id,)).fetchone()
+                if prior:
+                    if prior["user_id"]!=target["id"] or prior["kind"]!="admin" or prior["title"]!=title.strip() or prior["body"]!=body.strip() or prior["email_requested"]!=int(email):raise Error(409,"Идентификатор уже занят")
+                else:
+                    queue_notification(c,target["id"],"admin",int(time.time()),ident=request_id,title=title.strip(),body=body.strip(),email=email)
+                    audit(c,u["id"],"admin-notification",target["id"])
+                payload={"ok":True}
+            elif path=="/account/api/onboarding":
                 first=b.get("first_name",""); last=b.get("last_name",""); birth=b.get("birth_date","")
                 if not all(isinstance(v,str) for v in (first,last,birth)) or not 1<=len(first.strip())<=80 or not 1<=len(last.strip())<=80: raise Error(400,"Укажите имя и фамилию")
                 try:
@@ -989,7 +1058,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=target["id"]
                 audit(c,u["id"],"purge",uid,{"account":{"from":"Архивирован","to":"Удалён окончательно"}})
                 c.execute("INSERT INTO specialist_tombstones VALUES(?,?,?)",(uid,b["id"],int(time.time())))
-                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","analytics_preferences","analytics_snapshots","analytics_daily","analytics_batches","subscription_reminders","trial_usage","trial_clients","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail"):
+                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","analytics_preferences","analytics_snapshots","analytics_daily","analytics_batches","subscription_reminders","trial_usage","trial_clients","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail","account_notifications"):
                     c.execute("DELETE FROM "+table+" WHERE user_id=?",(uid,))
                 c.execute("DELETE FROM users WHERE id=?",(uid,))
                 payload={"ok":True}
@@ -1049,7 +1118,9 @@ class Handler(BaseHTTPRequestHandler):
                     if target["access_plan"]=="standard" and target["subscription_expires"] and target["subscription_expires"]>int(time.time()):raise Error(409,"Дождитесь окончания оплаченного периода перед выдачей VIP")
                     limits=json.loads(target["limits"]) if target["access_plan"]!="trial" else DEFAULT
                     c.execute("UPDATE users SET access_plan='vip',subscription_expires=NULL,subscription_period=NULL,trial_expires=NULL,limits=? WHERE id=?",(json.dumps(limits),target["id"]))
-                    audit(c,u["id"],"grant-vip",target["id"],{"access_plan":{"from":target["access_plan"],"to":"vip"}})
+                    if target["access_plan"]!="vip":
+                        queue_notification(c,target["id"],"vip",int(time.time()))
+                        audit(c,u["id"],"grant-vip",target["id"],{"access_plan":{"from":target["access_plan"],"to":"vip"}})
                 payload=public(c,c.execute("SELECT * FROM users WHERE id=?",(target["id"],)).fetchone())
             elif path=="/account/api/admin/update":
                 uid=b.get("id"); limits=b.get("limits"); enabled=b.get("enabled")
