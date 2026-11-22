@@ -269,6 +269,7 @@
   }
 
   async function importPackage(pkg){
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.allow('client_import'))return;
     if(!pkg || pkg.format!==TRANSFER_FORMAT || !pkg.client || typeof pkg.client!=='object'){
       if(window.AppDialog?.alert) await AppDialog.alert(file.name.toLowerCase().endsWith('.zbv')?(e.message||t('badFile')):t('badFile'),t('badTitle')); else alert(t('badFile'));
       return;
