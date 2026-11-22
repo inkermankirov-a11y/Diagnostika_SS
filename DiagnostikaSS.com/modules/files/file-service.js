@@ -36,7 +36,8 @@
 
   function openDb(){
     return new Promise((resolve,reject)=>{
-      const req=indexedDB.open(DB_NAME,DB_VERSION);
+      const req=indexedDB.open(DB_NAME,DB_VERSION);let blocked=false;
+      req.onblocked=()=>{blocked=true;reject(new Error('Закройте другие вкладки ZABVENYE и обновите страницу для обновления хранилища.'));};
       req.onupgradeneeded=()=>{
         const db=req.result;
         if(!db.objectStoreNames.contains(STORE_NAME)){
@@ -46,7 +47,7 @@
         }
         if(!db.objectStoreNames.contains(DELETED))db.createObjectStore(DELETED);
       };
-      req.onsuccess=()=>resolve(req.result);
+      req.onsuccess=()=>{if(blocked){req.result.close();return;}req.result.onversionchange=()=>req.result.close();resolve(req.result);};
       req.onerror=()=>reject(req.error||new Error('File database open failed.'));
     });
   }
@@ -170,7 +171,7 @@
       await new Promise((resolve,reject)=>{
         const tx=db.transaction([STORE_NAME,DELETED],'readwrite');
         tx.objectStore(STORE_NAME).delete(id);
-        tx.objectStore(DELETED).put(true,id);
+        if(options.source!=='vault-restore-rollback')tx.objectStore(DELETED).put(true,id);
         tx.oncomplete=resolve;
         tx.onerror=()=>reject(tx.error);
         tx.onabort=()=>reject(tx.error||new Error('File delete aborted.'));

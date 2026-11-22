@@ -5,7 +5,7 @@
  const clone=v=>JSON.parse(JSON.stringify(v));
  const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);
  const token=v=>{const s=encodeURIComponent(String(v)).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16));if(!s||s.length>100||s==='.'||s==='..')throw Error('Некорректный идентификатор файла или клиента');return s;};
- const name=v=>{const s=String(v||'file').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').replace(/[ .]+$/g,'')||'file';const ext=/\.[a-zA-Z0-9]{1,12}$/.exec(s)?.[0]||'';return Array.from(ext?s.slice(0,-ext.length):s).slice(0,30).join('')+ext;};
+ const name=v=>{const s=String(v||'file').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').replace(/[ .]+$/g,'')||'file';const ext=/\.[a-zA-Z0-9]{1,12}$/.exec(s)?.[0]||'';return Array.from(ext?s.slice(0,-ext.length):s).slice(0,20).join('')+ext;};
  function path(meta,revision=''){
   const base=ROOT+'/client_'+token(meta.clientId);
   const id=token(meta.id)+(revision?'_'+token(revision):'');

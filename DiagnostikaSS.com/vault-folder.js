@@ -96,9 +96,9 @@
  }
  async function preserveV1(dir,raw){
   const hash=(await digest(raw)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  const backups=await dir.getDirectoryHandle('backups',{create:true}),name='database-v1-'+hash+'.zbv';
+  const backups=await dir.getDirectoryHandle('backups',{create:true});let name='database-v1-'+hash+'.zbv';
   let h=await file(backups,name);
-  if(h){if(await (await h.getFile()).text()!==raw)throw Error('Существующая резервная копия отличается. Исходная база не изменена.');return;}
+  if(h){if(await (await h.getFile()).text()===raw)return;name='database-v1-'+hash+'-'+crypto.randomUUID()+'.zbv';}
   h=await backups.getFileHandle(name,{create:true});const w=await h.createWritable({keepExistingData:false});
   try{await w.write(new Blob([raw]));await w.close()}catch(e){try{await w.abort()}catch{}throw e}
   if(await (await h.getFile()).text()!==raw)throw Error('Резервная копия не прошла проверку. Исходная база не изменена.');

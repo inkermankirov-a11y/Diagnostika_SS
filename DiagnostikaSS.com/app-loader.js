@@ -61,7 +61,7 @@
     },
     {
       id:'files',
-      service:['modules/files/file-service.js?v=20260919-files9d&cleanup=23c-split-v2-1','data-files-service'],
+      service:['modules/files/file-service.js?v=20260919-files9d&cleanup=23c-split-v2-2','data-files-service'],
       module:['modules/files/index.js?v=20260919-files9d','data-files-module'],
       api:['files-api.js?v=20260919-files9d&api=13d','data-files-api'],
       ready:()=>window.DiagnostikaFiles?.moduleAware===true

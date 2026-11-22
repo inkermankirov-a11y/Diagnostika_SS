@@ -306,7 +306,7 @@
     controls.append(fileLabel,file,paste,urlLabel,input,saveUrl);
     const status=document.createElement('div');status.className='payment-receipt-status';status.setAttribute('role','status');
     const warning=document.createElement('div');warning.className='payment-receipt-local-warning';
-    warning.textContent='Чеки сохраняются в браузере и копируются в подключённую папку и Google Drive при синхронизации. До успешной синхронизации файл может быть только в браузере. Ссылки сохраняются в базе.';
+    warning.textContent='Чеки сохраняются в браузере, а после синхронизации — в открытых папках клиентов. До успешной синхронизации файл может быть только в браузере. Ссылки сохраняются в зашифрованной базе. Удаление привязки не удаляет файл с диска.';
     panel.append(head,tabs,description,actions,controls,status,warning);dlg.appendChild(panel);document.body.appendChild(dlg);
     const refresh=()=>{
       const row=itemOf(ref,kind),hasFile=!!row.id,hasUrl=!!row.url;
