@@ -36,6 +36,16 @@ with tempfile.TemporaryDirectory() as tmp:
         call("metrics",{"clients":3},token="user-test-token")
         stats=call("admin/statistics?days=7")
         assert stats["active"]==1 and stats["clients_snapshot"]==3 and stats["reported_accounts"]==1 and len(stats["series"])==7
+        extra={"counts":{"sessions":4,"completed_sessions":3},"income":{"RUB":100000},"device":{"browser":"Chrome","os":"Windows","type":"desktop"},"events":{"sessions":2},"batch":"12345678-1234-1234-1234-123456789abc"}
+        call("metrics",{"clients":3,"advanced":extra},expected=403,token="user-test-token")
+        call("analytics-preference",{"enabled":True},token="user-test-token")
+        call("metrics",{"clients":3,"advanced":extra},token="user-test-token")
+        call("metrics",{"clients":3,"advanced":extra},token="user-test-token")
+        advanced=call("admin/statistics")["advanced"]
+        assert advanced["counts"]["completed_sessions"]==3 and advanced["income"]["RUB"]==100000 and advanced["events"]["sessions"]==2
+        call("metrics",{"clients":3,"advanced":{**extra,"counts":{"client_name":"private"}}},expected=400,token="user-test-token")
+        call("analytics-preference",{"enabled":False},token="user-test-token")
+        assert call("admin/statistics")["advanced"]["reported_accounts"]==0
         initial=call("workspace-profile",token="user-test-token")
         assert initial["profile"] is None and initial["revision"]==0 and initial["identity"]=={"name":"Test","surname":"Specialist"}
         call("workspace-profile",expected=401,token="")
