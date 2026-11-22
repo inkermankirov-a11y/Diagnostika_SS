@@ -117,8 +117,8 @@ with tempfile.TemporaryDirectory() as tmp:
         call("password-reset-request",{"email":"admin@example.invalid","captcha":"test-captcha"},expected=503,token="")
         glob["send_mail"]=lambda recipient,subject,body:sent.append((recipient,subject,body))
         print("Password reset and localized welcome delivery (mock SMTP): PASS")
-        a=call("admin/invite",{"hours":24,"comment":"first"})
-        b=call("admin/invite",{"hours":24,"comment":"second"})
+        a=call("admin/invite",{"hours":24,"comment":"first","access_plan":"vip"})
+        b=call("admin/invite",{"hours":24,"comment":"second","access_plan":"vip"})
         assert a["license_number"]=="000001" and b["license_number"]=="000002"
         assert [x["license_number"] for x in call("admin/invites")["items"]]==["000002","000001"]
         assert call("admin/invites?q=000001")["items"][0]["id"]==a["id"]
@@ -146,7 +146,7 @@ with tempfile.TemporaryDirectory() as tmp:
         call("admin/invite-reissue",{"id":b["id"],"hours":24},expected=409)
         call("admin/invite-revoke",{"id":a["id"]})
         call("admin/invite-delete",{"id":a["id"]})
-        c=call("admin/invite",{"hours":24})
+        c=call("admin/invite",{"hours":24,"access_plan":"vip"})
         assert c["license_number"]=="000003"
         call("admin/invite",{"hours":24,"access_plan":"trial"},expected=400)
         tr=call("admin/invite",{"hours":72,"access_plan":"trial","email":"trial@example.invalid"})
@@ -179,9 +179,35 @@ with tempfile.TemporaryDirectory() as tmp:
         with db() as conn:conn.execute("UPDATE users SET trial_expires=? WHERE id=?",(int(time.time())-1,trial_id))
         call("me",expected=403,token="trial-token")
         call("workspace-auth",expected=401,token="trial-token")
-        call("admin/trial-upgrade",{"id":trial_sid},expected=403,token="user-test-token")
-        call("admin/trial-upgrade",{"id":trial_sid})
-        assert call("me",token="trial-token")["access_plan"]=="permanent"
+        paid_at=int(time.time())
+        payment={"id":trial_sid,"period":"month","paid_at":paid_at,"request_id":"10000000-0000-4000-8000-000000000001"}
+        call("admin/subscription-payment",payment,expected=403,token="user-test-token")
+        first=call("admin/subscription-payment",payment)
+        assert first["billing"]["plan"]=="STANDARD" and first["billing"]["last_payment"]["amount"]==499
+        until=first["billing"]["expires"]
+        assert call("admin/subscription-payment",payment)["billing"]["expires"]==until
+        second=call("admin/subscription-payment",{**payment,"period":"year","request_id":"10000000-0000-4000-8000-000000000002"})
+        assert second["billing"]["expires"]==m["add_months"](until,12)
+        assert call("me",token="trial-token")["billing"]["plan"]=="STANDARD"
+        assert len(call("admin/subscription-history?id="+trial_sid)["items"])==2
+        assert call("admin/subscriptions")["income"]==4087
+        with db() as conn:conn.execute("UPDATE users SET subscription_expires=? WHERE id=?",(int(time.time())-1,trial_id))
+        call("me",expected=403,token="trial-token")
+        call("workspace-auth",expected=401,token="trial-token")
+        call("admin/grant-vip",{"id":trial_sid},expected=403,token="user-test-token")
+        assert call("admin/grant-vip",{"id":trial_sid})["billing"]["plan"]=="VIP"
+        assert call("me",token="trial-token")["billing"]["expires"] is None
+        call("admin/subscription-payment",{**payment,"request_id":"10000000-0000-4000-8000-000000000003"},expected=409)
+        call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid"},expected=400)
+        paid_inv=call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid","period":"year","paid_at":paid_at})
+        assert call("admin/invite-detail?id="+paid_inv["id"])["paid_amount"]==3588
+        with db() as conn:
+            paid_uid=m["create_user"](conn,"paid@example.invalid","fixture-password-paid","specialist")
+            inv=conn.execute("SELECT * FROM invites WHERE public_id=?",(paid_inv["id"],)).fetchone()
+            m["activate_plan"](conn,paid_uid,"standard",paid_at,inv)
+            user=conn.execute("SELECT * FROM users WHERE id=?",(paid_uid,)).fetchone()
+            assert m["billing_summary"](conn,user)["expires"]==m["add_months"](paid_at,12)
+        print("Subscriptions, early renewal, idempotency and VIP: PASS")
         call("admin/delete",{"id":sid},expected=403,token="user-test-token")
         call("admin/delete",{"id":admin_id},expected=404)
         call("admin/delete",{"id":sid})
@@ -202,7 +228,7 @@ with tempfile.TemporaryDirectory() as tmp:
             assert not conn.execute("SELECT 1 FROM workspace_profiles WHERE user_id=?",(uid,)).fetchone()
             assert conn.execute("SELECT 1 FROM public_ids WHERE owner=?",(uid,)).fetchone()
             assert conn.execute("SELECT 1 FROM specialist_tombstones WHERE user_id=?",(uid,)).fetchone()
-            assert conn.execute("SELECT count(*) FROM license_numbers").fetchone()[0]==4
+            assert conn.execute("SELECT count(*) FROM license_numbers").fetchone()[0]==5
             assert conn.execute("PRAGMA integrity_check").fetchone()[0]=="ok"
         print("Account lifecycle and license numbering integration: PASS")
     finally:

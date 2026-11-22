@@ -100,6 +100,7 @@ with db() as c:
     c.execute("CREATE TABLE IF NOT EXISTS subscription_payments(id TEXT PRIMARY KEY,user_id TEXT,invite_id TEXT,period TEXT NOT NULL,amount INTEGER NOT NULL,paid_at INTEGER NOT NULL,recorded_at INTEGER NOT NULL,actor TEXT NOT NULL,start_at INTEGER,end_at INTEGER)")
     c.execute("CREATE INDEX IF NOT EXISTS subscription_payment_user ON subscription_payments(user_id,paid_at)")
     c.execute("CREATE TABLE IF NOT EXISTS subscription_reminders(user_id TEXT NOT NULL,end_at INTEGER NOT NULL,days INTEGER NOT NULL,sent_at INTEGER,PRIMARY KEY(user_id,end_at,days))")
+    if "next_try" not in {row[1] for row in c.execute("PRAGMA table_info(subscription_reminders)")}:c.execute("ALTER TABLE subscription_reminders ADD COLUMN next_try INTEGER NOT NULL DEFAULT 0")
     if c.execute("INSERT OR IGNORE INTO billing_migrations VALUES('vip-first-ten-v1')").rowcount:
         c.execute("UPDATE invites SET access_plan='vip' WHERE access_plan='permanent' AND public_id IN (SELECT public_id FROM license_numbers WHERE number BETWEEN 1 AND 10)")
         c.execute("UPDATE users SET access_plan='vip' WHERE role='specialist' AND access_plan='permanent' AND id IN (SELECT used_by FROM invites WHERE access_plan='vip')")
@@ -585,11 +586,35 @@ def send_next_invite():
         with db() as c:c.execute("UPDATE invite_mail SET attempts=attempts+1,next_try=? WHERE public_id=?",(now+min(86400,60*2**min(10,row["attempts"])),row["public_id"]))
         return
     with db() as c:c.execute("UPDATE invite_mail SET sent_at=? WHERE public_id=?",(int(time.time()),row["public_id"]))
+SUBSCRIPTION_MAIL={
+"ru":("ZABVENYE — окончание подписки","Ваша подписка STANDARD скоро заканчивается. Доступ действует до","Для продления:"),
+"en":("ZABVENYE — subscription expiry","Your STANDARD subscription will expire soon. Access ends on","To renew:"),
+"fr":("ZABVENYE — expiration de l’abonnement","Votre abonnement STANDARD expire bientôt. Accès jusqu’au","Pour renouveler :"),
+"de":("ZABVENYE — Abonnement läuft ab","Ihr STANDARD-Abonnement läuft bald ab. Zugriff bis","Verlängern:"),
+"it":("ZABVENYE — scadenza abbonamento","L’abbonamento STANDARD scade a breve. Accesso fino al","Per rinnovare:")}
+def send_next_subscription_reminder():
+    now=int(time.time())
+    with db() as c:
+        rows=c.execute("SELECT id,email,ui_language,subscription_expires FROM users WHERE access_plan='standard' AND enabled=1 AND deleted=0 AND subscription_expires>? AND subscription_expires<=? ORDER BY subscription_expires LIMIT 200",(now,now+7*86400)).fetchall()
+        selected=None
+        for row in rows:
+            end=row["subscription_expires"]
+            days=1 if end-now<=86400 else 7
+            record=c.execute("SELECT sent_at,next_try FROM subscription_reminders WHERE user_id=? AND end_at=? AND days=?",(row["id"],end,days)).fetchone()
+            if record and (record["sent_at"] or record["next_try"]>now):continue
+            c.execute("INSERT INTO subscription_reminders(user_id,end_at,days,next_try) VALUES(?,?,?,?) ON CONFLICT(user_id,end_at,days) DO UPDATE SET next_try=excluded.next_try",(row["id"],end,days,now+3600))
+            selected=(row,end,days);break
+    if not selected:return
+    row,end,days=selected
+    subject,body,renew=SUBSCRIPTION_MAIL.get(row["ui_language"],SUBSCRIPTION_MAIL["ru"])
+    try:send_mail(row["email"],subject,body+" "+datetime.fromtimestamp(end,timezone.utc).strftime("%d.%m.%Y %H:%M UTC")+".\n\n"+renew+" "+ORIGIN+"/account/license\nhttps://t.me/Evgeniy_Prudnikov")
+    except Exception:return
+    with db() as c:c.execute("UPDATE subscription_reminders SET sent_at=? WHERE user_id=? AND end_at=? AND days=?",(int(time.time()),row["id"],end,days))
 def mail_worker():
     while True:
         try:
             if mail_config():
-                send_next_welcome();send_next_invite()
+                send_next_welcome();send_next_invite();send_next_subscription_reminder()
         except Exception:pass
         time.sleep(5)
 
@@ -935,7 +960,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=target["id"]
                 audit(c,u["id"],"purge",uid,{"account":{"from":"Архивирован","to":"Удалён окончательно"}})
                 c.execute("INSERT INTO specialist_tombstones VALUES(?,?,?)",(uid,b["id"],int(time.time())))
-                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","analytics_preferences","analytics_snapshots","analytics_daily","analytics_batches","trial_usage","trial_clients","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail"):
+                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","analytics_preferences","analytics_snapshots","analytics_daily","analytics_batches","subscription_reminders","trial_usage","trial_clients","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail"):
                     c.execute("DELETE FROM "+table+" WHERE user_id=?",(uid,))
                 c.execute("DELETE FROM users WHERE id=?",(uid,))
                 payload={"ok":True}
@@ -950,6 +975,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(ident,str): raise Error(400,"Некорректное приглашение")
                 inv=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
                 if not inv: raise Error(404,"Приглашение не найдено")
+                if inv["access_plan"]=="standard":raise Error(409,"Оплаченный код сохраняется для истории оплаты")
                 if invite_status(inv,int(time.time())) not in ("revoked","expired"): raise Error(409,"Удалять можно только отозванные или истёкшие приглашения")
                 audit(c,u["id"],"invite-delete",ident,{"invitation":{"from":inv["preview"],"to":"Удалено"}})
                 c.execute("INSERT INTO license_archive VALUES(?,?,?)",(ident,inv["token"],int(time.time())))
