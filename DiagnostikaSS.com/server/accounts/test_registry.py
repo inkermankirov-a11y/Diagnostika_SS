@@ -28,6 +28,14 @@ with tempfile.TemporaryDirectory() as tmp:
         with db() as conn:
             conn.execute("UPDATE users SET onboarding_required=0,first_name='Test',last_name='Specialist' WHERE id IN (?,?)",(admin,uid))
             conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("second-device-token"),uid,int(time.time())+3600))
+        call("admin/statistics",expected=403,token="user-test-token")
+        call("admin/statistics",expected=401,token="")
+        call("admin/statistics?days=2",expected=400)
+        empty_stats=call("admin/statistics")
+        assert empty_stats["total"]==1 and empty_stats["clients_snapshot"]==0
+        call("metrics",{"clients":3},token="user-test-token")
+        stats=call("admin/statistics?days=7")
+        assert stats["active"]==1 and stats["clients_snapshot"]==3 and stats["reported_accounts"]==1 and len(stats["series"])==7
         initial=call("workspace-profile",token="user-test-token")
         assert initial["profile"] is None and initial["revision"]==0 and initial["identity"]=={"name":"Test","surname":"Specialist"}
         call("workspace-profile",expected=401,token="")

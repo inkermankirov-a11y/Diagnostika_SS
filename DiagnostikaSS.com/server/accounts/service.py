@@ -178,6 +178,26 @@ def usage(c,u):
 def specialist_metrics(c,u):
     m=c.execute("SELECT client_count,reported_at FROM specialist_metrics WHERE user_id=?",(u["id"],)).fetchone()
     return {"clients":m["client_count"] if m else None,"reported_at":m["reported_at"] if m else None,"logins":c.execute("SELECT count(*) FROM audit WHERE actor=? AND action='login'",(u["id"],)).fetchone()[0],"days30":c.execute("SELECT count(*) FROM specialist_days WHERE user_id=? AND day>=?",(u["id"],(datetime.now(timezone.utc).date()-timedelta(days=29)).isoformat())).fetchone()[0]}
+def admin_statistics(c,days):
+    today=datetime.now(timezone.utc).date()
+    first=today-timedelta(days=days-1)
+    start=int(datetime(first.year,first.month,first.day,tzinfo=timezone.utc).timestamp())
+    day=first.isoformat()
+    users=c.execute("SELECT count(*) AS total,coalesce(sum(enabled=1),0) AS enabled,coalesce(sum(created>=?),0) AS new FROM users WHERE role='specialist' AND deleted=0",(start,)).fetchone()
+    active=c.execute("SELECT count(DISTINCT d.user_id) FROM specialist_days d JOIN users u ON u.id=d.user_id WHERE u.role='specialist' AND d.day>=? AND d.day<=?",(day,today.isoformat())).fetchone()[0]
+    now=int(time.time())
+    recent=c.execute("SELECT count(*) FROM users WHERE role='specialist' AND deleted=0 AND enabled=1 AND last_seen>=?",(now-300,)).fetchone()[0]
+    logins=c.execute("SELECT count(*) FROM audit a JOIN users u ON u.id=a.actor WHERE u.role='specialist' AND a.action='login' AND a.created>=?",(start,)).fetchone()[0]
+    clients=c.execute("SELECT coalesce(sum(m.client_count),0),count(*) FROM specialist_metrics m JOIN users u ON u.id=m.user_id WHERE u.role='specialist' AND u.deleted=0 AND m.client_count IS NOT NULL").fetchone()
+    areas={a:0 for a in AI_AREAS}
+    for row in c.execute("SELECT a.area,sum(a.count) AS n FROM ai_usage a JOIN users u ON u.id=a.user_id WHERE u.role='specialist' AND a.day>=? AND a.day<=? GROUP BY a.area",(day,today.isoformat())):
+        if row["area"] in areas: areas[row["area"]]=row["n"]
+    series={ (first+timedelta(days=i)).isoformat():{"day":(first+timedelta(days=i)).isoformat(),"active":0,"ai":0} for i in range(days)}
+    for row in c.execute("SELECT d.day,count(*) AS n FROM specialist_days d JOIN users u ON u.id=d.user_id WHERE u.role='specialist' AND d.day>=? AND d.day<=? GROUP BY d.day",(day,today.isoformat())):
+        series[row["day"]]["active"]=row["n"]
+    for row in c.execute("SELECT a.day,sum(a.count) AS n FROM ai_usage a JOIN users u ON u.id=a.user_id WHERE u.role='specialist' AND a.day>=? AND a.day<=? GROUP BY a.day",(day,today.isoformat())):
+        series[row["day"]]["ai"]=row["n"]
+    return {"days":days,"timezone":"UTC","total":users["total"],"enabled":users["enabled"],"new":users["new"],"active":active,"recent":recent,"logins":logins,"clients_snapshot":clients[0],"reported_accounts":clients[1],"ai_total":sum(areas.values()),"ai_areas":areas,"series":list(series.values())}
 def legal_acceptance(c,u):
     row=c.execute("SELECT version,accepted_at,language FROM legal_acceptance WHERE user_id=? AND version=?",(u["id"],LEGAL_VERSION)).fetchone()
     return dict(row) if row else None
@@ -445,6 +465,10 @@ class Handler(BaseHTTPRequestHandler):
                 def param(k): return q.get(k,[""])[0][:254]
                 try: offset=max(0,min(1000000,int(param("offset") or "0")))
                 except ValueError: raise Error(400,"Некорректная страница")
+                if path=="/account/api/admin/statistics":
+                    raw=param("days") or "1"
+                    if raw not in ("1","7","30"): raise Error(400,"Некорректный период")
+                    return self.reply(200,admin_statistics(c,int(raw)))
                 if path=="/account/api/admin/users":
                     where=["1=1"]; args=[]
                     search=param("q")
