@@ -86,6 +86,10 @@ with db() as c:
     if "language" not in {row[1] for row in c.execute("PRAGMA table_info(legal_acceptance)")}: c.execute("ALTER TABLE legal_acceptance ADD COLUMN language TEXT")
     c.execute("CREATE TABLE IF NOT EXISTS workspace_profiles(user_id TEXT PRIMARY KEY,revision INTEGER NOT NULL,profile TEXT NOT NULL,updated_at INTEGER NOT NULL)")
     c.execute("CREATE TABLE IF NOT EXISTS specialist_metrics(user_id TEXT PRIMARY KEY,client_count INTEGER,reported_at INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS analytics_preferences(user_id TEXT PRIMARY KEY,enabled INTEGER NOT NULL,changed_at INTEGER NOT NULL)")
+    c.execute("CREATE TABLE IF NOT EXISTS analytics_snapshots(user_id TEXT PRIMARY KEY,counts TEXT NOT NULL,income TEXT NOT NULL,device TEXT NOT NULL,reported_at INTEGER NOT NULL)")
+    c.execute("CREATE TABLE IF NOT EXISTS analytics_daily(user_id TEXT NOT NULL,day TEXT NOT NULL,feature TEXT NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(user_id,day,feature))")
+    c.execute("CREATE TABLE IF NOT EXISTS analytics_batches(user_id TEXT NOT NULL,batch TEXT NOT NULL,created INTEGER NOT NULL,PRIMARY KEY(user_id,batch))")
     c.execute("CREATE TABLE IF NOT EXISTS specialist_days(user_id TEXT NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))")
     if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
         c.execute("ALTER TABLE audit ADD COLUMN details TEXT NOT NULL DEFAULT '{}'")
@@ -175,9 +179,54 @@ def usage(c,u):
     for row in c.execute("SELECT area,count FROM ai_usage WHERE user_id=? AND day=?",(u["id"],day)):
         if row["area"] in areas: areas[row["area"]]=row["count"]
     return {"day":day,"total":sum(areas.values()),"areas":areas,"reset":"00:00 UTC"}
+ANALYTICS_COUNTS=("clients","archived_clients","sessions","completed_sessions","planned_sessions","cancelled_sessions","requests","diagnoses","situations","notes","calendar_events","payments","encrypted_storage")
+ANALYTICS_FEATURES=("clients","sessions","diagnosis","payments","calendar","notes","storage","google_calendar","google_meet","zoom","teams","attachments","export","questionnaires","consultations")
+ANALYTICS_DEVICES={"browser":("Chrome","Edge","Firefox","Safari","Other"),"os":("Windows","macOS","Linux","Android","iOS","Other"),"type":("desktop","mobile","tablet","other")}
+def analytics_enabled(c,uid):
+    row=c.execute("SELECT enabled FROM analytics_preferences WHERE user_id=?",(uid,)).fetchone()
+    return bool(row and row[0])
+def bounded_counts(value,keys,maximum):
+    if not isinstance(value,dict) or not set(value)<=set(keys) or any(type(v) is not int or not 0<=v<=maximum for v in value.values()): raise Error(400,"Некорректные показатели статистики")
+    return value
+def save_analytics(c,uid,data,now):
+    if not analytics_enabled(c,uid): raise Error(403,"Расширенная статистика отключена")
+    if not isinstance(data,dict) or set(data)!={"counts","income","device","events","batch"}: raise Error(400,"Некорректная статистика")
+    counts=bounded_counts(data["counts"],ANALYTICS_COUNTS,1000000)
+    events=bounded_counts(data["events"],ANALYTICS_FEATURES,10000)
+    income=data["income"]
+    if not isinstance(income,dict) or len(income)>50 or any(not re.fullmatch(r"[A-Z]{3}",k) or type(v) is not int or not 0<=v<=10**14 for k,v in income.items()): raise Error(400,"Некорректные показатели оплат")
+    device=data["device"]
+    if not isinstance(device,dict) or set(device)!=set(ANALYTICS_DEVICES) or any(v not in ANALYTICS_DEVICES[k] for k,v in device.items()): raise Error(400,"Некорректный тип устройства")
+    batch=data["batch"]
+    if not isinstance(batch,str) or not re.fullmatch(r"[a-f0-9-]{36}",batch): raise Error(400,"Некорректный идентификатор отчёта")
+    day=datetime.now(timezone.utc).date()
+    c.execute("DELETE FROM analytics_batches WHERE created<?",(now-7*86400,))
+    c.execute("DELETE FROM analytics_daily WHERE day<?",((day-timedelta(days=89)).isoformat(),))
+    if not c.execute("INSERT OR IGNORE INTO analytics_batches VALUES(?,?,?)",(uid,batch,now)).rowcount:return
+    c.execute("INSERT INTO analytics_snapshots VALUES(?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET counts=excluded.counts,income=excluded.income,device=excluded.device,reported_at=excluded.reported_at",(uid,json.dumps(counts),json.dumps(income),json.dumps(device),now))
+    for k,v in events.items():
+        if v:c.execute("INSERT INTO analytics_daily VALUES(?,?,?,?) ON CONFLICT(user_id,day,feature) DO UPDATE SET count=count+excluded.count",(uid,day.isoformat(),k,v))
+def advanced_statistics(c,days,uid=None):
+    since=(datetime.now(timezone.utc).date()-timedelta(days=days-1)).isoformat()
+    sql=" FROM analytics_snapshots a JOIN users u ON a.user_id=u.id WHERE u.role='specialist' AND u.deleted=0"
+    args=[]
+    if uid is not None:sql+=" AND u.id=?";args.append(uid)
+    rows=c.execute("SELECT a.*"+sql,args).fetchall()
+    counts={};income={};devices={}
+    for row in rows:
+        for k,v in json.loads(row["counts"]).items():counts[k]=counts.get(k,0)+v
+        for k,v in json.loads(row["income"]).items():income[k]=income.get(k,0)+v
+        for k,v in json.loads(row["device"]).items():
+            group=devices.setdefault(k,{})
+            group[v]=group.get(v,0)+1
+    sql="SELECT d.feature,SUM(d.count) AS n FROM analytics_daily d JOIN users u ON u.id=d.user_id WHERE u.role='specialist' AND u.deleted=0 AND d.day>=?"
+    params=[since]
+    if uid is not None:sql+=" AND u.id=?";params.append(uid)
+    events={row["feature"]:row["n"] for row in c.execute(sql+" GROUP BY d.feature",params)}
+    return {"reported_accounts":len(rows),"counts":counts,"income":income,"devices":devices,"events":events,"reported_at":max((row["reported_at"] for row in rows),default=None)}
 def specialist_metrics(c,u):
     m=c.execute("SELECT client_count,reported_at FROM specialist_metrics WHERE user_id=?",(u["id"],)).fetchone()
-    return {"clients":m["client_count"] if m else None,"reported_at":m["reported_at"] if m else None,"logins":c.execute("SELECT count(*) FROM audit WHERE actor=? AND action='login'",(u["id"],)).fetchone()[0],"days30":c.execute("SELECT count(*) FROM specialist_days WHERE user_id=? AND day>=?",(u["id"],(datetime.now(timezone.utc).date()-timedelta(days=29)).isoformat())).fetchone()[0]}
+    return {"clients":m["client_count"] if m else None,"reported_at":m["reported_at"] if m else None,"logins":c.execute("SELECT count(*) FROM audit WHERE actor=? AND action='login'",(u["id"],)).fetchone()[0],"analytics_enabled":analytics_enabled(c,u["id"]),"advanced":advanced_statistics(c,30,u["id"]) if analytics_enabled(c,u["id"]) else None,"days30":c.execute("SELECT count(*) FROM specialist_days WHERE user_id=? AND day>=?",(u["id"],(datetime.now(timezone.utc).date()-timedelta(days=29)).isoformat())).fetchone()[0]}
 def admin_statistics(c,days):
     today=datetime.now(timezone.utc).date()
     first=today-timedelta(days=days-1)
@@ -197,7 +246,7 @@ def admin_statistics(c,days):
         series[row["day"]]["active"]=row["n"]
     for row in c.execute("SELECT a.day,sum(a.count) AS n FROM ai_usage a JOIN users u ON u.id=a.user_id WHERE u.role='specialist' AND a.day>=? AND a.day<=? GROUP BY a.day",(day,today.isoformat())):
         series[row["day"]]["ai"]=row["n"]
-    return {"days":days,"timezone":"UTC","total":users["total"],"enabled":users["enabled"],"new":users["new"],"active":active,"recent":recent,"logins":logins,"clients_snapshot":clients[0],"reported_accounts":clients[1],"ai_total":sum(areas.values()),"ai_areas":areas,"series":list(series.values())}
+    return {"days":days,"timezone":"UTC","total":users["total"],"enabled":users["enabled"],"new":users["new"],"active":active,"recent":recent,"logins":logins,"clients_snapshot":clients[0],"reported_accounts":clients[1],"ai_total":sum(areas.values()),"ai_areas":areas,"series":list(series.values()),"advanced":advanced_statistics(c,days)}
 def legal_acceptance(c,u):
     row=c.execute("SELECT version,accepted_at,language FROM legal_acceptance WHERE user_id=? AND version=?",(u["id"],LEGAL_VERSION)).fetchone()
     return dict(row) if row else None
@@ -640,12 +689,20 @@ class Handler(BaseHTTPRequestHandler):
                 else: recovery=vault_recovery_secret(c,u["id"]) if row["secret"]=="derived-v1" else row["secret"]
                 audit(c,u["id"],"vault-recovery-"+mode,u["id"])
                 payload={"recovery_secret":recovery}
+            elif path=="/account/api/analytics-preference":
+                enabled=b.get("enabled")
+                if set(b)!={"enabled"} or type(enabled) is not bool or u["onboarding_required"]:raise Error(400,"Некорректная настройка статистики")
+                c.execute("INSERT INTO analytics_preferences VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET enabled=excluded.enabled,changed_at=excluded.changed_at",(u["id"],int(enabled),int(time.time())))
+                if not enabled:
+                    for table in ("analytics_snapshots","analytics_daily","analytics_batches"):c.execute("DELETE FROM "+table+" WHERE user_id=?",(u["id"],))
+                payload={"enabled":enabled}
             elif path=="/account/api/metrics":
                 count=b.get("clients")
                 if type(count) is not int or not 0<=count<=1000000: raise Error(400,"Некорректное количество клиентов")
                 now=int(time.time())
                 c.execute("INSERT INTO specialist_metrics VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET client_count=excluded.client_count,reported_at=excluded.reported_at",(u["id"],count,now))
                 c.execute("INSERT OR IGNORE INTO specialist_days VALUES(?,?)",(u["id"],datetime.now(timezone.utc).date().isoformat()))
+                if "advanced" in b:save_analytics(c,u["id"],b["advanced"],now)
                 payload={"ok":True}
             elif path=="/account/api/workspace-profile":
                 if u["onboarding_required"]: raise Error(403,"Сначала завершите первичную настройку")
@@ -689,7 +746,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=target["id"]
                 audit(c,u["id"],"purge",uid,{"account":{"from":"Архивирован","to":"Удалён окончательно"}})
                 c.execute("INSERT INTO specialist_tombstones VALUES(?,?,?)",(uid,b["id"],int(time.time())))
-                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail"):
+                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","analytics_preferences","analytics_snapshots","analytics_daily","analytics_batches","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail"):
                     c.execute("DELETE FROM "+table+" WHERE user_id=?",(uid,))
                 c.execute("DELETE FROM users WHERE id=?",(uid,))
                 payload={"ok":True}
