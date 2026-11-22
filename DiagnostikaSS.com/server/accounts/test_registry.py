@@ -201,6 +201,8 @@ with tempfile.TemporaryDirectory() as tmp:
         call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid"},expected=400)
         paid_inv=call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid","period":"year","paid_at":paid_at})
         assert call("admin/invite-detail?id="+paid_inv["id"])["paid_amount"]==3588
+        call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid","period":"year","paid_at":paid_at},expected=409)
+        assert any(row["public_id"]==paid_inv["id"] for row in call("admin/subscriptions")["pending"])
         with db() as conn:
             paid_uid=m["create_user"](conn,"paid@example.invalid","fixture-password-paid","specialist")
             inv=conn.execute("SELECT * FROM invites WHERE public_id=?",(paid_inv["id"],)).fetchone()

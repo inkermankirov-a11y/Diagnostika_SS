@@ -447,6 +447,7 @@ def create_invite(c,actor,email,hours,comment,plan='standard',period=None,paid_a
         if period not in SUBSCRIPTION_PRICES:raise Error(400,"Укажите оплаченный период")
         paid_at=payment_date(paid_at)
         if not email:raise Error(400,"STANDARD должен быть привязан к email")
+        if c.execute("SELECT 1 FROM invites WHERE email=? AND access_plan='standard' AND used_at IS NULL",(email,)).fetchone():raise Error(409,"Для этой почты уже есть оплаченный код. Используйте существующую лицензию или перевыпустите срок активации.")
     elif period is not None or paid_at is not None:raise Error(400,"Оплата предусмотрена только для STANDARD")
     if plan=="trial" and not email: raise Error(400,"Пробная лицензия должна быть привязана к email")
     if plan=="trial" and c.execute("SELECT 1 FROM invites WHERE email=? AND access_plan='trial' AND used_at IS NOT NULL",(email,)).fetchone():raise Error(409,"Пробный доступ для этой почты уже использован")
@@ -719,7 +720,8 @@ class Handler(BaseHTTPRequestHandler):
                             if summary["expires"]<=now+7*86400:counts["expiring"]+=1
                         elif summary["status"]=="expired":counts["expired"]+=1
                     income=c.execute("SELECT coalesce(sum(amount),0) FROM subscription_payments WHERE paid_at>=?",(month,)).fetchone()[0]
-                    return self.reply(200,{"counts":counts,"income":income,"total":len(rows),"items":[public(c,row) for row in rows[offset:offset+50]]})
+                    pending=c.execute("SELECT i.public_id,i.email,i.expires,i.revoked_at,p.amount,p.period,p.paid_at,n.number FROM subscription_payments p JOIN invites i ON i.public_id=p.invite_id JOIN license_numbers n ON n.public_id=i.public_id WHERE p.user_id IS NULL ORDER BY p.recorded_at DESC LIMIT 100").fetchall()
+                    return self.reply(200,{"counts":counts,"income":income,"total":len(rows),"items":[public(c,row) for row in rows[offset:offset+50]],"pending":[dict(row) for row in pending]})
                 if path=="/account/api/admin/subscription-history":
                     target=c.execute("SELECT u.id FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist'",(param("id"),)).fetchone()
                     if not target:raise Error(404,"Специалист не найден")
