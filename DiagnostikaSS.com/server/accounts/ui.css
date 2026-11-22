@@ -40,3 +40,5 @@ dialog[open]{position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 32px);o
 #auth #authStatus[data-kind=success]{background:#eaf6ee;border-color:#b9dfc8;color:#226442}#auth #authStatus[data-kind=pending]{background:#edf5fc;border-color:#c7d9e9;color:#355577}
 
 #licenseRenewDialog{width:min(370px,calc(100vw - 24px));padding:18px}#licenseRenewError{color:#a52435;background:#fff0f2;border:1px solid #efb7be;padding:8px;border-radius:6px}#licenseRenewForm .confirm-actions{display:flex;justify-content:flex-end;gap:8px}
+
+#login .license-registration-field{display:grid;gap:5px}#login .license-registration-field[hidden]{display:none!important}#login .license-help-link{justify-self:end;color:#285981;font-size:12px;line-height:1.4;text-decoration:underline;text-underline-offset:2px}#login .license-help-link:focus-visible{outline:2px solid #285981;outline-offset:3px}
