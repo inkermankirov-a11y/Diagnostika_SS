@@ -34,6 +34,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 assert 'FREE' in page and 'STANDARD' in page and 'VIP' not in page
                 assert '399' in page and '199' in page and ('2 388' in page or '2,388' in page)
                 assert ('5 USD' in page or 'USD 5' in page) and ('30 USD' in page or 'USD 30' in page)
+                assert ('2,50 USD' in page or '2.50 USD' in page) and '50' in page
                 assert 'crypto' not in page.lower() and 'крипт' not in page.lower()
         with db() as conn:
             conn.execute("UPDATE users SET onboarding_required=0,first_name='Test',last_name='Specialist' WHERE id IN (?,?)",(admin,uid))
