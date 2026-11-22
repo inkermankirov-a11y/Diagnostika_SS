@@ -422,7 +422,7 @@
     const manager=window.DiagnostikaLocalFolderSync;if(!manager)throw Error('Обновите страницу для проверки синхронизации.');
     await manager.begin(handle);
     try{
-    if(location.hostname==='zabvenye.com'){if(!window.DiagnostikaFolderVault)throw Error('Модуль шифрования не загрузился. Обновите страницу.');const vault=window.DiagnostikaFolderVault;const exists=await vault.hasEncrypted(handle);if(!exists){const e=Error('Сначала зашифруйте базу в разделе «Хранилище».');e.code='ZBV_SETUP_REQUIRED';throw e;}const encrypted=await vault.sync(handle,{ask:false});if(encrypted){manager.finishEncrypted();return {...encrypted,encrypted:true,folder:handle.name,missingReceipts:[]};}}
+    if(location.hostname==='zabvenye.com'){if(!window.DiagnostikaFolderVault)throw Error('Модуль шифрования не загрузился. Обновите страницу.');const vault=window.DiagnostikaFolderVault;const exists=await vault.hasEncrypted(handle);if(!exists){const e=Error('Сначала зашифруйте базу в разделе «Хранилище».');e.code='ZBV_SETUP_REQUIRED';throw e;}const encrypted=await vault.sync(handle,{ask:true});if(encrypted){manager.finishEncrypted();return {...encrypted,encrypted:true,folder:handle.name,missingReceipts:[]};}}
     let app;
     try{app=await handle.getDirectoryHandle(APP_DIR,{create:false});}
     catch(e){if(e?.name==='NotFoundError')app=await handle.getDirectoryHandle(APP_DIR,{create:true});else throw e;}

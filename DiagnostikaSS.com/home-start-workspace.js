@@ -84,7 +84,7 @@
       '<section class="hws-setup" id="hwsStorageSetup" hidden aria-labelledby="hwsSetupTitle">',
         '<div class="hws-setup-head"><span class="hws-setup-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v3"/><path d="M3 7v12a2 2 0 0 0 2 2h6"/><rect x="12" y="13" width="9" height="8" rx="2"/><path d="M14 13v-2a2.5 2.5 0 0 1 5 0v2"/></svg></span><div><h2 id="hwsSetupTitle">Начало работы</h2><p>Настройте личное хранилище в два шага.</p></div></div>',
         '<div class="hws-setup-step" id="hwsSetupFolder"><span class="hws-step-number">1</span><div><h3>Создайте папку для базы</h3><p>Создайте или выберите папку на любом диске компьютера. В ней будет храниться ваша база.</p></div><button type="button" id="hwsChooseFolder">Выбрать папку</button></div>',
-        '<div class="hws-setup-step" id="hwsSetupEncrypt"><span class="hws-step-number">2</span><div><h3 id="hwsSetupEncryptTitle">Зашифруйте базу</h3><p id="hwsSetupEncryptText">Придумайте ключ от 12 символов или создайте случайный ключ. Введите его и нажмите «Зашифровать базу».</p></div><button type="button" id="hwsEncryptFolder">Шифрование</button></div>',
+        '<div class="hws-setup-step" id="hwsSetupEncrypt"><span class="hws-step-number">2</span><div><h3 id="hwsSetupEncryptTitle">Зашифруйте базу</h3><p id="hwsSetupEncryptText">Придумайте ключ от 12 символов или создайте случайный ключ. Введите его и нажмите «Открыть / синхронизировать базу».</p></div><button type="button" id="hwsEncryptFolder">Шифрование</button></div>',
         '<p class="hws-setup-note">Сохраните ключ отдельно: он потребуется для скачивания и переноса базы. Если после обновления ключ не запомнился, введите его снова в «Хранилище».</p>',
       '</section>',
       '<div class="hws-metrics" id="hwsMetrics" aria-live="polite"></div>',
@@ -148,7 +148,7 @@
     if(changed){
       $('#hwsChooseFolder').textContent=chosen?'Сменить папку':'Выбрать папку';
       $('#hwsSetupEncryptTitle').textContent=stage==='existing'?'Откройте зашифрованную базу':'Зашифруйте базу';
-      $('#hwsSetupEncryptText').textContent=stage==='existing'?'Введите ключ существующей базы и нажмите «Зашифровать базу», чтобы подключить её.':'Придумайте ключ от 12 символов или создайте случайный ключ. Введите его и нажмите «Зашифровать базу».';
+      $('#hwsSetupEncryptText').textContent=stage==='existing'?'Введите ключ существующей базы и нажмите «Открыть / синхронизировать базу», чтобы подключить её.':'Придумайте ключ от 12 символов или создайте случайный ключ. Введите его и нажмите «Открыть / синхронизировать базу».';
     }
   }
   function scheduleStorageSetup(){clearTimeout(setupTimer);setupTimer=setTimeout(refreshStorageSetup,80)}

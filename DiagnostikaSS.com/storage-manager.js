@@ -11,7 +11,7 @@
   let appHandle=null;
   let syncTimer=null;
   let syncing=false;
-  let pendingSync=false;
+  let pendingSync=false,manualRevision=-1;
   let folderState=null;
   let backupState='offline', armed=false, revision=0, verifiedRevision=-1, syncError='';
   let missingReceipts=[];
@@ -33,7 +33,7 @@
   }
   function paintSync(value){
     const vault=window.DiagnostikaFolderVault,encrypted=location.hostname==='zabvenye.com'&&vault?.mode();
-    const message=value==='ready'&&encrypted?'Данные синхронизированы и зашифрованы':syncLabels[value];
+    const message=value==='ready'&&encrypted?'Записи базы зашифрованы, вложения сохранены':syncLabels[value];
     const keyIcon=document.querySelector('#storageVaultKey');if(keyIcon){const good=Boolean(vault?.keyUnlocked())&&!['error','locked','offline'].includes(value);keyIcon.style.color=good?'#15803d':'#b42318';keyIcon.setAttribute('aria-label',good?'Ключ подтверждён':'Ключ не подтверждён');keyIcon.setAttribute('title',good?'Ключ подтверждён':'Ключ не подтверждён');const label=keyIcon.querySelector('span');if(label)label.textContent=good?'Ключ подтверждён автоматически':'Ключ не подтверждён';}
     if(value==='ready'&&missingReceipts.length)value='partial';
     backupState=value;if(value!=='error')syncError='';
@@ -388,7 +388,7 @@
       if(syncing)throw Error('Синхронизация уже выполняется. Повторите после её завершения.');
       if(!handle||await permission(handle,false)!=='granted')throw Error('Нет доступа к папке');
       if(syncing)throw Error('Синхронизация уже выполняется.');
-      clearTimeout(syncTimer);syncing=true;armed=false;pendingSync=false;rootHandle=handle;appHandle=null;verifiedRevision=-1;paintSync('working');
+      clearTimeout(syncTimer);syncing=true;armed=false;pendingSync=false;manualRevision=revision;rootHandle=handle;appHandle=null;verifiedRevision=-1;paintSync('working');
     },
     async complete(data){
       if(!syncing)throw Error('Синхронизация не запущена');
@@ -399,7 +399,7 @@
       }catch(e){armed=false;syncError=e.message||'Ошибка записи';paintSync('error');throw e;}
       finally{syncing=false;}
     },
-    finishEncrypted(){syncing=false;armed=true;missingReceipts=[];verifiedRevision=revision;paintSync('ready');void updateStatus().catch(()=>{});},
+    finishEncrypted(){syncing=false;armed=true;missingReceipts=[];verifiedRevision=manualRevision;paintSync(revision===manualRevision?'ready':'pending');if(revision!==manualRevision)scheduleSync();void updateStatus().catch(()=>{});},
     async folderSelected(handle){rootHandle=handle;appHandle=null;folderState=null;armed=false;verifiedRevision=-1;paintSync('pending');await updateStatus();},
     resumeTrusted(){if(syncing||!rootHandle||armed)return;armed=true;paintSync('pending');scheduleSync();void updateStatus().catch(()=>{});},
     fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync(error?.code==='ZBV_KEY_REQUIRED'?'locked':'error');},
@@ -433,14 +433,14 @@
       <section id="storageHelpContent" hidden style="padding:12px;border:1px solid #b9cbdc;border-radius:8px;background:#f6f9fc;color:#24364a;font-size:13px;line-height:1.5">
         <p><strong>Что это такое?</strong><br>Хранилище сохраняет базу клиентов и файлы на вашем компьютере. Google Drive не используется.</p>
         <p><strong>Как сохранить данные?</strong><br>Выберите папку на компьютере. Нажмите «Сохранить текущую базу и файлы в папку». Для восстановления выберите папку и нажмите «Восстановить базу из папки».</p>
-        <p><strong>Зачем нужно шифрование?</strong><br>Файл database.zbv в выбранной папке защищён шифрованием AES-256-GCM.</p>
-        <p><strong>Как пользоваться шифрованием?</strong><br>Создайте ключ или введите пароль от 12 символов. Сохраните ключ отдельно, зашифруйте папку и скачайте файл .zbv. Для восстановления выберите этот файл и введите тот же ключ.</p>
+        <p><strong>Зачем нужно шифрование?</strong><br>Файл database.zbv защищён AES-256-GCM. Прикреплённые файлы в clients-v2 открыты без ключа. Защитите доступ к папке.</p>
+        <p><strong>Как пользоваться шифрованием?</strong><br>Создайте ключ или введите пароль от 12 символов. Сохраните ключ отдельно, зашифруйте папку и скачайте файл .zbv. Для полной резервной копии скопируйте всю папку Diagnostika, включая clients-v2. Для восстановления подключите копию папки и подтвердите ключ.</p>
         <p><strong>Если забыли ключ?</strong><br>Если восстановление по лицензии было подключено заранее, воспользуйтесь кнопкой «Восстановление ключа по лицензии».</p>
       </section>
       <div id="storageStatus" class="storage-status"></div><div class="local-sync-line"><span class="local-sync-dot" role="img"></span><span id="localSyncLabel" role="status"></span></div>
       <details id="localMissingReceipts" class="local-missing-receipts" hidden><summary></summary><p>Эти файлы не найдены ни в браузере, ни в выбранной папке. Записи об оплатах сохранены. При необходимости прикрепите чек заново или удалите его привязку в оплатах.</p><ul></ul></details>
       <div class="storage-info">
-        База клиентов хранится и в браузере, и в выбранной папке. При работе с другого браузера или компьютера сначала восстанови базу из этой папки.
+        База хранится в браузере и выбранной папке. Шифруются записи в database.zbv; вложения в clients-v2 остаются открытыми. Для переноса скопируйте всю папку Diagnostika.
       </div>
       <div class="storage-actions-main">
         <button id="storageChoose" type="button" class="storage-primary">Выбрать папку на компьютере</button>
@@ -448,7 +448,7 @@
         <button id="storageExport" type="button">Сохранить текущую базу и файлы в папку</button>
         <button id="storageDisconnect" type="button">Отключить папку</button>
       </div>
-      <div class="storage-example">В выбранной папке хранится:<br><code>Diagnostika / database.zbv</code></div>
+      <div class="storage-example">В выбранной папке хранится:<br><code>Diagnostika / database.zbv + clients-v2</code></div>
       <div class="storage-footer"><button id="storageClose" type="button">Закрыть</button></div>
     </div>`;
   document.body.appendChild(dlg);

@@ -1,0 +1,22 @@
+name: ZBV split storage migration audit
+on:
+  push:
+    branches: [main, 'feature-zbv-split-v2']
+    paths:
+      - 'DiagnostikaSS.com/vault-*.js'
+      - 'DiagnostikaSS.com/modules/files/**'
+      - 'DiagnostikaSS.com/tests/vault-split-v2.test.mjs'
+      - '.github/workflows/vault-split-v2-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node DiagnostikaSS.com/tests/vault-split-v2.test.mjs

@@ -10,7 +10,8 @@
 
   const DB_NAME='diagnostika-session-media-v1';
   const STORE_NAME='files';
-  const DB_VERSION=1;
+  const DB_VERSION=2;
+  const DELETED='deleted-files';
 
   const EVENTS=Object.freeze({
     created:'file:created',
@@ -43,6 +44,7 @@
           store.createIndex('sessionId','sessionId',{unique:false});
           store.createIndex('clientId','clientId',{unique:false});
         }
+        if(!db.objectStoreNames.contains(DELETED))db.createObjectStore(DELETED);
       };
       req.onsuccess=()=>resolve(req.result);
       req.onerror=()=>reject(req.error||new Error('File database open failed.'));
@@ -110,6 +112,7 @@
     created.type=String(created.type||created.blob?.type||'application/octet-stream');
     created.size=Number(created.size??created.blob?.size??0)||0;
     created.createdAt=created.createdAt||now();
+    if(options.source!=='vault-restore')created.contentRevision=makeId();
 
     const db=await openDb();
     try{
@@ -122,8 +125,9 @@
       if(exists&&!options.overwrite)return null;
 
       await new Promise((resolve,reject)=>{
-        const tx=db.transaction(STORE_NAME,'readwrite');
+        const tx=db.transaction([STORE_NAME,DELETED],'readwrite');
         tx.objectStore(STORE_NAME).put(created);
+        tx.objectStore(DELETED).delete(created.id);
         tx.oncomplete=resolve;
         tx.onerror=()=>reject(tx.error);
         tx.onabort=()=>reject(tx.error||new Error('File write aborted.'));
@@ -164,8 +168,9 @@
     const db=await openDb();
     try{
       await new Promise((resolve,reject)=>{
-        const tx=db.transaction(STORE_NAME,'readwrite');
+        const tx=db.transaction([STORE_NAME,DELETED],'readwrite');
         tx.objectStore(STORE_NAME).delete(id);
+        tx.objectStore(DELETED).put(true,id);
         tx.oncomplete=resolve;
         tx.onerror=()=>reject(tx.error);
         tx.onabort=()=>reject(tx.error||new Error('File delete aborted.'));
@@ -215,6 +220,10 @@
     return removed;
   }
 
+  async function deletedIds(){
+    const db=await openDb();
+    try{return await new Promise((resolve,reject)=>{const tx=db.transaction(DELETED,'readonly'),r=tx.objectStore(DELETED).getAllKeys();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error);});}finally{db.close();}
+  }
   async function count(filter={}){
     const rows=await list(filter);
     return rows.length;
@@ -232,6 +241,7 @@
     remove,
     removeForSession,
     removeForClient,
+    deletedIds,
     count
   });
 })();

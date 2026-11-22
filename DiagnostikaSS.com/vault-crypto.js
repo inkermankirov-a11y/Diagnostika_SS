@@ -56,6 +56,7 @@
   
   // Shared encrypted database container. No plaintext disk writes.
   function validatePackage(pkg){
+    if(pkg?.format==='zbv-folder-v2')return window.DiagnostikaVaultMedia.manifest(pkg);
     if(pkg?.format!=='zbv-backup-v1'||!Array.isArray(pkg.state?.clients)||!Array.isArray(pkg.files))throw Error('Неверный формат базы ZBV');
     const seen=new Set();
     for(const f of pkg.files){
