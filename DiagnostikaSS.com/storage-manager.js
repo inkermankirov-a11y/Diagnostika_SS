@@ -399,7 +399,8 @@
       finally{syncing=false;}
     },
     finishEncrypted(){syncing=false;armed=true;missingReceipts=[];verifiedRevision=revision;paintSync('ready');void updateStatus().catch(()=>{});},
-    fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync('error');},
+    resumeTrusted(){if(syncing||!rootHandle||armed)return;armed=true;paintSync('pending');scheduleSync();void updateStatus().catch(()=>{});},
+    fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync(error?.code==='ZBV_KEY_REQUIRED'?'locked':'error');},
     folderChanged(){window.DiagnostikaFolderVault?.lock();if(syncing)throw Error('Синхронизация уже выполняется');clearTimeout(syncTimer);armed=false;rootHandle=null;appHandle=null;folderState=null;missingReceipts=[];paintSync('offline');},
     attach:attachSyncDot
   });

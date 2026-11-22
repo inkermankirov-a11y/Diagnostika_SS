@@ -3,7 +3,7 @@
  if(location.hostname!=='zabvenye.com')return;
  const NAME='database.zbv', DIR='Diagnostika', MODE='zabvenye-folder-encrypted-v1', BASE='zabvenye-folder-baseline-v1';
  const cryptoApi=()=>window.DiagnostikaVaultCrypto, db=()=>window.DiagnostikaDB||window.DiagnostikaPlatform?.db, files=()=>window.DiagnostikaPlatform?.services?.files;
- let key=null,busy=false;
+ let key=null,busy=false,rememberedOwner=null;
  const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);
  const digest=async raw=>cryptoApi().b64(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw))));
  const get=(k)=>localStorage.getItem(k);
@@ -81,15 +81,17 @@
  }
  async function remembered(root,owner){
   const saved=await deviceStore(owner);
-  if(!saved||!await sameRoot(saved.root,root))return null;
+  if(!saved)return null;
   const bytes=await crypto.subtle.decrypt({name:'AES-GCM',iv:saved.iv,additionalData:new TextEncoder().encode('zabvenye-device-v1:'+owner)},saved.wrap,saved.cipher);
+  // Always authenticate the actual ZBV bytes; folder handles may be reissued by the browser.
+  // A baseline is the hash of the exact previously authenticated file, never a directory name.
   return {secret:new TextDecoder().decode(bytes),baseline:saved.baseline};
  }
  function needsKey(){const e=Error('Один раз введите действующий ключ: этот компьютер ещё не настроен.');e.code='ZBV_KEY_REQUIRED';return e}
  async function mark(raw,secret,root,owner,trust=true){
   const baseline=trust?await digest(raw):null;
-  await remember(root,secret,baseline,owner||await account());
-  set(MODE,'1');if(trust)set(BASE,baseline);key=secret;
+  owner=owner||await account();await remember(root,secret,baseline,owner);
+  set(MODE,'1');if(trust)set(BASE,baseline);key=secret;rememberedOwner=owner||await account();
  }
  async function clean(dir,legacy){
   const scanned=await scan(dir),saved=new Map((legacy||[]).map(x=>[x.path,x.bytes]));
@@ -132,13 +134,12 @@
   }
   return run(async()=>{
    const raw=await (await handle.getFile()).text();
-   let saved=null;try{saved=await remembered(root,owner)}catch(e){if(!ask&&!provided)throw needsKey()}
-   let secret=provided||saved?.secret,pkg,manual=Boolean(provided);
-   key=null;
-   if(secret)try{pkg=await cryptoApi().openDatabase(raw,secret)}catch(e){if(provided)throw e;secret=null;if(!ask)throw needsKey()}
+   let saved=null;try{saved=await remembered(root,owner)}catch(e){if(!provided)throw Error('Не удалось прочитать сохранённый ключ устройства. Повторите попытку; данные не изменены.');}
+   let secret=provided||saved?.secret||(rememberedOwner===owner?key:null),pkg,manual=Boolean(provided);
+   if(secret)try{pkg=await cryptoApi().openDatabase(raw,secret)}catch(e){if(provided)throw e;key=null;rememberedOwner=null;throw Error('Сохранённый ключ не подходит к выбранной базе. Проверьте файл или укажите новый ключ в разделе «Шифрование».');}
    if(!pkg){
     if(!ask)throw needsKey();
-    secret=await cryptoApi().requestSecret({title:'Открыть зашифрованную базу'});
+    secret=await cryptoApi().requestSecret({title:'Однократная настройка ключа на этом компьютере'});
     if(!secret)throw Error('Ввод ключа отменён.');
     pkg=await cryptoApi().openDatabase(raw,secret);manual=true;
    }
@@ -146,8 +147,9 @@
    if(same(pkg,current)){await clean(dir,pkg.legacyDisk);await mark(raw,secret,root,owner);return {count:pkg.state.clients.length}}
    const hash=await digest(raw);
    // Existing legacy browser gets one migration only after explicit key entry.
-   const baseline=saved?saved.baseline:manual?get(BASE):null;
+   const baseline=saved?.baseline??(manual?get(BASE):null);
    if(baseline!==hash){
+    if(manual)await mark(raw,secret,root,owner,false);
     if(ask&&empty(current)){await restore(pkg);await mark(raw,secret,root,owner);return {count:pkg.state.clients.length,restored:true}}
     throw Error('База в папке и браузере различается. Автоматическая перезапись запрещена.');
    }
@@ -161,11 +163,23 @@
   const root=await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')throw Error('Сначала подключите папку.');
   const dir=await app(root),h=await file(dir,NAME);if(!h)throw Error('Зашифрованная база не найдена.');return {root,dir,h,raw:await (await h.getFile()).text()};
  }
- async function verifyKey(secret){
+ async function verifyKey(secret,{rememberDevice=false}={}){
   const root=await savedHandle();if(!root||await root.queryPermission({mode:'readwrite'})!=='granted')return {state:'unavailable'};
   const h=await file(await app(root),NAME);if(!h)return {state:'new'};
-  const raw=await (await h.getFile()).text();await cryptoApi().openDatabase(raw,secret);
-  return {state:'valid',enrolled:typeof JSON.parse(raw).recovery==='string'};
+  if(!rememberDevice){const raw=await (await h.getFile()).text();await cryptoApi().openDatabase(raw,secret);return {state:'valid',enrolled:typeof JSON.parse(raw).recovery==='string'};}
+  return run(async()=>{
+   const owner=await account(),raw=await (await h.getFile()).text(),pkg=await cryptoApi().openDatabase(raw,secret);
+   const hash=await digest(raw),saved=await remembered(root,owner).catch(()=>null);
+   pkg.files.sort((a,b)=>String(a.meta.id).localeCompare(String(b.meta.id)));
+   const current=await snapshot();
+   const trusted=same(pkg,current)||saved?.baseline===hash||(!saved&&get(BASE)===hash);
+   if(await (await h.getFile()).text()!==raw)throw Error('Файл изменился во время проверки. Повторите проверку.');
+   // Do not turn an unrelated or newer file into an authorized overwrite.
+   if(!saved||saved.secret!==secret||saved.baseline!==(trusted?hash:null))await mark(raw,secret,root,owner,trusted);
+   else{key=secret;rememberedOwner=owner;set(MODE,'1');if(trusted)set(BASE,hash);}
+   if(navigator.storage?.persist)void navigator.storage.persist().catch(()=>{});
+   return {state:'valid',remembered:true,enrolled:typeof JSON.parse(raw).recovery==='string'};
+  });
  }
  async function recoveryInfo(){
   try{const {raw}=await connected();return {available:true,enrolled:typeof JSON.parse(raw).recovery==='string'}}catch{return {available:false,enrolled:false}}
@@ -199,5 +213,5 @@
   await mark(out,next,root,owner,trusted);
   return next;
  })}
- window.DiagnostikaFolderVault=Object.freeze({activate,sync,hasEncrypted,mustEncrypt,mode,download,restoreFile,savedHandle,ensureRoot,verifyKey,recoveryInfo,enrollRecovery,recoverKey,keyUnlocked:()=>Boolean(key),lock:()=>{key=null}});
+ window.DiagnostikaFolderVault=Object.freeze({activate,sync,hasEncrypted,mustEncrypt,mode,download,restoreFile,savedHandle,ensureRoot,verifyKey,recoveryInfo,enrollRecovery,recoverKey,keyUnlocked:()=>Boolean(key),lock:()=>{key=null;rememberedOwner=null}});
 })();
