@@ -1,0 +1,24 @@
+name: Notification visual audit
+on:
+  push:
+    branches: [main, 'feature-notice-visibility']
+    paths:
+      - 'DiagnostikaSS.com/account-limits.js'
+      - 'DiagnostikaSS.com/tests/notification-visual.test.mjs'
+      - '.github/workflows/notification-visual.yml'
+  workflow_dispatch:
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: DiagnostikaSS.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install chromium
+      - run: node tests/notification-visual.test.mjs
