@@ -121,6 +121,11 @@ with tempfile.TemporaryDirectory() as tmp:
         b=call("admin/invite",{"hours":24,"comment":"second","access_plan":"vip"})
         assert a["license_number"]=="000001" and b["license_number"]=="000002"
         assert [x["license_number"] for x in call("admin/invites")["items"]]==["000002","000001"]
+        assert [x["license_number"] for x in call("admin/invites?sort=number&dir=asc")["items"]]==["000001","000002"]
+        assert [x["license_number"] for x in call("admin/invites?sort=recipient&dir=asc")["items"]]==["000001","000002"]
+        for sort in ("created","expires","status","owner","invalid"):
+            assert call("admin/invites?sort="+sort+"&dir=asc")["total"]==2
+        assert call("admin/invites?status=active")["total"]==2
         assert call("admin/invites?q=000001")["items"][0]["id"]==a["id"]
         assert call("admin/invite-detail?id="+a["id"])["license_number"]=="000001"
         before=call("admin/invite-detail?id="+a["id"])
@@ -139,6 +144,7 @@ with tempfile.TemporaryDirectory() as tmp:
         call("admin/invite-reissue",{"id":a["id"],"hours":24},expected=403,token="user-test-token")
         check_renew(72,"active")
         with db() as conn: conn.execute("UPDATE invites SET expires=? WHERE public_id=?",(int(time.time())-1,a["id"]))
+        assert call("admin/invites?status=expired")["items"][0]["id"]==a["id"]
         check_renew(168,"expired")
         call("admin/invite-revoke",{"id":a["id"]})
         check_renew(0,"revoked")
@@ -157,6 +163,14 @@ with tempfile.TemporaryDirectory() as tmp:
             m["activate_plan"](conn,trial_id,"trial",now)
             conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("trial-token"),trial_id,now+86400))
             trial_sid=m["ids"](conn,trial_id)["specialist"]
+        with db() as conn:
+            conn.execute("UPDATE invites SET used_at=?,used_by=? WHERE public_id=?",(now,trial_id,tr["id"]))
+        def check_license_status(expected):
+            item=call("admin/invite-detail?id="+tr["id"])
+            assert item["status"]==expected,item
+            assert any(x["id"]==tr["id"] for x in call("admin/invites?status="+expected)["items"])
+            return item
+        check_license_status("used")
         assert call("me",token="trial-token")["trial"]["expires"]==m["trial_end"](now)
         keys=[f"00000000-0000-4000-8000-{i:012d}" for i in range(6)]
         for key in keys[:5]:
@@ -177,6 +191,8 @@ with tempfile.TemporaryDirectory() as tmp:
         assert call("me",token="trial-token")["trial"]["used"]=={"clients":5,"sessions":20,"requests":5,"situations":5,"ai":10}
         assert call("me",token="trial-token")["trial"]["remaining_ai"]==0
         with db() as conn:conn.execute("UPDATE users SET trial_expires=? WHERE id=?",(int(time.time())-1,trial_id))
+        check_license_status("awaiting_payment")
+        assert not any(x["id"]==tr["id"] for x in call("admin/invites?status=used")["items"])
         call("me",expected=403,token="trial-token")
         call("workspace-auth",expected=401,token="trial-token")
         paid_at=int(time.time())
@@ -185,6 +201,7 @@ with tempfile.TemporaryDirectory() as tmp:
         first=call("admin/subscription-payment",payment)
         assert first["billing"]["plan"]=="STANDARD" and first["billing"]["last_payment"]["amount"]==399
         until=first["billing"]["expires"]
+        assert check_license_status("used")["access_expires"]==until
         assert call("admin/subscription-payment",payment)["billing"]["expires"]==until
         second=call("admin/subscription-payment",{**payment,"period":"year","request_id":"10000000-0000-4000-8000-000000000002"})
         assert second["billing"]["expires"]==m["add_months"](until,12)
@@ -192,11 +209,13 @@ with tempfile.TemporaryDirectory() as tmp:
         assert len(call("admin/subscription-history?id="+trial_sid)["items"])==2
         assert call("admin/subscriptions")["income"]==2787
         with db() as conn:conn.execute("UPDATE users SET subscription_expires=? WHERE id=?",(int(time.time())-1,trial_id))
+        check_license_status("awaiting_payment")
         call("me",expected=403,token="trial-token")
         call("workspace-auth",expected=401,token="trial-token")
         call("admin/grant-vip",{"id":trial_sid},expected=403,token="user-test-token")
         assert call("admin/grant-vip",{"id":trial_sid})["billing"]["plan"]=="VIP"
         assert call("me",token="trial-token")["billing"]["expires"] is None
+        assert check_license_status("used")["access_expires"] is None
         call("admin/subscription-payment",{**payment,"request_id":"10000000-0000-4000-8000-000000000003"},expected=409)
         call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid"},expected=400)
         paid_inv=call("admin/invite",{"hours":24,"access_plan":"standard","email":"paid@example.invalid","period":"year","paid_at":paid_at})

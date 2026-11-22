@@ -439,10 +439,24 @@ def invite_status(row,now):
     if row["revoked_at"] is not None: return "revoked"
     if row["expires"] and row["expires"]<=now: return "expired"
     return "active"
+# Registry display status is separate from the one-time activation code lifecycle.
+INVITE_REGISTRY_STATUS = """CASE
+    WHEN i.used_at IS NOT NULL THEN CASE
+        WHEN u.id IS NULL OR u.deleted=1 THEN 'archived'
+        WHEN u.enabled=0 THEN 'blocked'
+        WHEN u.access_plan IN ('trial','standard') AND
+             COALESCE(CASE WHEN u.access_plan='trial' THEN u.trial_expires ELSE u.subscription_expires END,0)<=? THEN 'awaiting_payment'
+        ELSE 'used' END
+    WHEN i.revoked_at IS NOT NULL THEN 'revoked'
+    WHEN i.expires>0 AND i.expires<=? THEN 'expired'
+    ELSE 'active' END"""
 def invite_public(c,row,now):
+    owner=c.execute("SELECT * FROM users WHERE id=?",(row["used_by"],)).fetchone() if row["used_by"] else None
+    status=row["display_status"] if "display_status" in row.keys() else c.execute("SELECT "+INVITE_REGISTRY_STATUS+" FROM invites i LEFT JOIN users u ON u.id=i.used_by WHERE i.public_id=?",(now,now,row["public_id"])).fetchone()[0]
+    access_expires=(owner["trial_expires"] if owner["access_plan"]=="trial" else owner["subscription_expires"] if owner["access_plan"]=="standard" else None) if owner else (trial_end(row["used_at"]) if row["access_plan"]=="trial" and row["used_at"] is not None else add_months(row["used_at"],1 if row["billing_period"]=="month" else 12) if row["access_plan"]=="standard" and row["used_at"] is not None else None)
     number=c.execute("SELECT number FROM license_numbers WHERE public_id=?",(row["public_id"],)).fetchone()
     payment=c.execute("SELECT amount FROM subscription_payments WHERE invite_id=? ORDER BY recorded_at LIMIT 1",(row["public_id"],)).fetchone()
-    return {"id":row["public_id"],"license_number":f"{number[0]:06d}" if number else None,"preview":row["preview"],"email":row["email"],"created":row["created"],"expires":row["expires"],"comment":row["comment"],"status":invite_status(row,now),"used_at":row["used_at"],"used_by":snapshot(c,row["used_by"]) if row["used_by"] else None,"revoked_at":row["revoked_at"],"access_plan":row["access_plan"],"billing_period":row["billing_period"],"paid_amount":payment[0] if payment else None,"access_expires":trial_end(row["used_at"]) if row["access_plan"]=="trial" and row["used_at"] is not None else add_months(row["used_at"],1 if row["billing_period"]=="month" else 12) if row["access_plan"]=="standard" and row["used_at"] is not None else None}
+    return {"id":row["public_id"],"license_number":f"{number[0]:06d}" if number else None,"preview":row["preview"],"email":row["email"],"created":row["created"],"expires":row["expires"],"comment":row["comment"],"status":status,"used_at":row["used_at"],"used_by":snapshot(c,row["used_by"]) if row["used_by"] else None,"revoked_at":row["revoked_at"],"access_plan":row["access_plan"],"billing_period":row["billing_period"],"paid_amount":payment[0] if payment else None,"access_expires":access_expires,"current_access_plan":owner["access_plan"] if owner else None}
 def create_invite(c,actor,email,hours,comment,plan='standard',period=None,paid_at=None):
     now=int(time.time())
     if hours not in (24,72,168,0) or type(hours) is not int: raise Error(400,"Некорректный срок")
@@ -766,14 +780,23 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply(200,detail)
                 if path=="/account/api/admin/invites":
                     now=int(time.time()); state=param("status")
-                    where={"active":"used_at IS NULL AND revoked_at IS NULL AND (expires=0 OR expires>?)","expired":"used_at IS NULL AND revoked_at IS NULL AND expires>0 AND expires<=?","used":"used_at IS NOT NULL","revoked":"used_at IS NULL AND revoked_at IS NOT NULL"}.get(state,"1=1")
-                    args=[now] if state in ("active","expired") else []
+                    registry="""WITH registry AS (SELECT i.*, n.number AS license_no,
+                        casefold(COALESCE(NULLIF(i.comment,''),NULLIF(i.email,''),'')) AS recipient_sort,
+                        casefold(trim(COALESCE(u.first_name,'')||' '||COALESCE(u.last_name,''))) AS owner_sort,
+                        """+INVITE_REGISTRY_STATUS+""" AS display_status
+                        FROM invites i LEFT JOIN users u ON u.id=i.used_by
+                        LEFT JOIN license_numbers n ON n.public_id=i.public_id) """
+                    where="1=1"; args=[now,now]
+                    if state in ("active","used","awaiting_payment","expired","revoked","blocked","archived"):
+                        where+=" AND display_status=?"; args.append(state)
                     qtext=param("q")
                     if qtext:
-                        where+=" AND (instr(casefold(email),casefold(?))>0 OR instr(casefold(comment),casefold(?))>0 OR instr(casefold(preview),casefold(?))>0 OR EXISTS(SELECT 1 FROM license_numbers n WHERE n.public_id=invites.public_id AND instr(printf('%06d',n.number),?)>0) OR instr(public_id,?)>0)"
-                        args.extend([qtext]*5)
-                    total=c.execute("SELECT count(*) FROM invites WHERE "+where,args).fetchone()[0]
-                    rows=c.execute("SELECT * FROM invites WHERE "+where+" ORDER BY (SELECT number FROM license_numbers n WHERE n.public_id=invites.public_id) DESC LIMIT 50 OFFSET ?",args+[offset]).fetchall()
+                        where+=" AND (instr(casefold(email),casefold(?))>0 OR instr(casefold(comment),casefold(?))>0 OR instr(casefold(preview),casefold(?))>0 OR instr(printf('%06d',license_no),?)>0 OR instr(public_id,?)>0 OR instr(owner_sort,casefold(?))>0)"
+                        args.extend([qtext]*6)
+                    field={"number":"license_no","recipient":"recipient_sort","created":"created","expires":"CASE WHEN expires=0 THEN 9223372036854775807 ELSE expires END","status":"CASE display_status WHEN 'active' THEN 1 WHEN 'used' THEN 2 WHEN 'awaiting_payment' THEN 3 WHEN 'expired' THEN 4 WHEN 'blocked' THEN 5 WHEN 'revoked' THEN 6 ELSE 7 END","owner":"owner_sort"}.get(param("sort"),"license_no")
+                    direction="ASC" if param("dir")=="asc" else "DESC"
+                    total=c.execute(registry+"SELECT count(*) FROM registry WHERE "+where,args).fetchone()[0]
+                    rows=c.execute(registry+"SELECT * FROM registry WHERE "+where+" ORDER BY "+field+" "+direction+", license_no DESC LIMIT 50 OFFSET ?",args+[offset]).fetchall()
                     return self.reply(200,{"items":[invite_public(c,row,now) for row in rows],"total":total})
                 if path=="/account/api/admin/audit":
                     return self.reply(200,{"items":audit_rows(c,offset),"total":c.execute("SELECT count(*) FROM audit").fetchone()[0]})
