@@ -104,6 +104,7 @@
       const url=googleUrl(row);
       if(!url) return;
       window.open(url,'_blank','noopener,noreferrer');
+      window.dispatchEvent(new CustomEvent('diagnostika:analytics-feature',{detail:{feature:'google_calendar'}}));
     };
 
     actions.appendChild(google);
