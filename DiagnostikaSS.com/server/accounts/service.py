@@ -17,7 +17,7 @@ SITE=os.getenv("TURNSTILE_SITE_KEY","")
 SECRET=os.getenv("TURNSTILE_SECRET_KEY","")
 DB=DATA/"accounts.sqlite3"
 LEGAL_VERSION="1.0"
-LICENSE_PAGE_TEXT={"ru":["Вход","Получение лицензии","Рабочее пространство для психологов и гипнотерапевтов","Клиенты, диагностика, сессии, финансы и AI — в одной системе.","Как получить доступ","Подтвердите квалификацию","Подготовьте диплом или сертификат профильного обучения.","Оставьте заявку","Напишите в личные сообщения Telegram. Документы и электронную почту передавайте только лично.","Выберите тариф","Согласуйте условия доступа. Данные для оплаты, если она требуется, будут предоставлены лично.","Получите код","Индивидуальный код будет отправлен на вашу почту. Введите его при регистрации.","Тарифы","Предварительные условия. Доступ и сроки согласовываются при заявке.","FREE","0 ₽","1 месяц","До 5 клиентов и 5 сессий на каждого клиента. 20 AI-запросов суммарно во всех модулях. Срок начинается при активации кода.","Стандарт","499 ₽","при оплате за месяц","299 ₽ / мес.","3 588 ₽ за год одним платежом","Основные рабочие модули","VIP","Готовится","Расширенные возможности AI и увеличенные лимиты. Условия уточняются.","Оставить заявку в Telegram","Уже есть код? Зарегистрироваться","Поддержка"],"en":["Sign in","Get a license","A workspace for psychologists and hypnotherapists","Clients, assessments, sessions, finances and AI — in one place.","How to get access","Confirm your qualifications","Prepare a diploma or certificate of relevant training.","Apply for access","Send a private Telegram message. Share documents and your email privately.","Choose a plan","Agree on access terms. Payment details, if needed, will be provided privately.","Receive your code","Your individual code will be emailed to you. Enter it when registering.","Plans","Proposed terms. Access and duration are agreed when you apply.","FREE","₽0","1 month","Up to 5 clients, 5 sessions per client and 20 AI requests across all modules. Starts when the code is activated.","Standard","₽499","when paid monthly","₽299 / mo.","₽3,588 for one year, paid upfront","Core workspace modules","VIP","Coming soon","Expanded AI features and higher limits. Terms to be confirmed.","Apply in Telegram","Already have a code? Register","Support"],"fr":["Connexion","Obtenir une licence","Un espace de travail pour psychologues et hypnothérapeutes","Clients, évaluations, séances, finances et IA au même endroit.","Comment obtenir un accès","Confirmez vos qualifications","Préparez un diplôme ou certificat de formation pertinente.","Envoyez une demande","Envoyez un message privé sur Telegram. Transmettez vos documents et votre e-mail en privé.","Choisissez une offre","Convenez des conditions. Les informations de paiement seront communiquées en privé si nécessaire.","Recevez votre code","Votre code individuel sera envoyé par e-mail. Saisissez-le à l’inscription.","Offres","Conditions proposées. L’accès et la durée sont convenus lors de la demande.","FREE","0 ₽","1 mois","Jusqu’à 5 clients, 5 séances par client et 20 requêtes IA tous modules confondus. Dès l’activation du code.","Standard","499 ₽","paiement mensuel","299 ₽ / mois","3 588 ₽ pour un an en un paiement","Modules principaux","VIP","À venir","Fonctions IA étendues et limites plus élevées. Conditions à confirmer.","Envoyer une demande sur Telegram","Vous avez un code ? Inscrivez-vous","Assistance"],"de":["Anmelden","Lizenz erhalten","Arbeitsbereich für Psychologen und Hypnotherapeuten","Klienten, Auswertungen, Sitzungen, Finanzen und KI an einem Ort.","So erhalten Sie Zugang","Qualifikation nachweisen","Halten Sie ein Diplom oder Zertifikat einer einschlägigen Ausbildung bereit.","Zugang beantragen","Senden Sie eine private Telegram-Nachricht. Übermitteln Sie Dokumente und E-Mail privat.","Tarif wählen","Vereinbaren Sie die Zugangsbedingungen. Zahlungsdaten erhalten Sie bei Bedarf privat.","Code erhalten","Ihr persönlicher Code wird per E-Mail zugesandt. Geben Sie ihn bei der Registrierung ein.","Tarife","Vorgeschlagene Konditionen. Zugang und Laufzeit werden bei der Anfrage vereinbart.","FREE","0 ₽","1 Monat","Bis zu 5 Klienten, 5 Sitzungen je Klient und 20 KI-Anfragen über alle Module. Ab Codeaktivierung.","Standard","499 ₽","bei monatlicher Zahlung","299 ₽ / Monat","3 588 ₽ für ein Jahr als Einmalzahlung","Zentrale Arbeitsmodule","VIP","In Vorbereitung","Erweiterte KI-Funktionen und höhere Limits. Konditionen werden noch festgelegt.","Anfrage auf Telegram","Schon einen Code? Registrieren","Support"],"it":["Accedi","Ottieni una licenza","Uno spazio di lavoro per psicologi e ipnoterapeuti","Clienti, valutazioni, sessioni, finanze e IA in un unico sistema.","Come ottenere accesso","Conferma le qualifiche","Prepara un diploma o un certificato di formazione pertinente.","Invia una richiesta","Invia un messaggio privato su Telegram. Condividi documenti ed e-mail in privato.","Scegli un piano","Concorda le condizioni di accesso. I dati di pagamento, se necessari, saranno comunicati in privato.","Ricevi il codice","Il codice individuale sarà inviato via e-mail. Inseriscilo durante la registrazione.","Piani","Condizioni proposte. Accesso e durata vengono concordati alla richiesta.","FREE","0 ₽","1 mese","Fino a 5 clienti, 5 sessioni per cliente e 20 richieste IA complessive. Dall’attivazione del codice.","Standard","499 ₽","con pagamento mensile","299 ₽ / mese","3 588 ₽ per un anno in un unico pagamento","Moduli di lavoro principali","VIP","In arrivo","Funzioni IA avanzate e limiti maggiori. Condizioni da definire.","Invia una richiesta su Telegram","Hai già un codice? Registrati","Assistenza"]}
+LICENSE_PAGE_TEXT={"ru":["Вход","Получение лицензии","Рабочее пространство для психологов и гипнотерапевтов","Клиенты, диагностика, сессии, финансы и AI — в одной системе.","Как получить доступ","Подтвердите квалификацию","Подготовьте диплом или сертификат профильного обучения.","Оставьте заявку","Напишите в личные сообщения Telegram. Документы и электронную почту передавайте только лично.","Выберите тариф","Согласуйте условия доступа. Данные для оплаты, если она требуется, будут предоставлены лично.","Получите код","Индивидуальный код будет отправлен на вашу почту. Введите его при регистрации.","Тарифы","Предварительные условия. Доступ и сроки согласовываются при заявке.","FREE","0 ₽","1 месяц","До 5 клиентов. На каждого — 5 сессий, 1 запрос и 1 ситуация в диагностике. 20 AI-запросов суммарно во всех модулях. Срок начинается при активации кода.","Стандарт","499 ₽","при оплате за месяц","299 ₽ / мес.","3 588 ₽ за год одним платежом","Основные рабочие модули","VIP","Готовится","Расширенные возможности AI и увеличенные лимиты. Условия уточняются.","Оставить заявку в Telegram","Уже есть код? Зарегистрироваться","Поддержка"],"en":["Sign in","Get a license","A workspace for psychologists and hypnotherapists","Clients, assessments, sessions, finances and AI — in one place.","How to get access","Confirm your qualifications","Prepare a diploma or certificate of relevant training.","Apply for access","Send a private Telegram message. Share documents and your email privately.","Choose a plan","Agree on access terms. Payment details, if needed, will be provided privately.","Receive your code","Your individual code will be emailed to you. Enter it when registering.","Plans","Proposed terms. Access and duration are agreed when you apply.","FREE","₽0","1 month","Up to 5 clients. Per client: 5 sessions, 1 request and 1 assessment situation. 20 AI requests across all modules. Starts on code activation.","Standard","₽499","when paid monthly","₽299 / mo.","₽3,588 for one year, paid upfront","Core workspace modules","VIP","Coming soon","Expanded AI features and higher limits. Terms to be confirmed.","Apply in Telegram","Already have a code? Register","Support"],"fr":["Connexion","Obtenir une licence","Un espace de travail pour psychologues et hypnothérapeutes","Clients, évaluations, séances, finances et IA au même endroit.","Comment obtenir un accès","Confirmez vos qualifications","Préparez un diplôme ou certificat de formation pertinente.","Envoyez une demande","Envoyez un message privé sur Telegram. Transmettez vos documents et votre e-mail en privé.","Choisissez une offre","Convenez des conditions. Les informations de paiement seront communiquées en privé si nécessaire.","Recevez votre code","Votre code individuel sera envoyé par e-mail. Saisissez-le à l’inscription.","Offres","Conditions proposées. L’accès et la durée sont convenus lors de la demande.","FREE","0 ₽","1 mois","Jusqu’à 5 clients : 5 séances, 1 demande et 1 situation par client. 20 requêtes IA au total. Dès l’activation du code.","Standard","499 ₽","paiement mensuel","299 ₽ / mois","3 588 ₽ pour un an en un paiement","Modules principaux","VIP","À venir","Fonctions IA étendues et limites plus élevées. Conditions à confirmer.","Envoyer une demande sur Telegram","Vous avez un code ? Inscrivez-vous","Assistance"],"de":["Anmelden","Lizenz erhalten","Arbeitsbereich für Psychologen und Hypnotherapeuten","Klienten, Auswertungen, Sitzungen, Finanzen und KI an einem Ort.","So erhalten Sie Zugang","Qualifikation nachweisen","Halten Sie ein Diplom oder Zertifikat einer einschlägigen Ausbildung bereit.","Zugang beantragen","Senden Sie eine private Telegram-Nachricht. Übermitteln Sie Dokumente und E-Mail privat.","Tarif wählen","Vereinbaren Sie die Zugangsbedingungen. Zahlungsdaten erhalten Sie bei Bedarf privat.","Code erhalten","Ihr persönlicher Code wird per E-Mail zugesandt. Geben Sie ihn bei der Registrierung ein.","Tarife","Vorgeschlagene Konditionen. Zugang und Laufzeit werden bei der Anfrage vereinbart.","FREE","0 ₽","1 Monat","Bis zu 5 Klienten: je 5 Sitzungen, 1 Anliegen und 1 Situation. Insgesamt 20 KI-Anfragen. Ab Codeaktivierung.","Standard","499 ₽","bei monatlicher Zahlung","299 ₽ / Monat","3 588 ₽ für ein Jahr als Einmalzahlung","Zentrale Arbeitsmodule","VIP","In Vorbereitung","Erweiterte KI-Funktionen und höhere Limits. Konditionen werden noch festgelegt.","Anfrage auf Telegram","Schon einen Code? Registrieren","Support"],"it":["Accedi","Ottieni una licenza","Uno spazio di lavoro per psicologi e ipnoterapeuti","Clienti, valutazioni, sessioni, finanze e IA in un unico sistema.","Come ottenere accesso","Conferma le qualifiche","Prepara un diploma o un certificato di formazione pertinente.","Invia una richiesta","Invia un messaggio privato su Telegram. Condividi documenti ed e-mail in privato.","Scegli un piano","Concorda le condizioni di accesso. I dati di pagamento, se necessari, saranno comunicati in privato.","Ricevi il codice","Il codice individuale sarà inviato via e-mail. Inseriscilo durante la registrazione.","Piani","Condizioni proposte. Accesso e durata vengono concordati alla richiesta.","FREE","0 ₽","1 mese","Fino a 5 clienti: 5 sessioni, 1 richiesta e 1 situazione per cliente. 20 richieste IA complessive. Dall’attivazione del codice.","Standard","499 ₽","con pagamento mensile","299 ₽ / mese","3 588 ₽ per un anno in un unico pagamento","Moduli di lavoro principali","VIP","In arrivo","Funzioni IA avanzate e limiti maggiori. Condizioni da definire.","Invia una richiesta su Telegram","Hai già un codice? Registrati","Assistenza"]}
 LICENSE_PAGE_TEMPLATE="<!doctype html><html lang=\"{lang}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>ZABVENYE — {t1}</title><link rel=\"stylesheet\" href=\"/account/ui.css?v=20261122-license-page-1\"></head><body class=\"license-public\"><header class=\"lp-header\"><div class=\"lp-brand\">ZABVENYE</div><nav aria-label=\"Language\" class=\"lp-languages\">{languages}</nav><a class=\"lp-login\" href=\"/account?lang={lang}\">{t0}</a></header><main class=\"lp-main\"><section class=\"lp-hero\"><p class=\"lp-eyebrow\">{t1}</p><h1>{t2}</h1><p>{t3}</p><a class=\"lp-primary\" href=\"https://t.me/Evgeniy_Prudnikov\" target=\"_blank\" rel=\"noopener noreferrer\">{t28}</a></section><section class=\"lp-section\"><h2>{t4}</h2><ol class=\"lp-steps\"><li><span>1</span><div><h3>{t5}</h3><p>{t6}</p></div></li><li><span>2</span><div><h3>{t7}</h3><p>{t8}</p></div></li><li><span>3</span><div><h3>{t9}</h3><p>{t10}</p></div></li><li><span>4</span><div><h3>{t11}</h3><p>{t12}</p></div></li></ol></section><section class=\"lp-section\"><h2>{t13}</h2><p class=\"lp-muted\">{t14}</p><div class=\"lp-pricing\"><article class=\"lp-plan\"><h3>{t15}</h3><strong>{t16}</strong><p class=\"lp-muted\">{t17}</p><p>{t18}</p></article><article class=\"lp-plan lp-standard\"><h3>{t19}</h3><strong>{t20}</strong><p class=\"lp-muted\">{t21}</p><hr><strong class=\"lp-annual\">{t22}</strong><p class=\"lp-muted\">{t23}</p><p>{t24}</p></article><article class=\"lp-plan\"><h3>{t25}</h3><strong class=\"lp-vip\">{t26}</strong><p>{t27}</p></article></div></section><section class=\"lp-bottom\"><a class=\"lp-primary\" href=\"https://t.me/Evgeniy_Prudnikov\" target=\"_blank\" rel=\"noopener noreferrer\">{t28}</a><a class=\"lp-login\" href=\"/account?lang={lang}#register\">{t29}</a></section></main><footer class=\"lp-footer\">ZABVENYE · <a href=\"https://t.me/zabvenye_com\" target=\"_blank\" rel=\"noopener noreferrer\">{t30}</a></footer></body></html>"
 def license_page(lang):
     if lang not in LICENSE_PAGE_TEXT:lang="ru"
@@ -95,6 +95,13 @@ with db() as c:
     if "access_plan" not in invite_cols: c.execute("ALTER TABLE invites ADD COLUMN access_plan TEXT NOT NULL DEFAULT 'permanent'")
     c.execute("CREATE TABLE IF NOT EXISTS trial_usage(user_id TEXT NOT NULL,feature TEXT NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(user_id,feature))")
     c.execute("CREATE TABLE IF NOT EXISTS trial_clients(user_id TEXT NOT NULL,client_key TEXT NOT NULL,sessions INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(user_id,client_key))")
+    trial_client_cols={row[1] for row in c.execute("PRAGMA table_info(trial_clients)")}
+    for field in ("requests","situations"):
+        if field not in trial_client_cols:c.execute("ALTER TABLE trial_clients ADD COLUMN "+field+" INTEGER NOT NULL DEFAULT 0")
+    for row in c.execute("SELECT id,limits FROM users WHERE access_plan='trial'").fetchall():
+        limits=json.loads(row["limits"]);limits["requests_per_client"]=1
+        c.execute("UPDATE users SET limits=? WHERE id=?",(json.dumps(limits),row["id"]))
+    c.execute("CREATE TABLE IF NOT EXISTS invite_mail(public_id TEXT PRIMARY KEY, attempts INTEGER NOT NULL DEFAULT 0,next_try INTEGER NOT NULL DEFAULT 0,sent_at INTEGER)")
     if "trial_policy" not in cols:
         c.execute("ALTER TABLE users ADD COLUMN trial_policy INTEGER NOT NULL DEFAULT 0")
         for row in c.execute("SELECT id,trial_expires,limits FROM users WHERE access_plan='trial'").fetchall():
@@ -197,9 +204,9 @@ def password_ok(p,stored):
     return hmac.compare_digest(val.hex(),expected)
 def valid_email(e): return isinstance(e,str) and len(e)<=254 and bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+",e))
 def valid_password(p): return isinstance(p,str) and 12<=len(p)<=128 and len(p.encode())<=512
-TRIAL_CAPS={"clients":5,"sessions_per_client":5,"ai":20}
-TRIAL_FEATURES=("clients","sessions","ai")
-TRIAL_LIMITS={**DEFAULT,"clients":5,"sessions":5,"ai_daily":20,"ai_detailed":True,"client_import":False}
+TRIAL_CAPS={"clients":5,"sessions_per_client":5,"requests_per_client":1,"situations_per_client":1,"ai":20}
+TRIAL_FEATURES=("clients","sessions","requests","situations","ai")
+TRIAL_LIMITS={**DEFAULT,"clients":5,"sessions":5,"ai_daily":20,"ai_detailed":True,"client_import":False,"requests_per_client":1}
 def trial_end(now):
     start=datetime.fromtimestamp(now,timezone.utc)
     month=start.month%12+1; year=start.year+(start.month==12)
@@ -224,22 +231,23 @@ def reserve_trial(c,u,feature,client=None):
     else:
         if not isinstance(client,str) or not re.fullmatch(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}",client):raise Error(400,"Некорректный идентификатор лимита")
         key=digest(uid+":"+client)
-        slot=c.execute("SELECT sessions FROM trial_clients WHERE user_id=? AND client_key=?",(uid,key)).fetchone()
+        slot=c.execute("SELECT sessions,requests,situations FROM trial_clients WHERE user_id=? AND client_key=?",(uid,key)).fetchone()
         if feature=="clients":
             if slot:raise Error(409,"Клиент уже учтён в лимите.")
             if used>=5:raise Error(429,"Лимит FREE: 5 клиентов за месяц.")
-            c.execute("INSERT INTO trial_clients VALUES(?,?,0)",(uid,key))
+            c.execute("INSERT INTO trial_clients(user_id,client_key,sessions) VALUES(?,?,0)",(uid,key))
         else:
             if slot is None:
                 registered=c.execute("SELECT count(*) FROM trial_clients WHERE user_id=?",(uid,)).fetchone()[0]
                 previous=c.execute("SELECT count FROM trial_usage WHERE user_id=? AND feature='clients'",(uid,)).fetchone()
                 if registered >= (previous[0] if previous else 0):raise Error(403,"Сначала создайте клиента в рамках FREE.")
-                c.execute("INSERT INTO trial_clients VALUES(?,?,0)",(uid,key))
-                session_count=0
-            else:session_count=slot[0]
-            if session_count>=5:raise Error(429,"Лимит FREE: 5 сессий на одного клиента.")
-            if used>=25:raise Error(429,"Лимит FREE: 25 сессий суммарно.")
-            c.execute("UPDATE trial_clients SET sessions=sessions+1 WHERE user_id=? AND client_key=?",(uid,key))
+                c.execute("INSERT INTO trial_clients(user_id,client_key,sessions) VALUES(?,?,0)",(uid,key))
+                count=0
+            else:count=slot[feature]
+            cap=5 if feature=="sessions" else 1
+            if count>=cap:raise Error(429,"Лимит FREE для этого клиента исчерпан.")
+            if used>=cap*5:raise Error(429,"Общий лимит FREE исчерпан.")
+            c.execute("UPDATE trial_clients SET "+feature+"="+feature+"+1 WHERE user_id=? AND client_key=?",(uid,key))
     c.execute("INSERT INTO trial_usage VALUES(?,?,1) ON CONFLICT(user_id,feature) DO UPDATE SET count=count+1",(uid,feature))
 def activate_plan(c,uid,plan,now):
     if plan=="trial":
@@ -389,9 +397,10 @@ def create_invite(c,actor,email,hours,comment,plan='permanent'):
     token=derive_invite_code(ident)
     expiry=now+hours*3600 if hours else 0
     c.execute("INSERT INTO invites(token,email,expires,public_id,preview,created,comment,created_by,access_plan) VALUES(?,?,?,?,?,?,?,?,?)",(digest(token),email,expiry,ident,token[:12]+"…",now,comment.strip(),actor,plan))
+    if plan=="trial":c.execute("INSERT INTO invite_mail(public_id) VALUES(?)",(ident,))
     number=c.execute("INSERT INTO license_numbers(public_id) VALUES(?)",(ident,)).lastrowid
     audit(c,actor,"invite",email or "Без привязки",{"invitation":{"from":None,"to":token[:12]+"…"},"expiry":{"from":None,"to":hours or "Бессрочно"}})
-    return {"invite":token,"id":ident,"license_number":f"{number:06d}","access_plan":plan}
+    return {"invite":token,"id":ident,"license_number":f"{number:06d}","access_plan":plan,"mail_queued":plan=="trial"}
 def audit(c,actor,action,target,changes=None):
     d={"actor":snapshot(c,actor),"target":snapshot(c,target),"changes":changes or {}}
     c.execute("INSERT INTO audit(actor,action,target,created,details) VALUES(?,?,?,?,?)",(actor,action,target,int(time.time()),json.dumps(d,ensure_ascii=False)))
@@ -503,10 +512,24 @@ def send_next_welcome():
         with db() as c:c.execute("UPDATE welcome_mail SET attempts=attempts+1,next_try=? WHERE user_id=?",(now+min(86400,60*2**min(10,row["attempts"])),row["user_id"]))
         return
     with db() as c:c.execute("UPDATE welcome_mail SET sent_at=? WHERE user_id=?",(int(time.time()),row["user_id"]))
+def send_next_invite():
+    now=int(time.time())
+    with db() as c:
+        row=c.execute("SELECT i.*,m.attempts FROM invite_mail m JOIN invites i ON i.public_id=m.public_id WHERE m.sent_at IS NULL AND m.next_try<=? AND i.used_at IS NULL AND i.revoked_at IS NULL AND (i.expires=0 OR i.expires>?) ORDER BY m.next_try LIMIT 1",(now,now)).fetchone()
+    if not row:return
+    code=recover_invite_code(row)
+    if not code:return
+    try:
+        send_mail(row["email"],"ZABVENYE — лицензия FREE","Ваш лицензионный код: "+code+"\n\nАктивируйте код при регистрации: "+ORIGIN+"/account#register\n\nFREE действует один календарный месяц с момента активации: 5 клиентов, по 5 сессий, 1 запрос и 1 ситуация на клиента, 20 AI-запросов за период.\n\nПоддержка: https://t.me/Evgeniy_Prudnikov")
+    except Exception:
+        with db() as c:c.execute("UPDATE invite_mail SET attempts=attempts+1,next_try=? WHERE public_id=?",(now+min(86400,60*2**min(10,row["attempts"])),row["public_id"]))
+        return
+    with db() as c:c.execute("UPDATE invite_mail SET sent_at=? WHERE public_id=?",(int(time.time()),row["public_id"]))
 def mail_worker():
     while True:
         try:
-            if mail_config():send_next_welcome()
+            if mail_config():
+                send_next_welcome();send_next_invite()
         except Exception:pass
         time.sleep(5)
 
@@ -540,7 +563,7 @@ class Handler(BaseHTTPRequestHandler):
         u=c.execute("SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0",(digest(t),int(time.time()))).fetchone()
         if not u: raise Error(401,"Войдите в аккаунт")
         if admin and u["role"]!="admin": raise Error(403,"Нет доступа")
-        if trial_expired(u): raise Error(403,"Пробный доступ завершён. Обратитесь к администратору.")
+        if trial_expired(u): raise Error(403,"Пробный доступ завершён. Оплатите лицензию для продолжения.")
         now=int(time.time())
         if not u["last_seen"] or now-u["last_seen"]>=60:
             c.execute("UPDATE users SET last_seen=? WHERE id=?",(now,u["id"]))
@@ -714,7 +737,7 @@ class Handler(BaseHTTPRequestHandler):
                         u=c.execute("SELECT * FROM users WHERE email=?",(e,)).fetchone()
                         ok=password_ok(p,u["password"] if u else DUMMY)
                         if not ok or not u or not u["enabled"] or u["deleted"]: raise Error(401,"Неверные данные или аккаунт недоступен")
-                        if trial_expired(u): raise Error(403,"Пробный доступ завершён. Обратитесь к администратору.")
+                        if trial_expired(u): raise Error(403,"Пробный доступ завершён. Оплатите лицензию для продолжения.")
                         c.execute("UPDATE users SET last_seen=? WHERE id=?",(int(time.time()),u["id"])); audit(c,u["id"],"login",u["id"])
                     cookie=self.issue(c,u); uid=u["id"]
                 with db() as c: payload=public(c,c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone())
@@ -771,7 +794,7 @@ class Handler(BaseHTTPRequestHandler):
                 audit(c,u["id"],"vault-recovery-"+mode,u["id"])
                 payload={"recovery_secret":recovery}
             elif path=="/account/api/trial-reserve":
-                if u["onboarding_required"] or set(b)!={"feature","client"} or b.get("feature") not in ("clients","sessions"):raise Error(400,"Некорректный запрос")
+                if u["onboarding_required"] or set(b)!={"feature","client"} or b.get("feature") not in ("clients","sessions","requests","situations"):raise Error(400,"Некорректный запрос")
                 reserve_trial(c,u,b["feature"],b["client"])
                 payload={"ok":True,"trial":trial_usage(c,u)}
             elif path=="/account/api/analytics-preference":
@@ -899,7 +922,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=target["id"]
                 if target["access_plan"]=="trial":
                     for k,cap in (("clients",5),("sessions",5),("ai_daily",20)):limits[k]=min(cap,limits[k]) if limits[k] is not None else cap
-                    limits["client_import"]=False
+                    limits["client_import"]=False;limits["requests_per_client"]=1
                 old=json.loads(target["limits"]); changes={k:{"from":old[k],"to":v} for k,v in limits.items() if old[k]!=v}
                 if bool(target["enabled"])!=enabled: changes["enabled"]={"from":bool(target["enabled"]),"to":enabled}
                 c.execute("UPDATE users SET enabled=?,limits=? WHERE id=?",(int(enabled),json.dumps(limits),uid))
