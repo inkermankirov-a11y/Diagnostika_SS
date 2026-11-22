@@ -4,6 +4,7 @@ from email.message import EmailMessage
 import base64, os, sqlite3, hashlib, secrets, hmac, time, json, re, getpass, sys, urllib.request, urllib.parse, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from contextlib import contextmanager
+from collections import deque
 from pathlib import Path
 from html import escape
 from calendar import monthrange
@@ -425,9 +426,9 @@ def admin_statistics(c,days):
 def legal_acceptance(c,u):
     row=c.execute("SELECT version,accepted_at,language FROM legal_acceptance WHERE user_id=? AND version IN (?,?) ORDER BY accepted_at DESC LIMIT 1",(u["id"],LEGAL_VERSION,LEGAL_VERSION+"-hcs")).fetchone()
     return dict(row) if row else None
-def public(c,u):
+def public(c,u,workspace=False):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"access_plan":u["access_plan"],"billing":billing_summary(c,u),"notifications_unread":notification_count(c,u["id"]),"vip_popup_pending":u["access_plan"]=="vip" and bool(c.execute("SELECT 1 FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL LIMIT 1",(u["id"],)).fetchone()),"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION+("-hcs" if u["access_plan"]=="hcs" else ""),"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":({"analytics_enabled":analytics_enabled(c,u["id"])} if workspace else specialist_metrics(c,u)),"access_plan":u["access_plan"],"billing":billing_summary(c,u),"notifications_unread":notification_count(c,u["id"]),"vip_popup_pending":u["access_plan"]=="vip" and bool(c.execute("SELECT 1 FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL LIMIT 1",(u["id"],)).fetchone()),"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION+("-hcs" if u["access_plan"]=="hcs" else ""),"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u:
@@ -540,6 +541,35 @@ if len(sys.argv)>1 and sys.argv[1]=="admin":
     sys.exit("Admin created")
 # Bound memory and CPU for the small VPS. Rate counters are intentionally ephemeral.
 LOCK=threading.Lock(); RATE={}; HASH_SLOT=threading.BoundedSemaphore(1); REQUESTS=threading.BoundedSemaphore(12)
+# Bound AI work separately so slow webhooks cannot monopolize the HTTP pool.
+# The queue is in memory, bounded, FIFO, and reserves no AI quota until execution.
+class AIGate:
+    def __init__(self,parallel=2,waiting=2,wait_seconds=12):
+        self.parallel=parallel; self.waiting=waiting; self.wait_seconds=wait_seconds
+        self.condition=threading.Condition(); self.active=0; self.queue=deque()
+    @contextmanager
+    def slot(self):
+        ticket=object()
+        with self.condition:
+            if len(self.queue)>=self.waiting and (self.active>=self.parallel or self.queue):
+                raise Error(503,"AI сейчас занят. Повторите запрос через 15–30 секунд. Лимит не списан.")
+            self.queue.append(ticket)
+            deadline=time.monotonic()+self.wait_seconds
+            try:
+                while self.active>=self.parallel or self.queue[0] is not ticket:
+                    remaining=deadline-time.monotonic()
+                    if remaining<=0:raise Error(503,"Очередь AI занята. Повторите запрос через 15–30 секунд. Лимит не списан.")
+                    self.condition.wait(remaining)
+                self.queue.popleft(); self.active+=1; self.condition.notify_all()
+            except BaseException:
+                if ticket in self.queue:self.queue.remove(ticket)
+                self.condition.notify_all()
+                raise
+        try:yield
+        finally:
+            with self.condition:
+                self.active-=1; self.condition.notify_all()
+AI_GATE=AIGate()
 DUMMY=password_hash(secrets.token_hex(24))
 def allowed(key,limit,window):
     now=time.monotonic()
@@ -701,6 +731,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status); self.send_header("Content-Type",ctype if ctype.startswith("image/") else ctype+"; charset=utf-8"); self.send_header("Content-Length",str(len(body)))
         self.send_header("Cache-Control","no-store"); self.send_header("X-Content-Type-Options","nosniff"); self.send_header("X-Frame-Options","DENY"); self.send_header("Referrer-Policy","no-referrer")
         self.send_header("Content-Security-Policy","default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"+("; img-src 'self'" if ctype=="text/html" and urllib.parse.urlsplit(self.path).path.rstrip("/") == "/account/license" else ""))
+        if status==503: self.send_header("Retry-After","15")
         if cookie: self.send_header("Set-Cookie",cookie)
         self.end_headers(); self.wfile.write(body)
     def body(self,limit=8192):
@@ -769,6 +800,9 @@ class Handler(BaseHTTPRequestHandler):
                 c.execute("BEGIN IMMEDIATE")
                 u=self.user(c,path.startswith("/account/api/admin/"))
                 if path=="/account/api/me": return self.reply(200,public(c,u))
+                if path=="/account/api/workspace-status":
+                    if u["onboarding_required"]:raise Error(403,"Сначала завершите первичную настройку")
+                    return self.reply(200,public(c,u,workspace=True))
                 if path=="/account/api/workspace-profile":
                     if u["onboarding_required"]: raise Error(403,"Сначала завершите первичную настройку")
                     return self.reply(200,workspace_payload(c,u))
@@ -1178,6 +1212,14 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError: raise Error(400,"Некорректный запрос")
         if not 0<n<=2000000: raise Error(413,"Запрос слишком большой")
         raw=self.rfile.read(n)
+        if len(raw)!=n:raise Error(400,"Неполный запрос")
+        # Reject invalid sessions before allowing them into the waiting queue.
+        with db() as c:
+            u=self.user(c)
+            if u["onboarding_required"]:raise Error(403,"Завершите настройку профиля")
+        with AI_GATE.slot():
+            return self.ai_execute(area,endpoints[area],ct,raw)
+    def ai_execute(self,area,endpoint,ct,raw):
         with db() as c:
             c.execute("BEGIN IMMEDIATE")
             u=self.user(c)
@@ -1200,7 +1242,7 @@ class Handler(BaseHTTPRequestHandler):
             reserve_trial(c,u,"ai")
             c.execute("INSERT INTO ai_usage(user_id,day,area,count) VALUES(?,?,?,1) ON CONFLICT(user_id,day,area) DO UPDATE SET count=count+1",(u["id"],stat["day"],area))
         # Count dispatched attempts, including upstream failures; never hold SQLite lock during network I/O.
-        req=urllib.request.Request("https://lugovoyn8n.ru/webhook/"+endpoints[area],data=raw,headers={"Content-Type":ct},method="POST")
+        req=urllib.request.Request("https://lugovoyn8n.ru/webhook/"+endpoint,data=raw,headers={"Content-Type":ct},method="POST")
         try:
             with urllib.request.urlopen(req,timeout=100) as res:
                 result=res.read(2000001)
@@ -1221,6 +1263,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception: self.reply(500,{"error":"Внутренняя ошибка сервиса"})
 class Server(ThreadingHTTPServer):
     daemon_threads=True
+    request_queue_size=64
     def process_request(self,request,address):
         if not REQUESTS.acquire(False): self.shutdown_request(request); return
         try: super().process_request(request,address)

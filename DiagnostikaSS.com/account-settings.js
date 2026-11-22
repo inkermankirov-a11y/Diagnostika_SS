@@ -345,20 +345,25 @@
     const complete=document.createElement('button');complete.type='button';complete.textContent='Заполнить';complete.style.cssText='border:0;background:#285481;color:white;padding:7px 12px;border-radius:6px;cursor:pointer';
     complete.onclick=()=>window.open('/account#profile','_blank','noopener,noreferrer');
     reminder.append(reminderText,complete);document.body.append(reminder);
-    let request=0,accountRole=null;
+    let accountRole=null,accountRequest=null;
+    function applyAccountStatus(u,status){
+      if(status===401){location.replace('/account');return;}
+      if(!u){identity.textContent='Сервис аккаунтов недоступен';accountRole=null;cabinet.hidden=true;notifications.hidden=true;exit.hidden=false;return;}
+      if(u.onboarding_required){location.replace('/account');return;}
+      const incomplete=['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);reminder.hidden=!incomplete;reminder.style.display=incomplete?'flex':'none';
+      identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист')+(u.trial?' · FREE · '+new Date(u.trial.expires*1000).toLocaleDateString()+' · AI '+u.trial.remaining_ai+'/'+(u.trial.caps?.ai??u.trial.cap):u.role==='specialist'?' · '+(u.billing?.plan||'STANDARD')+(u.billing?.expires?' · '+new Date(u.billing.expires*1000).toLocaleDateString():''):'');
+      accountRole=u.role;cabinet.hidden=accountRole!=='admin';notifications.hidden=accountRole!=='specialist';noticeCount=u.notifications_unread||0;updateNotificationsName(noticeCount);exit.hidden=false;
+    }
+    const sharedStatus=window.DiagnostikaLimits?.sharedStatus===true;
+    if(sharedStatus)window.addEventListener('diagnostika:workspace-account-status',e=>applyAccountStatus(e.detail?.profile,e.detail?.status));
     async function refreshAccount(){
-      const current=++request;
-      try{
+      if(sharedStatus)return window.DiagnostikaLimits.refresh();
+      if(accountRequest)return accountRequest;
+      accountRequest=(async()=>{try{
         const response=await fetch('/account/api/me',{credentials:'same-origin',cache:'no-store'});
-        if(current!==request)return;
-        if(response.status===401){location.replace('/account');return;}
-        if(!response.ok)throw Error();
-        const u=await response.json();if(current!==request)return;
-        if(u.onboarding_required){location.replace('/account');return;}
-        const incomplete=['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);reminder.hidden=!incomplete;reminder.style.display=incomplete?'flex':'none';
-        identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист')+(u.trial?' · FREE · '+new Date(u.trial.expires*1000).toLocaleDateString()+' · AI '+u.trial.remaining_ai+'/'+(u.trial.caps?.ai??u.trial.cap):u.role==='specialist'?' · '+(u.billing?.plan||'STANDARD')+(u.billing?.expires?' · '+new Date(u.billing.expires*1000).toLocaleDateString():''):'');
-        accountRole=u.role;cabinet.hidden=accountRole!=='admin';notifications.hidden=accountRole!=='specialist';noticeCount=u.notifications_unread||0;updateNotificationsName(noticeCount);exit.hidden=false;
-      }catch{if(current===request){identity.textContent='Сервис аккаунтов недоступен';accountRole=null;cabinet.hidden=true;notifications.hidden=true;exit.hidden=false;}}
+        applyAccountStatus(response.ok?await response.json():null,response.status);
+      }catch{applyAccountStatus(null,0)}finally{accountRequest=null}})();
+      return accountRequest;
     }
     async function canNavigate(){
       if(typeof prepareLeave==='function' && await prepareLeave()===false)return false;
@@ -376,8 +381,7 @@
     });
     accountsBtn.addEventListener('click',refreshAccount,true);
     refreshAccount();
-    window.addEventListener('focus',refreshAccount);
-    setInterval(()=>{if(document.visibilityState==="visible")refreshAccount();},60000);
+    if(!sharedStatus){window.addEventListener('focus',refreshAccount);setInterval(()=>{if(document.visibilityState==='visible')refreshAccount();},120000);}
   }
 
 
@@ -837,8 +841,11 @@
   window.DiagnostikaSpecialistProfile={getName,getAvatar,getProfile:()=>clone(getProfile()),saveProfile:profile=>persistProfile(profile,'specialist-profile-api-save'),nameKey:NAME_KEY,avatarKey:AVATAR_KEY};
   render();
   if(hostedProfile){
-    const sync=()=>syncPending&&!syncConflict?pushWorkspaceProfile():pullWorkspaceProfile();
-    void sync();window.addEventListener('focus',sync);window.addEventListener('online',sync);accountsBtn.addEventListener('click',sync);setInterval(()=>{if(document.visibilityState==='visible')void sync();},45000);
+    let profileTimer=null,lastProfileSync=0;
+    const scheduleProfile=()=>{clearTimeout(profileTimer);profileTimer=setTimeout(()=>{if(document.visibilityState==='visible'||syncPending&&!syncConflict)void sync();else scheduleProfile();},syncPending&&!syncConflict?20000+Math.random()*20000:120000+Math.random()*60000);};
+    const sync=async()=>{lastProfileSync=Date.now();try{await (syncPending&&!syncConflict?pushWorkspaceProfile():pullWorkspaceProfile());}finally{scheduleProfile();}};
+    const focused=()=>{if(Date.now()-lastProfileSync>=10000)void sync();};
+    void sync();window.addEventListener('focus',focused);window.addEventListener('online',sync);accountsBtn.addEventListener('click',sync);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')focused();});
   }
   // Deferred scripts run in order; the country/currency provider loads after this module.
   // Retry after all deferred scripts are ready without resetting a draft being edited.

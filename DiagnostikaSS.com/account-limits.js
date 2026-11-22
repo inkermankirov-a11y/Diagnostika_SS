@@ -22,7 +22,7 @@ function snapshotMetrics(state){
  return {counts,income};
 }
 function privateDevice(){const ua=navigator.userAgent||'',browser=/Edg\//.test(ua)?'Edge':/Firefox\//.test(ua)?'Firefox':/Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':'Other',os=/Android/.test(ua)?'Android':/iPhone|iPad|iPod/.test(ua)?'iOS':/Windows/.test(ua)?'Windows':/Macintosh/.test(ua)?'macOS':/Linux/.test(ua)?'Linux':'Other',type=/iPad|Tablet/.test(ua)?'tablet':/Mobile|iPhone|Android/.test(ua)?'mobile':'desktop';return {browser,os,type}}
-async function reportMetrics(){if(reporting||!profile||Date.now()-lastMetrics<60000)return;const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;const state=db?.readState?.();if(!Array.isArray(state?.clients))return;reporting=true;try{
+async function reportMetrics(){if(document.visibilityState==='hidden'||reporting||!profile||Date.now()-lastMetrics<120000)return;const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;const state=db?.readState?.();if(!Array.isArray(state?.clients))return;reporting=true;lastMetrics=Date.now();try{
  const payload={clients:state.clients.length},owner=profile.id;
  if(eventsOwner!==owner){eventsOwner=owner;events={};pendingReport=null;}
  if(profile.role==='specialist'&&profile.metrics?.analytics_enabled){
@@ -35,7 +35,7 @@ async function reportMetrics(){if(reporting||!profile||Date.now()-lastMetrics<60
   }
   payload.advanced=pendingReport;
  }else{events={};pendingReport=null}
- const r=await fetch('/account/api/metrics',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);let r;try{r=await fetch('/account/api/metrics',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});}finally{clearTimeout(timer);}
  if(r.ok){lastMetrics=Date.now();pendingReport=null;}else if(r.status===403){pendingReport=null;events={};}
  }catch{}finally{reporting=false}}let expiryTimer=null;
 function expireTrial(hcs=profile?.billing?.plan==='HCS'){profile=null;location.replace(hcs?'/account?hcs=expired':'/account?trial=expired');}
@@ -53,7 +53,47 @@ function reserveTrial(feature,client){
   const result=JSON.parse(req.responseText);profile.trial=result.trial;client.trialQuotaId=key;renderQuota();return true;
  }catch(e){window.AppDialog?.alert(e.message||'Не удалось проверить лимит.','Пробный доступ');return false;}
 }
-async function refresh(){try{const r=await fetch('/account/api/me',{credentials:'same-origin',cache:'no-store'});if(!r.ok){if(r.status===403){const reason=await r.json().catch(()=>({}));if(/Пробный доступ завершён|Подписка STANDARD завершена|Учебная лицензия HCS завершена/.test(reason.error||'')){expireTrial(/HCS/.test(reason.error||''));return;}}profile=null;return}profile=await r.json();armTrial();void maybeShowVIP();if(!languageWrites&&profile.ui_language&&window.DiagnostikaI18n?.language!==profile.ui_language)window.DiagnostikaI18n?.setLanguage(profile.ui_language,{persist:false});void reportMetrics();}catch{profile=null}renderQuota();for(const button of document.querySelectorAll('[data-mode="deep"]')){button.hidden=!profile?.limits?.ai_detailed;button.disabled=!profile?.limits?.ai_detailed;}}function allow(flag,limit=null,count=0){if(accessExpiry()&&accessExpiry()*1000<=Date.now()){expireTrial();return false;}if(profile?.limits&&profile.enabled!==false&&profile.limits[flag]!==false&&(limit===null||profile.limits[limit]==null||count<profile.limits[limit]))return true;window.AppDialog?.alert(profile?'Действие ограничено настройками аккаунта.':'Не удалось проверить ограничения аккаунта.','Ограничение аккаунта');return false}window.DiagnostikaLimits=Object.freeze({allow,reserveTrial,isTrial:()=>!!profile?.trial,detailed:()=>profile?.limits?.ai_detailed===true,allowClient:n=>{if(profile?.limits?.clients_enabled===false)return allow('clients_enabled');if(profile&&(profile.limits.clients===null||n<profile.limits.clients))return true;window.AppDialog?.alert(profile?'Достигнут лимит клиентов: '+profile.limits.clients:'Не удалось проверить ограничения аккаунта.','Ограничение аккаунта');return false},refresh});const labels={
+// A single in-flight status check, randomized cadence, and bounded retries.
+let refreshInFlight=null,refreshTimer=null,lastRefresh=0,refreshFailures=0;
+let statusEndpoint='/account/api/workspace-status';
+const randomDelay=(min,max)=>min+Math.floor(Math.random()*(max-min+1));
+function statusDelay(){
+ const hidden=document.visibilityState==='hidden';
+ const normal=hidden?randomDelay(180000,240000):randomDelay(45000,60000);
+ if(!refreshFailures)return normal;
+ const retry=Math.min(120000,15000*2**Math.min(refreshFailures-1,3))+randomDelay(0,5000);
+ return hidden?Math.max(normal,retry):retry;
+}
+function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,statusDelay());}
+function refreshOnFocus(){
+ if(refreshInFlight)return;
+ if(document.visibilityState!=='hidden'&&Date.now()-lastRefresh>=10000)void refresh();
+ else scheduleRefresh();
+}
+async function performRefresh(){
+ lastRefresh=Date.now();
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);let status=0;
+ try{
+  const options={credentials:'same-origin',cache:'no-store',signal:controller.signal};
+  let r=await fetch(statusEndpoint,options);
+  // A safe fallback if the static bundle gets deployed before the account service.
+  if(r.status===404&&statusEndpoint!=='/account/api/me'){statusEndpoint='/account/api/me';r=await fetch(statusEndpoint,options);}
+  status=r.status??(r.ok?200:0);
+  if(!r.ok){
+   if(r.status===403){const reason=await r.json().catch(()=>({}));if(/Пробный доступ завершён|Подписка STANDARD завершена|Учебная лицензия HCS завершена/.test(reason.error||'')){expireTrial(/HCS/.test(reason.error||''));return;}}
+   profile=null;refreshFailures=r.status>=500||r.status===429?refreshFailures+1:0;return;
+  }
+  profile=await r.json();refreshFailures=0;armTrial();void maybeShowVIP();
+  if(!languageWrites&&profile.ui_language&&window.DiagnostikaI18n?.language!==profile.ui_language)window.DiagnostikaI18n?.setLanguage(profile.ui_language,{persist:false});
+  void reportMetrics();
+ }catch{profile=null;refreshFailures++;}
+ finally{
+  clearTimeout(timeout);window.dispatchEvent(new CustomEvent('diagnostika:workspace-account-status',{detail:{profile:profile?{...profile}:null,status}}));renderQuota();
+  for(const button of document.querySelectorAll('[data-mode="deep"]')){button.hidden=!profile?.limits?.ai_detailed;button.disabled=!profile?.limits?.ai_detailed;}
+ }
+}
+function refresh(){if(refreshInFlight)return refreshInFlight;clearTimeout(refreshTimer);refreshInFlight=performRefresh().finally(()=>{refreshInFlight=null;scheduleRefresh();});return refreshInFlight;}
+function allow(flag,limit=null,count=0){if(accessExpiry()&&accessExpiry()*1000<=Date.now()){expireTrial();return false;}if(profile?.limits&&profile.enabled!==false&&profile.limits[flag]!==false&&(limit===null||profile.limits[limit]==null||count<profile.limits[limit]))return true;window.AppDialog?.alert(profile?'Действие ограничено настройками аккаунта.':'Не удалось проверить ограничения аккаунта.','Ограничение аккаунта');return false}window.DiagnostikaLimits=Object.freeze({sharedStatus:true,allow,reserveTrial,isTrial:()=>!!profile?.trial,detailed:()=>profile?.limits?.ai_detailed===true,allowClient:n=>{if(profile?.limits?.clients_enabled===false)return allow('clients_enabled');if(profile&&(profile.limits.clients===null||n<profile.limits.clients))return true;window.AppDialog?.alert(profile?'Достигнут лимит клиентов: '+profile.limits.clients:'Не удалось проверить ограничения аккаунта.','Ограничение аккаунта');return false},refresh});const labels={
  ru:['AI','Использовано AI-запросов сегодня','Дневной лимит','Без ограничений','Проверка доступа…'],
  en:['AI','AI requests used today','Daily limit','Unlimited','Checking access…'],
  fr:['IA','Requêtes IA utilisées aujourd’hui','Limite quotidienne','Illimité','Vérification…'],
@@ -120,5 +160,5 @@ const start=()=>{
  .app-header .ai-quota-detail-limit{font-size:11px;color:#526b81}
  @media(max-width:1180px){.app-header .header-title-group #aiQuotaStatus{padding:0 6px!important;gap:3px!important;font-size:10px!important}.app-header #aiQuotaStatus .ai-quota-value{font-size:11px}.app-header #aiQuotaStatus svg{display:none}}
  @media(max-width:767px),(max-width:1000px) and (max-height:500px) and (pointer:coarse){.app-header .header-title-group #aiQuotaWrap{margin:0!important}.app-header .header-title-group #aiQuotaStatus{height:32px!important;min-height:32px!important;padding:0 6px!important}.app-header #aiQuotaDetails{left:auto;right:0}.app-header #aiQuotaStatus svg{display:none}}
- `;document.head.append(style);placeQuota();refresh();setInterval(refresh,15000);window.addEventListener('focus',refresh);window.addEventListener('diagnostika:language-changed',renderQuota);window.addEventListener('diagnostika:header-component-ready',placeQuota);
+ `;document.head.append(style);placeQuota();refresh();window.addEventListener('focus',refreshOnFocus);document.addEventListener('visibilitychange',refreshOnFocus);window.addEventListener('diagnostika:language-changed',renderQuota);window.addEventListener('diagnostika:header-component-ready',placeQuota);
 };if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();})();
