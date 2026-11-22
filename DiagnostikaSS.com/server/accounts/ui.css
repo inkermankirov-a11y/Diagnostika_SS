@@ -38,3 +38,5 @@ dialog[open]{position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 32px);o
 #login .forgot-link{width:auto;justify-self:end;background:transparent;color:#26537f;border:0;box-shadow:none;padding:0;font-size:13px;text-decoration:underline;min-height:24px}#login .forgot-link[hidden]{display:none}#passwordReset{max-width:380px;margin:auto}#passwordResetStatus{overflow-wrap:anywhere}
 
 #auth #authStatus[data-kind=success]{background:#eaf6ee;border-color:#b9dfc8;color:#226442}#auth #authStatus[data-kind=pending]{background:#edf5fc;border-color:#c7d9e9;color:#355577}
+
+#licenseRenewDialog{width:min(370px,calc(100vw - 24px));padding:18px}#licenseRenewError{color:#a52435;background:#fff0f2;border:1px solid #efb7be;padding:8px;border-radius:6px}#licenseRenewForm .confirm-actions{display:flex;justify-content:flex-end;gap:8px}

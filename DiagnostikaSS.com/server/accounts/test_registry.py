@@ -97,6 +97,27 @@ with tempfile.TemporaryDirectory() as tmp:
         assert [x["license_number"] for x in call("admin/invites")["items"]]==["000002","000001"]
         assert call("admin/invites?q=000001")["items"][0]["id"]==a["id"]
         assert call("admin/invite-detail?id="+a["id"])["license_number"]=="000001"
+        before=call("admin/invite-detail?id="+a["id"])
+        def check_renew(hours,status):
+            now=int(time.time())
+            result=call("admin/invite-reissue",{"id":a["id"],"hours":hours})
+            assert result["status"]=="active" and result["id"]==a["id"] and result["license_number"]==a["license_number"]
+            assert result["code"]==a["invite"] and result["comment"]==before["comment"] and result["created"]==before["created"]
+            assert result["email"]==before["email"] and result["revoked_at"] is None
+            assert result["expires"]==0 if hours==0 else now+hours*3600<=result["expires"]<=int(time.time())+hours*3600
+            with db() as conn:
+                assert conn.execute("SELECT count(*) FROM license_numbers").fetchone()[0]==2
+                assert conn.execute("SELECT token FROM invites WHERE public_id=?",(a["id"],)).fetchone()[0]==m["digest"](a["invite"])
+            print("Renew "+status+" license: PASS")
+        call("admin/invite-reissue",{"id":a["id"],"hours":12},expected=400)
+        call("admin/invite-reissue",{"id":a["id"],"hours":24},expected=403,token="user-test-token")
+        check_renew(72,"active")
+        with db() as conn: conn.execute("UPDATE invites SET expires=? WHERE public_id=?",(int(time.time())-1,a["id"]))
+        check_renew(168,"expired")
+        call("admin/invite-revoke",{"id":a["id"]})
+        check_renew(0,"revoked")
+        with db() as conn: conn.execute("UPDATE invites SET used_at=?,used_by=? WHERE public_id=?",(int(time.time()),uid,b["id"]))
+        call("admin/invite-reissue",{"id":b["id"],"hours":24},expected=409)
         call("admin/invite-revoke",{"id":a["id"]})
         call("admin/invite-delete",{"id":a["id"]})
         c=call("admin/invite",{"hours":24})

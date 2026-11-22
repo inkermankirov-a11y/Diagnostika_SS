@@ -698,13 +698,23 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(ident,str) or not re.fullmatch(r"[a-f0-9]{24}|[a-f0-9]{32}",ident): raise Error(400,"Некорректное приглашение")
                 inv=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
                 now=int(time.time())
-                if not inv or invite_status(inv,now)!="active": raise Error(409,"Приглашение больше не действует")
-                c.execute("UPDATE invites SET revoked_at=? WHERE public_id=?",(now,ident))
-                audit(c,u["id"],"invite-revoke",inv["email"] or "Без привязки",{"invitation":{"from":inv["preview"],"to":"Отозвано"}})
+                if not inv: raise Error(404,"Приглашение не найдено")
                 if path.endswith("reissue"):
-                    hours=b.get("hours",24)
-                    payload=create_invite(c,u["id"],inv["email"],hours,inv["comment"])
-                else: payload={"ok":True}
+                    hours=b.get("hours")
+                    if type(hours) is not int or hours not in (24,72,168,0): raise Error(400,"Некорректный срок")
+                    if inv["used_at"] is not None or inv["used_by"] is not None: raise Error(409,"Активированную лицензию нельзя перевыпустить")
+                    expiry=now+hours*3600 if hours else 0
+                    old_status=invite_status(inv,now)
+                    c.execute("UPDATE invites SET expires=?,revoked_at=NULL WHERE public_id=?",(expiry,ident))
+                    updated=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
+                    payload=invite_public(c,updated,now)
+                    payload["code"]=recover_invite_code(updated)
+                    audit(c,u["id"],"invite-reissue",ident,{"license_number":{"from":payload["license_number"],"to":payload["license_number"]},"license_status":{"from":old_status,"to":"active"},"activation_deadline":{"from":inv["expires"],"to":expiry},"expiry":{"from":None,"to":hours or "Бессрочно"}})
+                else:
+                    if invite_status(inv,now)!="active": raise Error(409,"Приглашение больше не действует")
+                    c.execute("UPDATE invites SET revoked_at=? WHERE public_id=?",(now,ident))
+                    audit(c,u["id"],"invite-revoke",inv["email"] or "Без привязки",{"invitation":{"from":inv["preview"],"to":"Отозвано"}})
+                    payload={"ok":True}
             elif path=="/account/api/admin/update":
                 uid=b.get("id"); limits=b.get("limits"); enabled=b.get("enabled")
                 if not isinstance(uid,str) or type(enabled) is not bool or not isinstance(limits,dict) or set(limits)!=set(FEATURES): raise Error(400,"Некорректные параметры")
