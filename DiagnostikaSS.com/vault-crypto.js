@@ -8,8 +8,9 @@
   function b64(bytes){let s='';for(let i=0;i<bytes.length;i+=16384)s+=String.fromCharCode(...bytes.subarray(i,i+16384));return btoa(s)}
   function unb64(s){if(typeof s!=='string')throw Error('Некорректный формат ZBV');return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
   function recoveryKey(){return 'ZBV1-'+b64(random(32)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+  function validSecret(secret){return typeof secret==='string'&&Array.from(secret).length>=12&&Array.from(secret).length<=512&&!/[\r\n\u0000]/.test(secret)&&secret.trim().length>0}
   async function derive(secret,salt){
-    if(typeof secret!=='string'||secret.length<16||secret.length>512)throw Error('Ключ или пароль должен содержать от 16 до 512 символов.');
+    if(!validSecret(secret))throw Error('Ключ или пароль должен содержать от 12 до 512 символов.');
     if(/^ZBV1-[A-Za-z0-9_-]{43}$/.test(secret)){
       const raw=unb64(secret.slice(5).replace(/-/g,'+').replace(/_/g,'/')+'=');
       const key=await subtle.importKey('raw',raw,'HKDF',false,['deriveKey']);
@@ -39,7 +40,7 @@
   function requestSecret({generate=false,title='Ключ ZABVENYE'}={}){
     return new Promise(resolve=>{
       const d=document.createElement('dialog');d.className='storage-dialog';
-      d.innerHTML='<form class="storage-shell"><div class="storage-title"></div><p>Ключ передавайте отдельно от файла. Потерянный ключ восстановить невозможно.</p><label>Ключ / пароль<input type="password" autocomplete="off" required minlength="16" maxlength="512" style="width:100%"></label><div class="storage-actions-main"><button type="button" data-generate>Создать случайный ключ</button><button type="button" data-copy>Скопировать ключ</button><button type="submit" class="storage-primary">Продолжить</button><button type="button" data-cancel>Отмена</button></div><p role="status"></p></form>';
+      d.innerHTML='<form class="storage-shell"><div class="storage-title"></div><p>Ключ передавайте отдельно от файла. Потерянный ключ восстановить невозможно.</p><label>Ключ / пароль<input type="password" autocomplete="off" required minlength="12" maxlength="1024" style="width:100%"></label><div class="storage-actions-main"><button type="button" data-generate>Создать случайный ключ</button><button type="button" data-copy>Скопировать ключ</button><button type="submit" class="storage-primary">Продолжить</button><button type="button" data-cancel>Отмена</button></div><p role="status"></p></form>';
       d.querySelector('.storage-title').textContent=title;
       const input=d.querySelector('input'),status=d.querySelector('[role=status]'),generator=d.querySelector('[data-generate]');generator.hidden=!generate;d.querySelector('[data-copy]').hidden=!generate;
       let copied=false;
@@ -47,7 +48,7 @@
       input.oninput=()=>{copied=false};
       d.querySelector('[data-copy]').onclick=async()=>{try{await navigator.clipboard.writeText(input.value);copied=true;status.textContent='Ключ скопирован. Сохраните его отдельно.'}catch{input.type='text';input.select();status.textContent='Скопируйте ключ вручную.'}};
       d.querySelector('[data-cancel]').onclick=()=>d.close();
-      d.querySelector('form').onsubmit=e=>{e.preventDefault();if(generate&&!copied&&!localizedConfirm('Вы сохранили ключ отдельно? Без него файл не откроется.'))return;const secret=input.value;input.value='';d.close('ok');resolve(secret)};
+      d.querySelector('form').onsubmit=e=>{e.preventDefault();if(!validSecret(input.value)){status.textContent='Введите ключ от 12 до 512 символов.';return;}if(generate&&!copied&&!localizedConfirm('Вы сохранили ключ отдельно? Без него файл не откроется.'))return;const secret=input.value;input.value='';d.close('ok');resolve(secret)};
       d.onclose=()=>{input.value='';d.remove();if(d.returnValue!=='ok')resolve(null)};
       document.body.append(d);d.showModal();
     })
@@ -90,5 +91,5 @@
     if(JSON.stringify(await openDatabase(saved,secret))!==JSON.stringify(expected))throw Error('Проверка записанной базы не пройдена');
     return expected;
   }
-  window.DiagnostikaVaultCrypto=Object.freeze({seal,open,recoveryKey,b64,unb64,requestSecret,packDatabase,openDatabase,writeDatabase});
+  window.DiagnostikaVaultCrypto=Object.freeze({seal,open,recoveryKey,validSecret,b64,unb64,requestSecret,packDatabase,openDatabase,writeDatabase});
 })();

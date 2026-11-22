@@ -44,6 +44,7 @@
     }
     const label=document.querySelector('#localSyncLabel');if(label)label.textContent=message+(value==='error'&&syncError?': '+syncError:'');
     showReceiptDetails();
+    window.dispatchEvent(new Event('diagnostika:storage-setup-changed'));
   }
   function attachSyncDot(button){
     if(!button||button.querySelector('.local-sync-dot'))return;
@@ -366,7 +367,7 @@
     syncing=true;
     const started=revision;paintSync("working");
     try{
-      if(await protectedFolder()){if(!window.DiagnostikaFolderVault)throw Error('Модуль шифрования недоступен.');const result=await window.DiagnostikaFolderVault.sync(rootHandle,{ask:false});if(!result||result.restored)throw Error('Необходимо открыть базу вручную.');missingReceipts=[];}else{const snapshot=JSON.parse(JSON.stringify(state));await fullExport(snapshot);await verifyCore(snapshot);}
+      if(await protectedFolder()){if(!window.DiagnostikaFolderVault)throw Error('Модуль шифрования недоступен.');const result=await window.DiagnostikaFolderVault.sync(rootHandle,{ask:false});if(!result||result.restored)throw Error('Необходимо открыть базу вручную.');missingReceipts=[];}else{if(location.hostname==='zabvenye.com')throw Error('Сначала зашифруйте базу в разделе «Хранилище».');const snapshot=JSON.parse(JSON.stringify(state));await fullExport(snapshot);await verifyCore(snapshot);}
       verifiedRevision=started;
       paintSync(revision===started?'ready':'pending');
       await updateStatus();
@@ -399,6 +400,7 @@
       finally{syncing=false;}
     },
     finishEncrypted(){syncing=false;armed=true;missingReceipts=[];verifiedRevision=revision;paintSync('ready');void updateStatus().catch(()=>{});},
+    async folderSelected(handle){rootHandle=handle;appHandle=null;folderState=null;armed=false;verifiedRevision=-1;paintSync('pending');await updateStatus();},
     resumeTrusted(){if(syncing||!rootHandle||armed)return;armed=true;paintSync('pending');scheduleSync();void updateStatus().catch(()=>{});},
     fail(error){syncing=false;armed=false;syncError=error?.message||'Ошибка записи';paintSync(error?.code==='ZBV_KEY_REQUIRED'?'locked':'error');},
     folderChanged(){window.DiagnostikaFolderVault?.lock();if(syncing)throw Error('Синхронизация уже выполняется');clearTimeout(syncTimer);armed=false;rootHandle=null;appHandle=null;folderState=null;missingReceipts=[];paintSync('offline');},
@@ -432,7 +434,7 @@
         <p><strong>Что это такое?</strong><br>Хранилище сохраняет базу клиентов и файлы на вашем компьютере. Google Drive не используется.</p>
         <p><strong>Как сохранить данные?</strong><br>Выберите папку на компьютере. Нажмите «Сохранить текущую базу и файлы в папку». Для восстановления выберите папку и нажмите «Восстановить базу из папки».</p>
         <p><strong>Зачем нужно шифрование?</strong><br>Файл database.zbv в выбранной папке защищён шифрованием AES-256-GCM.</p>
-        <p><strong>Как пользоваться шифрованием?</strong><br>Создайте ключ или введите пароль от 16 символов. Сохраните ключ отдельно, зашифруйте папку и скачайте файл .zbv. Для восстановления выберите этот файл и введите тот же ключ.</p>
+        <p><strong>Как пользоваться шифрованием?</strong><br>Создайте ключ или введите пароль от 12 символов. Сохраните ключ отдельно, зашифруйте папку и скачайте файл .zbv. Для восстановления выберите этот файл и введите тот же ключ.</p>
         <p><strong>Если забыли ключ?</strong><br>Если восстановление по лицензии было подключено заранее, воспользуйтесь кнопкой «Восстановление ключа по лицензии».</p>
       </section>
       <div id="storageStatus" class="storage-status"></div><div class="local-sync-line"><span class="local-sync-dot" role="img"></span><span id="localSyncLabel" role="status"></span></div>
@@ -461,7 +463,16 @@
       status.textContent='Не удалось проверить папку. Выберите папку заново или повторите попытку.';
     });
   }
-  window.DiagnostikaStorageUI=Object.freeze({open:openStorage});
+  async function setupStatus(){
+    const vault=window.DiagnostikaFolderVault;
+    if(location.hostname!=='zabvenye.com'||!vault)return 'unknown';
+    const root=await loadHandle();
+    if(!root)return 'folder';
+    if(await permission(root,false)!=='granted')return vault.mode()&&localStorage.getItem('zabvenye-folder-baseline-v1')?'ready':'folder';
+    if(!await vault.hasEncrypted(root))return 'encrypt';
+    return (vault.mode()&&localStorage.getItem('zabvenye-folder-baseline-v1')||vault.keyUnlocked()&&backupState==='ready')?'ready':'existing';
+  }
+  window.DiagnostikaStorageUI=Object.freeze({open:openStorage,setupStatus});
   document.addEventListener('click',event=>{
     const control=event.target?.closest?.('#storageBtn');
     if(!control)return;
@@ -672,7 +683,7 @@
         appHandle=null;
         if(await protectedFolder()){await new Promise(resolve=>{if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',resolve,{once:true});else resolve();});await window.DiagnostikaPlatform?.ready;if(!rootHandle||syncing)return;armed=true;await doSync();return;}
         folderState=await readFolderState();
-        if(folderState&&canonical(folderState)===canonical(state)){armed=true;paintSync('pending');scheduleSync();}else paintSync(folderState?'restore':'pending');
+        if(location.hostname==='zabvenye.com'){armed=false;paintSync('pending');}else if(folderState&&canonical(folderState)===canonical(state)){armed=true;paintSync('pending');scheduleSync();}else paintSync(folderState?'restore':'pending');
       }
     }catch(e){
       paintSync('error');console.warn('Не удалось восстановить выбранную папку',e);

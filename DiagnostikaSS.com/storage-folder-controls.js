@@ -43,6 +43,9 @@
       }
       window.DiagnostikaLocalFolderSync?.folderChanged();
       await saveHandle(handle);
+      await window.DiagnostikaLocalFolderSync?.folderSelected?.(handle);
+      window.dispatchEvent(new Event('diagnostika:storage-setup-changed'));
+      if(location.hostname==='zabvenye.com')return handle;
       await AppDialog.alert(
         `Выбрана папка: ${handle.name}.\nТеперь нажми «Синхронизировать», чтобы объединить базу браузера и этой папки.`,
         'Папка подключена'
@@ -55,6 +58,7 @@
     }
   }
 
+  window.DiagnostikaStorageFolderPicker=Object.freeze({choose:chooseFolder});
   function install(){
     const actions=document.querySelector('#storageDialog .storage-actions-main')||document.querySelector('.storage-dialog .storage-actions-main');
     const sync=actions?.querySelector('#storageSync');
