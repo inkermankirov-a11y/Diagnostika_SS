@@ -175,7 +175,7 @@
     const created=freshSession(data,c,options);
     if(!created||get(created.id,c))return null;
 
-    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.reserveTrial('sessions'))return null;
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.reserveTrial('sessions',c))return null;
     c.sessions.push(created);
     if(!persist()){
       c.sessions.pop();

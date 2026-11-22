@@ -33,7 +33,7 @@
   const DOMAINS=Object.freeze([
     {
       id:'clients',
-      service:['modules/clients/client-service.js?v=20261121-quota41-trial-1','data-clients-service'],
+      service:['modules/clients/client-service.js?v=20261121-quota41-trial-1-free-month-1','data-clients-service'],
       module:['modules/clients/index.js?v=20260918-clients2b2','data-clients-module'],
       api:['client-api.js?v=20261005-archive-1&api=13d&pin=18a&cleanup=23b','data-client-api'],
       ready:()=>window.DiagnostikaClients?.moduleAware===true
@@ -54,7 +54,7 @@
     },
     {
       id:'sessions',
-      service:['modules/sessions/session-service.js?v=20260918-sessions4c&cleanup=23c&policy=20261121-feature-limits-1-trial-1','data-sessions-service'],
+      service:['modules/sessions/session-service.js?v=20260918-sessions4c&cleanup=23c&policy=20261121-feature-limits-1-trial-1-free-month-1','data-sessions-service'],
       module:['modules/sessions/index.js?v=20260918-sessions4c','data-sessions-module'],
       api:['session-api.js?v=20260918-sessions4c&api=13d','data-session-api'],
       ready:()=>window.DiagnostikaSessions?.moduleAware===true

@@ -312,7 +312,7 @@
 
     const clients = list();
     if (!Array.isArray(clients)) return null;
-    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.reserveTrial('clients'))return null;
+    if(location.hostname==='zabvenye.com'&&!window.DiagnostikaLimits?.reserveTrial('clients',created))return null;
     clients.push(created);
 
     if (!persist()) {

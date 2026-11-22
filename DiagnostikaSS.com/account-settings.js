@@ -363,7 +363,7 @@
         const u=await response.json();if(current!==request)return;
         if(u.onboarding_required){location.replace('/account');return;}
         const incomplete=['first_name','last_name','birth_date','gender','country','city','timezone'].some(k=>!u[k]);reminder.hidden=!incomplete;reminder.style.display=incomplete?'flex':'none';
-        identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист');
+        identity.textContent=u.email+(u.role==='admin'?' · Администратор':' · Специалист')+(u.trial?' · FREE · '+new Date(u.trial.expires*1000).toLocaleDateString()+' · AI '+u.trial.remaining_ai+'/20':'');
         accountRole=u.role;cabinet.hidden=accountRole!=='admin';exit.hidden=false;analyticsPanel.hidden=accountRole!=='specialist';analyticsPanel.style.display=analyticsPanel.hidden?'none':'flex';if(!analyticsToggle.disabled||!analyticsPanel.hidden){analyticsToggle.checked=u.metrics?.analytics_enabled===true;analyticsToggle.disabled=false;}
       }catch{if(current===request){identity.textContent='Сервис аккаунтов недоступен';accountRole=null;cabinet.hidden=true;exit.hidden=false;analyticsPanel.hidden=true;analyticsPanel.style.display='none';analyticsToggle.disabled=true;}}
     }
