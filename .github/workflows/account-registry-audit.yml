@@ -1,7 +1,7 @@
 name: Account registry audit
 on:
   push:
-    branches: [main, 'feature-license-mascot']
+    branches: [main, 'feature-license-mascot', 'feature-hcs-license']
     paths:
       - 'DiagnostikaSS.com/server/accounts/**'
       - '.github/workflows/account-registry-audit.yml'

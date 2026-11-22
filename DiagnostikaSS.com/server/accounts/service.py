@@ -229,16 +229,19 @@ def add_months(now,n):
     return int(start.replace(year=y,month=m+1,day=min(start.day,monthrange(y,m+1)[1])).timestamp())
 def subscription_expired(u,now=None):
     return u["access_plan"]=="standard" and (not u["subscription_expires"] or u["subscription_expires"]<=(int(time.time()) if now is None else now))
+def hcs_expired(u,now=None):
+    return u["access_plan"]=="hcs" and (not u["subscription_expires"] or u["subscription_expires"]<=(int(time.time()) if now is None else now))
 def require_access(u):
+    if hcs_expired(u):raise Error(403,"Учебная лицензия HCS завершена. Для продления обратитесь к администратору.")
     if trial_expired(u):raise Error(403,"Пробный доступ завершён. Оплатите лицензию для продолжения.")
     if subscription_expired(u):raise Error(403,"Подписка STANDARD завершена. Оплатите лицензию для продолжения.")
 def billing_summary(c,u):
     if u["role"]=="admin":return None
-    plan={"trial":"FREE","vip":"VIP","standard":"STANDARD","permanent":"STANDARD"}.get(u["access_plan"],"STANDARD")
-    expires=u["trial_expires"] if plan=="FREE" else u["subscription_expires"] if u["access_plan"]=="standard" else None
+    plan={"trial":"FREE","vip":"VIP","standard":"STANDARD","permanent":"STANDARD","hcs":"HCS"}.get(u["access_plan"],"STANDARD")
+    expires=u["trial_expires"] if plan=="FREE" else u["subscription_expires"] if u["access_plan"] in ("standard","hcs") else None
     payment=c.execute("SELECT period,amount,paid_at,end_at FROM subscription_payments WHERE user_id=? ORDER BY recorded_at DESC,rowid DESC LIMIT 1",(u["id"],)).fetchone()
     now=int(time.time())
-    status="archived" if u["deleted"] else "blocked" if not u["enabled"] else "legacy" if u["access_plan"]=="permanent" else "expired" if expires is not None and expires<=now else "pending" if u["access_plan"]=="standard" and not expires else "active"
+    status="archived" if u["deleted"] else "blocked" if not u["enabled"] else "legacy" if u["access_plan"]=="permanent" else "expired" if expires is not None and expires<=now else "expired" if u["access_plan"]=="hcs" and not expires else "pending" if u["access_plan"]=="standard" and not expires else "active"
     return {"plan":plan,"period":u["subscription_period"],"expires":expires,"status":status,"last_payment":dict(payment) if payment else None,"legacy":u["access_plan"]=="permanent"}
 def payment_date(value):
     if type(value) is not int or not 0<value<=int(time.time()):raise Error(400,"Укажите действительную дату поступления оплаты")
@@ -268,6 +271,7 @@ def payment_record(c,actor,target,period,paid_at,request_id,now):
     if not isinstance(request_id,str) or not re.fullmatch(r"[a-f0-9-]{36}",request_id):raise Error(400,"Некорректный идентификатор оплаты")
     paid_at=payment_date(paid_at)
     if target["access_plan"]=="vip":raise Error(409,"VIP не требует оплаты")
+    if target["access_plan"]=="hcs" and not hcs_expired(target,now):raise Error(409,"HCS действует бесплатно до окончания учебного периода")
     prev=c.execute("SELECT * FROM subscription_payments WHERE id=?",(request_id,)).fetchone()
     if prev:
         if prev["user_id"]!=target["id"] or prev["period"]!=period or prev["paid_at"]!=paid_at:raise Error(409,"Идентификатор оплаты уже используется")
@@ -276,7 +280,7 @@ def payment_record(c,actor,target,period,paid_at,request_id,now):
     end=add_months(start,1 if period=="month" else 12)
     c.execute("INSERT INTO subscription_payments VALUES(?,?,?,?,?,?,?,?,?,?)",(request_id,target["id"],None,period,SUBSCRIPTION_PRICES[period],paid_at,now,actor,start,end))
     limits=json.loads(target["limits"])
-    if target["access_plan"]=="trial":limits=json.loads(json.dumps(DEFAULT))
+    if target["access_plan"] in ("trial","hcs"):limits=json.loads(json.dumps(DEFAULT))
     c.execute("UPDATE users SET access_plan='standard',subscription_expires=?,subscription_period=?,trial_expires=NULL,limits=? WHERE id=?",(end,period,json.dumps(limits),target["id"]))
     queue_notification(c,target["id"],"payment",now,ident="payment-"+request_id,expires=end)
     audit(c,actor,"subscription-payment",target["id"],{"amount":{"from":None,"to":SUBSCRIPTION_PRICES[period]},"access_until":{"from":target["subscription_expires"],"to":end}})
@@ -327,6 +331,8 @@ def activate_plan(c,uid,plan,now,invite=None):
     if plan=="vip":
         c.execute("UPDATE users SET access_plan='vip' WHERE id=?",(uid,))
         queue_notification(c,uid,"vip",now)
+    elif plan=="hcs":
+        c.execute("UPDATE users SET access_plan='hcs',subscription_period='six_months',subscription_expires=?,trial_expires=NULL WHERE id=?",(add_months(now,6),uid))
     elif plan=="standard":
         if not invite or invite["billing_period"] not in SUBSCRIPTION_PRICES:raise Error(409,"Оплата STANDARD не зарегистрирована")
         period=invite["billing_period"];end=add_months(now,1 if period=="month" else 12)
@@ -334,6 +340,14 @@ def activate_plan(c,uid,plan,now,invite=None):
         c.execute("UPDATE users SET access_plan='standard',subscription_period=?,subscription_expires=? WHERE id=?",(period,end,uid))
     elif plan=="trial":
         c.execute("UPDATE users SET access_plan='trial',trial_expires=?,trial_policy=2,limits=? WHERE id=?",(trial_end(now),json.dumps(TRIAL_LIMITS),uid))
+def renew_hcs(c,actor,target,expected,now):
+    if target["access_plan"]!="hcs":raise Error(409,"Продление доступно только для HCS")
+    if not target["enabled"]:raise Error(409,"Сначала разблокируйте аккаунт")
+    if type(expected) is not int or expected!=target["subscription_expires"]:raise Error(409,"Срок уже изменился. Обновите карточку специалиста")
+    end=add_months(max(now,expected),6)
+    c.execute("UPDATE users SET subscription_period='six_months',subscription_expires=? WHERE id=?",(end,target["id"]))
+    audit(c,actor,"hcs-renewal",target["id"],{"access_until":{"from":expected,"to":end}})
+    return end
 def usage(c,u):
     day=datetime.now(timezone.utc).date().isoformat()
     areas={a:0 for a in AI_AREAS}
@@ -409,11 +423,11 @@ def admin_statistics(c,days):
         series[row["day"]]["ai"]=row["n"]
     return {"days":days,"timezone":"UTC","total":users["total"],"enabled":users["enabled"],"new":users["new"],"active":active,"recent":recent,"logins":logins,"clients_snapshot":clients[0],"reported_accounts":clients[1],"ai_total":sum(areas.values()),"ai_areas":areas,"series":list(series.values()),"advanced":advanced_statistics(c,days)}
 def legal_acceptance(c,u):
-    row=c.execute("SELECT version,accepted_at,language FROM legal_acceptance WHERE user_id=? AND version=?",(u["id"],LEGAL_VERSION)).fetchone()
+    row=c.execute("SELECT version,accepted_at,language FROM legal_acceptance WHERE user_id=? AND version IN (?,?) ORDER BY accepted_at DESC LIMIT 1",(u["id"],LEGAL_VERSION,LEGAL_VERSION+"-hcs")).fetchone()
     return dict(row) if row else None
 def public(c,u):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"access_plan":u["access_plan"],"billing":billing_summary(c,u),"notifications_unread":notification_count(c,u["id"]),"vip_popup_pending":u["access_plan"]=="vip" and bool(c.execute("SELECT 1 FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL LIMIT 1",(u["id"],)).fetchone()),"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION,"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"access_plan":u["access_plan"],"billing":billing_summary(c,u),"notifications_unread":notification_count(c,u["id"]),"vip_popup_pending":u["access_plan"]=="vip" and bool(c.execute("SELECT 1 FROM account_notifications WHERE user_id=? AND kind='vip' AND popup_at IS NULL AND read_at IS NULL LIMIT 1",(u["id"],)).fetchone()),"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION+("-hcs" if u["access_plan"]=="hcs" else ""),"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u:
@@ -468,8 +482,8 @@ INVITE_REGISTRY_STATUS = """CASE
     WHEN i.used_at IS NOT NULL THEN CASE
         WHEN u.id IS NULL OR u.deleted=1 THEN 'archived'
         WHEN u.enabled=0 THEN 'blocked'
-        WHEN u.access_plan IN ('trial','standard') AND
-             COALESCE(CASE WHEN u.access_plan='trial' THEN u.trial_expires ELSE u.subscription_expires END,0)<=? THEN 'awaiting_payment'
+        WHEN u.access_plan IN ('trial','standard','hcs') AND
+             COALESCE(CASE WHEN u.access_plan='trial' THEN u.trial_expires ELSE u.subscription_expires END,0)<=? THEN CASE WHEN u.access_plan='hcs' THEN 'awaiting_renewal' ELSE 'awaiting_payment' END
         ELSE 'used' END
     WHEN i.revoked_at IS NOT NULL THEN 'revoked'
     WHEN i.expires>0 AND i.expires<=? THEN 'expired'
@@ -477,20 +491,22 @@ INVITE_REGISTRY_STATUS = """CASE
 def invite_public(c,row,now):
     owner=c.execute("SELECT * FROM users WHERE id=?",(row["used_by"],)).fetchone() if row["used_by"] else None
     status=row["display_status"] if "display_status" in row.keys() else c.execute("SELECT "+INVITE_REGISTRY_STATUS+" FROM invites i LEFT JOIN users u ON u.id=i.used_by WHERE i.public_id=?",(now,now,row["public_id"])).fetchone()[0]
-    access_expires=(owner["trial_expires"] if owner["access_plan"]=="trial" else owner["subscription_expires"] if owner["access_plan"]=="standard" else None) if owner else (trial_end(row["used_at"]) if row["access_plan"]=="trial" and row["used_at"] is not None else add_months(row["used_at"],1 if row["billing_period"]=="month" else 12) if row["access_plan"]=="standard" and row["used_at"] is not None else None)
+    access_expires=(owner["trial_expires"] if owner["access_plan"]=="trial" else owner["subscription_expires"] if owner["access_plan"] in ("standard","hcs") else None) if owner else (trial_end(row["used_at"]) if row["access_plan"]=="trial" and row["used_at"] is not None else add_months(row["used_at"],1 if row["billing_period"]=="month" else 12) if row["access_plan"]=="standard" and row["used_at"] is not None else add_months(row["used_at"],6) if row["access_plan"]=="hcs" and row["used_at"] is not None else None)
     number=c.execute("SELECT number FROM license_numbers WHERE public_id=?",(row["public_id"],)).fetchone()
     payment=c.execute("SELECT amount FROM subscription_payments WHERE invite_id=? ORDER BY recorded_at LIMIT 1",(row["public_id"],)).fetchone()
     return {"id":row["public_id"],"license_number":f"{number[0]:06d}" if number else None,"preview":row["preview"],"email":row["email"],"created":row["created"],"expires":row["expires"],"comment":row["comment"],"status":status,"used_at":row["used_at"],"used_by":snapshot(c,row["used_by"]) if row["used_by"] else None,"revoked_at":row["revoked_at"],"access_plan":row["access_plan"],"billing_period":row["billing_period"],"paid_amount":payment[0] if payment else None,"access_expires":access_expires,"current_access_plan":owner["access_plan"] if owner else None}
 def create_invite(c,actor,email,hours,comment,plan='standard',period=None,paid_at=None):
     now=int(time.time())
     if hours not in (24,72,168,0) or type(hours) is not int: raise Error(400,"Некорректный срок")
-    if plan not in ("trial","standard","vip"): raise Error(400,"Некорректный тип лицензии")
+    if plan not in ("trial","standard","vip","hcs"): raise Error(400,"Некорректный тип лицензии")
     if plan=="standard":
         if period not in SUBSCRIPTION_PRICES:raise Error(400,"Укажите оплаченный период")
         paid_at=payment_date(paid_at)
         if not email:raise Error(400,"STANDARD должен быть привязан к email")
         if c.execute("SELECT 1 FROM invites WHERE email=? AND access_plan='standard' AND used_at IS NULL",(email,)).fetchone():raise Error(409,"Для этой почты уже есть оплаченный код. Используйте существующую лицензию или перевыпустите срок активации.")
     elif period is not None or paid_at is not None:raise Error(400,"Оплата предусмотрена только для STANDARD")
+    if plan=="hcs" and not email: raise Error(400,"Учебная лицензия HCS должна быть привязана к email")
+    if plan=="hcs" and c.execute("SELECT 1 FROM invites WHERE email=? AND access_plan='hcs' AND used_at IS NULL AND revoked_at IS NULL AND (expires=0 OR expires>?)",(email,now)).fetchone():raise Error(409,"Для этой почты уже есть действующий код HCS")
     if plan=="trial" and not email: raise Error(400,"Пробная лицензия должна быть привязана к email")
     if plan=="trial" and c.execute("SELECT 1 FROM invites WHERE email=? AND access_plan='trial' AND used_at IS NOT NULL",(email,)).fetchone():raise Error(409,"Пробный доступ для этой почты уже использован")
     if not isinstance(comment,str) or len(comment)>250: raise Error(400,"Комментарий до 250 символов")
@@ -500,11 +516,11 @@ def create_invite(c,actor,email,hours,comment,plan='standard',period=None,paid_a
     token=derive_invite_code(ident)
     expiry=now+hours*3600 if hours else 0
     c.execute("INSERT INTO invites(token,email,expires,public_id,preview,created,comment,created_by,access_plan,billing_period) VALUES(?,?,?,?,?,?,?,?,?,?)",(digest(token),email,expiry,ident,token[:12]+"…",now,comment.strip(),actor,plan,period))
-    if plan=="trial":c.execute("INSERT INTO invite_mail(public_id) VALUES(?)",(ident,))
+    if plan in ("trial","hcs"):c.execute("INSERT INTO invite_mail(public_id) VALUES(?)",(ident,))
     if plan=="standard":c.execute("INSERT INTO subscription_payments VALUES(?,?,?,?,?,?,?,?,?,?)",(secrets.token_hex(16),None,ident,period,SUBSCRIPTION_PRICES[period],paid_at,now,actor,None,None))
     number=c.execute("INSERT INTO license_numbers(public_id) VALUES(?)",(ident,)).lastrowid
     audit(c,actor,"invite",email or "Без привязки",{"invitation":{"from":None,"to":token[:12]+"…"},"expiry":{"from":None,"to":hours or "Бессрочно"}})
-    return {"invite":token,"id":ident,"license_number":f"{number:06d}","access_plan":plan,"mail_queued":plan=="trial"}
+    return {"invite":token,"id":ident,"license_number":f"{number:06d}","access_plan":plan,"mail_queued":plan in ("trial","hcs")}
 def audit(c,actor,action,target,changes=None):
     d={"actor":snapshot(c,actor),"target":snapshot(c,target),"changes":changes or {}}
     c.execute("INSERT INTO audit(actor,action,target,created,details) VALUES(?,?,?,?,?)",(actor,action,target,int(time.time()),json.dumps(d,ensure_ascii=False)))
@@ -624,7 +640,9 @@ def send_next_invite():
     code=recover_invite_code(row)
     if not code:return
     try:
-        send_mail(row["email"],"ZABVENYE — лицензия FREE","Ваш лицензионный код: "+code+"\n\nАктивируйте код при регистрации: "+ORIGIN+"/account#register\n\nFREE действует один календарный месяц с момента активации: 5 клиентов, по 4 сессии, 1 запрос и 1 ситуация на клиента, 10 AI-запросов за период.\n\nПоддержка: https://t.me/Evgeniy_Prudnikov")
+        if row["access_plan"]=="hcs":
+            send_mail(row["email"],"ZABVENYE — учебная лицензия HCS","Ваш лицензионный код: "+code+"\n\nАктивируйте код при регистрации: "+ORIGIN+"/account#register\n\nHCS (HypnoCoaching Student) — бесплатная учебная лицензия на 6 календарных месяцев с момента активации. Для продления обратитесь к администратору: https://t.me/Evgeniy_Prudnikov")
+        else:send_mail(row["email"],"ZABVENYE — лицензия FREE","Ваш лицензионный код: "+code+"\n\nАктивируйте код при регистрации: "+ORIGIN+"/account#register\n\nFREE действует один календарный месяц с момента активации: 5 клиентов, по 4 сессии, 1 запрос и 1 ситуация на клиента, 10 AI-запросов за период.\n\nПоддержка: https://t.me/Evgeniy_Prudnikov")
     except Exception:
         with db() as c:c.execute("UPDATE invite_mail SET attempts=attempts+1,next_try=? WHERE public_id=?",(now+min(86400,60*2**min(10,row["attempts"])),row["public_id"]))
         return
@@ -730,7 +748,7 @@ class Handler(BaseHTTPRequestHandler):
             # Traefik/nginx forward an opaque session cookie; no public data is returned.
             if path=="/account/api/workspace-auth":
                 with db() as c:
-                    u=c.execute("SELECT 1 FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0 AND u.onboarding_required=0 AND (u.access_plan!='trial' OR u.trial_expires>?) AND (u.access_plan!='standard' OR u.subscription_expires>?)",(digest(self.token()),int(time.time()),int(time.time()),int(time.time()))).fetchone()
+                    u=c.execute("SELECT 1 FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0 AND u.onboarding_required=0 AND (u.access_plan!='trial' OR u.trial_expires>?) AND (u.access_plan NOT IN ('standard','hcs') OR u.subscription_expires>?)",(digest(self.token()),int(time.time()),int(time.time()),int(time.time()))).fetchone()
                 return self.reply(200 if u else 401,{"ok":bool(u)})
 
             if path=="/account/api/cities":
@@ -770,12 +788,14 @@ class Handler(BaseHTTPRequestHandler):
                     now=int(time.time())
                     month=int(datetime.now(timezone.utc).replace(day=1,hour=0,minute=0,second=0,microsecond=0).timestamp())
                     rows=c.execute("SELECT * FROM users WHERE role='specialist' AND deleted=0 ORDER BY created DESC").fetchall()
-                    counts={"paid_active":0,"expiring":0,"expired":0,"vip":0,"free":0,"legacy":0}
+                    counts={"paid_active":0,"expiring":0,"expired":0,"vip":0,"free":0,"legacy":0,"hcs_active":0,"hcs_expired":0}
                     for row in rows:
                         summary=billing_summary(c,row)
                         if summary["plan"]=="VIP":counts["vip"]+=1
                         elif summary["status"]=="legacy":counts["legacy"]+=1
                         elif summary["plan"]=="FREE":counts["free"]+=1
+                        elif summary["plan"]=="HCS":
+                            if summary["status"] in ("active","expired"):counts["hcs_"+summary["status"]]+=1
                         elif summary["status"]=="active":
                             counts["paid_active"]+=1
                             if summary["expires"]<=now+7*86400:counts["expiring"]+=1
@@ -830,13 +850,13 @@ class Handler(BaseHTTPRequestHandler):
                         FROM invites i LEFT JOIN users u ON u.id=i.used_by
                         LEFT JOIN license_numbers n ON n.public_id=i.public_id) """
                     where="1=1"; args=[now,now]
-                    if state in ("active","used","awaiting_payment","expired","revoked","blocked","archived"):
+                    if state in ("active","used","awaiting_payment","awaiting_renewal","expired","revoked","blocked","archived"):
                         where+=" AND display_status=?"; args.append(state)
                     qtext=param("q")
                     if qtext:
                         where+=" AND (instr(casefold(email),casefold(?))>0 OR instr(casefold(comment),casefold(?))>0 OR instr(casefold(preview),casefold(?))>0 OR instr(printf('%06d',license_no),?)>0 OR instr(public_id,?)>0 OR instr(owner_sort,casefold(?))>0)"
                         args.extend([qtext]*6)
-                    field={"number":"license_no","recipient":"recipient_sort","created":"created","expires":"CASE WHEN expires=0 THEN 9223372036854775807 ELSE expires END","status":"CASE display_status WHEN 'active' THEN 1 WHEN 'used' THEN 2 WHEN 'awaiting_payment' THEN 3 WHEN 'expired' THEN 4 WHEN 'blocked' THEN 5 WHEN 'revoked' THEN 6 ELSE 7 END","owner":"owner_sort"}.get(param("sort"),"license_no")
+                    field={"number":"license_no","recipient":"recipient_sort","created":"created","expires":"CASE WHEN expires=0 THEN 9223372036854775807 ELSE expires END","status":"CASE display_status WHEN 'active' THEN 1 WHEN 'used' THEN 2 WHEN 'awaiting_payment' THEN 3 WHEN 'awaiting_renewal' THEN 3 WHEN 'expired' THEN 4 WHEN 'blocked' THEN 5 WHEN 'revoked' THEN 6 ELSE 7 END","owner":"owner_sort"}.get(param("sort"),"license_no")
                     direction="ASC" if param("dir")=="asc" else "DESC"
                     total=c.execute(registry+"SELECT count(*) FROM registry WHERE "+where,args).fetchone()[0]
                     rows=c.execute(registry+"SELECT * FROM registry WHERE "+where+" ORDER BY "+field+" "+direction+", license_no DESC LIMIT 50 OFFSET ?",args+[offset]).fetchall()
@@ -964,14 +984,15 @@ class Handler(BaseHTTPRequestHandler):
                     if born.isoformat()!=birth or born.year<1900 or born>datetime.now(timezone.utc).date()+timedelta(days=1): raise ValueError()
                 except ValueError: raise Error(400,"Проверьте дату рождения")
                 if not u["onboarding_required"]: raise Error(409,"Первичная настройка уже завершена")
-                if b.get("legal_version")!=LEGAL_VERSION or b.get("license_accepted") is not True or b.get("privacy_read") is not True: raise Error(400,"Ознакомьтесь с документами и подтвердите принятие актуальной редакции")
+                legal_version=LEGAL_VERSION+("-hcs" if u["access_plan"]=="hcs" else "")
+                if b.get("legal_version")!=legal_version or b.get("license_accepted") is not True or b.get("privacy_read") is not True: raise Error(400,"Ознакомьтесь с документами и подтвердите принятие актуальной редакции")
                 today=datetime.now(timezone.utc).date()
                 if today.year-born.year-((today.month,today.day)<(born.month,born.day))<18: raise Error(400,"Регистрация доступна с 18 лет")
                 language=b.get("language","ru")
                 if language not in LANGUAGES: raise Error(400,"Недопустимый язык")
-                c.execute("INSERT INTO legal_acceptance(user_id,version,accepted_at,language) VALUES(?,?,?,?)",(u["id"],LEGAL_VERSION,int(time.time()),language))
+                c.execute("INSERT INTO legal_acceptance(user_id,version,accepted_at,language) VALUES(?,?,?,?)",(u["id"],legal_version,int(time.time()),language))
                 c.execute("UPDATE users SET ui_language=? WHERE id=?",(language,u["id"]))
-                audit(c,u["id"],"legal-acceptance",u["id"],{"version":{"from":None,"to":LEGAL_VERSION}})
+                audit(c,u["id"],"legal-acceptance",u["id"],{"version":{"from":None,"to":legal_version}})
                 c.execute("UPDATE users SET first_name=?,last_name=?,birth_date=?,onboarding_required=0 WHERE id=?",(first.strip(),last.strip(),birth,u["id"]))
                 audit(c,u["id"],"onboarding",u["id"])
                 c.execute("INSERT OR IGNORE INTO welcome_mail(user_id,language) VALUES(?,?)",(u["id"],language))
@@ -1111,10 +1132,13 @@ class Handler(BaseHTTPRequestHandler):
                     c.execute("UPDATE invites SET revoked_at=? WHERE public_id=?",(now,ident))
                     audit(c,u["id"],"invite-revoke",inv["email"] or "Без привязки",{"invitation":{"from":inv["preview"],"to":"Отозвано"}})
                     payload={"ok":True}
-            elif path in ("/account/api/admin/subscription-payment","/account/api/admin/grant-vip"):
+            elif path in ("/account/api/admin/subscription-payment","/account/api/admin/grant-vip","/account/api/admin/renew-hcs"):
                 target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(b.get("id"),)).fetchone()
                 if not target:raise Error(404,"Специалист не найден")
-                if path.endswith("subscription-payment"):
+                if path.endswith("renew-hcs"):
+                    if set(b)!={"id","expected_expires"}:raise Error(400,"Некорректный запрос продления")
+                    renew_hcs(c,u["id"],target,b["expected_expires"],int(time.time()))
+                elif path.endswith("subscription-payment"):
                     payment_record(c,u["id"],target,b.get("period"),b.get("paid_at"),b.get("request_id"),int(time.time()))
                 else:
                     if target["access_plan"]=="standard" and target["subscription_expires"] and target["subscription_expires"]>int(time.time()):raise Error(409,"Дождитесь окончания оплаченного периода перед выдачей VIP")

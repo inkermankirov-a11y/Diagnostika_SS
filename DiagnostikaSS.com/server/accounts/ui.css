@@ -102,3 +102,5 @@ body.license-public{display:block;min-height:100vh;margin:0;background:#f3f7fa;c
 
 /* Signature sphere in the public license header. */
 .lp-brand{display:flex;align-items:center;gap:10px;white-space:nowrap}.lp-brand img{display:block;width:40px;height:40px;flex:0 0 40px;object-fit:contain}.lp-brand span{display:block}@media(max-width:650px){.lp-brand{gap:8px}.lp-brand img{width:34px;height:34px;flex-basis:34px}}
+
+.invite-status.awaiting_renewal{color:#956200;background:#fff1cc}#currentPlan[data-plan="HCS"] .plan-name{color:#386da6}#currentPlan[data-plan="HCS"] small{font-size:11px;color:var(--muted)}

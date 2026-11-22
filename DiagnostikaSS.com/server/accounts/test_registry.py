@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 assert response.status==200 and response.headers["Content-Type"].startswith("text/html")
                 assert 'https://t.me/Evgeniy_Prudnikov' in page and '#register' in page
                 assert ('lang="'+(lang if lang!="invalid" else "ru")+'"') in page
-                assert 'FREE' in page and 'STANDARD' in page and 'VIP' not in page
+                assert 'FREE' in page and 'STANDARD' in page and 'VIP' not in page and 'HCS' not in page
                 assert '399' in page and '199' in page and ('2 388' in page or '2,388' in page)
                 assert ('5 USD' in page or 'USD 5' in page) and ('30 USD' in page or 'USD 30' in page)
                 assert ('2,50 USD' in page or '2.50 USD' in page) and '50' in page
@@ -301,5 +301,56 @@ with tempfile.TemporaryDirectory() as tmp:
             assert conn.execute("SELECT count(*) FROM license_numbers").fetchone()[0]==5
             assert conn.execute("PRAGMA integrity_check").fetchone()[0]=="ok"
         print("Account lifecycle and license numbering integration: PASS")
+        # HCS is an invitation-only, free six-calendar-month licence.
+        call("admin/invite",{"hours":24,"access_plan":"hcs"},expected=400)
+        call("admin/invite",{"hours":24,"access_plan":"hcs","email":"student@example.invalid","period":"year","paid_at":paid_at},expected=400)
+        hcs=call("admin/invite",{"hours":24,"access_plan":"hcs","email":"student@example.invalid"})
+        assert hcs["access_plan"]=="hcs" and hcs["mail_queued"]
+        call("admin/invite",{"hours":24,"access_plan":"hcs","email":"student@example.invalid"},expected=409)
+        detail=call("admin/invite-detail?id="+hcs["id"])
+        assert detail["paid_amount"] is None and detail["billing_period"] is None
+        with db() as conn:
+            student=m["create_user"](conn,"student@example.invalid","fixture-student-password","specialist")
+            inv=conn.execute("SELECT * FROM invites WHERE public_id=?",(hcs["id"],)).fetchone()
+            activated=int(time.time())
+            m["activate_plan"](conn,student,inv["access_plan"],activated,inv)
+            conn.execute("UPDATE invites SET used_at=?,used_by=? WHERE public_id=?",(activated,student,hcs["id"]))
+            conn.execute("UPDATE users SET onboarding_required=0 WHERE id=?",(student,))
+            conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("hcs-test-token"),student,activated+3600))
+            student_sid=m["ids"](conn,student)["specialist"]
+            assert conn.execute("SELECT count(*) FROM subscription_payments WHERE user_id=? OR invite_id=?",(student,hcs["id"])).fetchone()[0]==0
+        info=call("me",token="hcs-test-token")
+        until=info["billing"]["expires"]
+        assert info["billing"]["plan"]=="HCS" and info["billing"]["period"]=="six_months"
+        assert until==m["add_months"](activated,6) and info["trial"] is None
+        assert info["limits"]==m["DEFAULT"] and info["legal_version"]=="1.0-hcs"
+        assert call("workspace-auth",token="hcs-test-token")["ok"]
+        assert call("admin/invite-detail?id="+hcs["id"])["access_expires"]==until
+        before=call("admin/subscriptions")
+        assert before["counts"]["hcs_active"]==1
+        req={"id":student_sid,"expected_expires":until}
+        call("admin/renew-hcs",req,expected=403,token="hcs-test-token")
+        renewed=call("admin/renew-hcs",req)
+        assert renewed["billing"]["expires"]==m["add_months"](until,6)
+        call("admin/renew-hcs",req,expected=409)
+        assert call("admin/subscriptions")["income"]==before["income"]
+        assert call("admin/subscriptions")["counts"]["paid_active"]==before["counts"]["paid_active"]
+        expired=int(time.time())-10
+        with db() as conn:conn.execute("UPDATE users SET subscription_expires=? WHERE id=?",(expired,student))
+        call("me",expected=403,token="hcs-test-token")
+        call("workspace-auth",expected=401,token="hcs-test-token")
+        assert call("admin/invite-detail?id="+hcs["id"])["status"]=="awaiting_renewal"
+        assert any(i["id"]==hcs["id"] for i in call("admin/invites?status=awaiting_renewal")["items"])
+        assert call("admin/subscriptions")["counts"]["hcs_expired"]==1
+        restarted=call("admin/renew-hcs",{"id":student_sid,"expected_expires":expired})
+        assert restarted["billing"]["expires"]>=m["add_months"](expired+10,6)
+        assert call("me",token="hcs-test-token")["billing"]["plan"]=="HCS"
+        assert call("workspace-auth",token="hcs-test-token")["ok"]
+        assert call("admin/invite-detail?id="+hcs["id"])["status"]=="used"
+        assert call("admin/subscription-history?id="+student_sid)["items"]==[]
+        from datetime import datetime,timezone
+        eom=int(datetime(2026,8,31,12,tzinfo=timezone.utc).timestamp())
+        assert datetime.fromtimestamp(m["add_months"](eom,6),timezone.utc).isoformat()=="2027-02-28T12:00:00+00:00"
+        print("HCS: free activation, calendar expiry, admin renewal, access guard, registry and revenue isolation: PASS")
     finally:
         server.shutdown();server.server_close();t.join()
