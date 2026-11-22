@@ -29,7 +29,7 @@ with tempfile.TemporaryDirectory() as tmp:
             with urllib.request.urlopen("http://127.0.0.1:"+str(server.server_port)+"/account/license?lang="+lang,timeout=10) as response:
                 page=response.read().decode()
                 assert response.status==200 and response.headers["Content-Type"].startswith("text/html")
-                assert 'https://t.me/zabvenye_com/8?comment=3' in page and '#register' in page
+                assert 'https://t.me/Evgeniy_Prudnikov' in page and '#register' in page
                 assert ('lang="'+(lang if lang!="invalid" else "ru")+'"') in page
                 assert '499' in page and '299' in page and ('3 588' in page or '3,588' in page)
         with db() as conn:
@@ -147,6 +147,29 @@ with tempfile.TemporaryDirectory() as tmp:
         call("admin/invite-delete",{"id":a["id"]})
         c=call("admin/invite",{"hours":24})
         assert c["license_number"]=="000003"
+        call("admin/invite",{"hours":24,"access_plan":"trial"},expected=400)
+        tr=call("admin/invite",{"hours":72,"access_plan":"trial","email":"trial@example.invalid"})
+        assert call("admin/invite-detail?id="+tr["id"])["access_plan"]=="trial"
+        with db() as conn:
+            trial_id=m["create_user"](conn,"trial@example.invalid","trial-fixture-password","specialist")
+            now=int(time.time())
+            m["activate_plan"](conn,trial_id,"trial",now)
+            conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("trial-token"),trial_id,now+86400))
+            trial_sid=m["ids"](conn,trial_id)["specialist"]
+        assert call("me",token="trial-token")["trial"]["expires"]==now+72*3600
+        for kind in ("clients","sessions"):
+            for i in range(3):call("trial-reserve",{"feature":kind},token="trial-token")
+            call("trial-reserve",{"feature":kind},expected=429,token="trial-token")
+        with db() as conn:
+            u=conn.execute("SELECT * FROM users WHERE id=?",(trial_id,)).fetchone()
+            for i in range(3):m["reserve_trial"](conn,u,"ai")
+        assert call("me",token="trial-token")["trial"]["used"]=={"clients":3,"sessions":3,"ai":3}
+        with db() as conn:conn.execute("UPDATE users SET trial_expires=? WHERE id=?",(int(time.time())-1,trial_id))
+        call("me",expected=403,token="trial-token")
+        call("workspace-auth",expected=401,token="trial-token")
+        call("admin/trial-upgrade",{"id":trial_sid},expected=403,token="user-test-token")
+        call("admin/trial-upgrade",{"id":trial_sid})
+        assert call("me",token="trial-token")["access_plan"]=="permanent"
         call("admin/delete",{"id":sid},expected=403,token="user-test-token")
         call("admin/delete",{"id":admin_id},expected=404)
         call("admin/delete",{"id":sid})
