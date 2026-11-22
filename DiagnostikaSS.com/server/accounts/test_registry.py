@@ -36,6 +36,16 @@ with tempfile.TemporaryDirectory() as tmp:
                 assert ('5 USD' in page or 'USD 5' in page) and ('30 USD' in page or 'USD 30' in page)
                 assert ('2,50 USD' in page or '2.50 USD' in page) and '50' in page
                 assert 'crypto' not in page.lower() and 'крипт' not in page.lower()
+                assert 'img-src \'self\'' in response.headers['Content-Security-Policy']
+                assert page.count('<img ') == 2 and '/account/mascot-guide.webp' in page and '/account/mascot-pricing.webp' in page
+                assert page.count('https://t.me/Evgeniy_Prudnikov') == 3
+                if lang in ('ru','invalid'):
+                    assert 'Подготовьте документы' in page and 'в личные сообщения Telegram' in page
+        for asset in ('mascot-guide.webp','mascot-pricing.webp'):
+            with urllib.request.urlopen('http://127.0.0.1:'+str(server.server_port)+'/account/'+asset,timeout=10) as response:
+                body=response.read()
+                assert response.headers['Content-Type']=='image/webp' and body[:4]==b'RIFF' and body[8:12]==b'WEBP'
+                assert body==pathlib.Path(__file__).with_name(asset).read_bytes()
         with db() as conn:
             conn.execute("UPDATE users SET onboarding_required=0,first_name='Test',last_name='Specialist' WHERE id IN (?,?)",(admin,uid))
             conn.execute("INSERT INTO sessions VALUES(?,?,?)",(m["digest"]("second-device-token"),uid,int(time.time())+3600))

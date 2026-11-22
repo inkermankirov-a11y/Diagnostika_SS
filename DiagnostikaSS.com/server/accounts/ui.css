@@ -53,3 +53,49 @@ body.license-public{display:block;min-height:100vh;margin:0;background:#f3f7fa;c
 #inviteList .invite-sort{display:inline-flex;align-items:center;gap:5px;background:transparent;color:inherit;border:0;border-radius:3px;padding:0;min-height:0;font:inherit;font-weight:600;text-align:left;white-space:nowrap}#inviteList .invite-sort:hover{color:var(--blue);text-decoration:underline}#inviteList .invite-sort-arrow{font-size:11px;opacity:.45}#inviteList th[aria-sort=ascending] .invite-sort-arrow,#inviteList th[aria-sort=descending] .invite-sort-arrow{opacity:1;color:var(--blue)}
 
 .notification-count{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 4px;border-radius:12px;background:#be9cf7;color:#30204d;font-size:11px;font-weight:700;margin-left:auto}.current-plan{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;margin:7px 0 12px;background:#edf3fa;border-radius:7px}.current-plan .plan-name{font-size:13px}.current-plan[data-plan=VIP]{background:#eee4fb;color:#6941a5}.notification-item{display:grid;gap:5px;padding:12px 10px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.notification-item[data-unread=true]{border-left:3px solid #7950b5;background:#f8f4ff;padding-left:10px}.notification-item p{white-space:pre-wrap;margin:4px 0;color:var(--ink)}.notification-item button{justify-self:start;font-size:11px;min-height:28px}.admin-notification-form{display:grid;gap:8px}.admin-notification-form textarea{width:100%;padding:8px;border:1px solid #cfd9e5;border-radius:6px;resize:vertical;font:inherit}.admin-notification-form .notification-email{display:flex;align-items:center;gap:7px}.admin-notification-form small{min-height:1em}
+
+
+/* Public license page: the ZABVENYE mascot is decorative, never part of the text. */
+.license-public .lp-header,.license-public .lp-main,.license-public .lp-footer{width:min(calc(100% - 48px),1200px)}
+.license-public .lp-main{padding-top:26px}
+.license-public .lp-hero{background:linear-gradient(115deg,#fff 35%,#f7faf8 76%,#f2eefb);padding:30px 32px}
+.license-public .lp-hero h1{max-width:940px}
+.license-public .lp-section{margin-top:30px}
+.license-public .lp-section h2{font-size:25px;letter-spacing:-.025em}
+.lp-illustrated{display:grid;align-items:center;min-width:0;gap:16px}
+.lp-access-layout{grid-template-columns:minmax(175px,24%) minmax(0,1fr);background:linear-gradient(115deg,#fcfdfc,#f4f6fb);border:1px solid #dce6ed;border-radius:16px;padding:14px}
+.lp-illustrated .lp-steps,.lp-illustrated .lp-pricing{margin:0;min-width:0}
+.lp-illustrated .lp-steps li{min-width:0;line-height:1.5;align-items:flex-start}
+.lp-steps li>div{min-width:0;overflow-wrap:anywhere}
+.lp-step-link{display:inline-block;margin-top:8px;color:#226c5a;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.lp-mascot{min-width:0;overflow:hidden;align-self:stretch;display:flex;align-items:center;justify-content:center}
+.lp-mascot img{display:block;width:100%;height:auto;max-width:100%;object-fit:contain;border-radius:11px}
+.lp-mascot-guide img{max-width:312px}
+.lp-pricing-layout{grid-template-columns:minmax(0,1fr) minmax(200px,26%);margin-top:14px;gap:18px}
+.lp-pricing-layout .lp-pricing{align-self:stretch;gap:12px}
+.lp-pricing-layout .lp-plan{min-width:0;overflow-wrap:anywhere}
+.lp-pricing-layout .lp-plan.lp-standard{background:linear-gradient(155deg,#fff 55%,#f3faf7)}
+.lp-pricing-layout .lp-plan strong{font-size:clamp(23px,2.4vw,30px)}
+.lp-pricing-layout .lp-plan .lp-annual{font-size:clamp(19px,1.9vw,23px)}
+.lp-mascot-pricing img{max-width:422px}
+@media(max-width:1000px){
+ .lp-access-layout{grid-template-columns:minmax(140px,22%) minmax(0,1fr);gap:12px}
+ .lp-pricing-layout{grid-template-columns:minmax(0,1fr) minmax(150px,23%);gap:12px}
+ .lp-illustrated .lp-steps li{padding:12px;gap:8px}
+}
+@media(max-width:820px){
+ .lp-access-layout,.lp-pricing-layout{grid-template-columns:minmax(0,1fr)}
+ .lp-illustrated .lp-mascot{justify-content:center}
+ .lp-mascot-guide img{max-width:190px}
+ .lp-mascot-pricing img{max-width:240px}
+ .lp-access-layout .lp-mascot-guide{order:2}
+}
+@media(max-width:650px){
+ .license-public .lp-header,.license-public .lp-main,.license-public .lp-footer{width:calc(100% - 26px)}
+ .license-public .lp-main{padding-top:16px}
+ .license-public .lp-hero{padding:22px 18px}
+ .license-public .lp-section h2{font-size:22px}
+ .lp-access-layout{padding:10px}
+ .lp-pricing-layout .lp-plan strong{font-size:25px}
+ .lp-pricing-layout .lp-plan .lp-annual{font-size:21px}
+}

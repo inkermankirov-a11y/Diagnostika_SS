@@ -10,9 +10,9 @@ docker network inspect n8n_default >/dev/null
 if docker container inspect zabvenye-accounts >/dev/null 2>&1; then
   echo "Account container already exists. Refusing to replace it."; exit 1
 fi
-for f in service.py index.html ui.js ui.css; do test -s "$SRC/$f"; done
+for f in mascot-guide.webp mascot-pricing.webp ui.css ui.js index.html service.py; do test -s "$SRC/$f"; done
 install -d -m 0755 "$APP"
-for f in service.py index.html ui.js ui.css; do install -m 0644 "$SRC/$f" "$APP/$f"; done
+for f in mascot-guide.webp mascot-pricing.webp ui.css ui.js index.html service.py; do install -m 0644 "$SRC/$f" "$APP/$f"; done
 install -d -m 0700 -o 10001 -g 10001 "$DATA"
 if test -e "$DATA/accounts.sqlite3"; then echo "Existing account DB found; refusing to overwrite."; exit 1; fi
 read -rp 'Turnstile Site Key: ' SITE

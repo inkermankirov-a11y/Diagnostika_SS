@@ -16,7 +16,7 @@ trap 'rm -rf "$work"' EXIT
 rev=$(git -C "$ROOT" rev-parse HEAD)
 mkdir "$work/new" "$work/test"
 changed=0
-for f in service.py index.html ui.js ui.css; do
+for f in mascot-guide.webp mascot-pricing.webp ui.css ui.js index.html service.py; do
   git -C "$ROOT" show "$rev:DiagnostikaSS.com/server/accounts/$f" > "$work/new/$f"
   test -s "$work/new/$f"
   cmp -s "$work/new/$f" "$APP/$f" || changed=1
@@ -33,7 +33,7 @@ PY
   install -d -m 0700 "$BACK"
   install -m 0600 "$work/test/accounts.sqlite3" "$BACK/accounts.sqlite3.new"
   mv "$BACK/accounts.sqlite3.new" "$BACK/accounts.sqlite3"
-  for f in service.py index.html ui.js ui.css; do install -m 0600 "$APP/$f" "$BACK/$f"; done
+  for f in mascot-guide.webp mascot-pricing.webp ui.css ui.js index.html service.py; do if test -f "$APP/$f"; then install -m 0600 "$APP/$f" "$BACK/$f"; fi; done
   ACCOUNT_DATA="$work/test" python3 - "$work/new/service.py" <<'PY'
 import sys,runpy,secrets
 m=runpy.run_path(sys.argv[1])
@@ -55,14 +55,14 @@ with m["db"]() as c:
     assert m["notification_count"](c,uid)==0
 print("Migration and registry smoke test passed")
 PY
-  for f in service.py index.html ui.js ui.css; do
+  for f in mascot-guide.webp mascot-pricing.webp ui.css ui.js index.html service.py; do
     install -m 0644 "$work/new/$f" "$APP/$f.new"
     mv "$APP/$f.new" "$APP/$f"
   done
   docker restart zabvenye-accounts >/dev/null
   ready=0
   for attempt in $(seq 1 15); do
-    if docker exec zabvenye-accounts python -c 'import urllib.request; assert urllib.request.urlopen("http://127.0.0.1:8080/account/api/config",timeout=2).status==200' >/dev/null 2>&1; then ready=1; break; fi
+    if docker exec zabvenye-accounts python -c 'import urllib.request; assert urllib.request.urlopen("http://127.0.0.1:8080/account/api/config",timeout=2).status==200; assert urllib.request.urlopen("http://127.0.0.1:8080/account/mascot-guide.webp",timeout=2).read(4)==b"RIFF"; assert urllib.request.urlopen("http://127.0.0.1:8080/account/mascot-pricing.webp",timeout=2).read(4)==b"RIFF"' >/dev/null 2>&1; then ready=1; break; fi
     sleep 2
   done
   test "$ready" = 1 || { echo "Account service failed health check. Backup: $BACK"; exit 1; }
