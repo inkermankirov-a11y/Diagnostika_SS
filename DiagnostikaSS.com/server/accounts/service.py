@@ -89,6 +89,10 @@ with db() as c:
     for row in c.execute("SELECT public_id FROM (SELECT public_id,COALESCE(created,0) AS ts FROM invites UNION ALL SELECT public_id,deleted_at AS ts FROM license_archive) ORDER BY ts,public_id").fetchall():
         if not c.execute("SELECT 1 FROM license_numbers WHERE public_id=?",(row["public_id"],)).fetchone():
             c.execute("INSERT INTO license_numbers(public_id) VALUES(?)",(row["public_id"],))
+    if "trial_expires" not in cols: c.execute("ALTER TABLE users ADD COLUMN trial_expires INTEGER")
+    if "access_plan" not in cols: c.execute("ALTER TABLE users ADD COLUMN access_plan TEXT NOT NULL DEFAULT 'permanent'")
+    if "access_plan" not in invite_cols: c.execute("ALTER TABLE invites ADD COLUMN access_plan TEXT NOT NULL DEFAULT 'permanent'")
+    c.execute("CREATE TABLE IF NOT EXISTS trial_usage(user_id TEXT NOT NULL,feature TEXT NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(user_id,feature))")
     if "archived_at" not in cols: c.execute("ALTER TABLE users ADD COLUMN archived_at INTEGER")
     if "archived_enabled" not in cols: c.execute("ALTER TABLE users ADD COLUMN archived_enabled INTEGER")
     c.execute("CREATE TABLE IF NOT EXISTS specialist_tombstones(user_id TEXT PRIMARY KEY,public_id TEXT NOT NULL UNIQUE,purged_at INTEGER NOT NULL)")
@@ -183,6 +187,28 @@ def password_ok(p,stored):
     return hmac.compare_digest(val.hex(),expected)
 def valid_email(e): return isinstance(e,str) and len(e)<=254 and bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+",e))
 def valid_password(p): return isinstance(p,str) and 12<=len(p)<=128 and len(p.encode())<=512
+TRIAL_CAP=3
+TRIAL_SECONDS=72*3600
+TRIAL_FEATURES=("clients","sessions","ai")
+TRIAL_LIMITS={**DEFAULT,"clients":3,"sessions":3,"ai_daily":3,"ai_detailed":False,"client_import":False}
+def trial_expired(u,now=None):
+    return u["access_plan"]=="trial" and (not u["trial_expires"] or u["trial_expires"]<=(int(time.time()) if now is None else now))
+def trial_usage(c,u):
+    if u["access_plan"]!="trial":return None
+    counts={k:0 for k in TRIAL_FEATURES}
+    for row in c.execute("SELECT feature,count FROM trial_usage WHERE user_id=?",(u["id"],)):
+        if row["feature"] in counts:counts[row["feature"]]=row["count"]
+    return {"expires":u["trial_expires"],"cap":TRIAL_CAP,"used":counts,"expired":trial_expired(u)}
+def reserve_trial(c,u,feature):
+    if feature not in TRIAL_FEATURES:raise Error(400,"Некорректный тип лимита")
+    if u["access_plan"]!="trial":return
+    if trial_expired(u):raise Error(403,"Пробный доступ завершён. Обратитесь к администратору.")
+    old=c.execute("SELECT count FROM trial_usage WHERE user_id=? AND feature=?",(u["id"],feature)).fetchone()
+    if old and old[0]>=TRIAL_CAP:raise Error(429,"Лимит пробного доступа исчерпан.")
+    c.execute("INSERT INTO trial_usage VALUES(?,?,1) ON CONFLICT(user_id,feature) DO UPDATE SET count=count+1",(u["id"],feature))
+def activate_plan(c,uid,plan,now):
+    if plan=="trial":
+        c.execute("UPDATE users SET access_plan='trial',trial_expires=?,limits=? WHERE id=?",(now+TRIAL_SECONDS,json.dumps(TRIAL_LIMITS),uid))
 def usage(c,u):
     day=datetime.now(timezone.utc).date().isoformat()
     areas={a:0 for a in AI_AREAS}
@@ -262,7 +288,7 @@ def legal_acceptance(c,u):
     return dict(row) if row else None
 def public(c,u):
     nums=ids(c,u["id"])
-    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION,"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
+    return {"id":nums.get("specialist"),"admin_id":nums.get("admin"),"email":u["email"],"role":u["role"],"enabled":bool(u["enabled"]),"limits":json.loads(u["limits"]),"ai_usage":usage(c,u),"metrics":specialist_metrics(c,u),"access_plan":u["access_plan"],"trial":trial_usage(c,u),"created":u["created"],"first_name":u["first_name"],"last_name":u["last_name"],"gender":u["gender"],"birth_date":u["birth_date"],"country":u["country"],"city":u["city"],"timezone":u["timezone"],"ui_language":u["ui_language"],"legal_version":LEGAL_VERSION,"legal_acceptance":legal_acceptance(c,u),"onboarding_required":bool(u["onboarding_required"]),"last_seen":u["last_seen"],"deleted":bool(u["deleted"]),"archived_at":u["archived_at"],"purge_available_at":u["archived_at"]+86400 if u["archived_at"] else None}
 def snapshot(c,uid):
     u=c.execute("SELECT email,role,first_name,last_name FROM users WHERE id=?",(uid,)).fetchone()
     if not u:
@@ -314,20 +340,23 @@ def invite_status(row,now):
     return "active"
 def invite_public(c,row,now):
     number=c.execute("SELECT number FROM license_numbers WHERE public_id=?",(row["public_id"],)).fetchone()
-    return {"id":row["public_id"],"license_number":f"{number[0]:06d}" if number else None,"preview":row["preview"],"email":row["email"],"created":row["created"],"expires":row["expires"],"comment":row["comment"],"status":invite_status(row,now),"used_at":row["used_at"],"used_by":snapshot(c,row["used_by"]) if row["used_by"] else None,"revoked_at":row["revoked_at"]}
-def create_invite(c,actor,email,hours,comment):
+    return {"id":row["public_id"],"license_number":f"{number[0]:06d}" if number else None,"preview":row["preview"],"email":row["email"],"created":row["created"],"expires":row["expires"],"comment":row["comment"],"status":invite_status(row,now),"used_at":row["used_at"],"used_by":snapshot(c,row["used_by"]) if row["used_by"] else None,"revoked_at":row["revoked_at"],"access_plan":row["access_plan"],"access_expires":row["used_at"]+TRIAL_SECONDS if row["access_plan"]=="trial" and row["used_at"] is not None else None}
+def create_invite(c,actor,email,hours,comment,plan='permanent'):
     now=int(time.time())
     if hours not in (24,72,168,0) or type(hours) is not int: raise Error(400,"Некорректный срок")
+    if plan not in ("trial","permanent"): raise Error(400,"Некорректный тип лицензии")
+    if plan=="trial" and not email: raise Error(400,"Пробная лицензия должна быть привязана к email")
+    if plan=="trial" and c.execute("SELECT 1 FROM invites WHERE email=? AND access_plan='trial' AND used_at IS NOT NULL",(email,)).fetchone():raise Error(409,"Пробный доступ для этой почты уже использован")
     if not isinstance(comment,str) or len(comment)>250: raise Error(400,"Комментарий до 250 символов")
     if email and c.execute("SELECT 1 FROM users WHERE email=?",(email,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует")
     ident=secrets.token_hex(16)
     while c.execute("SELECT 1 FROM license_archive WHERE public_id=? UNION SELECT 1 FROM invites WHERE public_id=?",(ident,ident)).fetchone(): ident=secrets.token_hex(16)
     token=derive_invite_code(ident)
     expiry=now+hours*3600 if hours else 0
-    c.execute("INSERT INTO invites(token,email,expires,public_id,preview,created,comment,created_by) VALUES(?,?,?,?,?,?,?,?)",(digest(token),email,expiry,ident,token[:12]+"…",now,comment.strip(),actor))
+    c.execute("INSERT INTO invites(token,email,expires,public_id,preview,created,comment,created_by,access_plan) VALUES(?,?,?,?,?,?,?,?,?)",(digest(token),email,expiry,ident,token[:12]+"…",now,comment.strip(),actor,plan))
     number=c.execute("INSERT INTO license_numbers(public_id) VALUES(?)",(ident,)).lastrowid
     audit(c,actor,"invite",email or "Без привязки",{"invitation":{"from":None,"to":token[:12]+"…"},"expiry":{"from":None,"to":hours or "Бессрочно"}})
-    return {"invite":token,"id":ident,"license_number":f"{number:06d}"}
+    return {"invite":token,"id":ident,"license_number":f"{number:06d}","access_plan":plan}
 def audit(c,actor,action,target,changes=None):
     d={"actor":snapshot(c,actor),"target":snapshot(c,target),"changes":changes or {}}
     c.execute("INSERT INTO audit(actor,action,target,created,details) VALUES(?,?,?,?,?)",(actor,action,target,int(time.time()),json.dumps(d,ensure_ascii=False)))
@@ -476,6 +505,7 @@ class Handler(BaseHTTPRequestHandler):
         u=c.execute("SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0",(digest(t),int(time.time()))).fetchone()
         if not u: raise Error(401,"Войдите в аккаунт")
         if admin and u["role"]!="admin": raise Error(403,"Нет доступа")
+        if trial_expired(u): raise Error(403,"Пробный доступ завершён. Обратитесь к администратору.")
         now=int(time.time())
         if not u["last_seen"] or now-u["last_seen"]>=60:
             c.execute("UPDATE users SET last_seen=? WHERE id=?",(now,u["id"]))
@@ -499,7 +529,7 @@ class Handler(BaseHTTPRequestHandler):
             # Traefik/nginx forward an opaque session cookie; no public data is returned.
             if path=="/account/api/workspace-auth":
                 with db() as c:
-                    u=c.execute("SELECT 1 FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0 AND u.onboarding_required=0",(digest(self.token()),int(time.time()))).fetchone()
+                    u=c.execute("SELECT 1 FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0 AND u.onboarding_required=0 AND (u.access_plan!='trial' OR u.trial_expires>?)",(digest(self.token()),int(time.time()),int(time.time()))).fetchone()
                 return self.reply(200 if u else 401,{"ok":bool(u)})
 
             if path=="/account/api/cities":
@@ -640,13 +670,16 @@ class Handler(BaseHTTPRequestHandler):
                         if inv["expires"] and inv["expires"]<=int(time.time()): raise Error(409,"Срок активации лицензии истёк. Запросите новый код у администратора.")
                         if c.execute("SELECT 1 FROM users WHERE email=?",(e,)).fetchone(): raise Error(409,"Аккаунт с этой почтой уже существует. Войдите в него или обратитесь к администратору.")
                         uid=create_user(c,e,p,"specialist")
-                        c.execute("UPDATE users SET onboarding_required=1,last_seen=? WHERE id=?",(int(time.time()),uid))
-                        c.execute("UPDATE invites SET used_at=?,used_by=? WHERE token=?",(int(time.time()),uid,inv["token"])); audit(c,uid,"registered",uid,{"invitation":{"from":None,"to":inv["preview"]}})
+                        activation=int(time.time())
+                        activate_plan(c,uid,inv["access_plan"],activation)
+                        c.execute("UPDATE users SET onboarding_required=1,last_seen=? WHERE id=?",(activation,uid))
+                        c.execute("UPDATE invites SET used_at=?,used_by=? WHERE token=?",(activation,uid,inv["token"])); audit(c,uid,"registered",uid,{"invitation":{"from":None,"to":inv["preview"]}})
                         u=c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone()
                     else:
                         u=c.execute("SELECT * FROM users WHERE email=?",(e,)).fetchone()
                         ok=password_ok(p,u["password"] if u else DUMMY)
                         if not ok or not u or not u["enabled"] or u["deleted"]: raise Error(401,"Неверные данные или аккаунт недоступен")
+                        if trial_expired(u): raise Error(403,"Пробный доступ завершён. Обратитесь к администратору.")
                         c.execute("UPDATE users SET last_seen=? WHERE id=?",(int(time.time()),u["id"])); audit(c,u["id"],"login",u["id"])
                     cookie=self.issue(c,u); uid=u["id"]
                 with db() as c: payload=public(c,c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone())
@@ -702,6 +735,10 @@ class Handler(BaseHTTPRequestHandler):
                 else: recovery=vault_recovery_secret(c,u["id"]) if row["secret"]=="derived-v1" else row["secret"]
                 audit(c,u["id"],"vault-recovery-"+mode,u["id"])
                 payload={"recovery_secret":recovery}
+            elif path=="/account/api/trial-reserve":
+                if u["onboarding_required"] or set(b)!={"feature"} or b.get("feature") not in ("clients","sessions"):raise Error(400,"Некорректный запрос")
+                reserve_trial(c,u,b["feature"])
+                payload={"ok":True,"trial":trial_usage(c,u)}
             elif path=="/account/api/analytics-preference":
                 enabled=b.get("enabled")
                 if set(b)!={"enabled"} or type(enabled) is not bool or u["onboarding_required"]:raise Error(400,"Некорректная настройка статистики")
@@ -759,7 +796,7 @@ class Handler(BaseHTTPRequestHandler):
                 uid=target["id"]
                 audit(c,u["id"],"purge",uid,{"account":{"from":"Архивирован","to":"Удалён окончательно"}})
                 c.execute("INSERT INTO specialist_tombstones VALUES(?,?,?)",(uid,b["id"],int(time.time())))
-                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","analytics_preferences","analytics_snapshots","analytics_daily","analytics_batches","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail"):
+                for table in ("sessions","ai_usage","specialist_metrics","specialist_days","analytics_preferences","analytics_snapshots","analytics_daily","analytics_batches","trial_usage","legal_acceptance","workspace_profiles","vault_recovery","password_resets","welcome_mail"):
                     c.execute("DELETE FROM "+table+" WHERE user_id=?",(uid,))
                 c.execute("DELETE FROM users WHERE id=?",(uid,))
                 payload={"ok":True}
@@ -768,7 +805,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(e,str): raise Error(400,"Некорректный email")
                 e=e.strip().lower()
                 if e and not valid_email(e): raise Error(400,"Некорректный email")
-                payload=create_invite(c,u["id"],e,b.get("hours",24),b.get("comment",""))
+                payload=create_invite(c,u["id"],e,b.get("hours",24),b.get("comment",""),b.get("access_plan","permanent"))
             elif path=="/account/api/admin/invite-delete":
                 ident=b.get("id")
                 if not isinstance(ident,str): raise Error(400,"Некорректное приглашение")
@@ -809,6 +846,12 @@ class Handler(BaseHTTPRequestHandler):
                     c.execute("UPDATE invites SET revoked_at=? WHERE public_id=?",(now,ident))
                     audit(c,u["id"],"invite-revoke",inv["email"] or "Без привязки",{"invitation":{"from":inv["preview"],"to":"Отозвано"}})
                     payload={"ok":True}
+            elif path=="/account/api/admin/trial-upgrade":
+                target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(b.get("id"),)).fetchone()
+                if not target or target["access_plan"]!="trial": raise Error(409,"Пробный аккаунт не найден")
+                c.execute("UPDATE users SET access_plan='permanent',trial_expires=NULL,limits=? WHERE id=?",(json.dumps(DEFAULT),target["id"]))
+                audit(c,u["id"],"trial-upgrade",target["id"],{"access_plan":{"from":"trial","to":"permanent"}})
+                payload={"ok":True}
             elif path=="/account/api/admin/update":
                 uid=b.get("id"); limits=b.get("limits"); enabled=b.get("enabled")
                 if not isinstance(uid,str) or type(enabled) is not bool or not isinstance(limits,dict) or set(limits)!=set(FEATURES): raise Error(400,"Некорректные параметры")
@@ -819,6 +862,9 @@ class Handler(BaseHTTPRequestHandler):
                 target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(uid,)).fetchone()
                 if not target: raise Error(404,"Специалист не найден")
                 uid=target["id"]
+                if target["access_plan"]=="trial":
+                    for k in ("clients","sessions","ai_daily"):limits[k]=min(3,limits[k]) if limits[k] is not None else 3
+                    limits["ai_detailed"]=False;limits["client_import"]=False
                 old=json.loads(target["limits"]); changes={k:{"from":old[k],"to":v} for k,v in limits.items() if old[k]!=v}
                 if bool(target["enabled"])!=enabled: changes["enabled"]={"from":bool(target["enabled"]),"to":enabled}
                 c.execute("UPDATE users SET enabled=?,limits=? WHERE id=?",(int(enabled),json.dumps(limits),uid))
@@ -855,6 +901,7 @@ class Handler(BaseHTTPRequestHandler):
                         if data.get(k) in ("deep","detailed","long","full"): raise Error(403,"Подробные ответы отключены")
                     if isinstance(data.get("message"),str): data["message"]="Ответь кратко, не более 6 коротких пунктов. "+data["message"]
                 raw=json.dumps(data,ensure_ascii=False).encode()
+            reserve_trial(c,u,"ai")
             c.execute("INSERT INTO ai_usage(user_id,day,area,count) VALUES(?,?,?,1) ON CONFLICT(user_id,day,area) DO UPDATE SET count=count+1",(u["id"],stat["day"],area))
         # Count dispatched attempts, including upstream failures; never hold SQLite lock during network I/O.
         req=urllib.request.Request("https://lugovoyn8n.ru/webhook/"+endpoints[area],data=raw,headers={"Content-Type":ct},method="POST")
