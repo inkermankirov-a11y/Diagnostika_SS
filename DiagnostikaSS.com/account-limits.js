@@ -64,7 +64,7 @@ function renderQuota(){
  const l=labels[window.DiagnostikaI18n?.language||document.documentElement.lang]||labels.ru;
  const cap=profile?.trial?20:profile?.limits?.ai_daily,used=profile?.trial?profile.trial.used.ai:(profile?.ai_usage?.total??0);
  const value=profile?String(profile.trial?Math.max(0,cap-used):used)+' / '+(cap??'∞'):'—';
- updateText(el.querySelector('.ai-quota-label'),profile?.trial?'FREE · '+l[0]:l[0]);updateText(el.querySelector('.ai-quota-value'),value);
+ updateText(el.querySelector('.ai-quota-label'),profile?.trial?'FREE · '+l[0]:profile?.role==='specialist'?'STANDARD · '+l[0]:l[0]);updateText(el.querySelector('.ai-quota-value'),value);
  const trialLabel=profile?.trial?({"ru":"Осталось AI-запросов за пробный период","en":"AI requests remaining during trial","fr":"Requêtes IA restantes pendant l’essai","de":"Verbleibende KI-Anfragen im Testzeitraum","it":"Richieste IA rimanenti durante la prova"})[window.DiagnostikaI18n?.language||document.documentElement.lang]||'AI trial':l[1];
  const trialInfo=({"ru":["Лимит за весь период","До","Клиенты","Сессии"],"en":["Trial total limit","Until","Clients","Sessions"],"fr":["Limite totale de l’essai","Jusqu’au","Clients","Séances"],"de":["Gesamtlimit des Tests","Bis","Klienten","Sitzungen"],"it":["Limite totale della prova","Fino al","Clienti","Sessioni"]})[window.DiagnostikaI18n?.language||document.documentElement.lang]||({"ru":["Лимит за весь период","До","Клиенты","Сессии"],"en":["Trial total limit","Until","Clients","Sessions"],"fr":["Limite totale de l’essai","Jusqu’au","Clients","Séances"],"de":["Gesamtlimit des Tests","Bis","Klienten","Sitzungen"],"it":["Limite totale della prova","Fino al","Clienti","Sessioni"]}).ru;
  const limitText=profile?.trial?trialInfo[0]:l[2];
