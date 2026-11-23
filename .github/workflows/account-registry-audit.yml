@@ -1,11 +1,14 @@
 name: Account registry audit
 on:
   push:
-    branches: [main, 'feature-license-mascot', 'feature-hcs-license', 'feature-vps-load', 'feature-admin-only-workspace', 'feature-notice-popup']
+    branches: [main, 'feature-license-mascot', 'feature-hcs-license', 'feature-vps-load', 'feature-admin-only-workspace', 'feature-notice-popup', 'feature-license-terms-2026']
     paths:
       - 'DiagnostikaSS.com/server/accounts/**'
       - 'DiagnostikaSS.com/account-limits.js'
       - 'DiagnostikaSS.com/account-settings.js'
+      - 'DiagnostikaSS.com/about-program.js'
+      - 'DiagnostikaSS.com/server/accounts/legal-archive/**'
+      - 'DiagnostikaSS.com/tests/license-terms-audit.mjs'
       - 'DiagnostikaSS.com/tests/account-refresh-policy.test.mjs'
       - '.github/workflows/account-registry-audit.yml'
   workflow_dispatch:
@@ -24,3 +27,4 @@ jobs:
       - run: node --check DiagnostikaSS.com/account-settings.js
       - run: node DiagnostikaSS.com/tests/account-admin-only.test.mjs
       - run: node --check DiagnostikaSS.com/settings-menu.js
+      - run: node DiagnostikaSS.com/tests/license-terms-audit.mjs

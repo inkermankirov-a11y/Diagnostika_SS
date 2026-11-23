@@ -344,7 +344,7 @@ with tempfile.TemporaryDirectory() as tmp:
         until=info["billing"]["expires"]
         assert info["billing"]["plan"]=="HCS" and info["billing"]["period"]=="six_months"
         assert until==m["add_months"](activated,6) and info["trial"] is None
-        assert info["limits"]==m["DEFAULT"] and info["legal_version"]=="1.0-hcs"
+        assert info["limits"]==m["DEFAULT"] and info["legal_version"]=="1.1-hcs"
         assert call("workspace-auth",token="hcs-test-token")["ok"]
         assert call("admin/invite-detail?id="+hcs["id"])["access_expires"]==until
         before=call("admin/subscriptions")
@@ -373,6 +373,13 @@ with tempfile.TemporaryDirectory() as tmp:
         eom=int(datetime(2026,8,31,12,tzinfo=timezone.utc).timestamp())
         assert datetime.fromtimestamp(m["add_months"](eom,6),timezone.utc).isoformat()=="2027-02-28T12:00:00+00:00"
         print("HCS: free activation, calendar expiry, admin renewal, access guard, registry and revenue isolation: PASS")
+        # Existing user consents remain valid: no silent retroactive replacement.
+        with db() as conn:
+            conn.execute("INSERT OR REPLACE INTO legal_acceptance(user_id,version,accepted_at,language) VALUES(?,?,?,?)",(student,"1.0-hcs",activated,"ru"))
+        old_user=call("me",token="hcs-test-token")
+        assert old_user["legal_version"]=="1.1-hcs" and old_user["legal_acceptance"]["version"]=="1.0-hcs"
+        assert call("workspace-status",token="hcs-test-token")["billing"]["plan"]=="HCS"
+        print("PASS: prior agreement preserved without new acceptance gate")
         # Specialists can update their own identity from workspace settings but cannot manage accounts.
         restored=call("workspace-status",token="hcs-test-token")
         assert restored["role"]=="specialist"
