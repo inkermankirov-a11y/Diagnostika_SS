@@ -191,7 +191,7 @@ assert.equal(await page.evaluate(()=>window.DiagnostikaRequests.activate('reques
 await page.waitForTimeout(250);
 const beforeReload=await page.evaluate(()=>{
   const live=window.DiagnostikaClients.current();
-  const stored=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null')?.clients?.find(c=>String(c.id)===String(live?.id));
+  const stored=window.DiagnostikaDB.readState()?.clients?.find(c=>String(c.id)===String(live?.id));
   return {
     liveCurrent:live?.currentRequestId||null,
     liveLast:live?.lastDiagnosisRequestId||null,

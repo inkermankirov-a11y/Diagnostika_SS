@@ -48,8 +48,8 @@ assert(css.includes('.cc-photo-editor-preview'),'Client photo thumbnail editor s
 
 assert(app.includes("birthTime:''")&&app.includes("photoSourceData:''"),'Legacy newClient defaults missing new profile fields');
 assert(service.includes("birthTime: ''")&&service.includes("photoSourceData: ''"),'Client service defaults missing new profile fields');
-assert(loader.includes('modules/clients/client-service.js?v=20261109-save-rollback-1'),'Client service cache marker missing');
+assert(loader.includes('modules/clients/client-service.js?v=20261121-quota41-trial-1-free-month-1'),'Client service cache marker missing');
 assert(index.includes('modules/clients/ui/card.css?v=20261119-card-goal-1'),'Client card CSS cache marker missing');
-assert(index.includes('modules/clients/ui/card.js?v=20261119-outside-close-1'),'Client card JS cache marker missing');
+assert(index.includes('modules/clients/ui/card.js?v=20261121-workspace-1'),'Client card JS cache marker missing');
 
 console.log('CLIENT_CARD_COMPACT_PROFILE_AUDIT_SUCCESS');

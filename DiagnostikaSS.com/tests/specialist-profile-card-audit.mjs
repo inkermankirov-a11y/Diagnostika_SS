@@ -8,8 +8,8 @@ const index=fs.readFileSync('index.html','utf8');
 new Function(account);
 new Function(transfer);
 
-assert(index.includes('account-settings.js?v=20261116-account-guard-2'),'Specialist profile cache marker missing');
-assert(index.includes('modules/clients/ui/transfer.js?v=20261003-specialist-right-rail-4'),'Specialist transfer cache marker missing');
+assert(index.includes('account-settings.js?v=20261122-admin-cabinet-only-1-analytics-1-free-month-1-two-plans-1-billing-1-pricing-4-notifications-1-hide-analytics-1-load-1-admin-only-2-inbox-1'),'Specialist profile cache marker missing');
+assert(index.includes('modules/clients/ui/transfer.js?v=20261120-vault37-trial-1'),'Specialist transfer cache marker missing');
 assert(account.includes('st.specialistProfile=profile'),'Specialist profile is not stored in application state');
 assert(account.includes("save({source:'specialist-profile-migration'})"),'Legacy specialist profile migration is missing');
 assert(account.includes("specialist-profile-card-save"),'Specialist profile save path missing');

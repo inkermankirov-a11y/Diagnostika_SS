@@ -143,6 +143,11 @@ with db() as c:
     c.execute("CREATE TABLE IF NOT EXISTS specialist_days(user_id TEXT NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))")
     if "details" not in {r[1] for r in c.execute("PRAGMA table_info(audit)")}:
         c.execute("ALTER TABLE audit ADD COLUMN details TEXT NOT NULL DEFAULT '{}'")
+    c.execute("CREATE INDEX IF NOT EXISTS audit_actor_action_created ON audit(actor,action,created)")
+    c.execute("CREATE INDEX IF NOT EXISTS audit_target_action_created ON audit(target,action,created)")
+    c.execute("CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires)")
+    c.execute("CREATE INDEX IF NOT EXISTS payment_user_recorded ON subscription_payments(user_id,recorded_at DESC)")
+    c.execute("CREATE INDEX IF NOT EXISTS payment_paid_at ON subscription_payments(paid_at)")
     for u in c.execute("SELECT id,role FROM users ORDER BY CASE WHEN role='admin' THEN 0 ELSE 1 END").fetchall():
         if u["role"]=="admin": allocate_id(c,u["id"],"admin","777777")
         allocate_id(c,u["id"],"specialist","888888" if u["role"]=="admin" else None)
@@ -247,7 +252,7 @@ def billing_summary(c,u):
     expires=u["trial_expires"] if plan=="FREE" else u["subscription_expires"] if u["access_plan"] in ("standard","hcs") else None
     payment=c.execute("SELECT period,amount,paid_at,end_at FROM subscription_payments WHERE user_id=? ORDER BY recorded_at DESC,rowid DESC LIMIT 1",(u["id"],)).fetchone()
     now=int(time.time())
-    status="archived" if u["deleted"] else "blocked" if not u["enabled"] else "legacy" if u["access_plan"]=="permanent" else "expired" if expires is not None and expires<=now else "expired" if u["access_plan"]=="hcs" and not expires else "pending" if u["access_plan"]=="standard" and not expires else "active"
+    status="archived" if u["deleted"] else "blocked" if not u["enabled"] else "legacy" if u["access_plan"]=="permanent" else "expired" if expires is not None and expires<=now else "expired" if u["access_plan"] in ("trial","hcs") and not expires else "pending" if u["access_plan"]=="standard" and not expires else "active"
     return {"plan":plan,"period":u["subscription_period"],"expires":expires,"basis":u["access_basis"] if u["access_plan"]=="standard" else None,"status":status,"last_payment":dict(payment) if payment else None,"legacy":u["access_plan"]=="permanent"}
 def payment_date(value):
     if type(value) is not int or not 0<value<=int(time.time()):raise Error(400,"Укажите действительную дату поступления оплаты")
@@ -789,14 +794,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             c=SimpleCookie(); c.load(self.headers.get("Cookie","")); return c["__Host-zabvenye_account"].value if "__Host-zabvenye_account" in c else ""
         except Exception: return ""
-    def user(self,c,admin=False):
+    def user(self,c,admin=False,touch=True):
         t=self.token()
         u=c.execute("SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.enabled=1 AND u.deleted=0",(digest(t),int(time.time()))).fetchone()
         if not u: raise Error(401,"Войдите в аккаунт")
         if admin and u["role"]!="admin": raise Error(403,"Нет доступа")
         require_access(u)
         now=int(time.time())
-        if not u["last_seen"] or now-u["last_seen"]>=60:
+        if touch and (not u["last_seen"] or now-u["last_seen"]>=60):
             c.execute("UPDATE users SET last_seen=? WHERE id=?",(now,u["id"]))
         return u
     def issue(self,c,u):
@@ -837,16 +842,27 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply(200,rows[:12])
                 except Exception: raise Error(503,"Справочник городов временно недоступен")
 
+            # Frequent workspace reads do not reserve SQLite's single writer slot.
+            # Preserve activity tracking with a short conditional write after the read.
+            if path in ("/account/api/workspace-status","/account/api/workspace-profile"):
+                with db() as c:
+                    c.execute("BEGIN")
+                    u=self.user(c,touch=False)
+                    if u["onboarding_required"]:raise Error(403,"Сначала завершите первичную настройку")
+                    payload=public(c,u,workspace=True) if path.endswith("workspace-status") else workspace_payload(c,u)
+                now=int(time.time())
+                if not u["last_seen"] or now-u["last_seen"]>=60:
+                    try:
+                        with db() as c:
+                            c.execute("UPDATE users SET last_seen=? WHERE id=? AND enabled=1 AND deleted=0 AND (last_seen IS NULL OR last_seen<=?)",(now,u["id"],now-60))
+                    except sqlite3.OperationalError:
+                        # A busy heartbeat must not turn a successful authorization check into an error.
+                        pass
+                return self.reply(200,payload)
             with db() as c:
                 c.execute("BEGIN IMMEDIATE")
                 u=self.user(c,path.startswith("/account/api/admin/"))
                 if path=="/account/api/me": return self.reply(200,public(c,u))
-                if path=="/account/api/workspace-status":
-                    if u["onboarding_required"]:raise Error(403,"Сначала завершите первичную настройку")
-                    return self.reply(200,public(c,u,workspace=True))
-                if path=="/account/api/workspace-profile":
-                    if u["onboarding_required"]: raise Error(403,"Сначала завершите первичную настройку")
-                    return self.reply(200,workspace_payload(c,u))
                 q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
                 def param(k): return q.get(k,[""])[0][:254]
                 try: offset=max(0,min(1000000,int(param("offset") or "0")))
@@ -865,22 +881,26 @@ class Handler(BaseHTTPRequestHandler):
                 if path=="/account/api/admin/subscriptions":
                     now=int(time.time())
                     month=int(datetime.now(timezone.utc).replace(day=1,hour=0,minute=0,second=0,microsecond=0).timestamp())
-                    rows=c.execute("SELECT * FROM users WHERE role='specialist' AND deleted=0 ORDER BY created DESC").fetchall()
-                    counts={"paid_active":0,"expiring":0,"expired":0,"vip":0,"free":0,"legacy":0,"hcs_active":0,"hcs_expired":0}
-                    for row in rows:
-                        summary=billing_summary(c,row)
-                        if summary["plan"]=="VIP":counts["vip"]+=1
-                        elif summary["status"]=="legacy":counts["legacy"]+=1
-                        elif summary["plan"]=="FREE":counts["free"]+=1
-                        elif summary["plan"]=="HCS":
-                            if summary["status"] in ("active","expired"):counts["hcs_"+summary["status"]]+=1
-                        elif summary["status"]=="active":
-                            counts["paid_active"]+=1
-                            if summary["expires"]<=now+7*86400:counts["expiring"]+=1
-                        elif summary["status"]=="expired":counts["expired"]+=1
+                    # One aggregate query, rather than loading every account and its latest payment.
+                    counts=dict(c.execute("""SELECT
+                        count(*) AS total,
+                        count(CASE WHEN access_plan='vip' THEN 1 END) AS vip,
+                        count(CASE WHEN access_plan='trial' THEN 1 END) AS free,
+                        count(CASE WHEN access_plan='permanent' AND enabled=1 THEN 1 END) AS legacy,
+                        count(CASE WHEN access_plan='hcs' AND enabled=1 AND subscription_expires>? THEN 1 END) AS hcs_active,
+                        count(CASE WHEN access_plan='hcs' AND enabled=1 AND COALESCE(subscription_expires,0)<=? THEN 1 END) AS hcs_expired,
+                        count(CASE WHEN access_plan='standard' AND enabled=1 AND access_basis!='complimentary' AND subscription_expires>? THEN 1 END) AS paid_active,
+                        count(CASE WHEN access_plan='standard' AND enabled=1 AND access_basis!='complimentary' AND subscription_expires>? AND subscription_expires<=? THEN 1 END) AS expiring,
+                        count(CASE WHEN access_plan='standard' AND enabled=1 AND access_basis!='complimentary' AND subscription_expires<=? THEN 1 END) AS expired,
+                        count(CASE WHEN access_plan='standard' AND enabled=1 AND access_basis='complimentary' AND subscription_expires>? THEN 1 END) AS complimentary_active,
+                        count(CASE WHEN access_plan='standard' AND enabled=1 AND access_basis='complimentary' AND subscription_expires<=? THEN 1 END) AS complimentary_expired,
+                        count(CASE WHEN access_plan='standard' AND enabled=1 AND subscription_expires IS NULL THEN 1 END) AS pending
+                        FROM users WHERE role='specialist' AND deleted=0""",(now,now,now,now,now+7*86400,now,now,now)).fetchone())
+                    total=counts.pop("total")
+                    rows=c.execute("SELECT * FROM users WHERE role='specialist' AND deleted=0 ORDER BY created DESC,id DESC LIMIT 50 OFFSET ?",(offset,)).fetchall()
                     income=c.execute("SELECT coalesce(sum(amount),0) FROM subscription_payments WHERE paid_at>=?",(month,)).fetchone()[0]
                     pending=c.execute("SELECT i.public_id,i.email,i.expires,i.revoked_at,p.amount,p.period,p.paid_at,n.number FROM subscription_payments p JOIN invites i ON i.public_id=p.invite_id JOIN license_numbers n ON n.public_id=i.public_id WHERE p.user_id IS NULL ORDER BY p.recorded_at DESC LIMIT 100").fetchall()
-                    return self.reply(200,{"counts":counts,"income":income,"total":len(rows),"items":[public(c,row) for row in rows[offset:offset+50]],"pending":[dict(row) for row in pending]})
+                    return self.reply(200,{"counts":counts,"income":income,"total":total,"items":[public(c,row) for row in rows],"pending":[dict(row) for row in pending]})
                 if path=="/account/api/admin/subscription-history":
                     target=c.execute("SELECT u.id FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist'",(param("id"),)).fetchone()
                     if not target:raise Error(404,"Специалист не найден")

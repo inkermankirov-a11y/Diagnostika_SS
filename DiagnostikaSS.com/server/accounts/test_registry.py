@@ -428,6 +428,11 @@ with tempfile.TemporaryDirectory() as tmp:
         changed=call("admin/change-plan",request)
         assert changed["billing"]["plan"]=="STANDARD" and changed["billing"]["period"]=="month"
         assert changed["billing"]["basis"]=="complimentary" and changed["billing"]["expires"]>int(time.time())
+        summary=call("admin/subscriptions")
+        assert summary["counts"]["paid_active"]==before["counts"]["paid_active"]
+        assert summary["counts"]["complimentary_active"]==before["counts"]["complimentary_active"]+1
+        assert summary["income"]==before["income"]
+        assert summary["total"]>=len(summary["items"])
         assert call("admin/invite-detail?id="+hcs["id"])["current_access_plan"]=="standard"
         assert call("admin/invite-detail?id="+hcs["id"])["access_plan"]=="hcs"
         # Comped STANDARD is not a recorded payment. It may be replaced without falsifying revenue.

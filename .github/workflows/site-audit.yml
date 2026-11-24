@@ -167,7 +167,7 @@ jobs:
           if(await oldWorkspace.isVisible())throw new Error('Legacy workspace visible after returning from diagnosis');
           await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
           if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1)throw new Error('Client AI clear button missing or duplicated');
-          const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          const before=await page.evaluate(()=>{const x=window.DiagnostikaDB.readState();const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
           await page.locator('#hdAddSession').waitFor({state:'visible',timeout:5000});await page.locator('#hdAddSession').click();
           const sessionDialog=page.locator('dialog.session-edit-dialog');await sessionDialog.waitFor({state:'visible',timeout:5000});
           await sessionDialog.locator('.session-ai-box').waitFor({state:'visible',timeout:5000});
@@ -176,7 +176,7 @@ jobs:
           await shot('08-session-ai');
           await page.evaluate(()=>document.querySelector('dialog.session-edit-dialog')?.close());
           await sessionDialog.waitFor({state:'hidden',timeout:3000});
-          const after=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          const after=await page.evaluate(()=>{const x=window.DiagnostikaDB.readState();const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
           if(after!==before+1)throw new Error(`Session persistence failed: before=${before}, after=${after}`);await shot('09-dashboard');
 
           const assets=await duplicateAssets(page);console.log('RUNTIME_DUPLICATE_ASSETS:',JSON.stringify(assets));

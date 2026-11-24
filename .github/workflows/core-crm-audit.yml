@@ -69,7 +69,7 @@ jobs:
           await page.locator('#hdClientAiWidget').waitFor({state:'visible',timeout:5000});
           if((await page.locator('#hdClientAiWidget .hd-ai-clear-btn').count())!==1)throw new Error('Client AI clear button missing or duplicated');
 
-          const before=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          const before=await page.evaluate(()=>{const x=window.DiagnostikaDB.readState();const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
           await page.locator('#hdAddSession').waitFor({state:'visible',timeout:5000});
           await page.locator('#hdAddSession').click();
           const dlg=page.locator('dialog.session-edit-dialog');
@@ -80,7 +80,7 @@ jobs:
 
           await page.evaluate(()=>document.querySelector('dialog.session-edit-dialog')?.close());
           await dlg.waitFor({state:'hidden',timeout:3000});
-          const after=await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('diagnostika-web-v1')||'null');const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
+          const after=await page.evaluate(()=>{const x=window.DiagnostikaDB.readState();const id=window.DiagnostikaClients?.currentId?.();return x?.clients?.find(c=>String(c.id)===String(id))?.sessions?.length||0;});
           if(after!==before+1)throw new Error(`Session persistence failed: before=${before}, after=${after}`);
 
           const raf=[];for(let i=0;i<5;i++)raf.push(await page.evaluate(()=>new Promise(r=>{const s=performance.now();requestAnimationFrame(()=>r(performance.now()-s))})));

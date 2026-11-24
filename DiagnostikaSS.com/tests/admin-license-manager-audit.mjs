@@ -22,7 +22,7 @@ assert(ui.includes("['Текущий тариф'"));
 assert(ui.includes("card.append(planChangeCard(u))"));
 assert(css.includes(".specialist-license-link")||css.includes(".specialist-license-row a"));
 assert(css.includes(".plan-change-form"));
-assert(html.includes("ui.js?v=20261124-license-manager-1"));
+assert(html.includes("ui.js?v=20261124-license-manager-2"));
 assert(html.includes("ui.css?v=20261124-license-manager-1"));
 assert(server.includes("if path==\"/account/api/admin/specialist-licenses\":"));
 assert(server.includes('elif path in ("/account/api/admin/subscription-payment"'));

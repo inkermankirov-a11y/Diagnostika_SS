@@ -81,11 +81,11 @@ try{
 
   const root=await request('/');
   assert.equal(root.status,200);
-  assert((await root.text()).includes('<title>Психологическая диагностика</title>'));
+  assert((await root.text()).includes('<title>zabvenye</title>'));
 
   const spa=await request('/clients/example');
   assert.equal(spa.status,200);
-  assert((await spa.text()).includes('<title>Психологическая диагностика</title>'));
+  assert((await spa.text()).includes('<title>zabvenye</title>'));
 
   for(const blocked of [
     '/server/server.js',
@@ -110,7 +110,7 @@ try{
 
   const auth404=await request('/auth/does-not-exist');
   assert.equal(auth404.status,404);
-  assert.equal((await auth404.text()).includes('<title>Психологическая диагностика</title>'),false);
+  assert.equal((await auth404.text()).includes('<title>zabvenye</title>'),false);
 
   const evil=await request('/api/google-drive/disconnect',{
     method:'POST',

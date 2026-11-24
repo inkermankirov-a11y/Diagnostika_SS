@@ -41,6 +41,19 @@ with tempfile.TemporaryDirectory() as tmp:
         full=call("me")[1];light=call("workspace-status")[1]
         assert light["metrics"]=={"analytics_enabled":False}
         assert {k:v for k,v in light.items() if k!="metrics"}=={k:v for k,v in full.items() if k!="metrics"}
+        # A reserved writer transaction must not block routine read-only workspace checks.
+        with m["db"]() as writer:
+            writer.execute("BEGIN IMMEDIATE")
+            start=time.monotonic()
+            assert call("workspace-status")[0]==200
+            assert call("workspace-profile")[0]==200
+            assert time.monotonic()-start<3, "routine reads waited on the writer lock"
+        with m["db"]() as c:
+            c.execute("UPDATE users SET last_seen=? WHERE id=?",(int(time.time())-180,u))
+        assert call("workspace-status")[0]==200
+        with m["db"]() as c:
+            assert c.execute("SELECT last_seen FROM users WHERE id=?",(u,)).fetchone()[0]>=int(time.time())-3
+        print("PASS: workspace reads proceed during reserved write; heartbeat preserved")
         with ThreadPoolExecutor(max_workers=6) as pool:
             try:
                 a=pool.submit(call,"ai/chat",{"id":1})

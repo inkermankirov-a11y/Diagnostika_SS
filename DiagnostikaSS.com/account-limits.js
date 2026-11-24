@@ -17,12 +17,13 @@ function snapshotMetrics(state){
   counts.sessions+=sessions.length;counts.requests+=requests.length;
   for(const s of sessions){const status=String(s.status||'').toLowerCase();if(['cancelled','canceled'].includes(status))counts.cancelled_sessions++;else if(s.planned===true||status==='planned')counts.planned_sessions++;else if(status==='completed'||status==='done'||s.completedAt||s.conductedAt)counts.completed_sessions++}
   for(const r of requests){const situations=list(r.situations);if(situations.length)counts.diagnoses++;counts.situations+=situations.length;for(const pay of list(r.payment?.payments)){if(pay.sessionId&&ids.has(String(pay.sessionId)))continue;add(pay.amount,r.payment?.currency||c.currency)}}
-  for(const s of paid){const r=requests.find(r=>String(r.id)===String(s.requestId||s.payment?.requestId||''));add(s.payment.amount,r?.payment?.currency||c.currency)}
+  const requestById=new Map(requests.map(r=>[String(r.id),r]));
+  for(const s of paid){const r=requestById.get(String(s.requestId||s.payment?.requestId||''));add(s.payment.amount,r?.payment?.currency||c.currency)}
  }
  return {counts,income};
 }
 function privateDevice(){const ua=navigator.userAgent||'',browser=/Edg\//.test(ua)?'Edge':/Firefox\//.test(ua)?'Firefox':/Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':'Other',os=/Android/.test(ua)?'Android':/iPhone|iPad|iPod/.test(ua)?'iOS':/Windows/.test(ua)?'Windows':/Macintosh/.test(ua)?'macOS':/Linux/.test(ua)?'Linux':'Other',type=/iPad|Tablet/.test(ua)?'tablet':/Mobile|iPhone|Android/.test(ua)?'mobile':'desktop';return {browser,os,type}}
-async function reportMetrics(){if(document.visibilityState==='hidden'||reporting||!profile||Date.now()-lastMetrics<120000)return;const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;const state=db?.readState?.();if(!Array.isArray(state?.clients))return;reporting=true;lastMetrics=Date.now();try{
+async function reportMetrics(){if(document.visibilityState==='hidden'||reporting||!profile||Date.now()-lastMetrics<120000)return;reporting=true;lastMetrics=Date.now();try{const db=window.DiagnostikaDB||window.DiagnostikaPlatform?.db;const state=db?.readState?.();if(!Array.isArray(state?.clients))return;
  const payload={clients:state.clients.length},owner=profile.id;
  if(eventsOwner!==owner){eventsOwner=owner;events={};pendingReport=null;}
  if(profile.role==='specialist'&&profile.metrics?.analytics_enabled){
