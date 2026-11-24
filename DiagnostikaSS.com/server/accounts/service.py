@@ -1235,7 +1235,7 @@ class Handler(BaseHTTPRequestHandler):
                 elif path.endswith("subscription-payment"):
                     payment_record(c,u["id"],target,b.get("period"),b.get("paid_at"),b.get("request_id"),int(time.time()))
                 else:
-                    if target["access_plan"]=="standard" and target["subscription_expires"] and target["subscription_expires"]>int(time.time()):raise Error(409,"Дождитесь окончания оплаченного периода перед выдачей VIP")
+                    if target["access_plan"]=="standard" and target["access_basis"]!="complimentary" and target["subscription_expires"] and target["subscription_expires"]>int(time.time()):raise Error(409,"Дождитесь окончания оплаченного периода перед выдачей VIP")
                     limits=json.loads(target["limits"]) if target["access_plan"]!="trial" else DEFAULT
                     c.execute("UPDATE users SET access_plan='vip',subscription_expires=NULL,subscription_period=NULL,trial_expires=NULL,limits=? WHERE id=?",(json.dumps(limits),target["id"]))
                     if target["access_plan"]!="vip":
