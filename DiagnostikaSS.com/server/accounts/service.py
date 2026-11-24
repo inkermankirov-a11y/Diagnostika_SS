@@ -91,6 +91,7 @@ with db() as c:
     for inv in c.execute("SELECT token FROM invites WHERE public_id IS NULL").fetchall():
         c.execute("UPDATE invites SET public_id=?,preview=? WHERE token=?",(secrets.token_hex(12),"Старый код",inv["token"]))
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS invite_public_id_unique ON invites(public_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS invite_activated_owner ON invites(used_by,used_at)")
     c.execute("CREATE TABLE IF NOT EXISTS license_archive(public_id TEXT PRIMARY KEY,token TEXT NOT NULL,deleted_at INTEGER NOT NULL)")
     c.execute("CREATE TABLE IF NOT EXISTS license_numbers(number INTEGER PRIMARY KEY AUTOINCREMENT,public_id TEXT NOT NULL UNIQUE)")
     for row in c.execute("SELECT public_id FROM (SELECT public_id,COALESCE(created,0) AS ts FROM invites UNION ALL SELECT public_id,deleted_at AS ts FROM license_archive) ORDER BY ts,public_id").fetchall():
@@ -102,6 +103,7 @@ with db() as c:
     c.execute("CREATE TABLE IF NOT EXISTS billing_migrations(name TEXT PRIMARY KEY)")
     if "subscription_expires" not in cols:c.execute("ALTER TABLE users ADD COLUMN subscription_expires INTEGER")
     if "subscription_period" not in cols:c.execute("ALTER TABLE users ADD COLUMN subscription_period TEXT")
+    if "access_basis" not in cols:c.execute("ALTER TABLE users ADD COLUMN access_basis TEXT NOT NULL DEFAULT 'paid'")
     if "billing_period" not in invite_cols:c.execute("ALTER TABLE invites ADD COLUMN billing_period TEXT")
     c.execute("CREATE TABLE IF NOT EXISTS subscription_payments(id TEXT PRIMARY KEY,user_id TEXT,invite_id TEXT,period TEXT NOT NULL,amount INTEGER NOT NULL,paid_at INTEGER NOT NULL,recorded_at INTEGER NOT NULL,actor TEXT NOT NULL,start_at INTEGER,end_at INTEGER)")
     c.execute("CREATE INDEX IF NOT EXISTS subscription_payment_user ON subscription_payments(user_id,paid_at)")
@@ -246,7 +248,7 @@ def billing_summary(c,u):
     payment=c.execute("SELECT period,amount,paid_at,end_at FROM subscription_payments WHERE user_id=? ORDER BY recorded_at DESC,rowid DESC LIMIT 1",(u["id"],)).fetchone()
     now=int(time.time())
     status="archived" if u["deleted"] else "blocked" if not u["enabled"] else "legacy" if u["access_plan"]=="permanent" else "expired" if expires is not None and expires<=now else "expired" if u["access_plan"]=="hcs" and not expires else "pending" if u["access_plan"]=="standard" and not expires else "active"
-    return {"plan":plan,"period":u["subscription_period"],"expires":expires,"status":status,"last_payment":dict(payment) if payment else None,"legacy":u["access_plan"]=="permanent"}
+    return {"plan":plan,"period":u["subscription_period"],"expires":expires,"basis":u["access_basis"] if u["access_plan"]=="standard" else None,"status":status,"last_payment":dict(payment) if payment else None,"legacy":u["access_plan"]=="permanent"}
 def payment_date(value):
     if type(value) is not int or not 0<value<=int(time.time()):raise Error(400,"Укажите действительную дату поступления оплаты")
     return value
@@ -285,7 +287,7 @@ def payment_record(c,actor,target,period,paid_at,request_id,now):
     c.execute("INSERT INTO subscription_payments VALUES(?,?,?,?,?,?,?,?,?,?)",(request_id,target["id"],None,period,SUBSCRIPTION_PRICES[period],paid_at,now,actor,start,end))
     limits=json.loads(target["limits"])
     if target["access_plan"] in ("trial","hcs"):limits=json.loads(json.dumps(DEFAULT))
-    c.execute("UPDATE users SET access_plan='standard',subscription_expires=?,subscription_period=?,trial_expires=NULL,limits=? WHERE id=?",(end,period,json.dumps(limits),target["id"]))
+    c.execute("UPDATE users SET access_plan='standard',subscription_expires=?,subscription_period=?,trial_expires=NULL,access_basis='paid',limits=? WHERE id=?",(end,period,json.dumps(limits),target["id"]))
     queue_notification(c,target["id"],"payment",now,ident="payment-"+request_id,expires=end)
     audit(c,actor,"subscription-payment",target["id"],{"amount":{"from":None,"to":SUBSCRIPTION_PRICES[period]},"access_until":{"from":target["subscription_expires"],"to":end}})
 def trial_end(now):
@@ -341,9 +343,45 @@ def activate_plan(c,uid,plan,now,invite=None):
         if not invite or invite["billing_period"] not in SUBSCRIPTION_PRICES:raise Error(409,"Оплата STANDARD не зарегистрирована")
         period=invite["billing_period"];end=add_months(now,1 if period=="month" else 12)
         if c.execute("UPDATE subscription_payments SET user_id=?,start_at=?,end_at=? WHERE invite_id=? AND user_id IS NULL",(uid,now,end,invite["public_id"])).rowcount!=1:raise Error(409,"Оплата STANDARD не зарегистрирована")
-        c.execute("UPDATE users SET access_plan='standard',subscription_period=?,subscription_expires=? WHERE id=?",(period,end,uid))
+        c.execute("UPDATE users SET access_plan='standard',subscription_period=?,subscription_expires=?,access_basis='paid' WHERE id=?",(period,end,uid))
     elif plan=="trial":
         c.execute("UPDATE users SET access_plan='trial',trial_expires=?,trial_policy=2,limits=? WHERE id=?",(trial_end(now),json.dumps(TRIAL_LIMITS),uid))
+def change_specialist_plan(c,actor,target,plan,expected_plan,expected_expires,period,reason,now):
+    """An explicitly complimentary administrative grant; payments are recorded separately."""
+    if plan not in ("trial","hcs","standard","vip") or not isinstance(expected_plan,str) or not isinstance(reason,str) or len(reason.strip())>250:
+        raise Error(400,"Некорректный тариф или комментарий")
+    if period is not None and period not in ("month","year"):raise Error(400,"Некорректный период")
+    if plan=="standard" and period not in ("month","year"):raise Error(400,"Укажите срок STANDARD")
+    if plan!="standard" and period is not None:raise Error(400,"Период указывается только для STANDARD")
+    if target["access_plan"]!=expected_plan:raise Error(409,"Тариф уже изменён. Обновите карточку специалиста")
+    old_expires=target["trial_expires"] if target["access_plan"]=="trial" else target["subscription_expires"] if target["access_plan"] in ("hcs","standard") else None
+    if type(expected_expires) not in (int,type(None)) or expected_expires!=old_expires:
+        raise Error(409,"Срок лицензии изменился. Обновите карточку специалиста")
+    if plan==target["access_plan"]:raise Error(409,"Выбранный тариф уже действует")
+    if target["access_plan"]=="standard" and target["access_basis"]!="complimentary" and target["subscription_expires"] and target["subscription_expires"]>now:
+        raise Error(409,"Действующий оплаченный период STANDARD нельзя заменить. Дождитесь его окончания")
+    if plan=="trial":
+        expiry=trial_end(now)
+        limits=json.loads(json.dumps(TRIAL_LIMITS))
+        subscription_period=None;subscription_expires=None;trial_expires=expiry
+        c.execute("DELETE FROM trial_usage WHERE user_id=?",(target["id"],))
+        c.execute("DELETE FROM trial_clients WHERE user_id=?",(target["id"],))
+    else:
+        limits=json.loads(json.dumps(DEFAULT)) if target["access_plan"]=="trial" else json.loads(target["limits"])
+        trial_expires=None
+        subscription_period="six_months" if plan=="hcs" else period if plan=="standard" else None
+        subscription_expires=add_months(now,6 if plan=="hcs" else 1 if period=="month" else 12) if plan in ("hcs","standard") else None
+        expiry=subscription_expires
+    basis="complimentary" if plan=="standard" else "grant"
+    c.execute("UPDATE users SET access_plan=?,trial_expires=?,trial_policy=CASE WHEN ?='trial' THEN 2 ELSE trial_policy END,subscription_expires=?,subscription_period=?,access_basis=?,limits=? WHERE id=?",
+        (plan,trial_expires,plan,subscription_expires,subscription_period,basis,json.dumps(limits),target["id"]))
+    c.execute("DELETE FROM subscription_reminders WHERE user_id=?",(target["id"],))
+    audit(c,actor,"change-plan",target["id"],{
+        "access_plan":{"from":target["access_plan"],"to":plan},
+        "access_until":{"from":old_expires,"to":expiry},
+        "access_basis":{"from":target["access_basis"],"to":basis},
+        "reason":{"from":"","to":reason.strip()}})
+    return expiry
 def renew_hcs(c,actor,target,expected,now):
     if target["access_plan"]!="hcs":raise Error(409,"Продление доступно только для HCS")
     if not target["enabled"]:raise Error(409,"Сначала разблокируйте аккаунт")
@@ -689,7 +727,7 @@ SUBSCRIPTION_MAIL={
 def send_next_subscription_reminder():
     now=int(time.time())
     with db() as c:
-        rows=c.execute("SELECT id,email,ui_language,subscription_expires FROM users WHERE access_plan='standard' AND enabled=1 AND deleted=0 AND subscription_expires>? AND subscription_expires<=? ORDER BY subscription_expires LIMIT 200",(now,now+7*86400)).fetchall()
+        rows=c.execute("SELECT id,email,ui_language,subscription_expires FROM users WHERE access_plan='standard' AND access_basis!='complimentary' AND enabled=1 AND deleted=0 AND subscription_expires>? AND subscription_expires<=? ORDER BY subscription_expires LIMIT 200",(now,now+7*86400)).fetchall()
         selected=None
         for row in rows:
             end=row["subscription_expires"]
@@ -868,6 +906,12 @@ class Handler(BaseHTTPRequestHandler):
                     rows=c.execute("SELECT u.* FROM users u JOIN public_ids p ON u.id=p.owner AND p.kind='specialist' WHERE "+clause+" ORDER BY p.number LIMIT 50 OFFSET ?",args+[offset]).fetchall()
                     return self.reply(200,{"items":[public(c,x) for x in rows],"total":total})
                 # License records are retained until explicit archival.
+                if path=="/account/api/admin/specialist-licenses":
+                    target=c.execute("SELECT u.id FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist'",(param("id"),)).fetchone()
+                    if not target:raise Error(404,"Специалист не найден")
+                    rows=c.execute("""SELECT i.* FROM invites i JOIN license_numbers n ON n.public_id=i.public_id
+                        WHERE i.used_by=? AND i.used_at IS NOT NULL ORDER BY i.used_at DESC,n.number DESC LIMIT 50""",(target["id"],)).fetchall()
+                    return self.reply(200,{"items":[invite_public(c,row,int(time.time())) for row in rows]})
                 if path=="/account/api/admin/invite-detail":
                     ident=param("id")
                     row=c.execute("SELECT * FROM invites WHERE public_id=?",(ident,)).fetchone()
@@ -1179,16 +1223,19 @@ class Handler(BaseHTTPRequestHandler):
                     c.execute("UPDATE invites SET revoked_at=? WHERE public_id=?",(now,ident))
                     audit(c,u["id"],"invite-revoke",inv["email"] or "Без привязки",{"invitation":{"from":inv["preview"],"to":"Отозвано"}})
                     payload={"ok":True}
-            elif path in ("/account/api/admin/subscription-payment","/account/api/admin/grant-vip","/account/api/admin/renew-hcs"):
+            elif path in ("/account/api/admin/subscription-payment","/account/api/admin/grant-vip","/account/api/admin/renew-hcs","/account/api/admin/change-plan"):
                 target=c.execute("SELECT u.* FROM users u JOIN public_ids p ON p.owner=u.id WHERE p.number=? AND p.kind='specialist' AND u.role='specialist' AND u.deleted=0",(b.get("id"),)).fetchone()
                 if not target:raise Error(404,"Специалист не найден")
-                if path.endswith("renew-hcs"):
+                if path.endswith("change-plan"):
+                    if set(b)!={"id","plan","period","reason","expected_plan","expected_expires"}:raise Error(400,"Некорректный запрос смены тарифа")
+                    change_specialist_plan(c,u["id"],target,b["plan"],b["expected_plan"],b["expected_expires"],b["period"],b["reason"],int(time.time()))
+                elif path.endswith("renew-hcs"):
                     if set(b)!={"id","expected_expires"}:raise Error(400,"Некорректный запрос продления")
                     renew_hcs(c,u["id"],target,b["expected_expires"],int(time.time()))
                 elif path.endswith("subscription-payment"):
                     payment_record(c,u["id"],target,b.get("period"),b.get("paid_at"),b.get("request_id"),int(time.time()))
                 else:
-                    if target["access_plan"]=="standard" and target["subscription_expires"] and target["subscription_expires"]>int(time.time()):raise Error(409,"Дождитесь окончания оплаченного периода перед выдачей VIP")
+                    if target["access_plan"]=="standard" and target["access_basis"]!="complimentary" and target["subscription_expires"] and target["subscription_expires"]>int(time.time()):raise Error(409,"Дождитесь окончания оплаченного периода перед выдачей VIP")
                     limits=json.loads(target["limits"]) if target["access_plan"]!="trial" else DEFAULT
                     c.execute("UPDATE users SET access_plan='vip',subscription_expires=NULL,subscription_period=NULL,trial_expires=NULL,limits=? WHERE id=?",(json.dumps(limits),target["id"]))
                     if target["access_plan"]!="vip":

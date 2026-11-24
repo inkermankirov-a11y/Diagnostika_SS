@@ -104,3 +104,19 @@ body.license-public{display:block;min-height:100vh;margin:0;background:#f3f7fa;c
 .lp-brand{display:flex;align-items:center;gap:10px;white-space:nowrap}.lp-brand img{display:block;width:40px;height:40px;flex:0 0 40px;object-fit:contain}.lp-brand span{display:block}@media(max-width:650px){.lp-brand{gap:8px}.lp-brand img{width:34px;height:34px;flex-basis:34px}}
 
 .invite-status.awaiting_renewal{color:#956200;background:#fff1cc}#currentPlan[data-plan="HCS"] .plan-name{color:#386da6}#currentPlan[data-plan="HCS"] small{font-size:11px;color:var(--muted)}
+
+/* Admin: the original license remains linked even when the assigned plan changes. */
+.specialist-licenses{display:grid;gap:8px}
+.specialist-license-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;padding:9px 11px;background:#f4f8fc;border:1px solid #d7e4ef;border-radius:8px}
+.specialist-license-row a{font-weight:700;color:#225a88;text-decoration:underline;text-underline-offset:2px}
+.specialist-license-row small{font-size:12px;line-height:1.4}
+.plan-change-card{margin:12px 0;padding:13px;border:1px solid #cad9e8;border-radius:10px;background:#f6f9fc}
+.plan-change-card h3{margin:0 0 10px}
+.plan-change-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}
+.plan-change-form label{display:grid;gap:5px;font-size:13px;font-weight:600;min-width:0}
+.plan-change-form select,.plan-change-form input[type=text]{width:100%;min-width:0;box-sizing:border-box}
+.plan-change-form .plan-change-complimentary{grid-column:1/-1;display:flex;align-items:flex-start;gap:8px;padding:10px;border:1px solid #e6cf98;border-radius:7px;background:#fff9e9;font-weight:500;line-height:1.45}
+.plan-change-form .plan-change-complimentary input{flex:0 0 auto;margin-top:3px}
+.plan-change-form p{grid-column:1/-1;margin:0;font-size:12px}
+.plan-change-form button{grid-column:1/-1;justify-self:start}
+@media(max-width:640px){.plan-change-form{grid-template-columns:minmax(0,1fr)}.plan-change-form button{width:100%}}

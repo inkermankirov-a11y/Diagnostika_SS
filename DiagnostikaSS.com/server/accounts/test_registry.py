@@ -392,5 +392,69 @@ with tempfile.TemporaryDirectory() as tmp:
         call("admin/invite",{"hours":24,"access_plan":"vip"},expected=403,token="hcs-test-token")
         call("profile",{**personal,"timezone":"invalid"},expected=400,token="hcs-test-token")
         print("PASS: workspace personal data saved, admin APIs inaccessible to specialists")
+        # Admin can follow a registered specialist's original license, even after plan changes.
+        linked=call("admin/specialist-licenses?id="+student_sid)
+        assert len(linked["items"])==1 and linked["items"][0]["id"]==hcs["id"]
+        assert linked["items"][0]["license_number"]==hcs["license_number"]
+        assert linked["items"][0]["access_plan"]=="hcs"
+        call("admin/specialist-licenses?id="+student_sid,expected=403,token="hcs-test-token")
+        call("admin/specialist-licenses?id=000000",expected=404)
+        with db() as conn:
+            prior_payments=conn.execute("SELECT count(*) FROM subscription_payments WHERE user_id=?",(student,)).fetchone()[0]
+            prior_notices=conn.execute("SELECT count(*) FROM account_notifications WHERE user_id=?",(student,)).fetchone()[0]
+            prior_audit=conn.execute("SELECT count(*) FROM audit WHERE target=? AND action='change-plan'",(student,)).fetchone()[0]
+        original=call("me",token="hcs-test-token")
+        request={"id":student_sid,"plan":"trial","period":None,"reason":"Учебный тест","expected_plan":"hcs","expected_expires":original["billing"]["expires"]}
+        call("admin/change-plan",request,expected=403,token="hcs-test-token")
+        call("admin/change-plan",{**request,"id":"000000"},expected=404)
+        call("admin/change-plan",{**request,"plan":"standard","period":None},expected=400)
+        call("admin/change-plan",{**request,"plan":"invalid"},expected=400)
+        call("admin/change-plan",{**request,"period":"year"},expected=400)
+        changed=call("admin/change-plan",request)
+        assert changed["billing"]["plan"]=="FREE" and changed["trial"]["caps"]["ai"]==10
+        assert changed["limits"]==m["TRIAL_LIMITS"]
+        assert changed["billing"]["expires"]==m["trial_end"](int(time.time())) or abs(changed["billing"]["expires"]-m["trial_end"](int(time.time())))<=1
+        call("admin/change-plan",request,expected=409)
+        with db() as conn:
+            conn.execute("INSERT OR REPLACE INTO trial_usage VALUES(?,?,?)",(student,"ai",10))
+        request={"id":student_sid,"plan":"hcs","period":None,"reason":"","expected_plan":"trial","expected_expires":changed["billing"]["expires"]}
+        changed=call("admin/change-plan",request)
+        assert changed["billing"]["plan"]=="HCS" and changed["limits"]==m["DEFAULT"] and changed["trial"] is None
+        assert changed["billing"]["expires"]>=m["add_months"](int(time.time())-2,6)
+        request={"id":student_sid,"plan":"vip","period":None,"reason":"","expected_plan":"hcs","expected_expires":changed["billing"]["expires"]}
+        changed=call("admin/change-plan",request)
+        assert changed["billing"]["plan"]=="VIP" and changed["billing"]["expires"] is None
+        request={"id":student_sid,"plan":"standard","period":"month","reason":"Бесплатное администраторское предоставление","expected_plan":"vip","expected_expires":None}
+        changed=call("admin/change-plan",request)
+        assert changed["billing"]["plan"]=="STANDARD" and changed["billing"]["period"]=="month"
+        assert changed["billing"]["basis"]=="complimentary" and changed["billing"]["expires"]>int(time.time())
+        assert call("admin/invite-detail?id="+hcs["id"])["current_access_plan"]=="standard"
+        assert call("admin/invite-detail?id="+hcs["id"])["access_plan"]=="hcs"
+        # Comped STANDARD is not a recorded payment. It may be replaced without falsifying revenue.
+        request={"id":student_sid,"plan":"trial","period":None,"reason":"Test reset","expected_plan":"standard","expected_expires":changed["billing"]["expires"]}
+        changed=call("admin/change-plan",request)
+        assert changed["billing"]["plan"]=="FREE" and changed["trial"]["used"]["ai"]==0
+        assert call("admin/subscriptions")["counts"]["paid_active"]==before["counts"]["paid_active"]
+        # Confirm a real payment separately; an unexpired paid term cannot be silently removed.
+        current=call("admin/subscription-payment",{"id":student_sid,"period":"month","paid_at":int(time.time()),"request_id":"20000000-0000-4000-8000-000000000001"})
+        assert current["billing"]["basis"]=="paid"
+        request={"id":student_sid,"plan":"vip","period":None,"reason":"","expected_plan":"standard","expected_expires":current["billing"]["expires"]}
+        call("admin/change-plan",request,expected=409)
+        with db() as conn:
+            assert conn.execute("SELECT count(*) FROM subscription_payments WHERE user_id=?",(student,)).fetchone()[0]==prior_payments+1
+            assert conn.execute("SELECT count(*) FROM account_notifications WHERE user_id=?",(student,)).fetchone()[0]==prior_notices+1
+            assert conn.execute("SELECT count(*) FROM audit WHERE target=? AND action='change-plan'",(student,)).fetchone()[0]==prior_audit+5
+            conn.execute("UPDATE users SET subscription_expires=? WHERE id=?",(int(time.time())-5,student))
+        request["expected_expires"]=int(time.time())-5
+        # Use the stored value, avoiding a test race across a second boundary.
+        with db() as conn: request["expected_expires"]=conn.execute("SELECT subscription_expires FROM users WHERE id=?",(student,)).fetchone()[0]
+        changed=call("admin/change-plan",request)
+        assert changed["billing"]["plan"]=="VIP"
+        with db() as conn:
+            assert conn.execute("SELECT count(*) FROM account_notifications WHERE user_id=?",(student,)).fetchone()[0]==prior_notices+1
+            assert conn.execute("SELECT count(*) FROM audit WHERE target=? AND action='change-plan'",(student,)).fetchone()[0]==prior_audit+6
+            assert conn.execute("SELECT access_plan FROM invites WHERE public_id=?",(hcs["id"],)).fetchone()[0]=="hcs"
+        assert call("admin/specialist-licenses?id="+student_sid)["items"][0]["license_number"]==hcs["license_number"]
+        print("PASS: specialist license links, FREE/HCS/STANDARD/VIP switching, paid period guard, audit and payment integrity")
     finally:
         server.shutdown();server.server_close();t.join()

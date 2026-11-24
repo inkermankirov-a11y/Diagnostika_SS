@@ -35,6 +35,6 @@ for(const [lang,parts] of Object.entries(trans)){
  assert(x[10].includes('399')&&x[10].includes('2.388')||x[10].includes('2,388')||x[10].includes('2 388'),lang);
  assert(x[14].startsWith('4.2.')&&x[34].startsWith('9.2.'),lang);
 }
-assert(html.includes('ui.js?v=20261123-license-1-1'));
+assert(html.includes('ui.js?v=20261124-license-manager-1'));
 assert(get('index.html').includes('about-program.js?v=20261123-license-1-1'));
 console.log('PASS: versions 1.1 and 1.1-hcs, all 5 language variants, tariff clauses, historic archive, prior consents and no notification gate');
