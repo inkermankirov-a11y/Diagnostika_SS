@@ -50,6 +50,11 @@ with tempfile.TemporaryDirectory() as tmp:
             assert time.monotonic()-start<3, "routine reads waited on the writer lock"
         with m["db"]() as c:
             c.execute("UPDATE users SET last_seen=? WHERE id=?",(int(time.time())-180,u))
+        with m["db"]() as writer:
+            writer.execute("BEGIN IMMEDIATE")
+            start=time.monotonic()
+            assert call("workspace-status")[0]==200
+            assert time.monotonic()-start<2, "optional activity update blocked authorization"
         assert call("workspace-status")[0]==200
         with m["db"]() as c:
             assert c.execute("SELECT last_seen FROM users WHERE id=?",(u,)).fetchone()[0]>=int(time.time())-3

@@ -854,6 +854,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not u["last_seen"] or now-u["last_seen"]>=60:
                     try:
                         with db() as c:
+                            c.execute("PRAGMA busy_timeout=100")
                             c.execute("UPDATE users SET last_seen=? WHERE id=? AND enabled=1 AND deleted=0 AND (last_seen IS NULL OR last_seen<=?)",(now,u["id"],now-60))
                     except sqlite3.OperationalError:
                         # A busy heartbeat must not turn a successful authorization check into an error.
