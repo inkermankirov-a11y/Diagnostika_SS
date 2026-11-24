@@ -1,7 +1,7 @@
 name: Account registry audit
 on:
   push:
-    branches: [main, 'feature-license-mascot', 'feature-hcs-license', 'feature-vps-load', 'feature-admin-only-workspace', 'feature-notice-popup', 'feature-license-terms-2026']
+    branches: [main, 'feature-license-mascot', 'feature-hcs-license', 'feature-vps-load', 'feature-admin-only-workspace', 'feature-notice-popup', 'feature-admin-license-manager', 'feature-license-terms-2026', 'feature-admin-license-manager']
     paths:
       - 'DiagnostikaSS.com/server/accounts/**'
       - 'DiagnostikaSS.com/account-limits.js'
